@@ -108,11 +108,16 @@ export function HeroCarousel({
         type="button"
         className="wf-card"
         aria-current={i === index ? 'true' : undefined}
-        aria-label={`${it.title}${it.state === 'SPONSORED' ? ' (patrocinado)' : it.state === 'RESERVED' ? ' (reservado)' : ''}`}
+        aria-label={`${it.title}${it.state === 'SPONSORED' ? ', patrocinado' : it.state === 'RESERVED' ? ', reservado' : ''}`}
         tabIndex={i === index ? 0 : -1}
         onClick={() => select(i)}
       >
         <MediaPicture picture={it.poster} alt="" sizes="(max-width: 760px) 140px, 220px" />
+        {/* WCAG 2.5.3 (label in name): title before the badge in the DOM (both are positioned)
+            and a real space between them, so the visible text reads as the start of the name. */}
+        <span className="wf-card__title" aria-hidden="true">
+          {it.title}
+        </span>{' '}
         {it.state === 'SPONSORED' ? (
           <span className="wf-badge wf-badge--sponsored" aria-hidden="true">
             Patrocinado
@@ -122,9 +127,6 @@ export function HeroCarousel({
             Reservado
           </span>
         ) : null}
-        <span className="wf-card__title" aria-hidden="true">
-          {it.title}
-        </span>
       </button>
     );
   };

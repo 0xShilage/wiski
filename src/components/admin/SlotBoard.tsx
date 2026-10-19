@@ -90,7 +90,8 @@ export function SlotBoard({
                 type="button"
                 className={`wf-slot wf-slot--${state} ${overSlot === slot ? 'is-dragover' : ''}`}
                 aria-current={item.id === selectedId ? 'true' : undefined}
-                aria-label={`Vaga ${n}: ${item.title} — ${STATE_LABEL[state] ?? state}${isLive ? '. Alt + setas para mover' : ''}`}
+                // WCAG 2.5.3: the visible "<n> <state>" comes first and in order, then the title.
+                aria-label={`Vaga ${n}, ${STATE_LABEL[state] ?? state}: ${item.title}${isLive ? '. Alt + setas para mover' : ''}`}
                 title={item.title}
                 draggable={isLive}
                 onDragStart={(e) => {
@@ -111,7 +112,8 @@ export function SlotBoard({
                 <MediaPicture picture={item.poster} alt="" sizes="96px" />
                 <span className="wf-slot__n" aria-hidden="true">
                   {n}
-                </span>
+                </span>{' '}
+                {/* the space keeps "01 Ativo" two words for the name check */}
                 <span className="wf-slot__state" aria-hidden="true">
                   {STATE_LABEL[state] ?? state}
                 </span>

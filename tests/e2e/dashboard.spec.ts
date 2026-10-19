@@ -97,7 +97,7 @@ test('create → upload → publish → the movie is in the carousel', async ({ 
 
   await page.getByRole('button', { name: 'Publicar' }).click();
   await expect(page.getByText('Publicado: o filme já aparece no carrossel.')).toBeVisible();
-  await expect(page.getByRole('button', { name: new RegExp(`${TITLE} — Ativo`) })).toBeVisible();
+  await expect(page.getByRole('button', { name: new RegExp(`Ativo: ${TITLE}`) })).toBeVisible();
 
   await page.goto('/', { waitUntil: 'networkidle' });
   const next = page.getByRole('button', { name: 'Próximo filme' });
@@ -116,7 +116,7 @@ test('edit a live movie, then revert to the previous version', async ({ page, co
   await moderator(context);
   page.on('dialog', (d) => void d.accept());
   await page.goto('/admin/catalogo');
-  await page.getByRole('button', { name: new RegExp(`${TITLE} — Ativo`) }).click();
+  await page.getByRole('button', { name: new RegExp(`Ativo: ${TITLE}`) }).click();
   const synopsis = page.getByLabel('Sinopse');
   const original = await synopsis.inputValue();
   await synopsis.fill('Sinopse trocada por engano.');
@@ -139,7 +139,7 @@ test('two moderators: the stale save gets a conflict, not a silent overwrite', a
   const pb = await b.newPage();
   for (const p of [pa, pb]) {
     await p.goto('/admin/catalogo');
-    await p.getByRole('button', { name: new RegExp(`${TITLE} — Ativo`) }).click();
+    await p.getByRole('button', { name: new RegExp(`Ativo: ${TITLE}`) }).click();
     await expect(p.getByLabel('Sinopse')).not.toHaveValue('');
   }
   await pa.getByLabel('Direção').fill('Diretora A');

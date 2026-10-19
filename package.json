@@ -54,9 +54,9 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
-    "@axe-core/playwright": "4.13.0",
+    "@axe-core/playwright": "4.14.0",
     "@eslint/js": "9.39.5",
-    "@playwright/test": "1.63.0",
+    "@playwright/test": "1.64.1",
     "@svgr/core": "8.1.0",
     "@svgr/plugin-jsx": "8.1.0",
     "@tailwindcss/postcss": "4.3.3",

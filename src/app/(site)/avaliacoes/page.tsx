@@ -54,7 +54,6 @@ export default async function AvaliacoesPage() {
                       : '#assistidos'
                   }
                   className="wf-scard"
-                  aria-label={`${item.title} — ${KIND_LABEL[item.kind].one}, assistido em ${dateFmt.format(new Date(item.watchedAt))}`}
                 >
                   <div className="wf-scard__poster">
                     <MediaPicture
@@ -67,6 +66,8 @@ export default async function AvaliacoesPage() {
                     <p className="wf-scard__title text-base">{item.title}</p>
                     <p className="wf-muted text-xs">
                       Assistido em {dateFmt.format(new Date(item.watchedAt))}
+                      {/* The link's name is its visible text (WCAG 2.5.3) plus the kind. */}
+                      <span className="sr-only"> ({KIND_LABEL[item.kind].one.toLowerCase()})</span>
                     </p>
                   </div>
                 </Link>

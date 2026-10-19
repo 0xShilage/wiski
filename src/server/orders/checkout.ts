@@ -10,7 +10,7 @@ import { holdReceiptInTx } from '../email/outbox';
 import { getEnv } from '../env';
 import { HttpError, Problems } from '../http/problem';
 import { enqueue } from '../jobs/queues';
-import { type AcceptedVersions, recordAcceptance } from '../legal/legal';
+import { type AcceptedVersions, checkAcceptance, recordAcceptance } from '../legal/legal';
 import { logger } from '../log';
 import {
   cancelMpOrder,
@@ -30,6 +30,7 @@ import {
   newAccessToken,
   newPublicCode,
   normaliseEmail,
+  uuidv7,
 } from './identity';
 import {
   expireOrderInTx,
@@ -59,6 +60,8 @@ export type Buyer = {
 };
 
 const TOTAL_TTL_MIN = PIX_MINUTES + GRACE_MINUTES;
+/** Bursts (a streamer shout-out) queue for a pool connection instead of failing at 2 s. */
+const TX_OPTIONS = { maxWait: 10_000, timeout: 15_000 } as const;
 const MAX_PENDING_PER_IP = 2;
 
 export const legalVersionsSchema = z
@@ -276,16 +279,25 @@ async function writeOrder(
   fields: SponsorFields,
   draft: Draft,
   idempotencyKey: string,
-  holds: (tx: Tx, order: Order) => Promise<void>,
+  hooks: {
+    /** takes the movie/campaign reservation BEFORE the order row exists (contention point) */
+    reserve: (tx: Tx, orderId: string) => Promise<void>;
+    /** holds that reference the order row (voucher, queue-jump slot) */
+    after?: (tx: Tx, order: Order) => Promise<void>;
+  },
   now: Date,
 ): Promise<{ order: Order; accessToken: string; paymentId: string; payKey: string }> {
+  const legalIds = await checkAcceptance(fields.legal);
   for (let attempt = 0; ; attempt++) {
     const access = newAccessToken();
     const payKey = crypto.randomUUID();
+    const orderId = uuidv7(now.getTime());
     try {
       return await db().$transaction(async (tx) => {
+        await hooks.reserve(tx, orderId);
         const order = await tx.order.create({
           data: {
+            id: orderId,
             publicCode: newPublicCode(),
             kind: draft.kind,
             itemId: draft.itemId,
@@ -307,8 +319,11 @@ async function writeOrder(
             clientRequestId: idempotencyKey,
           },
         });
-        await holds(tx, order);
-        await recordAcceptance(tx, fields.legal, { orderId: order.id, userId: buyer.userId });
+        await hooks.after?.(tx, order);
+        await recordAcceptance(tx, legalIds, fields.legal, {
+          orderId: order.id,
+          userId: buyer.userId,
+        });
         const payment = await tx.payment.create({
           data: {
             orderId: order.id,
@@ -319,7 +334,7 @@ async function writeOrder(
         });
         await holdReceiptInTx(tx, order.id, access.token);
         return { order, accessToken: access.token, paymentId: payment.id, payKey };
-      });
+      }, TX_OPTIONS);
     } catch (err) {
       if (err instanceof HttpError) throw err;
       if (pgErrorCode(err) !== PG.uniqueViolation) throw err;
@@ -512,43 +527,48 @@ export async function checkoutMovie(
         breakdown,
       },
       idempotencyKey,
-      async (tx, order) => {
-        // A reservation whose Pix window is over but the sweep hasn't run yet: expire it now.
-        const current = await tx.catalogItem.findUniqueOrThrow({ where: { id: item.id } });
-        if (current.reservedOrderId && current.reservedUntil && current.reservedUntil <= now) {
-          if (await expireOrderInTx(tx, current.reservedOrderId, now)) {
-            superseded.push(current.reservedOrderId);
+      {
+        reserve: async (tx, orderId) => {
+          // A reservation whose Pix window is over but the sweep hasn't run yet: expire it now.
+          const current = await tx.catalogItem.findUniqueOrThrow({ where: { id: item.id } });
+          if (current.reservedOrderId && current.reservedUntil && current.reservedUntil <= now) {
+            if (await expireOrderInTx(tx, current.reservedOrderId, now)) {
+              superseded.push(current.reservedOrderId);
+            }
           }
-        }
-        const res = await tx.catalogItem.updateMany({
-          where: {
-            id: item.id,
-            status: 'ACTIVE',
-            OR: [{ reservedUntil: null }, { reservedUntil: { lte: now } }],
-          },
-          data: {
-            reservedUntil: new Date(now.getTime() + TOTAL_TTL_MIN * 60_000),
-            reservedOrderId: order.id,
-          },
-        });
-        if (res.count !== 1) throw OrderProblems.itemReserved();
-        if (voucher && breakdown.voucherApplied) {
-          await reserveVoucher(tx, voucher, {
-            orderId: order.id,
-            buyerKey: buyer.buyerKey,
-            userId: buyer.userId,
-            discountCents: breakdown.discountCents,
+          // One winner: the row lock serialises racing buyers; the rest see a reservation.
+          const res = await tx.catalogItem.updateMany({
+            where: {
+              id: item.id,
+              status: 'ACTIVE',
+              OR: [{ reservedUntil: null }, { reservedUntil: { lte: now } }],
+            },
+            data: {
+              reservedUntil: new Date(now.getTime() + TOTAL_TTL_MIN * 60_000),
+              reservedOrderId: orderId,
+            },
           });
-        }
-        if (breakdown.tier) {
-          const tier = rs.config.queueJump.tiers.find((t) => t.id === breakdown.tier!.id)!;
-          await reserveQueueJump(tx, rs.config, tier, {
-            orderId: order.id,
-            buyerKey: buyer.buyerKey,
-            now,
-            expiresAt: new Date(now.getTime() + TOTAL_TTL_MIN * 60_000),
-          });
-        }
+          if (res.count !== 1) throw OrderProblems.itemReserved();
+        },
+        after: async (tx, order) => {
+          if (voucher && breakdown.voucherApplied) {
+            await reserveVoucher(tx, voucher, {
+              orderId: order.id,
+              buyerKey: buyer.buyerKey,
+              userId: buyer.userId,
+              discountCents: breakdown.discountCents,
+            });
+          }
+          if (breakdown.tier) {
+            const tier = rs.config.queueJump.tiers.find((t) => t.id === breakdown.tier!.id)!;
+            await reserveQueueJump(tx, rs.config, tier, {
+              orderId: order.id,
+              buyerKey: buyer.buyerKey,
+              now,
+              expiresAt: new Date(now.getTime() + TOTAL_TTL_MIN * 60_000),
+            });
+          }
+        },
       },
       now,
     );
@@ -634,26 +654,28 @@ export async function checkoutContribution(
         breakdown,
       },
       idempotencyKey,
-      async (tx) => {
-        // No overfunding: take the amount only if it still fits (conditional decrement + CHECK).
-        const res = await tx.campaign.updateMany({
-          where: {
-            id: campaign.id,
-            status: 'OPEN',
-            deadlineAt: { gt: now },
-            remainingCents: { gte: amount },
-          },
-          data: {
-            remainingCents: { decrement: amount },
-            reservedCents: { increment: amount },
-            version: { increment: 1 },
-          },
-        });
-        if (res.count !== 1) {
-          const c = await tx.campaign.findUniqueOrThrow({ where: { id: campaign.id } });
-          if (campaignState(c, now) !== 'OPEN') throw OrderProblems.campaignClosed();
-          throw OrderProblems.amountAboveRemaining(c.remainingCents);
-        }
+      {
+        reserve: async (tx) => {
+          // No overfunding: take the amount only if it still fits (conditional decrement + CHECK).
+          const res = await tx.campaign.updateMany({
+            where: {
+              id: campaign.id,
+              status: 'OPEN',
+              deadlineAt: { gt: now },
+              remainingCents: { gte: amount },
+            },
+            data: {
+              remainingCents: { decrement: amount },
+              reservedCents: { increment: amount },
+              version: { increment: 1 },
+            },
+          });
+          if (res.count !== 1) {
+            const c = await tx.campaign.findUniqueOrThrow({ where: { id: campaign.id } });
+            if (campaignState(c, now) !== 'OPEN') throw OrderProblems.campaignClosed();
+            throw OrderProblems.amountAboveRemaining(c.remainingCents);
+          }
+        },
       },
       now,
     );

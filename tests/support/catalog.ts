@@ -53,6 +53,12 @@ export async function clearCatalog(): Promise<void> {
   await db().$transaction([
     db().watchEvent.deleteMany({}),
     db().review.deleteMany({}),
+    db().refund.deleteMany({}),
+    db().payment.deleteMany({}),
+    db().legalAcceptance.deleteMany({ where: { orderId: { not: null } } }),
+    db().emailOutbox.deleteMany({}),
+    db().voucherRedemption.deleteMany({}),
+    db().queueJumpSlot.deleteMany({}),
     db().order.deleteMany({}),
     db().campaign.deleteMany({}),
     db().catalogRevision.deleteMany({}),
@@ -83,4 +89,30 @@ export async function makeAsset(role: 'POSTER' | 'BACKDROP' | 'LOGO') {
       uploadedById: await creator(),
     },
   });
+}
+
+/** Test-only: an OPEN campaign for a live SERIES item (goal in cents, deadline in days). */
+export async function makeCampaign(
+  over: { goalCents?: number; slot?: number; days?: number; title?: string } = {},
+) {
+  const item = await makeItem({
+    kind: 'SERIES',
+    status: 'ACTIVE',
+    slot: over.slot ?? 1,
+    ...(over.title ? { title: over.title } : {}),
+  });
+  const now = new Date();
+  const goalCents = over.goalCents ?? 30_000;
+  const deadline = now.getTime() + (over.days ?? 30) * 86_400_000;
+  const campaign = await db().campaign.create({
+    data: {
+      itemId: item.id,
+      goalCents,
+      remainingCents: goalCents,
+      deadlineAt: new Date(deadline),
+      openedAt: new Date(Math.min(now.getTime() - 60_000, deadline - 30 * 86_400_000)),
+      openedById: await creator(),
+    },
+  });
+  return { item, campaign };
 }

@@ -87,13 +87,27 @@ export const LegalProblems = {
 
 export type AcceptedVersions = Record<'terms' | 'privacy' | 'refund', string>;
 
-/** Inside the order transaction: the buyer accepted exactly the current versions. */
+/** Before the order transaction: the buyer accepted exactly the current versions. Returns the
+ *  document ids to record (resolved outside the transaction — it opens its own). */
+export async function checkAcceptance(accepted: AcceptedVersions): Promise<Map<LegalType, string>> {
+  const wanted: [LegalType, string][] = [
+    ['TERMS', accepted.terms],
+    ['PRIVACY', accepted.privacy],
+    ['REFUND', accepted.refund],
+  ];
+  for (const [type, version] of wanted) {
+    if (LEGAL_TEXTS[type].version !== version) throw LegalProblems.versionChanged();
+  }
+  return ensureLegalDocuments();
+}
+
+/** Inside the order transaction. */
 export async function recordAcceptance(
   tx: Prisma.TransactionClient,
+  ids: Map<LegalType, string>,
   accepted: AcceptedVersions,
   r: { orderId: string; userId: string | null },
 ): Promise<void> {
-  const ids = await ensureLegalDocuments();
   const wanted: [LegalType, string][] = [
     ['TERMS', accepted.terms],
     ['PRIVACY', accepted.privacy],

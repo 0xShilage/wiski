@@ -20,6 +20,21 @@ export function newPublicCode(): string {
   return `WF-${[...bytes].map((b) => CROCKFORD[b % 32]).join('')}`;
 }
 
+/** RFC 9562 UUID v7 (time-ordered like the database default), so an order id can be used
+ *  for its reservation before the order row exists in the same transaction. */
+export function uuidv7(now = Date.now()): string {
+  const b = randomBytes(16);
+  let ts = now;
+  for (let i = 5; i >= 0; i--) {
+    b[i] = ts % 256;
+    ts = Math.floor(ts / 256);
+  }
+  b[6] = (b[6]! & 0x0f) | 0x70;
+  b[8] = (b[8]! & 0x3f) | 0x80;
+  const h = b.toString('hex');
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
+
 export function newAccessToken(): { token: string; hash: Uint8Array<ArrayBuffer> } {
   const token = randomToken(32);
   return { token, hash: new Uint8Array(sha256(token)) };

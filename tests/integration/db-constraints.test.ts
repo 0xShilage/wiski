@@ -106,39 +106,66 @@ describe('CHECK constraints', () => {
 });
 
 describe('"exactly one" partial unique indexes', () => {
+  /**
+   * Runs inside a transaction that is always rolled back: other suites keep the real ACTIVE rule
+   * set / current legal texts (Phase 2 checkout needs them), and nothing here leaks into them.
+   */
+  async function inRolledBackTx(
+    fn: (q: (sql: string, args?: unknown[]) => Promise<unknown>) => Promise<void>,
+  ) {
+    await withAdmin(async (c) => {
+      await c.query('BEGIN');
+      let n = 0;
+      try {
+        await fn(async (sql, args) => {
+          const sp = `sp${n++}`;
+          await c.query(`SAVEPOINT ${sp}`);
+          try {
+            const r = await c.query(sql, args);
+            await c.query(`RELEASE SAVEPOINT ${sp}`);
+            return r;
+          } catch (e) {
+            await c.query(`ROLLBACK TO SAVEPOINT ${sp}`);
+            throw e;
+          }
+        });
+      } finally {
+        await c.query('ROLLBACK');
+      }
+    });
+  }
+
   it('allows only one ACTIVE price rule set', async () => {
-    const v = Math.floor(Math.random() * 1e6) + 1e6;
-    await db().priceRuleSet.create({
-      data: { version: v, status: 'ACTIVE', config: {}, configHash: new Uint8Array(32) },
-    });
-    await expect(
-      db().priceRuleSet.create({
-        data: { version: v + 1, status: 'ACTIVE', config: {}, configHash: new Uint8Array(32) },
-      }),
-    ).rejects.toThrow();
-    // Any number of drafts/archived are fine.
-    await db().priceRuleSet.create({
-      data: { version: v + 2, status: 'DRAFT', config: {}, configHash: new Uint8Array(32) },
-    });
-    await db().priceRuleSet.create({
-      data: { version: v + 3, status: 'DRAFT', config: {}, configHash: new Uint8Array(32) },
+    await inRolledBackTx(async (q) => {
+      const v = Math.floor(Math.random() * 1e6) + 1e6;
+      const ins = (version: number, status: string) =>
+        q(
+          `INSERT INTO "PriceRuleSet" (id, version, status, config, "configHash")
+           VALUES (gen_random_uuid(), $1, $2::"RuleSetStatus", '{}', decode(repeat('00', 32), 'hex'))`,
+          [version, status],
+        );
+      await q(`UPDATE "PriceRuleSet" SET status = 'ARCHIVED' WHERE status = 'ACTIVE'`);
+      await ins(v, 'ACTIVE');
+      await expect(ins(v + 1, 'ACTIVE')).rejects.toThrow(/unique/i);
+      // Any number of drafts/archived are fine.
+      await ins(v + 2, 'DRAFT');
+      await ins(v + 3, 'DRAFT');
     });
   });
 
   it('allows only one current legal document per type', async () => {
-    const mk = (version: string, isCurrent: boolean) =>
-      db().legalDocument.create({
-        data: {
-          type: 'TERMS',
-          version,
-          sha256: new Uint8Array(32),
-          publishedAt: new Date(),
-          isCurrent,
-        },
-      });
-    await mk('2026-10-01', true);
-    await expect(mk('2026-10-02', true)).rejects.toThrow();
-    await mk('2026-10-03', false);
+    await inRolledBackTx(async (q) => {
+      const mk = (version: string, isCurrent: boolean) =>
+        q(
+          `INSERT INTO "LegalDocument" (id, type, version, sha256, "publishedAt", "isCurrent")
+           VALUES (gen_random_uuid(), 'TERMS', $1, decode(repeat('00', 32), 'hex'), now(), $2)`,
+          [version, isCurrent],
+        );
+      await q(`UPDATE "LegalDocument" SET "isCurrent" = false WHERE type = 'TERMS'`);
+      await mk('1999-10-01', true);
+      await expect(mk('1999-10-02', true)).rejects.toThrow(/unique/i);
+      await mk('1999-10-03', false);
+    });
   });
 });
 

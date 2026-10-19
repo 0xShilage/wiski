@@ -140,7 +140,6 @@ export async function extendCampaign(ctx: Ctx, itemId: string, days: number, now
       },
       t,
     );
-    // Contributors with an e-mail get a notice (Phase 2, with contributions).
     return t.campaign.findUniqueOrThrow({ where: { id: c.id } });
   });
 }

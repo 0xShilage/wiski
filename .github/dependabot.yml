@@ -1,0 +1,19 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: weekly, day: monday, time: '06:00', timezone: America/Sao_Paulo }
+    open-pull-requests-limit: 10
+    groups:
+      next-react:
+        patterns: ['next', 'react', 'react-dom', '@types/react*', 'eslint-config-next', '@next/*']
+      prisma:
+        patterns: ['prisma', '@prisma/*']
+      testing:
+        patterns: ['vitest', 'vite', '@playwright/test', '@axe-core/*', 'embedded-postgres']
+      lint:
+        patterns:
+          ['eslint', '@eslint/*', 'typescript-eslint', 'eslint-plugin-*', 'prettier', 'typescript']
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly, day: monday, time: '06:00', timezone: America/Sao_Paulo }

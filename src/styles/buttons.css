@@ -1,0 +1,114 @@
+/* ── Buttons (design §2): outline "Assistir trailer", filled lavender neon "Patrocine agora". ── */
+@layer components {
+  .wf-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 48px;
+    padding: 0 28px;
+    border-radius: 8px;
+    border: 0;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.2;
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+      box-shadow 0.25s,
+      transform 0.15s,
+      border-color 0.2s,
+      background-color 0.2s;
+  }
+  .wf-btn svg {
+    width: 14px;
+    height: 14px;
+    flex: none;
+  }
+  .wf-btn--ghost {
+    background: rgb(27 18 37 / 0.35);
+    border: 1px solid rgb(229 221 237 / 0.6);
+    color: var(--color-lilac);
+  }
+  .wf-btn--ghost:hover:not([aria-disabled='true'], :disabled) {
+    border-color: var(--color-lavender);
+    box-shadow: var(--glow-sm);
+  }
+  .wf-btn--neon {
+    background: var(--color-lavender);
+    color: var(--color-ink);
+    font-weight: 600;
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 0.35),
+      var(--glow);
+  }
+  .wf-btn--neon:hover:not([aria-disabled='true'], :disabled) {
+    transform: translateY(-1px);
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 0.5),
+      var(--glow-strong);
+  }
+  .wf-btn--sm {
+    min-height: 40px;
+    padding: 0 18px;
+    font-size: 14px;
+    gap: 8px;
+  }
+  .wf-btn[aria-disabled='true'],
+  .wf-btn:disabled {
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
+  .wf-btn--ghost[aria-disabled='true'],
+  .wf-btn--ghost:disabled {
+    color: rgb(229 221 237 / 0.7);
+    border-color: rgb(229 221 237 / 0.35);
+  }
+  .wf-btn--neon[aria-disabled='true'],
+  .wf-btn--neon:disabled {
+    background: var(--color-surface-3);
+    color: var(--color-lilac);
+  }
+  /* Sold / reserved: a calm outline instead of the neon fill */
+  .wf-btn--done {
+    background: rgb(27 18 37 / 0.35);
+    border: 1px solid rgb(169 157 224 / 0.6);
+    color: var(--color-lilac);
+  }
+
+  .wf-iconbtn {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 1px solid rgb(229 221 237 / 0.7);
+    background: rgb(27 18 37 / 0.35);
+    color: var(--color-lilac);
+    cursor: pointer;
+    transition:
+      box-shadow 0.2s,
+      border-color 0.2s;
+  }
+  .wf-iconbtn:hover {
+    border-color: var(--color-lavender);
+    box-shadow: var(--glow-sm);
+  }
+  .wf-iconbtn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wf-btn,
+    .wf-iconbtn {
+      transition: none;
+    }
+    .wf-btn--neon:hover:not([aria-disabled='true'], :disabled) {
+      transform: none;
+    }
+  }
+}

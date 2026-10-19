@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Camada_1" data-name="Camada 1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1080 1080">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #736bb2;
+      }
+
+      .cls-2 {
+        fill: none;
+      }
+
+      .cls-3 {
+        fill: url(#Novo_padrão_3);
+      }
+    </style>
+    <pattern id="Novo_padrão_3" data-name="Novo padrão 3" x="0" y="0" width="365.26" height="369.1" patternTransform="translate(4231.21 -260.52) scale(.63)" patternUnits="userSpaceOnUse" viewBox="0 0 365.26 369.1">
+      <g>
+        <rect class="cls-2" width="365.26" height="369.1"/>
+        <polygon class="cls-1" points="90.34 0 0 90.34 90.34 180.68 180.66 90.34 90.34 0"/>
+        <polygon class="cls-1" points="274.93 0 184.6 90.34 274.93 180.68 365.26 90.34 274.93 0"/>
+        <polygon class="cls-1" points="90.34 188.43 0 278.76 90.34 369.1 180.66 278.76 90.34 188.43"/>
+        <polygon class="cls-1" points="274.93 188.43 184.6 278.76 274.93 369.1 365.26 278.76 274.93 188.43"/>
+      </g>
+    </pattern>
+  </defs>
+  <rect class="cls-3" width="1080" height="1080"/>
+</svg>

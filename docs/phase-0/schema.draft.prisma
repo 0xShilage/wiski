@@ -1,0 +1,743 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Wiskiflix — DRAFT data model (Phase 0 rev 3, for approval)
+// Target: Prisma ORM 7 (prisma-client generator, prisma.config.ts, @prisma/adapter-pg)
+//
+// Conventions
+//  • IDs: UUIDv7 (time-ordered, non-guessable enough for internal refs; public refs use publicCode)
+//  • Money: Int, BRL cents ("centavos"). Never Float/Decimal in app code.
+//  • Time: timestamptz(3) in UTC. Business calendar = America/Sao_Paulo (applied in code).
+//  • Guest checkout: sponsorships may have no user; guests reach their order with a
+//    one-time access token (only its SHA-256 is stored).
+//  • No card/bank data anywhere. Payment rows hold provider ID, status, amount, timestamps.
+//  • Pix QR payloads live only in Redis (TTL = expiry); re-fetched from MP if missing.
+//  • Constraints Prisma cannot express are added as reviewed SQL in migrations
+//    (see 02-data-model.md §4 — CHECKs, partial uniques, audit-log triggers, grants).
+// ─────────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  // url is configured in prisma.config.ts (Prisma 7)
+}
+
+// ═══════════════════════════ Identity & access ═══════════════════════════════
+
+enum Role {
+  USER
+  MODERATOR
+  STREAMER
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED // can read + export own data; cannot post, like, report or sponsor
+  DELETED // anonymised (LGPD erasure); row kept for referential integrity
+}
+
+model User {
+  id                String        @id @default(uuid(7)) @db.Uuid
+  googleSub         String        @unique // OIDC `sub` = identity key. Email is NEVER used as identifier.
+  email             String // private. Default payer.email for this user's orders.
+  emailVerified     Boolean
+  username          String?       @unique // lowercase canonical [a-z0-9_]{3,20}; null until onboarding
+  usernameChangedAt DateTime?     @db.Timestamptz(3)
+  avatarKey         String        @default("mascote-4-lavender") // must exist in code registry (Zod enum)
+  role              Role          @default(USER)
+  isVip             Boolean       @default(false) // perk set by STREAMER in Admin → 10 % discount (not a role)
+  vipSince          DateTime?     @db.Timestamptz(3)
+  status            AccountStatus @default(ACTIVE)
+  suspendedUntil    DateTime?     @db.Timestamptz(3)
+  createdAt         DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime      @updatedAt @db.Timestamptz(3)
+  deletedAt         DateTime?     @db.Timestamptz(3)
+
+  sessions           Session[]
+  passkeys           Passkey[]
+  usernameHolds      UsernameHold[]
+  sponsorships       Sponsorship[]
+  legalAcceptances   LegalAcceptance[]
+  voucherRedemptions VoucherRedemption[]
+  reviews            Review[]
+  reviewLikes        ReviewLike[]
+  reportsFiled       ReviewReport[]      @relation("ReportReporter")
+  reportsResolved    ReviewReport[]      @relation("ReportResolver")
+  refundsRequested   Refund[]            @relation("RefundRequester")
+
+  @@index([role])
+}
+
+/// Server-side session. Cookie `__Host-wf_session` carries a 256-bit random token; only its SHA-256 is stored.
+model Session {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  tokenHash     Bytes     @unique
+  userId        String    @db.Uuid
+  authTime      DateTime  @db.Timestamptz(3) // last interactive Google login → admin step-up (max_age)
+  mfaAt         DateTime? @db.Timestamptz(3) // last passkey assertion (admin second factor, if approved)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  lastSeenAt    DateTime  @default(now()) @db.Timestamptz(3)
+  idleExpiresAt DateTime  @db.Timestamptz(3)
+  expiresAt     DateTime  @db.Timestamptz(3) // absolute lifetime
+  revokedAt     DateTime? @db.Timestamptz(3)
+  uaFamily      String? // coarse ("Chrome · Windows"), shown in "my sessions"; never the raw UA
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// WebAuthn second factor: required for STREAMER, optional for MODERATOR (Q17 default).
+model Passkey {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  userId       String    @db.Uuid
+  credentialId Bytes     @unique
+  publicKey    Bytes
+  signCount    BigInt    @default(0)
+  transports   String[]
+  label        String?
+  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
+  lastUsedAt   DateTime? @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// Released usernames are held for 30 days so nobody can immediately impersonate the previous owner.
+model UsernameHold {
+  username   String   @id
+  userId     String   @db.Uuid
+  releasedAt DateTime @default(now()) @db.Timestamptz(3)
+  holdUntil  DateTime @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([holdUntil])
+}
+
+// ═══════════════════════════ Legal (LGPD / terms) ════════════════════════════
+
+enum LegalDocType {
+  TERMS
+  PRIVACY
+  REFUND
+}
+
+/// Legal texts live in the repo (versioned MDX). This row pins version + hash of the exact text shown.
+model LegalDocument {
+  id          String       @id @default(uuid(7)) @db.Uuid
+  type        LegalDocType
+  version     String // e.g. "2026-10-01"
+  sha256      Bytes
+  publishedAt DateTime     @db.Timestamptz(3)
+  isCurrent   Boolean      @default(false) // partial unique: one current per type (migration SQL)
+
+  acceptances LegalAcceptance[]
+
+  @@unique([type, version])
+}
+
+/// CHECK (migration SQL): userId IS NOT NULL OR sponsorshipId IS NOT NULL — guests accept per order.
+model LegalAcceptance {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  userId        String?  @db.Uuid
+  documentId    String   @db.Uuid
+  sponsorshipId String?  @db.Uuid
+  acceptedAt    DateTime @default(now()) @db.Timestamptz(3)
+
+  user        User?         @relation(fields: [userId], references: [id], onDelete: Restrict)
+  document    LegalDocument @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  sponsorship Sponsorship?  @relation(fields: [sponsorshipId], references: [id], onDelete: Restrict)
+
+  @@unique([sponsorshipId, documentId])
+  @@index([userId])
+}
+
+// ═══════════════════════════ Catalog ═════════════════════════════════════════
+
+enum MediaKind {
+  MOVIE
+  SERIES
+  ANIME
+  YOUTUBE
+}
+
+enum MediaSource {
+  TMDB_MOVIE
+  TMDB_TV
+  YOUTUBE
+}
+
+/// Minimal local snapshot of a title that was ordered/reviewed. Search results are NOT stored here
+/// (they live in the Redis cache); a row is created only when a title is quoted for checkout.
+model Title {
+  id               String      @id @default(uuid(7)) @db.Uuid
+  source           MediaSource
+  externalId       String // TMDB numeric id (as text) or YouTube video id [A-Za-z0-9_-]{11}
+  kind             MediaKind
+  name             String // pt-BR title snapshot
+  originalName     String?
+  year             Int?
+  posterPath       String? // TMDB relative path ("/abc.jpg") or YouTube id; never a full URL from input
+  runtimeMinutes   Int? // movies/videos; series runtime is computed per selection
+  metadataSyncedAt DateTime    @db.Timestamptz(3)
+  createdAt        DateTime    @default(now()) @db.Timestamptz(3)
+
+  sponsorships Sponsorship[]
+  packages     CatalogPackage[]
+  reviews      Review[]
+  watchEvents  WatchEvent[]
+
+  @@unique([source, externalId])
+  @@index([kind])
+}
+
+enum CatalogRuleType {
+  KIND_DISABLED // e.g. pause YouTube sponsorships
+  BLOCK_TITLE
+  BLOCK_GENRE
+  BLOCK_KEYWORD
+  MIN_RUNTIME
+  MAX_RUNTIME
+  REQUIRE_APPROVAL // order is paid but goes to manual approval before scheduling
+}
+
+model CatalogRule {
+  id        String          @id @default(uuid(7)) @db.Uuid
+  type      CatalogRuleType
+  kind      MediaKind? // null = applies to all kinds
+  params    Json // Zod discriminated union keyed by `type`
+  reason    String? // plain-text reason shown to viewers (pt-BR)
+  active    Boolean         @default(true)
+  createdAt DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime        @updatedAt @db.Timestamptz(3)
+
+  @@index([active, type])
+}
+
+/// Series/anime are only sponsorable through packages an admin builds in the dashboard.
+/// One package = one whole season (priced per season; see 04 §3). Runtime and episode count are
+/// read from TMDB at creation and used for session capacity, not for the price.
+/// priceOverrideCents (STREAMER, step-up, audited, reason required) replaces the per-season price.
+model CatalogPackage {
+  id                  String   @id @default(uuid(7)) @db.Uuid
+  titleId             String   @db.Uuid
+  label               String // pt-BR, e.g. "Temporada 2"
+  seasonNumber        Int
+  episodeCount        Int
+  runtimeMinutes      Int
+  priceOverrideCents  Int? // CHECK > 0
+  priceOverrideReason String? // required when priceOverrideCents is set (CHECK)
+  active              Boolean  @default(true)
+  sortOrder           Int      @default(0)
+  createdAt           DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime @updatedAt @db.Timestamptz(3)
+
+  title        Title         @relation(fields: [titleId], references: [id], onDelete: Restrict)
+  sponsorships Sponsorship[]
+
+  @@unique([titleId, seasonNumber])
+  @@index([active, sortOrder])
+}
+
+/// Proof a title was watched on stream → unlocks reviews for that title.
+model WatchEvent {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  titleId       String    @db.Uuid
+  sessionId     String?   @db.Uuid
+  sponsorshipId String?   @unique @db.Uuid
+  watchedAt     DateTime  @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+
+  title       Title          @relation(fields: [titleId], references: [id], onDelete: Restrict)
+  session     StreamSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  sponsorship Sponsorship?   @relation(fields: [sponsorshipId], references: [id], onDelete: SetNull)
+
+  @@index([titleId])
+}
+
+// ═══════════════════════════ Pricing ═════════════════════════════════════════
+
+enum RuleSetStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+/// Versioned, immutable-once-active pricing config (see 04-pricing-spec.md for the JSON schema).
+model PriceRuleSet {
+  id          String        @id @default(uuid(7)) @db.Uuid
+  version     Int           @unique
+  status      RuleSetStatus @default(DRAFT) // partial unique: exactly one ACTIVE (migration SQL)
+  config      Json // PricingConfig v1, validated by Zod on write AND on read
+  configHash  Bytes // SHA-256 of canonical JSON; pinned by every sponsorship
+  createdAt   DateTime      @default(now()) @db.Timestamptz(3)
+  publishedAt DateTime?     @db.Timestamptz(3)
+
+  sponsorships Sponsorship[]
+}
+
+enum VoucherKind {
+  PERCENT
+  FIXED
+}
+
+model Voucher {
+  id               String      @id @default(uuid(7)) @db.Uuid
+  code             String      @unique // uppercase canonical, ≥ 8 chars from [A-Z0-9-]
+  kind             VoucherKind
+  percentBps       Int? // PERCENT: 1..10000 (CHECK)
+  amountCents      Int? // FIXED: > 0 (CHECK)
+  maxDiscountCents Int?
+  minSubtotalCents Int?
+  appliesToKinds   MediaKind[] // empty = all kinds
+  startsAt         DateTime?   @db.Timestamptz(3)
+  endsAt           DateTime?   @db.Timestamptz(3)
+  maxRedemptions   Int? // null = unlimited
+  maxPerUser       Int         @default(1)
+  redemptionCount  Int         @default(0) // RESERVED + CONSUMED; guarded by conditional updateMany
+  active           Boolean     @default(true)
+  createdAt        DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime    @updatedAt @db.Timestamptz(3)
+
+  redemptions VoucherRedemption[]
+}
+
+enum ReservationStatus {
+  RESERVED // while Pix is pending
+  CONSUMED // payment approved
+  RELEASED // expired / cancelled / refunded-before-use
+}
+
+model VoucherRedemption {
+  id            String            @id @default(uuid(7)) @db.Uuid
+  voucherId     String            @db.Uuid
+  userId        String            @db.Uuid
+  sponsorshipId String            @unique @db.Uuid
+  status        ReservationStatus @default(RESERVED)
+  discountCents Int
+  createdAt     DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime          @updatedAt @db.Timestamptz(3)
+
+  voucher     Voucher     @relation(fields: [voucherId], references: [id], onDelete: Restrict)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  sponsorship Sponsorship @relation(fields: [sponsorshipId], references: [id], onDelete: Cascade)
+
+  @@index([voucherId, userId, status])
+}
+
+/// Fixed queue-jump tiers (e.g. "prioridade" +80 %, "topo" +160 %; defined in PriceRuleSet.config).
+/// Cap enforcement without serializable transactions: each reservation claims a free
+/// (day, dayIndex) AND (isoWeek, weekIndex) — the indexes are just counters for the shared
+/// daily/weekly caps. Unique constraints make over-allocation impossible.
+/// Released reservations are DELETED (freeing the index); history lives in Sponsorship.breakdown + AuditLog.
+model QueueJumpSlot {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  sponsorshipId String   @unique @db.Uuid
+  day           DateTime @db.Date // America/Sao_Paulo calendar day
+  tierId        String // tier id from the pinned PriceRuleSet ("prioridade" | "topo" | …)
+  dayIndex      Int // 0..dailyCap-1 (CHECK)
+  isoWeek       String // "2026-W40"
+  weekIndex     Int // 0..weeklyCap-1 (CHECK)
+  multiplierBps Int // copied from the tier; 8000..16000 (CHECK)
+  confirmed     Boolean  @default(false)
+  expiresAt     DateTime @db.Timestamptz(3) // reservation TTL while Pix is pending
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+
+  sponsorship Sponsorship @relation(fields: [sponsorshipId], references: [id], onDelete: Cascade)
+
+  @@unique([day, dayIndex])
+  @@unique([isoWeek, weekIndex])
+  @@index([expiresAt, confirmed])
+}
+
+// ═══════════════════════════ Scheduling & sponsorships ═══════════════════════
+
+enum StreamSessionStatus {
+  PLANNED
+  LIVE
+  DONE
+  CANCELLED
+}
+
+model StreamSession {
+  id              String              @id @default(uuid(7)) @db.Uuid
+  startsAt        DateTime            @db.Timestamptz(3)
+  endsAt          DateTime?           @db.Timestamptz(3)
+  capacityMinutes Int
+  bookedMinutes   Int                 @default(0) // conditional updateMany guards capacity
+  status          StreamSessionStatus @default(PLANNED)
+  publicNote      String?
+  createdAt       DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime            @updatedAt @db.Timestamptz(3)
+
+  sponsorships Sponsorship[]
+  watchEvents  WatchEvent[]
+
+  @@index([startsAt])
+}
+
+enum SponsorshipStatus {
+  PENDING_PAYMENT
+  PAID // approved; awaiting scheduling or manual approval
+  SCHEDULED
+  WATCHING
+  COMPLETED
+  EXPIRED // Pix not paid before expiry
+  CANCELLED
+  NEEDS_ATTENTION // late approval after expiry, amount mismatch, rule conflict → streamer decides
+  REFUND_PENDING
+  REFUNDED
+}
+
+enum MessageStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Sponsorship {
+  id              String            @id @default(uuid(7)) @db.Uuid
+  publicCode      String            @unique // "WF-7K3Q9X" (Crockford base32). A reference, not a secret.
+  userId          String?           @db.Uuid // null = guest checkout (login not required)
+  contactEmail    String // payer.email for MP; receipt + order link. Users: Google e-mail; guests: typed
+  accessTokenHash Bytes             @unique // SHA-256 of the order access token (guest link / claim)
+  claimedAt       DateTime?         @db.Timestamptz(3) // guest order later attached to an account
+  titleId         String            @db.Uuid
+  packageId       String?           @db.Uuid // required for SERIES/ANIME, null for MOVIE/YOUTUBE
+  selection       Json // normalised selection snapshot; Zod-validated
+  runtimeMinutes  Int
+  ruleSetId       String            @db.Uuid
+  breakdown       Json // immutable snapshot of price lines (labels, cents, bps)
+  subtotalCents   Int
+  discountCents   Int               @default(0)
+  queueJumpCents  Int               @default(0)
+  totalCents      Int
+  queueJumpTierId String? // null = no queue jump
+  sponsorMessage  String? // ≤ 140 chars, sanitised plain text; shown only once APPROVED
+  messageStatus   MessageStatus?
+  guestDisplayName String? // guests only, ≤ 24 chars, sanitised; public only once APPROVED
+  displayNameStatus MessageStatus?
+  showSponsorName Boolean           @default(true) // false = "Anônimo" everywhere
+  status          SponsorshipStatus @default(PENDING_PAYMENT)
+  sessionId       String?           @db.Uuid
+  rescheduleCount Int               @default(0)
+  clientRequestId String // Idempotency-Key sent by the browser (double-submit guard)
+  version         Int               @default(0) // optimistic concurrency for state transitions
+  createdAt       DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime          @updatedAt @db.Timestamptz(3)
+  paidAt          DateTime?         @db.Timestamptz(3)
+  scheduledAt     DateTime?         @db.Timestamptz(3)
+  completedAt     DateTime?         @db.Timestamptz(3)
+  cancelledAt     DateTime?         @db.Timestamptz(3)
+
+  user              User?              @relation(fields: [userId], references: [id], onDelete: Restrict)
+  title             Title              @relation(fields: [titleId], references: [id], onDelete: Restrict)
+  package           CatalogPackage?    @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  ruleSet           PriceRuleSet       @relation(fields: [ruleSetId], references: [id], onDelete: Restrict)
+  session           StreamSession?     @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  payment           Payment?
+  legalAcceptances  LegalAcceptance[]
+  voucherRedemption VoucherRedemption?
+  queueJumpSlot     QueueJumpSlot?
+  watchEvent        WatchEvent?
+
+  @@unique([contactEmail, clientRequestId])
+  @@index([status, sessionId])
+  @@index([userId, createdAt])
+  @@index([contactEmail, status])
+}
+
+// ═══════════════════════════ Payments (Mercado Pago Pix) ═════════════════════
+
+enum PaymentProvider {
+  MERCADO_PAGO
+}
+
+/// Mirrors MP `status`. Transitions are validated by a state machine; never regress.
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  AUTHORIZED
+  IN_PROCESS
+  IN_MEDIATION
+  REJECTED
+  CANCELLED
+  REFUNDED
+  CHARGED_BACK
+}
+
+model Payment {
+  id                String          @id @default(uuid(7)) @db.Uuid
+  sponsorshipId     String          @unique @db.Uuid
+  provider          PaymentProvider @default(MERCADO_PAGO)
+  providerPaymentId String?         @unique // MP payment id; null only between insert and MP response
+  idempotencyKey    String          @unique // sent as X-Idempotency-Key on POST /v1/payments
+  status            PaymentStatus   @default(PENDING)
+  statusDetail      String?
+  amountCents       Int
+  currency          String          @default("BRL")
+  expiresAt         DateTime        @db.Timestamptz(3) // = MP date_of_expiration
+  providerUpdatedAt DateTime?       @db.Timestamptz(3) // MP date_last_updated → out-of-order guard
+  approvedAt        DateTime?       @db.Timestamptz(3)
+  lastSyncedAt      DateTime?       @db.Timestamptz(3)
+  version           Int             @default(0)
+  createdAt         DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime        @updatedAt @db.Timestamptz(3)
+
+  sponsorship Sponsorship @relation(fields: [sponsorshipId], references: [id], onDelete: Restrict)
+  refunds     Refund[]
+
+  @@index([status, expiresAt])
+}
+
+enum WebhookOutcome {
+  RECEIVED
+  PROCESSED
+  DUPLICATE
+  IGNORED // valid signature, but not our payment / irrelevant topic
+  FAILED
+}
+
+/// One row per verified delivery. Unique x-request-id = replay/duplicate guard (Redis SETNX in front).
+model WebhookEvent {
+  id          String          @id @default(uuid(7)) @db.Uuid
+  provider    PaymentProvider
+  requestId   String          @unique // x-request-id header
+  topic       String // "payment"
+  action      String? // "payment.updated"
+  resourceId  String // data.id (query string)
+  signatureTs DateTime        @db.Timestamptz(3)
+  receivedAt  DateTime        @default(now()) @db.Timestamptz(3)
+  processedAt DateTime?       @db.Timestamptz(3)
+  outcome     WebhookOutcome  @default(RECEIVED)
+
+  @@index([resourceId])
+}
+
+enum RefundStatus {
+  REQUESTED
+  IN_PROCESS
+  APPROVED
+  REJECTED
+}
+
+/// Policy: sponsorships are non-refundable. Refunds exist only as a STREAMER-only exception tool
+/// (step-up + audit) for payment errors. Final policy text comes from the user's lawyer.
+enum RefundReason {
+  DUPLICATE_PAYMENT
+  PROCESSING_ERROR // e.g. amount mismatch, payment approved for an order that cannot exist
+  LEGAL_REQUIREMENT // only if counsel determines a refund is legally required
+}
+
+model Refund {
+  id               String       @id @default(uuid(7)) @db.Uuid
+  paymentId        String       @db.Uuid
+  providerRefundId String?      @unique
+  idempotencyKey   String       @unique
+  amountCents      Int
+  status           RefundStatus @default(REQUESTED)
+  reason           RefundReason
+  requestedById    String       @db.Uuid
+  createdAt        DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime     @updatedAt @db.Timestamptz(3)
+
+  payment     Payment @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  requestedBy User    @relation("RefundRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+
+  @@index([paymentId])
+}
+
+// ═══════════════════════════ Reviews & moderation ════════════════════════════
+
+enum ModerationStatus {
+  VISIBLE
+  AUTO_HIDDEN // report threshold reached; awaiting moderator
+  HIDDEN // moderator hid it (author still sees it, with notice)
+  REMOVED // removed for policy violation
+}
+
+model Review {
+  id               String           @id @default(uuid(7)) @db.Uuid
+  userId           String           @db.Uuid
+  titleId          String           @db.Uuid
+  rating           Int // 1..5 (CHECK)
+  body             String // sanitised plain text, ≤ 2000 chars (CHECK)
+  containsSpoilers Boolean          @default(false)
+  status           ModerationStatus @default(VISIBLE)
+  likeCount        Int              @default(0) // maintained in the same tx as ReviewLike writes
+  createdAt        DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime         @updatedAt @db.Timestamptz(3)
+  editedAt         DateTime?        @db.Timestamptz(3)
+
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title   Title          @relation(fields: [titleId], references: [id], onDelete: Restrict)
+  likes   ReviewLike[]
+  reports ReviewReport[]
+
+  @@unique([userId, titleId]) // one review per user per title (editable)
+  @@index([titleId, status, createdAt])
+  @@index([userId, createdAt])
+}
+
+model ReviewLike {
+  userId    String   @db.Uuid
+  reviewId  String   @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@id([userId, reviewId]) // one like per user per review
+  @@index([reviewId])
+}
+
+enum ReportReason {
+  UNMARKED_SPOILER
+  OFFENSIVE
+  HARASSMENT
+  HATE_SPEECH
+  SPAM
+  PERSONAL_DATA
+  OFF_TOPIC
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  DISMISSED
+  ACTIONED
+}
+
+model ReviewReport {
+  id           String       @id @default(uuid(7)) @db.Uuid
+  reviewId     String       @db.Uuid
+  reporterId   String       @db.Uuid
+  reason       ReportReason
+  note         String? // ≤ 500 chars, sanitised
+  status       ReportStatus @default(OPEN)
+  resolvedById String?      @db.Uuid
+  resolvedAt   DateTime?    @db.Timestamptz(3)
+  createdAt    DateTime     @default(now()) @db.Timestamptz(3)
+
+  review     Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  reporter   User   @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  resolvedBy User?  @relation("ReportResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@unique([reviewId, reporterId]) // one report per user per review
+  @@index([status, createdAt])
+}
+
+// ═══════════════════════════ Admin, overlays, media kit ══════════════════════
+
+enum GoalMetric {
+  SPONSORSHIP_COUNT
+  SPONSORSHIP_REVENUE_CENTS
+  WATCHED_MINUTES
+}
+
+model Goal {
+  id             String     @id @default(uuid(7)) @db.Uuid
+  title          String
+  metric         GoalMetric
+  target         Int
+  startsAt       DateTime   @db.Timestamptz(3)
+  endsAt         DateTime?  @db.Timestamptz(3)
+  active         Boolean    @default(true)
+  showOnOverlay  Boolean    @default(true)
+  showOnMediaKit Boolean    @default(false)
+  createdAt      DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime   @updatedAt @db.Timestamptz(3)
+}
+
+/// OBS browser-source credentials. Raw key shown once at creation; only SHA-256 stored.
+model OverlayKey {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  label      String
+  keyHash    Bytes     @unique
+  keyPrefix  String // first 6 chars, to identify a key in the admin UI
+  widgets    String[] // allow-list of widget ids this key may open
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  lastUsedAt DateTime? @db.Timestamptz(3)
+  revokedAt  DateTime? @db.Timestamptz(3)
+}
+
+enum Platform {
+  TWITCH
+  YOUTUBE
+  KICK
+  TIKTOK
+  INSTAGRAM
+  X
+}
+
+enum StatSource {
+  LIVE
+  MANUAL
+}
+
+/// Last-known-good value per metric → media kit never shows an empty number when an API is down.
+model PlatformStat {
+  id          String     @id @default(uuid(7)) @db.Uuid
+  platform    Platform
+  metric      String // "followers", "subscribers", "avg_viewers_30d", ...
+  value       BigInt
+  source      StatSource
+  manualValue BigInt? // streamer override, wins while set
+  fetchedAt   DateTime   @db.Timestamptz(3)
+
+  @@unique([platform, metric])
+}
+
+enum ContactStatus {
+  NEW
+  READ
+  ARCHIVED
+  SPAM
+}
+
+model ContactMessage {
+  id         String        @id @default(uuid(7)) @db.Uuid
+  name       String
+  email      String
+  company    String?
+  subject    String
+  body       String // sanitised plain text, ≤ 4000 chars
+  status     ContactStatus @default(NEW)
+  createdAt  DateTime      @default(now()) @db.Timestamptz(3)
+  purgeAfter DateTime      @db.Timestamptz(3) // LGPD retention (default 12 months)
+
+  @@index([status, createdAt])
+  @@index([purgeAfter])
+}
+
+model AppSetting {
+  key       String   @id // e.g. "sponsorships.open", "queue.paused"
+  value     Json
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
+
+/// Append-only. UPDATE/DELETE blocked by trigger + GRANTs; prevHash/hash filled by a BEFORE INSERT
+/// trigger under an advisory lock (tamper-evident hash chain). metadata = allow-listed keys only
+/// (no e-mail, IP, Pix payloads or payment data).
+model AuditLog {
+  id         BigInt   @id @default(autoincrement())
+  at         DateTime @default(now()) @db.Timestamptz(3)
+  actorId    String?  @db.Uuid // null = system / worker
+  actorRole  Role?
+  action     String // "pricing.ruleset.publish", "review.hide", "sponsorship.refund", ...
+  targetType String
+  targetId   String?
+  metadata   Json     @default("{}")
+  requestId  String? // correlation id (also in JSON app logs)
+  prevHash   Bytes? // set by trigger
+  hash       Bytes?   @unique // set by trigger
+
+  @@index([targetType, targetId])
+  @@index([actorId, at])
+  @@index([action, at])
+}

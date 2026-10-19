@@ -1,0 +1,222 @@
+{
+  "frame-1-ink.svg": {
+    "source": "SVG - ASSETS/FRAME 1-7.svg",
+    "sha256": "cd05f69aa39cff8947b2cc7d7003dfb19e9087a1854b216dcc62d1036218e004"
+  },
+  "frame-1-plum.svg": {
+    "source": "SVG - ASSETS/FRAME 1-3.svg",
+    "sha256": "00224d5e2745c41e7b4989d8f52a6c51ccb7162a7bfd2bfbeef5c9d0de1873ca"
+  },
+  "frame-1-violet.svg": {
+    "source": "SVG - ASSETS/FRAME 1-11.svg",
+    "sha256": "f1d2fd784334283dfa92308cb4a0bd3fbd45fd4897feef4b26c30e313e8c7f01"
+  },
+  "frame-1-lavender.svg": {
+    "source": "SVG - ASSETS/FRAME 1-15.svg",
+    "sha256": "65ed95f02f8a96f2df3135aa8c8999dc0b1811b4de05477b3152e178be2d8191"
+  },
+  "frame-1-lilac.svg": {
+    "source": "SVG - ASSETS/FRAME 1-19.svg",
+    "sha256": "890d39d2236236b81e2f7aff5f5bbfc467b30e453c737261c5d10e93200e6d5b"
+  },
+  "frame-2-ink.svg": {
+    "source": "SVG - ASSETS/FRAME 2-6.svg",
+    "sha256": "d1b7b9139d6c7a09bf4f58b6507a64dbd073e2e1ccad8aae98edd132fe97e0bf"
+  },
+  "frame-2-plum.svg": {
+    "source": "SVG - ASSETS/FRAME 2-2.svg",
+    "sha256": "15b39a91f8450f3335f9d7fe2ac7ec40f09a1019a727cc123e5728818e3a9265"
+  },
+  "frame-2-violet.svg": {
+    "source": "SVG - ASSETS/FRAME 2-10.svg",
+    "sha256": "43c941ad6d30442b14bf657e0442b43215304c10e099397de557c457eb20cdbc"
+  },
+  "frame-2-lavender.svg": {
+    "source": "SVG - ASSETS/FRAME 2-14.svg",
+    "sha256": "772945ded0ae844b36577253f741075d4da883ac003b9d32746860fc26d6eab2"
+  },
+  "frame-2-lilac.svg": {
+    "source": "SVG - ASSETS/FRAME 2-18.svg",
+    "sha256": "dbf9440047a03c59d1b40eae0e5ade5dd1aca3b34731259a042a8a6e9d84146f"
+  },
+  "ponto-ink.svg": {
+    "source": "SVG - ASSETS/PONTO-5.svg",
+    "sha256": "3f9b4b166eab920249e9559ff9259a8e73fe5e8fe573535739092f3d93d4e42f"
+  },
+  "ponto-plum.svg": {
+    "source": "SVG - ASSETS/PONTO-1.svg",
+    "sha256": "c11bf9b39a543aadef6eeafc341c07c124b1ec53c39fa939b7db20e8bf1228af"
+  },
+  "ponto-violet.svg": {
+    "source": "SVG - ASSETS/PONTO-9.svg",
+    "sha256": "f0569f0d43afdf96b8686864264889d4ea414fb70bf07f9fab87f9ff008bc1a4"
+  },
+  "ponto-lavender.svg": {
+    "source": "SVG - ASSETS/PONTO-13.svg",
+    "sha256": "b6c8158b69a70bb52f8563eb8de21fd3aac1a0590647030f2baf0e05221fef03"
+  },
+  "ponto-lilac.svg": {
+    "source": "SVG - ASSETS/PONTO-17.svg",
+    "sha256": "5e7dc5595595d4f95bf6a9acd89d6ebb467258d9dd3d2bd4ca547eb2654731c0"
+  },
+  "rabinho-ink.svg": {
+    "source": "SVG - ASSETS/RABINHO-8.svg",
+    "sha256": "7bec27c0cbbcc438e654c2dcc8d4bab26f69c987fb9da8155229fda5e016bde5"
+  },
+  "rabinho-plum.svg": {
+    "source": "SVG - ASSETS/RABINHO-4.svg",
+    "sha256": "6ae81e333d14ad71ead9afe25c87f79e52d04d34279356df247fe3632cd068cb"
+  },
+  "rabinho-violet.svg": {
+    "source": "SVG - ASSETS/RABINHO-12.svg",
+    "sha256": "5a33e553606c081103a7d6d9ac63048d0324052e458b9b4e809e422c2e3ded52"
+  },
+  "rabinho-lavender.svg": {
+    "source": "SVG - ASSETS/RABINHO-16.svg",
+    "sha256": "44c8ed7b39ebc8a49bdc26c4e6387b91520b281e39ed3afd48a4265bfa111036"
+  },
+  "rabinho-lilac.svg": {
+    "source": "SVG - ASSETS/RABINHO-20.svg",
+    "sha256": "5306ad9932cc5775860a3b079ea51b4a451111fe784554381639f7e54ef2b432"
+  },
+  "mascote-1-ink.svg": {
+    "source": "SVG - MASCOTE/VERSÃO 1-15.svg",
+    "sha256": "de9704c0338ca029f843b81686844305589dc18d764c2f9db5c8f46384e3d00b"
+  },
+  "mascote-1-plum.svg": {
+    "source": "SVG - MASCOTE/VERSÃO 1-20.svg",
+    "sha256": "8024306eebad30c4921d5ce6b551a5defa12809340bd4f6433e250f6529e2864"
+  },
+  "mascote-1-violet.svg": {
+    "source": "SVG - MASCOTE/VERSÃO 1-11.svg",
+    "sha256": "4686e83458b310a81b764e88d0dcf8f7dee4c674c363b8154109d67888c5d1db"
+  },
+  "mascote-1-lavender.svg": {
+    "source": "SVG - MASCOTE/VERSÃO 1-9.svg",
+    "sha256": "080cfb0792e5a866a557bd9c9ebe0b17c7ff96cfeb1a0c22e6c285e8a2f1504b"
+  },
+  "mascote-1-lilac.svg": {
+    "source": "SVG - MASCOTE/VERSÃO 1-3.svg",
+    "sha256": "9c3df1339c7dc424a313d1eca177abd0d750e5aa8a5b4087913239b187cf5714"
+  },
+  "mascote-2-ink.svg": {
+    "source": "SVG - MASCOTE/VERSÃO 2-14.svg",
+    "sha256": "37ff7b24f771417759e818dd9d55c80b73864361793a4e110aa4a7c2b0785ff1"
+  },
+  "mascote-2-plum.svg": {
+    "source": "SVG - MASCOTE/VERSÃO 2-18.svg",
+    "sha256": "5ab3cba87b0fe9c8c1696899babfb91b193a33e8f6dd1362b84955b94ec3c81e"
+  },
+  "mascote-2-violet.svg": {
+    "source": "SVG - MASCOTE/VERSÃO 2-12.svg",
+    "sha256": "4942dacaa4703d52a144a3565e4a85550f2c66df45f97f66a3633f3fc0d7fe80"
+  },
+  "mascote-2-lavender.svg": {
+    "source": "SVG - MASCOTE/VERSÃO 2-10.svg",
+    "sha256": "8acd5c2ba3f7a7ee7a091cd1db140662355c833d232e4335fbc304823b30603d"
+  },
+  "mascote-2-lilac.svg": {
+    "source": "SVG - MASCOTE/VERSÃO 2-4.svg",
+    "sha256": "5118a984532a5fce3ee0d5ed0a90c37a9ecc25ae263ace8650eabe32e98c6f67"
+  },
+  "mascote-3-ink.svg": {
+    "source": "SVG - MASCOTE/VERSÃO 3-16.svg",
+    "sha256": "6b50ee8d5b17ead1e136820dc12531c6babae961d210c58c576c20c0cc3295e3"
+  },
+  "mascote-3-plum.svg": {
+    "source": "SVG - MASCOTE/VERSÃO 3-19.svg",
+    "sha256": "4d111c7dae88c1d28198d03ea8a072980317e74c95d9e6417841df7c77928218"
+  },
+  "mascote-3-violet.svg": {
+    "source": "SVG - MASCOTE/VERSÃO 3-6.svg",
+    "sha256": "e92c503adbb131af46e09e1ede40f2a4be7ceced07721ae676c0fc1cb7ba294f"
+  },
+  "mascote-3-lavender.svg": {
+    "source": "SVG - MASCOTE/VERSÃO 3-8.svg",
+    "sha256": "ba9ad924b5e54eaf7371c36cb3f501f21a4e09fbc046abd59528a0584835927e"
+  },
+  "mascote-3-lilac.svg": {
+    "source": "SVG - MASCOTE/VERSÃO 3-2.svg",
+    "sha256": "044aa87faa4fa8f443d96d5349e857007b176c9478979977160493b52377cf86"
+  },
+  "mascote-4-ink.svg": {
+    "source": "SVG - MASCOTE/VERSÃO 4-13.svg",
+    "sha256": "175ec2be6db6c56ed0b99bb44f4136245708123041a227698ff6370c1fa79e62"
+  },
+  "mascote-4-plum.svg": {
+    "source": "SVG - MASCOTE/VERSÃO 4-17.svg",
+    "sha256": "1788f660d78257ed813d284ed8a0f80fd8e0eb6ce2af523eb9e19ecab084ff90"
+  },
+  "mascote-4-violet.svg": {
+    "source": "SVG - MASCOTE/VERSÃO 4-5.svg",
+    "sha256": "6a48241b3ce59b0c5383eb987102ccb9fd2aaaf71b5341b467e7514335639cd7"
+  },
+  "mascote-4-lavender.svg": {
+    "source": "SVG - MASCOTE/VERSÃO 4-7.svg",
+    "sha256": "50ffc91e9b9cbc636d5d82e49bf6e43dcaee0f829304aab68a93e230d28a6329"
+  },
+  "mascote-4-lilac.svg": {
+    "source": "SVG - MASCOTE/VERSÃO 4-1.svg",
+    "sha256": "b1735ae8a254ea279a93e82e50a76e76a3daea517a89ab3a97256e4989d12be6"
+  },
+  "padrao-1-ink.svg": {
+    "source": "SVG - PATTERNS/PADRÃO 1-10.svg",
+    "sha256": "c6b9e0bf4f4ded4052f0e439ed94eb0f087e51b0541bc5d505496319115e4030"
+  },
+  "padrao-1-plum.svg": {
+    "source": "SVG - PATTERNS/PADRÃO 1-7.svg",
+    "sha256": "cde041c676e389f8a8619ea3d5ea40112eefeeb4a33b10cd8d950804d8674188"
+  },
+  "padrao-1-violet.svg": {
+    "source": "SVG - PATTERNS/PADRÃO 1-1.svg",
+    "sha256": "339aa8e2a30b3d9c283e1df278399728f9cae2886a61077a3c574ebc8119e15e"
+  },
+  "padrao-1-lavender.svg": {
+    "source": "SVG - PATTERNS/PADRÃO 1-4.svg",
+    "sha256": "a416bde4e1d6c113d2797b3ca740c01a447b44feb014d88b065493d9f754caee"
+  },
+  "padrao-1-lilac.svg": {
+    "source": "SVG - PATTERNS/PADRÃO 1-13.svg",
+    "sha256": "4837dadb5954199a056ee974a3440f993b2ff5becee81f7cbb9f504c069d3aa5"
+  },
+  "padrao-2-ink.svg": {
+    "source": "SVG - PATTERNS/PADRÃO 2-11.svg",
+    "sha256": "386453dd1e966201b2da2b449c32c555bfadfcf3577d35a8732e04c5f0b05c09"
+  },
+  "padrao-2-plum.svg": {
+    "source": "SVG - PATTERNS/PADRÃO 2-8.svg",
+    "sha256": "52592cfe0e9fc5c08f4f10a30b1a14493d951406b456ae34d8c0b61910edadd7"
+  },
+  "padrao-2-violet.svg": {
+    "source": "SVG - PATTERNS/PADRÃO 2-2.svg",
+    "sha256": "596c0919111b2fcd4c4ce9fae86868d452b04b6e5083d5adf3902200d9b85e40"
+  },
+  "padrao-2-lavender.svg": {
+    "source": "SVG - PATTERNS/PADRÃO 2-5.svg",
+    "sha256": "14261d67c5f987184d19ae79a8473dbda8c31286dc10fa5f9d55f60bb959281c"
+  },
+  "padrao-2-lilac.svg": {
+    "source": "SVG - PATTERNS/PADRÃO 2-14.svg",
+    "sha256": "54b82478e8ad0d9f174c3d8b261a7558cefa36abfdeefe33e0f738c0a461e309"
+  },
+  "padrao-3-ink.svg": {
+    "source": "SVG - PATTERNS/PADRÃO 3-12.svg",
+    "sha256": "3bf593dc8260c61581d474d23354dbc4eb15c7b7f4fb33c65a1de0dec4ac0b43"
+  },
+  "padrao-3-plum.svg": {
+    "source": "SVG - PATTERNS/PADRÃO 3-9.svg",
+    "sha256": "d333fb7d1682620388cac7538930c943c7e2ff9389b8b6b3cf8239836768727e"
+  },
+  "padrao-3-violet.svg": {
+    "source": "SVG - PATTERNS/PADRÃO 3-3.svg",
+    "sha256": "39b3cf8cefcc4e3985dd59ada89ab4e28116c81d000aa842276b480f2256a0fd"
+  },
+  "padrao-3-lavender.svg": {
+    "source": "SVG - PATTERNS/PADRÃO 3-6.svg",
+    "sha256": "818830359b7023eaa5acd055d07f9db891f5db34523a4001d8a5c375e056638c"
+  },
+  "padrao-3-lilac.svg": {
+    "source": "SVG - PATTERNS/PADRÃO 3-15.svg",
+    "sha256": "fa8669964839527f44aa4c76d420558162bd07aba22eff5ce3434a08d99ad634"
+  }
+}

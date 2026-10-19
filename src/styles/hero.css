@@ -1,0 +1,421 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Filmes hero carousel (design §2; 11 §3). Figma metrics at 1440×1080 / 1920×1080, scaled by
+   viewport WIDTH (margins, type) and HEIGHT (vertical rhythm, rail cards), so the whole hero —
+   content, arrows and poster rail — fits one screen from 1280×720 to 1920×1080 and on
+   3440×1440, including the ~120–140 px a browser's toolbars and the taskbar take. Below
+   900 px of height the arrows move next to the call to action instead of under it; below
+   700 px the synopsis shows two lines. Phones (≤ 760 px) stack everything.
+   ───────────────────────────────────────────────────────────────────────────── */
+@layer components {
+  .wf-hero {
+    --hero-top: clamp(96px, 17vh, 260px);
+    --content-w: 470px;
+    --gap-s: clamp(12px, 2.2vh, 24px);
+    --gap-m: clamp(20px, 3.7vh, 40px);
+    --gap-l: clamp(20px, 5vh, 64px);
+    --card-h: clamp(120px, 21.7vh, 280px); /* 234 px at 1080 (Figma), larger on 1440-tall screens */
+    --card-w: calc(var(--card-h) * 0.752);
+    --card-h-on: calc(var(--card-h) * 1.184);
+    --card-w-on: calc(var(--card-h-on) * 0.751);
+    --rail-gap: clamp(8px, 2vh, 32px);
+    --rail-bottom: clamp(12px, 4.5vh, 64px);
+
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-ink);
+  }
+
+  /* backdrop: one 16:9 image anchored right (uploaded in the dashboard) */
+  .wf-hero__art {
+    position: absolute;
+    inset: 0 0 0 auto;
+    width: 72%;
+    z-index: -2;
+    background: radial-gradient(120% 90% at 70% 40%, var(--color-surface-3), var(--color-ink) 75%);
+  }
+  .wf-hero__art img,
+  .wf-hero__art picture {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .wf-hero__art img {
+    object-fit: cover;
+    object-position: 70% 35%;
+    animation: wf-fade-in 0.45s ease-out both;
+  }
+  /* Figma overlay stops, black → ink */
+  .wf-hero__shade {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      linear-gradient(
+        180deg,
+        rgb(27 18 37 / 0.72) 2.7%,
+        rgb(27 18 37 / 0) 35.9%,
+        rgb(27 18 37 / 0.62) 100%
+      ),
+      linear-gradient(90deg, rgb(27 18 37 / 0.94) 33.2%, rgb(27 18 37 / 0) 80.5%);
+  }
+
+  .wf-hero__stage {
+    width: 100%;
+    max-width: var(--stage);
+    margin-inline: auto;
+    padding: var(--hero-top) var(--pad) 0;
+    display: grid;
+    grid-template-columns: minmax(0, var(--content-w)) 1fr;
+    grid-template-areas:
+      'content .'
+      'controls .';
+    align-items: end;
+  }
+  .wf-hero__content {
+    grid-area: content;
+    position: relative;
+    z-index: 2;
+    min-width: 0;
+  }
+  .wf-hero__title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(40px, min(3.75vw + 2px, 6.8vh), 76px);
+    line-height: 0.98;
+    letter-spacing: 0.015em;
+    text-transform: uppercase;
+    color: #f7f2fb;
+    text-shadow: var(--text-glow);
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+  .wf-hero__logo img {
+    display: block;
+    max-width: min(100%, 470px);
+    max-height: clamp(72px, 13vh, 140px);
+    width: auto;
+    height: auto;
+    filter: drop-shadow(0 0 14px rgb(169 157 224 / 0.35));
+  }
+  .wf-hero__meta {
+    margin-top: var(--gap-s);
+  }
+  .wf-hero__synopsis {
+    margin: var(--gap-s) 0 0;
+    font-size: 16px;
+    line-height: 1.6;
+    color: rgb(229 221 237 / 0.92);
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    overflow: hidden;
+  }
+  .wf-hero__more {
+    display: inline-block;
+    margin-top: 4px;
+    font-size: 15px;
+    color: var(--color-lavender);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .wf-hero__ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: var(--gap-m);
+  }
+  .wf-hero__price {
+    margin: 14px 0 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--fg-70);
+  }
+  .wf-hero__price b {
+    color: var(--color-lilac);
+    font-weight: 600;
+  }
+
+  .wf-hero__controls {
+    grid-area: controls;
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: var(--gap-l);
+  }
+  .wf-hero__count {
+    margin-left: 8px;
+    font-size: 14px;
+    color: var(--fg-70);
+    font-variant-numeric: tabular-nums;
+  }
+  .wf-hero__count b {
+    color: var(--color-lilac);
+  }
+
+  /* poster rail: centred, the active card always in the middle */
+  .wf-rail {
+    position: relative;
+    z-index: 2;
+    margin-top: auto;
+    padding-top: var(--rail-gap);
+    padding-bottom: var(--rail-bottom);
+  }
+  .wf-rail__track {
+    display: flex;
+    align-items: flex-end;
+    gap: clamp(14px, 1.7vw, 32px);
+    padding: 22px 0;
+    filter: drop-shadow(0 0 12px rgb(0 0 0 / 0.4));
+    margin: 0;
+    list-style: none;
+  }
+  /* desktop ring: centred; posters beyond the edges are cut, like the Figma frame */
+  .wf-rail--ring .wf-rail__track {
+    justify-content: center;
+    overflow: hidden;
+  }
+  .wf-rail--strip {
+    display: none;
+  }
+  .wf-rail__track::-webkit-scrollbar {
+    display: none;
+  }
+  .wf-rail__track > li {
+    flex: none;
+    display: flex;
+  }
+  .wf-card {
+    position: relative;
+    flex: none;
+    display: block;
+    width: var(--card-w);
+    height: var(--card-h);
+    border-radius: 12px;
+    overflow: hidden;
+    padding: 0;
+    border: 0;
+    background: var(--color-surface-2);
+    color: inherit;
+    cursor: pointer;
+    transition:
+      width 0.25s,
+      height 0.25s,
+      box-shadow 0.25s;
+  }
+  .wf-card img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .wf-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, rgb(27 18 37 / 0) 55%, rgb(27 18 37 / 0.85) 100%), var(--veil);
+    transition: background-color 0.25s;
+  }
+  .wf-card__title {
+    position: absolute;
+    z-index: 1;
+    inset: auto 10px 12px;
+    font-family: var(--font-display);
+    font-size: clamp(13px, calc(var(--card-h) * 0.075), 18px);
+    line-height: 1.05;
+    text-align: center;
+    text-transform: uppercase;
+    color: #fff;
+    text-shadow: 0 0 8px rgb(169 157 224 / 0.7);
+  }
+  .wf-card:hover::after {
+    background:
+      linear-gradient(180deg, rgb(27 18 37 / 0) 55%, rgb(27 18 37 / 0.85) 100%), rgb(27 18 37 / 0.3);
+  }
+  .wf-card[aria-current='true'] {
+    width: var(--card-w-on);
+    height: var(--card-h-on);
+    outline: 2px solid var(--color-lavender);
+    outline-offset: 0;
+    box-shadow: var(--glow);
+  }
+  .wf-card[aria-current='true']::after {
+    background: linear-gradient(180deg, rgb(27 18 37 / 0) 60%, rgb(27 18 37 / 0.7) 100%);
+  }
+  .wf-badge {
+    position: absolute;
+    z-index: 2;
+    top: 10px;
+    left: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    padding: 5px 8px;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
+  }
+  .wf-badge--sponsored {
+    background: var(--color-lavender);
+    color: var(--color-ink);
+    box-shadow: var(--glow-sm);
+  }
+  .wf-badge--reserved {
+    background: rgb(27 18 37 / 0.9);
+    color: var(--color-warning);
+    border: 1px solid rgb(242 196 109 / 0.6);
+  }
+
+  /* Empty catalog (before the first movie is published) */
+  .wf-hero--empty .wf-hero__stage {
+    grid-template-columns: minmax(0, 640px) 1fr;
+  }
+
+  /* ── short desktop screens (≈ 1366×768 / 1536×864 / 1280×720 with browser chrome) ── */
+  @media (min-width: 761px) and (max-height: 899px) {
+    .wf-hero__stage {
+      grid-template-columns: minmax(0, var(--content-w)) auto 1fr;
+      grid-template-areas: 'content controls .';
+      column-gap: clamp(24px, 3vw, 48px);
+    }
+    .wf-hero__controls {
+      margin-top: 0;
+      align-self: end;
+      /* line up with the CTA buttons: price line height + its margin below them */
+      margin-bottom: calc(13px * 1.5 + 14px + 4px);
+    }
+  }
+  @media (min-width: 761px) and (max-height: 699px) {
+    .wf-hero__synopsis {
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+    }
+    .wf-hero__price {
+      margin-top: 10px;
+    }
+  }
+  /* very wide screens: a slightly wider text column */
+  @media (min-width: 2400px) {
+    .wf-hero {
+      --content-w: 560px;
+    }
+    .wf-hero__synopsis {
+      font-size: 17px;
+    }
+  }
+
+  /* ── phones (≤ 760 px): stacked hero, CTAs full width, swipeable rail ── */
+  @media (max-width: 760px) {
+    .wf-hero {
+      --art-h: min(470px, 118vw);
+      min-height: auto;
+      padding-bottom: 8px;
+    }
+    .wf-hero__art {
+      width: 100%;
+      height: var(--art-h);
+      inset: 0 0 auto 0;
+    }
+    .wf-hero__art img {
+      object-position: 62% 30%;
+    }
+    .wf-hero__shade {
+      height: var(--art-h);
+      background: linear-gradient(
+        180deg,
+        rgb(27 18 37 / 0.65) 0%,
+        rgb(27 18 37 / 0) 30%,
+        rgb(27 18 37 / 0.4) 60%,
+        var(--color-ink) 100%
+      );
+    }
+    .wf-hero__stage {
+      display: block;
+      padding: calc(var(--art-h) - 140px) 20px 0;
+    }
+    .wf-hero__title {
+      font-size: clamp(34px, 10.5vw, 42px);
+    }
+    .wf-hero__logo img {
+      max-height: 96px;
+    }
+    .wf-hero__meta {
+      margin-top: 14px;
+      font-size: 13px;
+    }
+    .wf-hero__synopsis {
+      font-size: 15px;
+      margin-top: 14px;
+    }
+    .wf-hero__ctas {
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 22px;
+    }
+    .wf-hero__ctas .wf-btn {
+      width: 100%;
+      min-height: 52px;
+    }
+    .wf-hero__ctas .wf-btn--primary-slot {
+      order: -1;
+    }
+    .wf-hero__price {
+      text-align: center;
+    }
+    .wf-hero__controls {
+      margin-top: 24px;
+    }
+    .wf-rail {
+      margin-top: 8px;
+      padding: 0 0 12px;
+    }
+    .wf-rail--ring {
+      display: none;
+    }
+    .wf-rail--strip {
+      display: block;
+    }
+    .wf-rail__track {
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      scrollbar-width: none;
+      --card-h: 165px;
+      --card-w: 124px;
+      --card-h-on: 186px;
+      --card-w-on: 140px;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 20px 18px;
+      scroll-padding-inline: 20px;
+      scroll-snap-type: x mandatory;
+    }
+    .wf-card {
+      scroll-snap-align: start;
+    }
+  }
+
+  @keyframes wf-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .wf-hero__art img {
+      animation: none;
+    }
+    .wf-card {
+      transition: none;
+    }
+  }
+}

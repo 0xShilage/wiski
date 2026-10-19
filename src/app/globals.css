@@ -1,0 +1,145 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Wiskiflix theme — Tailwind CSS v4 (from docs/phase-0/theme.proposal.css, approved rev 2).
+   Brand palette = the five fills of every SVG in ASSETS (verified by scripts/brand-assets.ts).
+   "Derived" / "state" colours are UI-only additions — never applied to the brand assets.
+   No inline styles anywhere (CSP): everything visual lives in classes.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+@import 'tailwindcss';
+/* R1 redesign (docs/design/README.md): neon glow built only from the brand purples. */
+@import '../styles/tokens.css';
+@import '../styles/layout.css';
+@import '../styles/buttons.css';
+@import '../styles/hero.css';
+@import '../styles/campaigns.css';
+@import '../styles/detail.css';
+@import '../styles/modal.css';
+@import '../styles/admin.css';
+
+@theme {
+  /* Reset Tailwind's default palette so only approved colours exist */
+  --color-*: initial;
+
+  /* ── Brand palette (extracted 1:1 from ASSETS) ── */
+  --color-ink: #1b1225; /* "noite"   — page background */
+  --color-plum: #4f3d72; /* "ameixa"  — borders, inactive states */
+  --color-violet: #736bb2; /* "violeta" — large text, icons, decorative (3.86:1 on ink) */
+  --color-lavender: #a99de0; /* "lavanda" — accent, primary buttons, links (7.40:1 on ink) */
+  --color-lilac: #e5dded; /* "lilás"   — body text on dark (13.71:1 on ink) */
+
+  /* ── Derived surfaces: sRGB mixes ink→plum (18 / 36 / 60 %) ── */
+  --color-surface-1: #241a33;
+  --color-surface-2: #2e2141;
+  --color-surface-3: #3a2c53;
+
+  /* ── Classificação indicativa (ClassInd) badge fills; text colour chosen for ≥ 4.5:1 ── */
+  --color-age-l: #0a9e47;
+  --color-age-10: #0b79c1;
+  --color-age-12: #f2b400;
+  --color-age-14: #e8701a;
+  --color-age-16: #d6202a;
+  --color-age-18: #111111;
+
+  /* ── State colours (UI only) — all ≥ 8:1 against ink ── */
+  --color-success: #7fd6a4;
+  --color-warning: #f2c46d;
+  --color-danger: #ff8f9a;
+
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  /* ── Typography (variables set by next/font/local in src/app/fonts.ts) ── */
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-display: var(--font-escargoth), var(--font-poppins), ui-sans-serif, sans-serif;
+  --font-brand: var(--font-black-rockie), var(--font-escargoth), serif;
+
+  /* Fluid type scale (mobile → desktop) */
+  --text-display: clamp(2.5rem, 1.6rem + 4vw, 4.5rem);
+  --text-display--line-height: 1;
+  --text-display--letter-spacing: 0.02em;
+  --text-h1: clamp(2rem, 1.5rem + 2.5vw, 3.25rem);
+  --text-h1--line-height: 1.05;
+  --text-h2: clamp(1.5rem, 1.2rem + 1.5vw, 2.25rem);
+  --text-h2--line-height: 1.1;
+  --text-h3: 1.25rem;
+  --text-h3--line-height: 1.3;
+
+  /* ── Radii, shadows, motion ── */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1.25rem;
+  --radius-pill: 9999px;
+  --shadow-glow: 0 0 24px rgb(169 157 224 / 0.35);
+  --shadow-card: 0 8px 24px rgb(0 0 0 / 0.35);
+  --ease-smooth: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* ── Aspect ratios taken from asset viewBoxes ── */
+  --aspect-poster: 2 / 3;
+  --aspect-frame-1: 435.81 / 598.99;
+  --aspect-frame-2: 428.71 / 563.73;
+  --aspect-pattern: 1 / 1;
+  --aspect-logo: 2166 / 816; /* public/brand/logo-wiski.json */
+}
+
+/* Semantic aliases — components use these, not raw palette names */
+@theme inline {
+  --color-bg: var(--color-ink);
+  --color-fg: var(--color-lilac);
+  --color-fg-muted: var(--color-lavender);
+  --color-accent: var(--color-lavender);
+  --color-accent-fg: var(--color-ink);
+  --color-border: var(--color-plum);
+  --color-focus: var(--color-lavender);
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  body {
+    min-height: 100dvh;
+    background-color: var(--color-bg);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+  a {
+    text-underline-offset: 0.2em;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* Decorative brand pattern backgrounds (same-origin SVGs, cached immutable). */
+@utility bg-padrao-2-plum {
+  background-image: url('/brand/padrao-2-plum.svg');
+  background-size: 22rem 22rem;
+}
+@utility bg-padrao-2-violet {
+  background-image: url('/brand/padrao-2-violet.svg');
+  background-size: 22rem 22rem;
+}
+
+@utility skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -10rem;
+  z-index: 50;
+  &:focus {
+    top: 1rem;
+  }
+}

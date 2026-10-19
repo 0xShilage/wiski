@@ -1,0 +1,158 @@
+/* ── Detail pages (/filmes|series|franquias/[slug]) and Avaliações ── */
+@layer components {
+  .wf-detail {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+  .wf-detail__art {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: min(78vh, 760px);
+    z-index: -2;
+  }
+  .wf-detail__art img,
+  .wf-detail__art picture {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .wf-detail__art img {
+    object-fit: cover;
+    object-position: 70% 30%;
+  }
+  .wf-detail__shade {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: min(78vh, 760px);
+    z-index: -1;
+    background:
+      linear-gradient(
+        180deg,
+        rgb(27 18 37 / 0.75) 0%,
+        rgb(27 18 37 / 0.35) 40%,
+        var(--color-ink) 100%
+      ),
+      linear-gradient(90deg, rgb(27 18 37 / 0.9) 25%, rgb(27 18 37 / 0) 75%);
+  }
+  .wf-detail__grid {
+    display: grid;
+    grid-template-columns: clamp(180px, 16vw, 300px) minmax(0, 1fr) minmax(280px, 380px);
+    gap: clamp(24px, 3vw, 56px);
+    align-items: start;
+    margin-top: clamp(24px, 8vh, 120px);
+  }
+  .wf-detail__poster {
+    position: relative;
+    aspect-ratio: 2 / 3;
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--color-surface-2);
+    box-shadow: var(--glow);
+    outline: 1px solid rgb(169 157 224 / 0.5);
+  }
+  .wf-detail__poster img,
+  .wf-detail__poster picture {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .wf-detail__poster img {
+    object-fit: cover;
+  }
+  .wf-detail__synopsis {
+    margin-top: 20px;
+    font-size: 16px;
+    line-height: 1.7;
+    color: rgb(229 221 237 / 0.92);
+    white-space: pre-line;
+    max-width: 68ch;
+  }
+  .wf-detail dl {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 8px 20px;
+    margin: 24px 0 0;
+    font-size: 15px;
+  }
+  .wf-detail dt {
+    color: var(--color-lavender);
+  }
+  .wf-detail dd {
+    margin: 0;
+  }
+  .wf-panel {
+    background: rgb(36 26 51 / 0.92);
+    border: 1px solid rgb(169 157 224 / 0.35);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 0 40px rgb(115 107 178 / 0.2);
+  }
+  .wf-panel h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 8px;
+    color: #f7f2fb;
+  }
+  .wf-panel .wf-btn {
+    width: 100%;
+    margin-top: 16px;
+  }
+  .wf-films {
+    counter-reset: film;
+    list-style: none;
+    padding: 0;
+    margin: 16px 0 0;
+    display: grid;
+    gap: 8px;
+  }
+  .wf-films li {
+    counter-increment: film;
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    gap: 12px;
+    align-items: baseline;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: rgb(46 33 65 / 0.6);
+  }
+  .wf-films li::before {
+    content: counter(film, decimal-leading-zero);
+    color: var(--color-lavender);
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+  }
+
+  @media (max-width: 1100px) {
+    .wf-detail__grid {
+      grid-template-columns: clamp(160px, 22vw, 240px) minmax(0, 1fr);
+    }
+    .wf-detail__aside {
+      grid-column: 1 / -1;
+    }
+  }
+  @media (max-width: 760px) {
+    .wf-detail__art,
+    .wf-detail__shade {
+      height: min(60vh, 420px);
+    }
+    .wf-detail__grid {
+      grid-template-columns: 1fr;
+      margin-top: 140px;
+    }
+    .wf-detail__poster {
+      width: 140px;
+    }
+  }
+
+  /* Avaliações shell */
+  .wf-watched {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr));
+    gap: 16px;
+    margin-top: 20px;
+    list-style: none;
+    padding: 0;
+  }
+}

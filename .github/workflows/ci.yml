@@ -1,0 +1,124 @@
+# Wiskiflix CI (Phase 1 skeleton, 10 §2 step 13). Third-party actions are pinned by commit SHA;
+# Dependabot keeps them (and npm) moving. Runs once the repository is on GitHub (Q26).
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: '1'
+  CI: 'true'
+
+jobs:
+  quality:
+    name: lint · typecheck · unit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run format:check
+      - run: npm test
+
+  integration:
+    name: integration (embedded Postgres 17 + Redis)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends redis-server
+      - run: npm ci
+      - run: npm run test:integration
+
+  migrations:
+    name: prisma validate · migrate deploy · drift check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGPASSWORD: postgres
+      MIGRATE_DATABASE_URL: postgresql://wf_migrator:migrator@localhost:5432/wiskiflix
+      SHADOW_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/wiskiflix_shadow
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm ci
+      - run: npx prisma validate
+      - name: Create least-privilege roles
+        run: |
+          psql -h localhost -U postgres -v ON_ERROR_STOP=1 -v migrator_pw="'migrator'" -v app_pw="'app'" -f prisma/sql/roles.sql
+          psql -h localhost -U postgres -c 'CREATE DATABASE wiskiflix_shadow'
+      - run: npx prisma migrate deploy
+      - name: Migrations match schema.prisma (no drift)
+        run: npx prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --exit-code
+      - name: App role cannot alter the audit log
+        run: |
+          psql -h localhost -U wf_app -d wiskiflix -c "INSERT INTO \"AuditLog\"(action, \"targetType\") VALUES ('ci.check', 'CI')"
+          ! PGPASSWORD=app psql -h localhost -U wf_app -d wiskiflix -c "UPDATE \"AuditLog\" SET action = 'x'"
+        env: { PGPASSWORD: app }
+
+  e2e:
+    name: build · brand pixels · e2e (nginx + CSP) · bundle secrets
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends redis-server nginx-light
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npm run check:bundle-secrets
+      - run: npm run test:brand
+      - run: npm run test:e2e
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+
+  security:
+    name: npm audit · gitleaks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { fetch-depth: 0, persist-credentials: false }
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm audit --audit-level=high
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml

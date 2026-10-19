@@ -1,0 +1,200 @@
+/* ── Séries / Franquias (design §4): featured campaign + grid of campaign cards ── */
+@layer components {
+  .wf-feature {
+    margin-top: clamp(28px, 4vh, 40px);
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    border-radius: 18px;
+    overflow: hidden;
+    background: var(--color-surface-1);
+    border: 1px solid rgb(169 157 224 / 0.35);
+    box-shadow:
+      0 0 0 1px rgb(169 157 224 / 0.12),
+      0 0 40px rgb(115 107 178 / 0.25);
+  }
+  .wf-feature__art {
+    position: relative;
+    min-height: clamp(260px, 36vh, 420px);
+    background: var(--color-surface-2);
+  }
+  .wf-feature__art img,
+  .wf-feature__art picture {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .wf-feature__art img {
+    object-fit: cover;
+  }
+  .wf-feature__info {
+    padding: clamp(24px, 3.5vh, 40px) clamp(24px, 2.8vw, 44px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+  }
+  .wf-feature__title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(32px, 1.2vw + 24px, 52px);
+    line-height: 1;
+    text-transform: uppercase;
+    margin: 10px 0 8px;
+    color: #f7f2fb;
+    overflow-wrap: anywhere;
+  }
+  .wf-feature__ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 24px;
+  }
+
+  /* progress: a native <progress> (no inline width styles under the CSP) */
+  .wf-progress {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    width: 100%;
+    height: 10px;
+    margin: 20px 0 10px;
+    border: 0;
+    border-radius: 999px;
+    background: rgb(79 61 114 / 0.55);
+    overflow: hidden;
+    color: var(--color-lavender);
+  }
+  .wf-progress::-webkit-progress-bar {
+    background: rgb(79 61 114 / 0.55);
+    border-radius: 999px;
+  }
+  .wf-progress::-webkit-progress-value {
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--color-violet), var(--color-lavender));
+    box-shadow:
+      0 0 10px rgb(169 157 224 / 0.9),
+      0 0 22px rgb(115 107 178 / 0.7);
+  }
+  .wf-progress::-moz-progress-bar {
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--color-violet), var(--color-lavender));
+  }
+  .wf-progress--sm {
+    height: 6px;
+    margin: 14px 0 8px;
+  }
+  .wf-nums {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    font-size: 14px;
+  }
+  .wf-nums b {
+    font-size: 20px;
+    color: #fff;
+    font-weight: 600;
+  }
+  .wf-nums--sm b {
+    font-size: 15px;
+  }
+
+  .wf-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+    gap: clamp(16px, 1.6vw, 28px);
+    margin-top: clamp(28px, 4vh, 48px);
+  }
+  .wf-scard {
+    display: flex;
+    flex-direction: column;
+    background: var(--color-surface-1);
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid rgb(79 61 114 / 0.8);
+    color: inherit;
+    text-decoration: none;
+    transition:
+      border-color 0.2s,
+      box-shadow 0.2s;
+  }
+  .wf-scard:hover {
+    border-color: rgb(169 157 224 / 0.7);
+    box-shadow: var(--glow-sm);
+  }
+  .wf-scard__poster {
+    position: relative;
+    aspect-ratio: 2 / 3;
+    background: var(--color-surface-2);
+  }
+  .wf-scard__poster img,
+  .wf-scard__poster picture {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .wf-scard__poster img {
+    object-fit: cover;
+  }
+  .wf-scard__body {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+  .wf-scard__title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 22px;
+    line-height: 1.05;
+    text-transform: uppercase;
+    margin: 0 0 4px;
+    color: #f7f2fb;
+  }
+  .wf-status {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+  .wf-status--ok {
+    color: var(--color-success);
+    border: 1px solid rgb(127 214 164 / 0.6);
+    background: rgb(127 214 164 / 0.08);
+  }
+  .wf-status--warn {
+    color: var(--color-warning);
+    border: 1px solid rgb(242 196 109 / 0.6);
+    background: rgb(242 196 109 / 0.08);
+  }
+
+  @media (max-width: 960px) {
+    .wf-feature {
+      grid-template-columns: 1fr;
+    }
+    .wf-feature__art {
+      min-height: 0;
+      aspect-ratio: 16 / 9;
+    }
+  }
+  @media (max-width: 760px) {
+    .wf-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .wf-scard__body {
+      padding: 12px;
+    }
+    .wf-scard__title {
+      font-size: 18px;
+    }
+    .wf-feature__ctas .wf-btn {
+      flex: 1 1 100%;
+    }
+  }
+}

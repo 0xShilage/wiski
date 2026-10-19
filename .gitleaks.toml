@@ -1,0 +1,18 @@
+# gitleaks: default rules + project-specific ones. Test fixtures use obviously fake values.
+[extend]
+useDefault = true
+
+[[rules]]
+id = "mercadopago-access-token"
+description = "Mercado Pago access token"
+regex = '''\b(?:APP_USR|TEST)-\d{6,}-\d{6}-[0-9a-f]{20,}-\d{6,}\b'''
+tags = ["mercadopago", "payments"]
+
+[allowlist]
+description = "Fake fixtures used by tests only"
+paths = [
+  '''tests/support/env\.ts''',
+  '''tests/e2e/support/stack\.ts''',
+  '''tests/unit/env\.test\.ts''',
+  '''tests/support/mock-google\.ts''',
+]

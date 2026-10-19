@@ -1,0 +1,15 @@
+node_modules
+.next
+src/generated
+src/components/brand/generated
+public
+ASSETS
+docs/phase-0
+prisma/migrations
+playwright-report
+test-results
+package-lock.json
+*.md
+AGENTS.md
+CLAUDE.md
+docs/design/r1-prototype.html

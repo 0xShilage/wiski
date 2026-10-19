@@ -1,0 +1,51 @@
+# dependencies
+/node_modules
+
+# build output
+/.next/
+/out/
+/build/
+*.tsbuildinfo
+next-env.d.ts
+
+# generated (rebuilt by `npm install` / `prisma generate`)
+/src/generated/
+
+# tests
+/coverage/
+/playwright-report/
+/test-results/
+/blob-report/
+/.tmp/
+
+# env & secrets — NEVER commit real values
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+# Plain-text credentials notes must never enter the repo (see docs/phase-1/README.md)
+/DATA.txt
+DATA*.txt
+*credentials*.txt
+*secrets*.txt
+
+# OS / editors
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# logs
+npm-debug.log*
+*.log
+
+# processed images in development (MEDIA_DIR default)
+/.media/
+
+# delivery archives and the hand-off folder (never part of the repository)
+/Claude outputs/
+*.zip

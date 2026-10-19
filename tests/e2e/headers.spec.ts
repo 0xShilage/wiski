@@ -1,0 +1,162 @@
+/**
+ * Header ownership (05 §7): each security header present EXACTLY ONCE on a page, an API route,
+ * static assets and a 404 — nginx's headers come from docker/nginx/snippets/security-headers.conf.
+ * R1: Permissions-Policy for the trailer player, /media/ files (media.conf) and the upload
+ * location (upload.conf).
+ */
+import { request as httpsRequest } from 'node:https';
+import { type APIRequestContext, expect, test } from '@playwright/test';
+import { stack } from './support/seed';
+
+const NGINX_OWNED = {
+  'strict-transport-security': 'max-age=63072000; includeSubDomains; preload',
+  'x-frame-options': 'DENY',
+  'x-content-type-options': 'nosniff',
+  'referrer-policy': 'strict-origin-when-cross-origin',
+  'cross-origin-opener-policy': 'same-origin',
+  'cross-origin-resource-policy': 'same-origin',
+} as const;
+
+async function headerCounts(request: APIRequestContext, path: string) {
+  const res = await request.get(path, { maxRedirects: 0 });
+  const counts = new Map<string, string[]>();
+  for (const { name, value } of res.headersArray()) {
+    const k = name.toLowerCase();
+    counts.set(k, [...(counts.get(k) ?? []), value]);
+  }
+  return { res, counts };
+}
+
+test('static asset path discovery', async ({ request }) => {
+  const html = await (await request.get('/')).text();
+  expect(html).toMatch(/\/_next\/static\/[^"]+\.js/);
+});
+
+for (const [label, path, kind] of [
+  ['page', '/', 'page'],
+  ['404 page', '/nao-existe', 'page'],
+  ['API', '/api/health', 'api'],
+  ['brand asset', '/brand/logo-wiski-lilac.svg', 'static'],
+  ['favicon', '/favicon.ico', 'static-app'],
+] as const) {
+  test(`${label} (${path}): every security header exactly once`, async ({ request }) => {
+    const { res, counts } = await headerCounts(request, path);
+    for (const [name, value] of Object.entries(NGINX_OWNED)) {
+      expect(counts.get(name), name).toEqual([value]);
+    }
+    expect(counts.get('permissions-policy')).toHaveLength(1);
+    expect(counts.get('permissions-policy')![0]).toContain('camera=()');
+    expect(counts.has('x-powered-by')).toBe(false);
+    expect(counts.get('server') ?? ['nginx']).toEqual(['nginx']); // no version
+    if (kind === 'page') {
+      expect(counts.get('content-security-policy')).toHaveLength(1);
+      expect(counts.get('content-security-policy-report-only')).toHaveLength(1);
+      expect(counts.get('reporting-endpoints')).toHaveLength(1);
+      expect(counts.get('cache-control')).toHaveLength(1);
+      expect(counts.get('cache-control')![0]).toMatch(/private/);
+      expect(counts.get('cache-control')![0]).toMatch(/no-store/);
+    }
+    if (kind === 'api') {
+      expect(counts.get('content-security-policy')).toEqual([
+        "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+      ]);
+      expect(counts.get('cache-control')).toEqual(['private, no-store']);
+    }
+    if (kind === 'static') {
+      expect(counts.get('cache-control')).toHaveLength(1);
+      expect(res.status()).toBe(200);
+    }
+  });
+}
+
+test('hashed build assets are immutable (cache header once)', async ({ request }) => {
+  const html = await (await request.get('/')).text();
+  const js = /\/_next\/static\/[^"]+\.js/.exec(html)![0];
+  const { counts } = await headerCounts(request, js);
+  expect(counts.get('cache-control')).toEqual(['public, max-age=31536000, immutable']);
+  expect(counts.get('x-content-type-options')).toEqual(['nosniff']);
+});
+
+test('/api/ready is not reachable from outside the Docker network', async ({ request }) => {
+  expect((await request.get('/api/ready')).status()).toBe(403);
+});
+
+test('Permissions-Policy delegates the player features to youtube-nocookie only', async ({
+  request,
+}) => {
+  const { counts } = await headerCounts(request, '/');
+  const pp = counts.get('permissions-policy')![0]!;
+  for (const feature of ['autoplay', 'encrypted-media', 'fullscreen', 'picture-in-picture']) {
+    expect(pp).toContain(`${feature}=(self "https://www.youtube-nocookie.com")`);
+  }
+  expect(pp).not.toMatch(/youtube\.com"/);
+  expect(pp).not.toContain('*');
+});
+
+test('/media/ files: served by nginx with immutable caching and each header once', async ({
+  request,
+}) => {
+  const html = await (await request.get('/')).text();
+  const path = /\/media\/[0-9a-f]{32}-\d{2,4}\.(?:avif|webp)/.exec(html)?.[0];
+  expect(path, 'the seeded home page references processed images').toBeTruthy();
+  const { res, counts } = await headerCounts(request, path!);
+  expect(res.status()).toBe(200);
+  for (const [name, value] of Object.entries(NGINX_OWNED)) {
+    expect(counts.get(name), name).toEqual([value]);
+  }
+  expect(counts.get('cache-control')).toEqual(['public, max-age=31536000, immutable']);
+  expect(counts.get('content-security-policy')).toEqual([
+    "default-src 'none'; frame-ancestors 'none'; sandbox",
+  ]);
+  expect(counts.get('content-type')).toEqual([
+    path!.endsWith('.avif') ? 'image/avif' : 'image/webp',
+  ]);
+  expect(counts.has('set-cookie')).toBe(false);
+  expect((await request.head(path!)).status()).toBe(200);
+  expect((await request.post(path!, { data: 'x' })).status()).toBe(403);
+});
+
+for (const bad of [
+  '/media/',
+  '/media/x.webp',
+  `/media/${'a'.repeat(32)}-480.png`,
+  `/media/${'A'.repeat(32)}-480.webp`,
+  `/media/${'a'.repeat(31)}-480.webp`,
+  `/media/${'a'.repeat(32)}-480.webp`, // well-formed but absent
+  `/media/${'a'.repeat(32)}-480.webp.svg`,
+  '/media/%2e%2e/nginx.conf',
+  '/media/..%2fnginx.conf',
+]) {
+  test(`/media/ refuses ${bad}`, async ({ request }) => {
+    const { res, counts } = await headerCounts(request, bad);
+    expect(res.status()).toBe(404);
+    expect(counts.get('x-content-type-options')).toEqual(['nosniff']);
+    expect(await res.text()).not.toContain('worker_processes');
+  });
+}
+
+test('upload location: only POST, nginx caps the body at 11 MB', async ({ request }, info) => {
+  // Once per run: these requests count against nginx's 2 r/min upload zone.
+  test.skip(info.project.name !== 'desktop-1280', 'runs once');
+  expect((await request.get('/api/v1/admin/media')).status()).toBe(403);
+  // Announce 12 MB and send nothing: nginx answers 413 from the headers alone.
+  const status = await new Promise<number>((resolve, reject) => {
+    const url = new URL('/api/v1/admin/media?role=POSTER', stack().origin);
+    const req = httpsRequest(
+      url,
+      {
+        method: 'POST',
+        rejectUnauthorized: false,
+        headers: { 'content-type': 'image/jpeg', 'content-length': String(12 * 1024 * 1024) },
+      },
+      (res) => {
+        resolve(res.statusCode ?? 0);
+        res.resume();
+        req.destroy();
+      },
+    );
+    req.on('error', reject);
+    req.flushHeaders();
+  });
+  expect(status).toBe(413);
+});

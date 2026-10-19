@@ -1,0 +1,27 @@
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
+
+# Wiskiflix — project rules for AI agents and humans
+
+Design baseline: `docs/phase-0/` (architecture, data model, API, pricing, threat model, tokens).
+Phase 1 status, how to run, decisions and deviations: `docs/phase-1/README.md`; results: `docs/phase-1/test-report.md`.
+R1 (redesign foundation — current): `docs/r1/README.md`; results: `docs/r1/test-report.md`; rules: `docs/phase-0/11-redesign-spec.md`.
+
+Non-negotiables (enforced by lint/tests — keep them green):
+
+- **Every Route Handler is wrapped in `route()`** (`src/server/http/route.ts`): access level, CSRF, rate limit, Zod `.strict()` schemas, RFC 9457 errors. Add each new endpoint to the authz matrix (`tests/integration/authz.test.ts`) — a meta-test fails otherwise.
+- **No inline styles, no `dangerouslySetInnerHTML`, no `<style>` in SVG**: the CSP has no `'unsafe-inline'`. Use classes; images through `@/components/Img`; brand SVGs only via `npm run brand` (lossless, pixel-diffed).
+- **Identity is the Google `sub`**; sessions are server-side (hash in DB); cookies are `__Host-`, HttpOnly, Secure.
+- **Money is integer cents; time is UTC in the DB** (connections pinned to `TimeZone=UTC`), business rules in America/Sao_Paulo.
+- **Audit log is append-only**: write through `audit()` with an allow-listed metadata schema; never UPDATE/DELETE it.
+- **Admin routes need a passkey**: `route()` enforces `Session.mfaAt` ≤ 10 min for `moderator`/`streamer` access by default — never pass `mfa: false` on an admin endpoint. STREAMER money actions also need Google step-up.
+- **User images only through the media pipeline** (`src/server/media`): bytes decide the format, everything is re-encoded under content-hash names; nginx serves `/media/` in production (the app route is development-only).
+- **Raw SQL only in reviewed migrations** (`prisma/migrations/*_constraints`) plus the documented tagged-template exceptions.
+- **Secrets never in the repo, chat, logs or client bundle** (`npm run check:bundle-secrets`, gitleaks). Code/docs/identifiers in English, UI copy in pt-BR.

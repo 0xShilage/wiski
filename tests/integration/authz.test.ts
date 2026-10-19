@@ -5,7 +5,7 @@
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { AccessLevel } from '@/server/rbac';
 import { makeUser } from '../support/db';
 import { call, req, signedIn } from '../support/http';
@@ -22,10 +22,22 @@ type Row = {
   rawBody?: string;
   contentType?: string;
   params?: Record<string, string>;
+  headers?: Record<string, string>;
+  /** Turnstile-protected: answer siteverify with success so the access check is what's tested */
+  turnstile?: boolean;
+  /** Authenticated by an HMAC signature, not a session: every role without it gets 401. */
+  hmac?: boolean;
 };
 
 /** A well-formed id that matches nothing. */
 const NO_ID = '00000000-0000-7000-8000-000000000000';
+
+const CODE = 'WF-000000';
+const checkoutHeaders = {
+  'x-turnstile-token': 'matrix-token',
+  'idempotency-key': '00000000-0000-4000-8000-000000000001',
+};
+const legal = { terms: 'x', privacy: 'x', refund: 'x' };
 
 const R = (path: string, method: Method, access: AccessLevel, extra: Partial<Row> = {}): Row => ({
   path,
@@ -125,6 +137,53 @@ export const MATRIX: Row[] = [
     params: { id: NO_ID },
     body: { goalCents: 10000 },
   }),
+
+  // ── Phase 2 (payments) ──
+  // checkout: guests or users (Turnstile + Idempotency-Key); unknown ids → 404
+  R('/api/v1/orders/quote', 'POST', 'public', { body: { itemId: NO_ID }, params: {} }),
+  R('/api/v1/orders', 'POST', 'public', {
+    turnstile: true,
+    headers: checkoutHeaders,
+    body: { itemId: NO_ID, expectedTotalCents: 2000, contactEmail: 'matriz@example.com', legal },
+    params: {},
+  }),
+  R('/api/v1/campaigns/[id]/contributions', 'POST', 'public', {
+    turnstile: true,
+    headers: checkoutHeaders,
+    params: { id: NO_ID },
+    body: { amountCents: 500, contactEmail: 'matriz@example.com', legal },
+  }),
+  // order pages: owner / order cookie / staff — anyone else sees 404 (not 403)
+  R('/api/v1/orders/[code]', 'GET', 'public', {
+    url: `/api/v1/orders/${CODE}`,
+    params: { code: CODE },
+  }),
+  R('/api/v1/orders/[code]/access', 'POST', 'public', {
+    url: `/api/v1/orders/${CODE}/access`,
+    params: { code: CODE },
+    body: { token: 'a'.repeat(43) },
+  }),
+  R('/api/v1/orders/[code]/cancel', 'POST', 'public', {
+    url: `/api/v1/orders/${CODE}/cancel`,
+    params: { code: CODE },
+  }),
+  R('/api/v1/orders/[code]/claim', 'POST', 'user', {
+    url: `/api/v1/orders/${CODE}/claim`,
+    params: { code: CODE },
+  }),
+  R('/api/v1/orders/[code]/events', 'GET', 'public', {
+    url: `/api/v1/orders/${CODE}/events`,
+    params: { code: CODE },
+  }),
+  R('/api/v1/campaigns/[id]/events', 'GET', 'public', { params: { id: NO_ID } }),
+  R('/api/v1/me/orders', 'GET', 'user'),
+  R('/api/v1/legal/current', 'GET', 'public'),
+  // Mercado Pago notifications: HMAC-signed, no session involved
+  R('/api/webhooks/mercadopago', 'POST', 'public', {
+    hmac: true,
+    url: '/api/webhooks/mercadopago?data.id=ORD01TEST&type=order',
+    body: { action: 'order.processed' },
+  }),
 ];
 
 const ROLES = ['anonymous', 'USER', 'MODERATOR', 'STREAMER'] as const;
@@ -139,8 +198,14 @@ function expected(role: (typeof ROLES)[number], access: AccessLevel): 'allow' | 
 describe('authz matrix', () => {
   for (const row of MATRIX) {
     for (const role of ROLES) {
-      const want = expected(role, row.access);
+      const want = row.hmac ? 401 : expected(role, row.access);
       it(`${row.method} ${row.path} as ${role} → ${want}`, async () => {
+        if (row.turnstile) {
+          vi.stubGlobal(
+            'fetch',
+            vi.fn(async () => Response.json({ success: true })),
+          );
+        }
         const mod = await row.load();
         const handler = mod[row.method] as Parameters<typeof call>[0];
         expect(handler, 'handler exported').toBeTypeOf('function');
@@ -159,6 +224,7 @@ describe('authz matrix', () => {
             cookies: auth.cookies,
             headers: {
               ...auth.headers,
+              ...row.headers,
               ...(row.contentType ? { 'content-type': row.contentType } : {}),
               ...(row.rawBody !== undefined
                 ? { 'content-length': String(row.rawBody.length) }

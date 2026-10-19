@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EnvError, parseEnv, TURNSTILE_TEST_SECRET_KEY } from '@/server/env';
+import { fakePaymentEnv } from '../support/fake-payment-env';
 
 const key = (c: string) => c.repeat(43);
 
@@ -22,6 +23,7 @@ const production = {
   TURNSTILE_SITE_KEY: '0x4AAAAAAAreal-site-key',
   TURNSTILE_SECRET_KEY: '0x4AAAAAAAreal-secret-key',
   MEDIA_DIR: '/var/lib/wiski/media',
+  ...fakePaymentEnv('2222222222'),
 };
 
 function problems(source: Record<string, string | undefined>): string[] {
@@ -123,6 +125,32 @@ describe('env validation (refuses to boot on missing/invalid vars)', () => {
       expect.stringContaining('absolute'),
     );
     expect(parseEnv({ ...valid, TMDB_API_KEY: 'k'.repeat(32) })).not.toHaveProperty('TMDB_API_KEY');
+  });
+
+  it.each([
+    'MP_ACCESS_TOKEN',
+    'MP_COLLECTOR_ID',
+    'MP_WEBHOOK_SECRET',
+    'RESEND_API_KEY',
+    'PIX_RECIPIENT_NAME',
+  ])('production takes payments: %s is required (Phase 2)', (name) => {
+    const { [name as keyof typeof production]: _omit, ...rest } = production;
+    expect(problems(rest).some((p) => p.startsWith(`${name}:`))).toBe(true);
+  });
+
+  it('service endpoints are fixed in production, overridable only on localhost (test stack)', () => {
+    const mock = 'http://127.0.0.1:9100';
+    for (const key of ['MP_API_BASE', 'RESEND_API_BASE', 'TURNSTILE_VERIFY_URL']) {
+      expect(problems({ ...production, [key]: mock })).toContainEqual(
+        expect.stringContaining(`${key}:`),
+      );
+      expect(
+        problems({ ...production, APP_ORIGIN: 'https://localhost:8443', [key]: mock }),
+      ).toEqual([]);
+      expect(problems({ ...valid, [key]: 'http://evil.example' })).toContainEqual(
+        expect.stringContaining('https'),
+      );
+    }
   });
 
   it('detects a Mercado Pago token that belongs to another account (test vs production ids)', () => {

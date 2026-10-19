@@ -10,7 +10,6 @@ import { randomToken } from './crypto';
  * token age ≤ 300 s. Tokens are single-use at Cloudflare's side.
  */
 export const TURNSTILE_HEADER = 'x-turnstile-token';
-const SITEVERIFY = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 const MAX_AGE_MS = 300_000;
 
 const responseSchema = z.object({
@@ -40,7 +39,7 @@ export async function verifyTurnstile(
 
   let data: z.infer<typeof responseSchema>;
   try {
-    const res = await fetchImpl(SITEVERIFY, {
+    const res = await fetchImpl(env.TURNSTILE_VERIFY_URL, {
       method: 'POST',
       body,
       signal: AbortSignal.timeout(5_000),

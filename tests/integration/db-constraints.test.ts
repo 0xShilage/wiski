@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { db } from '@/server/db';
 import { makeItem } from '../support/catalog';
 import { makeUser, withAdmin } from '../support/db';
+import { orderIdentity } from '../support/orders';
 
 describe('CHECK constraints', () => {
   it('rejects a review rating outside 1..5 and empty/oversized bodies', async () => {
@@ -45,16 +46,12 @@ describe('CHECK constraints', () => {
       },
     });
     const base = {
-      publicCode: `WF-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
-      contactEmail: 'guest@example.com',
-      accessTokenHash: crypto.getRandomValues(new Uint8Array(32)),
+      ...orderIdentity(),
       kind: 'MOVIE' as const,
       itemId: t.id,
       runtimeMinutes: 120,
       rescheduleCount: 0,
       ruleSetId: rs.id,
-      breakdown: [],
-      clientRequestId: crypto.randomUUID(),
     };
     await expect(
       db().order.create({

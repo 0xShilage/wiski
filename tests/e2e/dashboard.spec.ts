@@ -30,6 +30,9 @@ async function fixture(name: string, w: number, h: number) {
 
 async function virtualAuthenticator(page: Page) {
   const cdp = await page.context().newCDPSession(page);
+  const events = { added: 0, asserted: 0 };
+  cdp.on('WebAuthn.credentialAdded', () => events.added++);
+  cdp.on('WebAuthn.credentialAsserted', () => events.asserted++);
   await cdp.send('WebAuthn.enable');
   await cdp.send('WebAuthn.addVirtualAuthenticator', {
     options: {
@@ -41,6 +44,7 @@ async function virtualAuthenticator(page: Page) {
       automaticPresenceSimulation: true,
     },
   });
+  return events;
 }
 
 async function moderator(context: BrowserContext, verified = true) {
@@ -54,7 +58,16 @@ test('passkey: enrol on /perfil/seguranca, then verify to open the dashboard', a
   context,
 }) => {
   await moderator(context, false);
-  await virtualAuthenticator(page);
+  const authenticator = await virtualAuthenticator(page);
+  // What the passkey API answered, for the failure message below (problem bodies only).
+  const api: string[] = [];
+  page.on('response', async (r) => {
+    const path = new URL(r.url()).pathname;
+    if (!path.startsWith('/api/v1/me/passkeys/')) return;
+    api.push(
+      `${r.status()} ${path}${r.ok() ? '' : ` ${(await r.text().catch(() => '')).slice(0, 240)}`}`,
+    );
+  });
   await page.goto('/admin/catalogo');
   await expect(page.getByRole('heading', { name: 'Cadastre uma passkey' })).toBeVisible();
   await page.getByRole('link', { name: 'Cadastrar passkey' }).click();
@@ -66,7 +79,18 @@ test('passkey: enrol on /perfil/seguranca, then verify to open the dashboard', a
   await page.goto('/admin/catalogo');
   await expect(page.getByRole('heading', { name: 'Confirme que é você' })).toBeVisible();
   await page.getByRole('button', { name: 'Verificar com passkey' }).click();
-  await expect(page.getByRole('heading', { name: 'Filmes', level: 1 })).toBeVisible();
+  const dashboard = page.getByRole('heading', { name: 'Filmes', level: 1 });
+  const problem = page.locator('p.text-danger[role="alert"]');
+  // If the gate stays, fail with what happened instead of "element not found".
+  const why = () =>
+    `passkey gate: authenticator events ${JSON.stringify(authenticator)}, API ${JSON.stringify(api)}`;
+  try {
+    await expect(dashboard.or(problem)).toBeVisible({ timeout: 15_000 });
+  } catch (err) {
+    throw new Error(`neither the dashboard nor an error appeared — ${why()}`, { cause: err });
+  }
+  expect(await problem.allInnerTexts(), why()).toEqual([]);
+  await expect(dashboard).toBeVisible();
   await expect(page.getByText('Passkey verificada')).toBeVisible();
 });
 

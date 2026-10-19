@@ -38,8 +38,8 @@
     "db:seed": "tsx --conditions=react-server scripts/seed-dev.ts"
   },
   "dependencies": {
-    "@prisma/adapter-pg": "7.10.0",
-    "@prisma/client": "7.10.0",
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
     "@simplewebauthn/browser": "14.0.0",
     "@simplewebauthn/server": "14.0.3",
     "ioredis": "5.11.1",
@@ -72,7 +72,7 @@
     "jose": "6.2.12",
     "opentype.js": "2.0.0",
     "prettier": "3.9.9",
-    "prisma": "7.10.0",
+    "prisma": "7.10.1",
     "subset-font": "2.9.0",
     "svgo": "4.1.0",
     "tailwindcss": "4.3.3",

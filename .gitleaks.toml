@@ -15,4 +15,10 @@ paths = [
   '''tests/e2e/support/stack\.ts''',
   '''tests/unit/env\.test\.ts''',
   '''tests/support/mock-google\.ts''',
+  '''tests/unit/security\.test\.ts''',
+]
+# Avatar ids such as 'mascote-4-lavender' (src/lib/avatars.ts and tests) trip generic-api-key.
+regexTarget = "secret"
+regexes = [
+  '''^mascote-\d+-[a-z]+$''',
 ]

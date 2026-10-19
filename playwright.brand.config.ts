@@ -6,7 +6,8 @@ export default defineConfig({
   globalSetup: './tests/brand/global-setup.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
+  // `github` turns each failing test into an annotation on the commit, readable without the logs.
+  reporter: process.env.CI ? [['list'], ['github'], ['html', { open: 'never' }]] : 'list',
   use: {
     ...devices['Desktop Chrome'],
     deviceScaleFactor: 2,

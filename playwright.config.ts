@@ -18,7 +18,12 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI
-    ? [['list'], ['html', { open: 'never' }], ['json', { outputFile: 'test-results/e2e.json' }]]
+    ? [
+        ['list'],
+        ['github'],
+        ['html', { open: 'never' }],
+        ['json', { outputFile: 'test-results/e2e.json' }],
+      ]
     : [['list'], ['json', { outputFile: 'test-results/e2e.json' }]],
   use: {
     baseURL,

@@ -1,19 +1,36 @@
 version: 2
+# Minor and patch updates arrive grouped (few PRs, few CI runs: ~11 runner-minutes each on a
+# private repository). Major updates always arrive as their own PR, so each gets a review.
 updates:
   - package-ecosystem: npm
     directory: /
     schedule: { interval: weekly, day: monday, time: '06:00', timezone: America/Sao_Paulo }
     open-pull-requests-limit: 10
+    ignore:
+      # Types follow the runtime: the project runs Node 24 LTS (`.nvmrc`, `engines`).
+      # Move this line together with them when the project moves to the next LTS.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
     groups:
       next-react:
         patterns: ['next', 'react', 'react-dom', '@types/react*', 'eslint-config-next', '@next/*']
+        update-types: [minor, patch]
       prisma:
         patterns: ['prisma', '@prisma/*']
+        update-types: [minor, patch]
       testing:
         patterns: ['vitest', 'vite', '@playwright/test', '@axe-core/*', 'embedded-postgres']
+        update-types: [minor, patch]
       lint:
         patterns:
           ['eslint', '@eslint/*', 'typescript-eslint', 'eslint-plugin-*', 'prettier', 'typescript']
+        update-types: [minor, patch]
+      everything-else:
+        patterns: ['*']
+        update-types: [minor, patch]
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly, day: monday, time: '06:00', timezone: America/Sao_Paulo }
+    groups:
+      actions:
+        patterns: ['*']

@@ -181,10 +181,13 @@ test('logo "Wiski" outlines match live text set in Black Rockie', async ({ page 
   );
   expect(result.ink).toBeGreaterThan(20_000);
   // Same glyphs, kerning and position: differences are edge shifts from the browser's text
-  // hinting (≤ 1 px), plus a handful of hinted hairline pixels (< 0.1 % of the ink).
+  // hinting (≤ 1 px), plus a few hinted hairline pixels whose count depends on the Chromium
+  // build (measured 0.04 % of the ink on Chromium 1194, 0.17 % on Playwright 1.63's build in CI).
+  // A real error is far above 0.5 %: the outline shifted 2 px → 11 %, 2 px down → 7 %;
+  // a 1 px shift → 10 % strict.
   console.log(
     `logo vs live text: ${result.strict} edge pixels differ (${((100 * result.strict) / result.ink).toFixed(2)} % of ink), ${result.mismatch} beyond 1 px`,
   );
-  expect(result.mismatch / result.ink).toBeLessThan(0.001);
+  expect(result.mismatch / result.ink).toBeLessThan(0.005);
   expect(result.strict / result.ink).toBeLessThan(0.03);
 });

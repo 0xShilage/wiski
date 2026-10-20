@@ -44,7 +44,7 @@ Why the ids matter: the payment worker refuses any order whose `user_id` (collec
 4. Test credentials appear automatically; they are all development needs. Sandbox orders use the payer e-mail `test@testuser.com` (the app does this by itself in development).
 5. In **Webhooks › Configurar notificações** (Phase 5, once the site is online):
    - production URL: `https://wiski.fun/api/webhooks/mercadopago`
-   - events: **Order (Mercado Pago)** and **Contestações / chargebacks**
+   - event: **Order (Mercado Pago)**. (Chargebacks don't need their own event: the worker re-reads every approved order nightly for 120 days and flags a dispute for the streamer.)
 
    Save, then copy the **assinatura secreta** into `.env`. The site doesn't send a per-order `notification_url`, so every notification comes through this signed panel configuration. The server's nginx must pass Mercado Pago's own `x-request-id` header through unchanged — it is part of the signature (`docker/nginx/snippets/mercadopago-webhook.conf`).
 6. Activate production credentials when the site is ready to go live (Phase 5). It asks for an industry (entertainment/media), the website `https://wiski.fun`, and acceptance of the terms. The lawyer's terms, privacy and refund texts must be online by then — production refuses to start while the provisional texts are current.

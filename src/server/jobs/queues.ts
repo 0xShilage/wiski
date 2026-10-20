@@ -99,11 +99,13 @@ export const enqueue = {
     source: 'webhook' | 'reconcile' | 'order',
     webhookRequestId?: string,
   ) =>
-    safeAdd(paymentsQueue, 'payment.sync', {
-      mpOrderId,
-      source,
-      ...(webhookRequestId ? { webhookRequestId } : {}),
-    }),
+    safeAdd(
+      paymentsQueue,
+      'payment.sync',
+      { mpOrderId, source, ...(webhookRequestId ? { webhookRequestId } : {}) },
+      // 5 s … 21 min between tries (≈ 40 min in all); after that reconcile picks it up again
+      { attempts: 10, backoff: { type: 'exponential', delay: 5_000 } },
+    ),
   paymentRecover: (orderId: string) =>
     safeAdd(
       paymentsQueue,

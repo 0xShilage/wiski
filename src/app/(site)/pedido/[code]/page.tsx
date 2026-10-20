@@ -16,8 +16,8 @@ export const metadata: Metadata = {
 type Props = { params: Promise<{ code: string }> };
 
 /**
- * /pedido/[code] — the buyer's order page (03 §5.3). Owner, guest with the order cookie, or
- * staff; everyone else sees the same "can't open" page (the token exchange happens client-side,
+ * /pedido/[code] — the buyer's order page (03 §5.3). Owner or guest with the order cookie;
+ * everyone else (staff included — they use /admin/pedidos) sees the same "can't open" page (the token exchange happens client-side,
  * because the fragment never reaches the server).
  */
 export default async function PedidoPage({ params }: Props) {
@@ -33,13 +33,12 @@ export default async function PedidoPage({ params }: Props) {
     return <OrderAccess code={code} signedIn={!!ctx} />;
   }
   const inCookie = cookieIds.includes(order.id);
-  const isBuyer = inCookie || (!!user && order.userId === user.id);
   return (
     <OrderView
       initial={await buyerView(order, { withPix: true })}
       recipientName={getEnv().PIX_RECIPIENT_NAME ?? null}
       signedIn={!!ctx}
-      isBuyer={isBuyer}
+      isBuyer // canAccessOrder admits only the owner or the cookie holder
       canClaim={inCookie && !!user && order.userId === null}
     />
   );

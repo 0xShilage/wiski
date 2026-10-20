@@ -51,7 +51,7 @@
 | P1-d | Phase 5 | Trusted Types enforcement: Next.js's chunk loader still triggers report-only violations on pages with client components; needs a TT policy for `/_next/static`. |
 | **Q13** | Phase 5 (legal texts) | ~~Pix recipient name~~ received 2026-10-19 (goes into the server `.env` as `PIX_RECIPIENT_NAME`, not the repository). Still needed: the terms / privacy / no-refund texts from your lawyer, including the crowdfunding wording (money can wait for deadline extensions). Provisional, versioned texts are online and accepted at checkout; **production refuses to start while they are current.** |
 | **P2-a** | Phase 5 | Resend account + `mail.wiski.fun` DNS (SPF/DKIM/DMARC) for receipts; key into the server `.env`. |
-| **P2-b** | Phase 5 | Mercado Pago panel: webhook URL with events **Order (Mercado Pago)** + chargebacks; secret into the server `.env` (09 §C). |
+| **P2-b** | Phase 5 | Mercado Pago panel: webhook URL with the event **Order (Mercado Pago)**; secret into the server `.env` (09 §C). |
 | **Q21b** | Phase 5 | RedHosting's answers to the checklist in 08 §1 (KVM? data-center city? IPv4? snapshots?) before you buy. |
 
 ## C. Defaults now in force (you didn't object) — still easy to change

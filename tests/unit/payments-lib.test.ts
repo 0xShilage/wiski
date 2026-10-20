@@ -64,7 +64,10 @@ describe('Orders API status → our forward-only payment state', () => {
     expect(canMove('PENDING', 'APPROVED')).toBe(true);
     expect(canMove('APPROVED', 'PENDING')).toBe(false);
     expect(canMove('APPROVED', 'CANCELLED')).toBe(false);
-    expect(canMove('CANCELLED', 'APPROVED')).toBe(false);
+    // money arriving after a cancel/rejection must surface (late approval), never be dropped
+    expect(canMove('CANCELLED', 'APPROVED')).toBe(true);
+    expect(canMove('REJECTED', 'APPROVED')).toBe(true);
+    expect(canMove('CANCELLED', 'PENDING')).toBe(false);
     expect(canMove('IN_MEDIATION', 'APPROVED')).toBe(true);
     expect(canMove('REFUNDED', 'APPROVED')).toBe(false);
   });

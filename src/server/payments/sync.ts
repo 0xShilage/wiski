@@ -1,6 +1,7 @@
 import 'server-only';
 import type { AttentionReason, PaymentStatus } from '@/generated/prisma/enums';
 import type { Prisma } from '@/generated/prisma/client';
+import { MIN_CONTRIBUTION_CENTS } from '@/lib/catalog/pricing';
 import { audit } from '../audit/audit';
 import { db } from '../db';
 import { queueFundedNotices } from '../email/outbox';
@@ -49,8 +50,9 @@ const NEXT: Record<PaymentStatus, readonly PaymentStatus[]> = {
   AUTHORIZED: ['APPROVED', 'CANCELLED'],
   APPROVED: ['REFUNDED', 'CHARGED_BACK', 'IN_MEDIATION'],
   IN_MEDIATION: ['APPROVED', 'CHARGED_BACK', 'REFUNDED'],
-  REJECTED: [],
-  CANCELLED: [],
+  // Money can still arrive after we (or the bank) gave up: surfaced as a late approval, never lost.
+  REJECTED: ['APPROVED'],
+  CANCELLED: ['APPROVED'],
   REFUNDED: [],
   CHARGED_BACK: [],
 };
@@ -109,12 +111,39 @@ async function loadPayment(mp: MpOrder): Promise<Loaded | null> {
   return p && p.providerOrderId === null ? p : null;
 }
 
+/**
+ * Another transition (expiry, buyer cancel, an accept) moved the order between our read and our
+ * write: the transaction rolls back and the sync re-reads. Every order transition here is
+ * conditional on the status AND version it was read with.
+ */
+class OrderChanged extends Error {
+  constructor() {
+    super('order changed concurrently');
+    this.name = 'OrderChanged';
+  }
+}
+
 export async function syncMpOrder(
   mpOrderId: string,
   source: 'webhook' | 'reconcile' | 'order' = 'reconcile',
   now = new Date(),
 ): Promise<SyncOutcome> {
   const mp = await getMpOrder(mpOrderId); // unavailable → throws → BullMQ retries
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await applyMpOrder(mp, source, now);
+    } catch (err) {
+      if (err instanceof OrderChanged && attempt < 3) continue;
+      throw err; // BullMQ retries the job
+    }
+  }
+}
+
+async function applyMpOrder(
+  mp: MpOrder,
+  source: 'webhook' | 'reconcile' | 'order',
+  now: Date,
+): Promise<SyncOutcome> {
   const p = await loadPayment(mp);
   if (!p) {
     logger.warn({ mpOrderId: mp.id.slice(0, 12) }, 'sync: order is not ours');
@@ -160,11 +189,17 @@ export async function syncMpOrder(
     if (res.count !== 1) return 'unchanged'; // a concurrent sync got there first
     if (!moving) return 'unchanged';
 
-    const attention = async (reason: AttentionReason): Promise<SyncOutcome> => {
-      await tx.order.update({
-        where: { id: order.id },
-        data: { status: 'NEEDS_ATTENTION', attentionReason: reason, version: { increment: 1 } },
+    /** Move the order only from the exact state we read; otherwise roll back and re-read. */
+    const moveOrder = async (data: Prisma.OrderUpdateManyMutationInput) => {
+      const moved = await tx.order.updateMany({
+        where: { id: order.id, status: order.status, version: order.version },
+        data: { ...data, version: { increment: 1 } },
       });
+      if (moved.count !== 1) throw new OrderChanged();
+    };
+
+    const attention = async (reason: AttentionReason): Promise<SyncOutcome> => {
+      await moveOrder({ status: 'NEEDS_ATTENTION', attentionReason: reason });
       await audit(
         {
           action: 'order.attention',
@@ -182,12 +217,43 @@ export async function syncMpOrder(
       case 'APPROVED': {
         if (problem) {
           // Money arrived but something doesn't match: hold everything for the streamer.
+          const outcome = await attention(problem);
           if (order.status === 'PENDING_PAYMENT') await releaseHoldsInTx(tx, order);
-          return attention(problem);
+          return outcome;
         }
         if (order.status === 'PENDING_PAYMENT') {
-          await markPaidInTx(tx, order, source, now);
-          return 'paid';
+          await moveOrder({ status: 'PAID', paidAt: now });
+          if (await markPaidInTx(tx, order, source, now)) return 'paid';
+          // The room it held is gone (should not happen while it was pending): the streamer decides.
+          await tx.order.update({
+            where: { id: order.id },
+            data: {
+              status: 'NEEDS_ATTENTION',
+              attentionReason: 'LATE_APPROVAL',
+              paidAt: null,
+              version: { increment: 1 },
+            },
+          });
+          // Movie: drop its remaining holds. Contribution: its reservation is what's missing, so
+          // only the held receipt is cancelled (releasing the amount again would double-count).
+          if (order.kind === 'MOVIE') await releaseHoldsInTx(tx, order);
+          else {
+            await tx.emailOutbox.updateMany({
+              where: { orderId: order.id, template: 'ORDER_RECEIPT', status: 'HELD' },
+              data: { status: 'CANCELLED', sealedToken: null },
+            });
+          }
+          await audit(
+            {
+              action: 'order.attention',
+              actor: null,
+              targetType: 'Order',
+              targetId: order.id,
+              metadata: { kind: order.kind, reason: 'LATE_APPROVAL' },
+            },
+            tx,
+          );
+          return 'late-approval';
         }
         if (order.status === 'EXPIRED' || order.status === 'CANCELLED') {
           return attention('LATE_APPROVAL');
@@ -198,14 +264,7 @@ export async function syncMpOrder(
       case 'CANCELLED': {
         if (order.status !== 'PENDING_PAYMENT') return 'unchanged';
         const expired = (mp.status_detail ?? '').toLowerCase() === 'expired';
-        await tx.order.update({
-          where: { id: order.id },
-          data: {
-            status: expired ? 'EXPIRED' : 'CANCELLED',
-            cancelledAt: now,
-            version: { increment: 1 },
-          },
-        });
+        await moveOrder({ status: expired ? 'EXPIRED' : 'CANCELLED', cancelledAt: now });
         await releaseHoldsInTx(tx, order);
         const target = { actor: null, targetType: 'Order', targetId: order.id } as const;
         if (expired) {
@@ -223,11 +282,8 @@ export async function syncMpOrder(
           where: { paymentId: p.id, status: { in: ['REQUESTED', 'IN_PROCESS'] } },
         });
         if (ours) {
+          await moveOrder({ status: 'REFUNDED' });
           await tx.refund.update({ where: { id: ours.id }, data: { status: 'APPROVED' } });
-          await tx.order.update({
-            where: { id: order.id },
-            data: { status: 'REFUNDED', version: { increment: 1 } },
-          });
           // Only an order that was counted (paidAt set) gives something back to the catalog.
           if (order.paidAt) await reverseCreditInTx(tx, order);
           await audit(
@@ -312,24 +368,37 @@ async function reverseCreditInTx(tx: Prisma.TransactionClient, order: PendingOrd
   }
 }
 
-/** PENDING (or an accepted late approval) → PAID with every side effect (one transaction). */
-export async function markPaidInTx(
+/**
+ * The side effects of an approved pending order (the caller has already moved it to PAID, in
+ * the same transaction): movie SPONSORED / contribution counted, voucher + slot final, receipt
+ * released, audit. False = the reservation it held is gone — nothing was credited.
+ */
+async function markPaidInTx(
   tx: Prisma.TransactionClient,
   order: PendingOrder,
-  source: 'webhook' | 'reconcile' | 'order' | 'admin',
+  source: 'webhook' | 'reconcile' | 'order',
   now: Date,
-): Promise<void> {
-  await tx.order.update({
-    where: { id: order.id },
-    data: { status: 'PAID', paidAt: now, version: { increment: 1 } },
-  });
+): Promise<boolean> {
   if (order.kind === 'MOVIE') {
-    await tx.catalogItem.updateMany({
-      where: { id: order.itemId, status: 'ACTIVE' },
+    const took = await tx.catalogItem.updateMany({
+      where: {
+        id: order.itemId,
+        status: 'ACTIVE',
+        OR: [{ reservedOrderId: order.id }, { reservedOrderId: null }],
+      },
       data: { status: 'SPONSORED', reservedUntil: null, reservedOrderId: null },
     });
+    if (took.count !== 1) return false;
   } else if (order.campaignId) {
-    await creditContributionInTx(tx, order.campaignId, order.itemId, order.totalCents, true, now);
+    const ok = await creditContributionInTx(
+      tx,
+      order.campaignId,
+      order.itemId,
+      order.totalCents,
+      true,
+      now,
+    );
+    if (!ok) return false;
   }
   await consumeVoucher(tx, order.id);
   await confirmQueueJump(tx, order.id);
@@ -347,6 +416,7 @@ export async function markPaidInTx(
     },
     tx,
   );
+  return true;
 }
 
 /**
@@ -364,7 +434,17 @@ export async function creditContributionInTx(
   const res = await tx.campaign.updateMany({
     where: fromReserved
       ? { id: campaignId, reservedCents: { gte: amountCents } }
-      : { id: campaignId, status: 'OPEN', remainingCents: { gte: amountCents } },
+      : {
+          // an accepted late contribution: the campaign must still be open and the amount must
+          // close the goal exactly or leave ≥ R$ 5 (the checkout rule — never a stalled campaign)
+          id: campaignId,
+          status: 'OPEN',
+          deadlineAt: { gt: now },
+          OR: [
+            { remainingCents: amountCents },
+            { remainingCents: { gte: amountCents + MIN_CONTRIBUTION_CENTS } },
+          ],
+        },
     data: fromReserved
       ? {
           reservedCents: { decrement: amountCents },
@@ -415,25 +495,84 @@ export async function flushOutbox(orderId: string): Promise<void> {
   for (const r of ready) await enqueue.email(r.id);
 }
 
-/** payment.reconcile (05 §6 step 11): every 2 min for stale PENDING, nightly for the last 48 h. */
+/**
+ * payment.reconcile (05 §6 step 11). Every 2 min: stale PENDING payments of the last 2 h, orders
+ * waiting for a refund, and notifications that were stored but never processed (queue down, sync
+ * out of retries). Nightly: everything of the last 48 h, plus approved payments of the last
+ * 120 days (chargebacks and refunds made in Mercado Pago's panel surface within a day).
+ */
 export async function reconcile(sweep: 'recent' | 'nightly', now = new Date()): Promise<number> {
-  const since = new Date(now.getTime() - (sweep === 'nightly' ? 48 * 3600_000 : 2 * 3600_000));
-  const staleBefore = new Date(now.getTime() - 2 * 60_000);
-  const rows = await db().payment.findMany({
-    where: {
-      providerOrderId: { not: null },
-      createdAt: { gte: since },
-      ...(sweep === 'recent'
-        ? {
-            status: { in: ['PENDING', 'IN_PROCESS'] },
-            OR: [{ lastSyncedAt: null }, { lastSyncedAt: { lt: staleBefore } }],
-          }
-        : {}),
-    },
-    select: { providerOrderId: true },
-    take: sweep === 'nightly' ? 2000 : 200,
-    orderBy: { createdAt: 'asc' },
-  });
-  for (const r of rows) await enqueue.paymentSync(r.providerOrderId!, 'reconcile');
-  return rows.length;
+  const ago = (ms: number) => new Date(now.getTime() - ms);
+  const HOUR = 3600_000;
+  const stale = ago(2 * 60_000);
+  const ids = new Set<string>();
+  const add = (rows: { providerOrderId: string | null }[]) => {
+    for (const r of rows) if (r.providerOrderId) ids.add(r.providerOrderId);
+  };
+
+  if (sweep === 'recent') {
+    add(
+      await db().payment.findMany({
+        where: {
+          providerOrderId: { not: null },
+          createdAt: { gte: ago(2 * HOUR) },
+          status: { in: ['PENDING', 'IN_PROCESS'] },
+          OR: [{ lastSyncedAt: null }, { lastSyncedAt: { lt: stale } }],
+        },
+        select: { providerOrderId: true },
+        take: 200,
+        orderBy: { createdAt: 'asc' },
+      }),
+    );
+    add(
+      await db().payment.findMany({
+        where: {
+          providerOrderId: { not: null },
+          order: { status: 'REFUND_PENDING' },
+          OR: [{ lastSyncedAt: null }, { lastSyncedAt: { lt: stale } }],
+        },
+        select: { providerOrderId: true },
+        take: 100,
+      }),
+    );
+    // Stored notifications that never got processed: re-queue them (the row is the durable copy).
+    const unprocessed = await db().webhookEvent.findMany({
+      where: {
+        provider: 'MERCADO_PAGO',
+        topic: 'order',
+        outcome: 'RECEIVED',
+        receivedAt: { lt: ago(5 * 60_000), gte: ago(7 * 24 * HOUR) },
+      },
+      select: { resourceId: true, requestId: true },
+      take: 200,
+      orderBy: { receivedAt: 'asc' },
+    });
+    for (const e of unprocessed) await enqueue.paymentSync(e.resourceId, 'webhook', e.requestId);
+    for (const id of ids) await enqueue.paymentSync(id, 'reconcile');
+    return ids.size + unprocessed.length;
+  }
+
+  add(
+    await db().payment.findMany({
+      where: { providerOrderId: { not: null }, createdAt: { gte: ago(48 * HOUR) } },
+      select: { providerOrderId: true },
+      take: 2000,
+      orderBy: { createdAt: 'asc' },
+    }),
+  );
+  add(
+    await db().payment.findMany({
+      where: {
+        providerOrderId: { not: null },
+        status: { in: ['APPROVED', 'IN_MEDIATION'] },
+        approvedAt: { gte: ago(120 * 24 * HOUR) },
+        OR: [{ lastSyncedAt: null }, { lastSyncedAt: { lt: ago(20 * HOUR) } }],
+      },
+      select: { providerOrderId: true },
+      take: 2000,
+      orderBy: { approvedAt: 'asc' },
+    }),
+  );
+  for (const id of ids) await enqueue.paymentSync(id, 'reconcile');
+  return ids.size;
 }

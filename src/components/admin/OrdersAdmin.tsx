@@ -425,7 +425,7 @@ export function OrdersAdmin({
                   <p className="wf-hint">
                     {d.kind === 'MOVIE'
                       ? 'O filme já não está disponível. Use o reembolso abaixo.'
-                      : 'A campanha não tem mais espaço para este valor. Use o reembolso abaixo.'}
+                      : 'A campanha não está aberta ou não tem espaço para este valor (sem deixar menos de R$ 5 faltando). Use o reembolso abaixo.'}
                   </p>
                 )}
               </div>
@@ -434,27 +434,36 @@ export function OrdersAdmin({
             {d.can.refund ? (
               <div className="wf-odetail__box">
                 <h3>Reembolso (exceção)</h3>
-                <p className="wf-hint">
-                  Pagamentos não são reembolsáveis; use só para erro de pagamento ou exigência
-                  legal. Devolve {formatBRL(d.payment?.amountCents ?? d.totalCents)} pelo Mercado
-                  Pago{d.paidAt ? ' e desfaz o patrocínio/a contribuição' : ''}. Pede o login do
-                  Google de novo.
-                </p>
-                <label className="wf-field" htmlFor={`${ids}-reason`}>
-                  Motivo
-                  <select
-                    id={`${ids}-reason`}
-                    className="wf-input"
-                    value={refundReason}
-                    onChange={(e) => setRefundReason(e.target.value as typeof refundReason)}
-                  >
-                    {REASONS.map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                {d.can.refundRetry ? (
+                  <p className="wf-notice">
+                    O Mercado Pago ainda não confirmou o reembolso pedido. Envie de novo: o pedido
+                    vai com a mesma chave, então nunca é devolvido duas vezes.
+                  </p>
+                ) : (
+                  <p className="wf-hint">
+                    Pagamentos não são reembolsáveis; use só para erro de pagamento ou exigência
+                    legal. Devolve {formatBRL(d.payment?.amountCents ?? d.totalCents)} pelo Mercado
+                    Pago{d.paidAt ? ' e desfaz o patrocínio/a contribuição' : ''}. Pede o login do
+                    Google de novo.
+                  </p>
+                )}
+                {d.can.refundRetry ? null : (
+                  <label className="wf-field" htmlFor={`${ids}-reason`}>
+                    Motivo
+                    <select
+                      id={`${ids}-reason`}
+                      className="wf-input"
+                      value={refundReason}
+                      onChange={(e) => setRefundReason(e.target.value as typeof refundReason)}
+                    >
+                      {REASONS.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
                 {confirm === 'refund' ? (
                   <div className="flex flex-wrap gap-2">
                     <button
@@ -490,7 +499,7 @@ export function OrdersAdmin({
                     className="wf-btn wf-btn--ghost wf-btn--sm"
                     onClick={() => setConfirm('refund')}
                   >
-                    Reembolsar
+                    {d.can.refundRetry ? 'Enviar o reembolso de novo' : 'Reembolsar'}
                   </button>
                 )}
               </div>

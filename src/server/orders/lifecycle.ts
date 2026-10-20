@@ -170,6 +170,11 @@ export async function cancelByBuyer(orderId: string, now = new Date()): Promise<
   if (!order) throw Problems.notFound();
   if (order.status !== 'PENDING_PAYMENT') throw OrderProblems.notCancellable();
   const p = order.payment;
+  // The Pix is still being created at Mercado Pago: cancelling now could leave a live Pix with
+  // no order behind it. (A create that never finished is cleaned up by payment.recover.)
+  if (p && !p.providerOrderId && now.getTime() - p.createdAt.getTime() < 2 * 60_000) {
+    throw OrderProblems.pixStillCreating();
+  }
   if (p?.providerOrderId) {
     try {
       const mp = await cancelMpOrder(p.providerOrderId, `cancel-${p.id}`);

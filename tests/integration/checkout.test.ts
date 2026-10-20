@@ -288,6 +288,16 @@ describe('movie sponsorship', () => {
     expect((await sponsor(m4!.id, {}, { ip })).status).toBe(201);
   });
 
+  it('the per-IP limit holds under concurrency: 8 parallel checkouts from one IP → 2 Pix', async () => {
+    const movies = await Promise.all(
+      Array.from({ length: 8 }, (_, i) => makeItem({ status: 'ACTIVE', slot: 20 + i })),
+    );
+    const ip = freshIp();
+    const results = await Promise.all(movies.map((m) => sponsor(m.id, {}, { ip })));
+    expect(results.filter((r) => r.status === 201)).toHaveLength(2);
+    expect(results.filter((r) => r.status === 429)).toHaveLength(6);
+  });
+
   it('Mercado Pago down → 503, nothing charged, every hold released, recovery cancels a late create', async () => {
     const movie = await makeItem({ status: 'ACTIVE', slot: 12 });
     mock.failNext(3, 503, /^\/v1\/orders$/);
@@ -440,11 +450,12 @@ describe('order access (guest link, cookie, owner)', () => {
     const newCookie = setCookies(right)[COOKIE.order]!.value;
     expect((await get({ [COOKIE.order]: newCookie })).status).toBe(200);
 
-    // a stranger with an account still gets 404; staff can read
+    // a stranger with an account still gets 404 — staff too (they use /admin/pedidos, behind
+    // the passkey, which never shows the Pix)
     const stranger = await signedIn(await makeUser());
     expect((await get(stranger.cookies)).status).toBe(404);
     const staff = await signedIn(await makeUser({ role: 'MODERATOR' }));
-    expect((await get(staff.cookies)).status).toBe(200);
+    expect((await get(staff.cookies)).status).toBe(404);
   });
 
   it('the buyer cancels an unpaid order: Pix cancelled first, holds released; paid orders cannot be cancelled', async () => {

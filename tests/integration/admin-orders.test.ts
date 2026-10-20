@@ -367,6 +367,94 @@ describe('exception refund (04 §8)', () => {
     });
   });
 
+  it('Mercado Pago refuses the refund → 409, refund REJECTED, the order back to PAID (never stuck)', async () => {
+    const s = await staff('STREAMER');
+    const a = await buyMovie();
+    mock.approve(a.mpId);
+    await syncMpOrder(a.mpId);
+    mock.failNext(1, 400, /\/refund$/);
+    const r = await post(
+      refund,
+      'refund',
+      a.code,
+      s,
+      { reason: 'PROCESSING_ERROR' },
+      { 'idempotency-key': randomUUID() },
+    );
+    expect(r.status).toBe(409);
+    expect(await r.json()).toMatchObject({ code: 'REFUND_REJECTED' });
+    const o = await db().order.findUniqueOrThrow({
+      where: { id: a.orderId },
+      include: { payment: { include: { refunds: true } } },
+    });
+    expect(o.status).toBe('PAID');
+    expect(o.payment!.refunds.map((x) => x.status)).toEqual(['REJECTED']);
+    const audits = await db().auditLog.findMany({
+      where: { action: 'order.refund', targetId: a.orderId },
+      orderBy: { id: 'asc' },
+    });
+    expect(audits.map((x) => (x.metadata as { state: string }).state)).toEqual([
+      'requested',
+      'rejected',
+    ]);
+    // a new decision can be made afterwards
+    const again = await post(
+      refund,
+      'refund',
+      a.code,
+      s,
+      { reason: 'PROCESSING_ERROR' },
+      { 'idempotency-key': randomUUID() },
+    );
+    expect(again.status).toBe(200);
+    expect((await db().order.findUniqueOrThrow({ where: { id: a.orderId } })).status).toBe(
+      'REFUNDED',
+    );
+  });
+
+  it('a pending refund (no answer from Mercado Pago) is offered for retry in the detail', async () => {
+    const s = await staff('STREAMER');
+    const a = await buyMovie();
+    mock.approve(a.mpId);
+    await syncMpOrder(a.mpId);
+    mock.failNext(3, 503, /\/refund$/);
+    const key = randomUUID();
+    expect(
+      (
+        await post(
+          refund,
+          'refund',
+          a.code,
+          s,
+          { reason: 'PROCESSING_ERROR' },
+          { 'idempotency-key': key },
+        )
+      ).status,
+    ).toBe(502);
+    const d = await call(
+      detail.GET,
+      req('GET', `/api/v1/admin/orders/${a.code}`, { cookies: s.cookies }),
+      { code: a.code },
+    );
+    const { order } = (await d.json()) as { order: { can: Record<string, boolean> } };
+    expect(order.can).toMatchObject({ refund: true, refundRetry: true });
+  });
+
+  it('a late contribution is not accepted when it would leave less than R$ 5 to go', async () => {
+    const s = await staff('STREAMER');
+    const { campaign } = await makeCampaign({ goalCents: 2300 });
+    const late = await contribute(campaign.id, 1000);
+    expect(await expireDueOrders(new Date(Date.now() + 36 * 60_000))).toBe(1);
+    mock.approve(late.mpId);
+    await cancelPixAtProvider(late.orderId);
+    expect(await syncMpOrder(late.mpId)).toBe('late-approval');
+    // meanwhile someone else reserves R$ 10: R$ 13 left → accepting R$ 10 would leave R$ 3
+    await contribute(campaign.id, 1000);
+    const res = await post(resolve, 'resolve', late.code, s, { outcome: 'accept' });
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({ code: 'ORDER_NO_ROOM' });
+  });
+
   it('a late approval with no room can be refunded (no catalog change)', async () => {
     const s = await staff('STREAMER');
     const late = await lateApproval();

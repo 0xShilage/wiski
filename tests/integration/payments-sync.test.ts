@@ -13,7 +13,12 @@ import { db } from '@/server/db';
 import { queueExtensionNotices, sendOutbox, sweepOutbox } from '@/server/email/outbox';
 import { devOutbox } from '@/server/email/transport';
 import { paymentsQueue } from '@/server/jobs/queues';
-import { cancelPixAtProvider, expireDueOrders } from '@/server/orders/lifecycle';
+import {
+  cancelByBuyer,
+  cancelPixAtProvider,
+  expireDueOrders,
+  expireOrderInTx,
+} from '@/server/orders/lifecycle';
 import { MercadoPagoError } from '@/server/payments/mercadopago';
 import { reconcile, syncMpOrder } from '@/server/payments/sync';
 import { clearCatalog, makeCampaign, makeItem } from '../support/catalog';
@@ -358,6 +363,89 @@ describe('expiry, cancellation, late approval (step 11, 13 D4)', () => {
       status: 'NEEDS_ATTENTION',
       attentionReason: 'CHARGEBACK',
     });
+  });
+});
+
+describe('races and stragglers (independent review findings)', () => {
+  it('a sync racing the expiry sweep never credits a released reservation', async () => {
+    const { campaign } = await makeCampaign({ goalCents: 5000 });
+    const { orderId, mpId } = await contribute(campaign.id, 1000);
+    mock.approve(mpId);
+    const running: { sync?: Promise<unknown> } = {};
+    await db().$transaction(async (tx) => {
+      // the sweep expires the order and holds its row lock while the sync starts
+      expect(await expireOrderInTx(tx, orderId, new Date())).toBe(true);
+      running.sync = syncMpOrder(mpId, 'webhook');
+      await new Promise((r) => setTimeout(r, 300));
+    });
+    expect(await running.sync).toBe('late-approval');
+    const o = await state(orderId);
+    expect(o).toMatchObject({ status: 'NEEDS_ATTENTION', attentionReason: 'LATE_APPROVAL' });
+    const c = await db().campaign.findUniqueOrThrow({ where: { id: campaign.id } });
+    expect(c).toMatchObject({ raisedCents: 0, reservedCents: 0, remainingCents: 5000 });
+  });
+
+  it('a Pix paid after the buyer cancelled surfaces as a late approval', async () => {
+    const { orderId, mpId } = await buyMovie();
+    await cancelByBuyer(orderId);
+    expect((await state(orderId)).payment!.status).toBe('CANCELLED');
+    mock.mutate(mpId, (o) => {
+      o.status = 'processed';
+      o.status_detail = 'accredited';
+    });
+    expect(await syncMpOrder(mpId)).toBe('late-approval');
+    expect(await state(orderId)).toMatchObject({
+      status: 'NEEDS_ATTENTION',
+      attentionReason: 'LATE_APPROVAL',
+    });
+    expect((await state(orderId)).payment!.status).toBe('APPROVED');
+  });
+
+  it('the buyer cannot cancel while the Pix is still being created', async () => {
+    const { orderId } = await buyMovie();
+    await db().payment.update({ where: { orderId }, data: { providerOrderId: null } });
+    await expect(cancelByBuyer(orderId)).rejects.toMatchObject({ code: 'PIX_STILL_CREATING' });
+    expect((await state(orderId)).status).toBe('PENDING_PAYMENT');
+  });
+
+  it('stored notifications that were never processed are queued again by reconcile', async () => {
+    const requestId = randomUUID();
+    await db().webhookEvent.create({
+      data: {
+        provider: 'MERCADO_PAGO',
+        requestId,
+        topic: 'order',
+        resourceId: 'ORD01STRAGGLER',
+        signatureTs: new Date(),
+        receivedAt: new Date(Date.now() - 10 * 60_000),
+      },
+    });
+    await reconcile('recent');
+    const jobs = await paymentsQueue().getJobs(['waiting']);
+    expect(jobs.map((j) => j.data)).toContainEqual({
+      mpOrderId: 'ORD01STRAGGLER',
+      source: 'webhook',
+      webhookRequestId: requestId,
+    });
+    await db().webhookEvent.delete({ where: { requestId } });
+  });
+
+  it('nightly: approved payments are re-read for 120 days (chargebacks, panel refunds)', async () => {
+    const { orderId, mpId } = await buyMovie();
+    mock.approve(mpId);
+    await syncMpOrder(mpId);
+    await db().payment.update({
+      where: { orderId },
+      data: {
+        createdAt: new Date(Date.now() - 30 * 86_400_000),
+        approvedAt: new Date(Date.now() - 30 * 86_400_000),
+        lastSyncedAt: new Date(Date.now() - 2 * 86_400_000),
+      },
+    });
+    await paymentsQueue().obliterate({ force: true });
+    expect(await reconcile('nightly')).toBeGreaterThanOrEqual(1);
+    const jobs = await paymentsQueue().getJobs(['waiting']);
+    expect(jobs.map((j) => j.data)).toContainEqual({ mpOrderId: mpId, source: 'reconcile' });
   });
 });
 

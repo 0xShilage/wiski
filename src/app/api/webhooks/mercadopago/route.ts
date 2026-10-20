@@ -82,8 +82,13 @@ export const POST = route<'public', typeof body, typeof query>(
       });
     } catch (err) {
       if (pgErrorCode(err) === PG.uniqueViolation) return { ok: true, outcome: 'DUPLICATE' };
+      // Not stored: forget the request id so Mercado Pago's retry (after our 500) is processed.
+      await redis()
+        .del(`mpwh:${xRequestId}`)
+        .catch(() => {});
       throw err;
     }
+    // Stored = durable: if queueing fails, reconcile re-queues RECEIVED events within minutes.
     await enqueue.paymentSync(dataId, 'webhook', xRequestId);
     return { ok: true, outcome: 'RECEIVED' };
   },

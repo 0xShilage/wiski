@@ -15,7 +15,7 @@ Scheduling, sessions, the public queue and the price/voucher screens are Phase 4
 | Legal | `src/content/legal/documents.ts`, `src/server/legal/legal.ts`, `/termos` `/privacidade` `/reembolso` | versioned texts, SHA-256 per version pinned by a test; one `LegalAcceptance` per document per order; **marked provisório — production refuses to start with them** |
 | Mercado Pago | `src/server/payments/{mercadopago,sync,webhook}.ts` | create / get / cancel / refund with `X-Idempotency-Key`, strict Zod on every response, timeouts + bounded retries, amounts as exact decimal strings; forward-only state machine |
 | Checkout | `src/server/orders/{checkout,lifecycle,read,cookie,identity,input,problems}.ts` | Turnstile, Idempotency-Key with sealed replay (24 h), 1 unpaid order per buyer, 2 per IP, movie reserved for 35 min, campaign amount reserved; order link token + `__Host-wf_order` cookie |
-| Worker | `src/worker/{main,processors}.ts`, `src/server/jobs/queues.ts`, `npm run worker` | BullMQ on the same Redis: `payment.sync`, `payment.recover`, `payment.cancel`, reconcile every 2 min + nightly 48 h, expiry every minute, e-mail + sweep; graceful stop |
+| Worker | `src/worker/{main,processors}.ts`, `src/server/jobs/queues.ts`, `npm run worker` | BullMQ on the same Redis: `payment.sync` (10 tries over ≈ 40 min), `payment.recover`, `payment.cancel`; reconcile every 2 min (stale pending, refunds waiting, stored-but-unprocessed notifications) + nightly (48 h, and approved payments for 120 days: chargebacks); expiry every minute; e-mail + sweep; graceful stop |
 | E-mail | `src/server/email/{templates,transport,outbox}.ts` | outbox written in the same transaction as the event; receipt only after approval, with the order link; campaign extended / funded notices; Resend in production, log + `.tmp/emails` in development |
 | Realtime | `src/server/realtime/{publish,sse}.ts` | Redis pub/sub → SSE (heartbeat 20 s, 15 min streams, 6 per IP), schema-checked payloads, no personal data; pages poll every 4 s when SSE is down |
 | UI | `src/components/checkout/*`, `src/components/orders/*`, `/pedido/[code]`, Perfil › Minhas compras | movie checkout sheet, contribution box with the live bar, order page (QR + copia e cola, countdown, live status, cancel, "Vincular à minha conta") — [screens](#7-screens) |
@@ -65,25 +65,27 @@ To try a real **sandbox** Pix, put your **test** credentials into `.env.local` y
 
 1. **Checkout** — one transaction: movie reserved (or campaign amount moved from *remaining* to *reserved*), voucher use and queue-jump slot held, order + payment + legal acceptances + a **held** receipt written, audit. Then Mercado Pago creates the Pix (`external_reference` = our order id, `PT30M`, same idempotency key on retries). If Mercado Pago fails, the order is cancelled and everything released at once; a create that may still have happened is cancelled later by `payment.recover`.
 2. **Notification** — signature (lower-cased id manifest, dual secret), `ts` within ±10 min, `SET NX` on `x-request-id`, `WebhookEvent` row, `payment.sync` queued, 200 in milliseconds. The body is never used for anything else.
-3. **Sync** — `GET /v1/orders/{id}`; checks reference, stored ids, amount, BRL, Pix, collector and application. Approved + pending → **PAID** in one transaction (movie SPONSORED / campaign raised, FUNDED at the goal, voucher and slot consumed, receipt released, audit). Any doubt → **NEEDS_ATTENTION**, never PAID. Statuses only move forward.
+3. **Sync** — `GET /v1/orders/{id}`; checks reference, stored ids, both amounts, Pix as the method, collector and application (the Orders API carries no currency field; the pinned collector account is in BRL). Approved + pending → **PAID** in one transaction (movie SPONSORED / campaign raised, FUNDED at the goal, voucher and slot consumed, receipt released, audit). Any doubt → **NEEDS_ATTENTION**, never PAID. Statuses only move forward.
 4. **Expiry** — after 35 min unpaid orders are cancelled at Mercado Pago and **EXPIRED**; holds released. A Pix paid after that → NEEDS_ATTENTION (LATE_APPROVAL) for the streamer (D4).
 5. **Exception refund** — STREAMER only, total, through Mercado Pago with the Refund row's own key; applied when the verified order shows `refunded` (movie available again, contribution leaves the campaign).
 
 ## 4. Security decisions made while building (all covered by tests)
 
-1. **The webhook body is never trusted.** Only a verified `GET` from Mercado Pago can move money state; foreign collector/application, wrong amount, currency or method → NEEDS_ATTENTION.
-2. **nginx keeps Mercado Pago's `x-request-id`.** The server-level `proxy_set_header X-Request-Id $request_id` silently replaced it and every real notification failed the signature — found by the e2e run, fixed in `mercadopago-webhook.conf` (Phase 5 must use it).
-3. **QR drawn from the copia-e-cola text** (`src/lib/qr.ts`, one SVG path): no provider image, no `data:` URL, and the QR always matches the text the buyer can copy.
-4. **Turnstile through a Trusted Types policy** that accepts exactly one script URL; tokens are single-use, the widget resets after every attempt, the server checks hostname and action.
-5. **Idempotency** on every money-moving POST (checkout, contribution, refund): same key + same body replays the first answer; same key + another body → 409.
-6. **Buyer key is a hash.** One unpaid order per buyer is a partial unique index on `buyerKey` (`e:` + SHA-256 of the normalised e-mail) — the e-mail is never part of a key or an index.
-7. **2 unpaid orders per IP**, counting only orders that are still unpaid (people behind one carrier NAT can buy one after the other).
-8. **Order link token** only in the URL fragment (never sent to the server on navigation), exchanged once for a sealed `__Host-` cookie, removed from the address bar; "no access" and "no such order" are the same page and the same 404.
-9. **Staff see masked e-mails** (`fa***@example.com`) and never the Pix payload; audit metadata stays allow-listed (no e-mails, amounts only where needed).
-10. **Refund**: STREAMER + passkey + fresh Google login; a lease (`REQUESTED → IN_PROCESS`) lets exactly one request call Mercado Pago, a retry after a failure re-sends with the **same** key, a double-click refunds once.
-11. **Money is integer cents** to the boundary; Mercado Pago gets exact decimal strings; no floats anywhere (property tests).
-12. **Production refuses to start** with provisional legal texts, a test/mismatched Mercado Pago token, missing webhook secret, Resend key or recipient name, or endpoint overrides on a non-localhost origin.
-13. **E-mail**: templates escape every value, no remote images, subjects can't carry header breaks; the sealed order-link token in the outbox is erased once the receipt is sent.
+1. **The webhook body is never trusted.** Only a verified `GET` from Mercado Pago can move money state; foreign collector/application, wrong amount or method → NEEDS_ATTENTION.
+2. **Every order transition is conditional** on the status and version it was read with: a sync racing the expiry sweep, a buyer's cancel or an accept rolls back and re-reads instead of crediting a released reservation; money that arrives after a cancel or rejection surfaces as a late approval.
+3. **nginx keeps Mercado Pago's `x-request-id`.** The server-level `proxy_set_header X-Request-Id $request_id` silently replaced it and every real notification failed the signature — found by the e2e run, fixed in `mercadopago-webhook.conf` (Phase 5 must use it).
+4. **QR drawn from the copia-e-cola text** (`src/lib/qr.ts`, one SVG path): no provider image, no `data:` URL, and the QR always matches the text the buyer can copy.
+5. **Turnstile through a Trusted Types policy** that accepts exactly one script URL; tokens are single-use, the widget resets after every attempt, the server checks hostname and action.
+6. **Idempotency** on every money-moving POST (checkout, contribution, refund): same key + same body replays the first answer; same key + another body → 409.
+7. **Buyer key is a hash.** One unpaid order per buyer is a partial unique index on `buyerKey` (`e:` + SHA-256 of the normalised e-mail) — the e-mail is never part of a key or an index.
+8. **2 unpaid orders per IP**, counting only orders that are still unpaid (people behind one carrier NAT can buy one after the other); the check-and-take is one atomic Redis script.
+9. **Buyer pages are for buyers**: owner or order-cookie holder only — staff included get 404 there and use `/admin/pedidos` behind the passkey, which never shows the Pix.
+10. **Order link token** only in the URL fragment (never sent to the server on navigation), exchanged once for a sealed `__Host-` cookie, removed from the address bar; "no access" and "no such order" are the same page and the same 404.
+11. **Staff see masked e-mails** (`fa***@example.com`) and never the Pix payload; audit metadata stays allow-listed (no e-mails, amounts only where needed).
+12. **Refund**: STREAMER + passkey + fresh Google login; a lease (`REQUESTED → IN_PROCESS`) lets exactly one request call Mercado Pago, a retry after no answer re-sends with the **same** key (offered in the admin screen), a double-click refunds once; a refusal by Mercado Pago marks the refund REJECTED and puts the order back where it was.
+13. **Money is integer cents** to the boundary; Mercado Pago gets exact decimal strings; no floats anywhere (property tests).
+14. **Production refuses to start** with provisional legal texts, a test/mismatched Mercado Pago token, missing webhook secret, Resend key or recipient name, or endpoint overrides on a non-localhost origin.
+15. **E-mail**: templates escape every value, no remote images, subjects can't carry header breaks; the sealed order-link token in the outbox is erased once the receipt is sent.
 
 ## 5. Deviations from the plan, and why
 
@@ -91,7 +93,7 @@ To try a real **sandbox** Pix, put your **test** credentials into `.env.local` y
 |---|---|---|
 | step 1: `media.process` moves to the worker | image processing stays in the upload request | admin-only uploads, a few seconds at most; moving it adds a queue and a "processing…" state with no benefit at this size. Revisit if uploads get slow. |
 | step 9: `campaigns.deadline` job | no job: a passed deadline is **derived** at read time and checked inside the contribution transaction (`deadlineAt > now`) | nothing can lag behind the clock; "Prazo encerrado" shows the second the deadline passes |
-| D4: accept a late Pix | accepted orders keep their price; the voucher use and queue-jump slot released at expiry are **not** taken again | re-taking them could fail or overrun a cap after the fact; the admin screen says so before accepting |
+| D4: accept a late Pix | accepted orders keep their price; the voucher use and queue-jump slot released at expiry are **not** taken again; a late contribution is accepted only while the campaign is open and if it closes the goal exactly or leaves ≥ R$ 5 | re-taking them could fail or overrun a cap after the fact; the admin screen says so before accepting |
 | 11 §2.2 "last contribution capped at what's left" | a contribution must close the goal exactly or leave ≥ R$ 5; goal changes follow the same rule | a remainder of R$ 1–4 could never be paid (minimum R$ 5) — the campaign would stall |
 | "2 pending per IP" | counts unpaid orders only | the first version counted every checkout in 35 minutes |
 | Refund side effects | an approved refund of a **paid** order releases the movie / takes the contribution out (re-opening a funded, not-yet-scheduled campaign) | otherwise a refunded sponsor would still hold the movie |
@@ -102,7 +104,7 @@ To try a real **sandbox** Pix, put your **test** credentials into `.env.local` y
 |---|---|---|
 | S2 | before go-live | Production User ID and Application ID — the ids sent on 2026-10-19 are the test ones (09, Received). |
 | Q13 | before go-live | The lawyer's terms, privacy and refund texts (incl. the crowdfunding wording). Publishing them = new `version` + `provisional: false` in `src/content/legal/documents.ts`. |
-| P2-a / P2-b | Phase 5 | Resend + `mail.wiski.fun` DNS; Mercado Pago webhook (events **Order (Mercado Pago)** + chargebacks) and its secret; real Turnstile keys. |
+| P2-a / P2-b | Phase 5 | Resend + `mail.wiski.fun` DNS; Mercado Pago webhook (event **Order (Mercado Pago)**) and its secret; real Turnstile keys. |
 | — | when the LGPD export lands | include the buyer's orders (there is no data export yet). |
 
 ## 7. Screens

@@ -181,16 +181,37 @@ type IpGuard = { commit: (orderId: string) => Promise<void>; release: () => Prom
  * checkout is in flight); an order that is no longer pending — paid, expired, cancelled — stops
  * counting, so people behind one carrier NAT can keep buying one after the other.
  */
+/** Prune expired members, count, and take a place only if one is free — atomically. */
+const TAKE_PLACE = `
+redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', ARGV[1])
+if redis.call('ZCARD', KEYS[1]) >= tonumber(ARGV[2]) then return 0 end
+redis.call('ZADD', KEYS[1], ARGV[3], ARGV[4])
+redis.call('PEXPIRE', KEYS[1], ARGV[5])
+return 1`;
+
 async function ipPendingGuard(ipKey: string): Promise<IpGuard> {
   const key = `pend:ip:${ipKey}`;
   const now = Date.now();
   const ttl = TOTAL_TTL_MIN * 60_000;
+  const provisional = `p:${now}:${Math.random().toString(36).slice(2)}`;
   try {
     const r = redis();
-    await r.zremrangebyscore(key, '-inf', now - ttl);
-    let members = await r.zrange(key, '0', '-1');
-    if (members.length >= MAX_PENDING_PER_IP) {
-      const ids = members.filter((m) => ORDER_UUID.test(m));
+    const take = async () =>
+      Number(
+        await r.eval(
+          TAKE_PLACE,
+          1,
+          key,
+          String(now - ttl),
+          String(MAX_PENDING_PER_IP),
+          String(now),
+          provisional,
+          String(ttl),
+        ),
+      ) === 1;
+    if (!(await take())) {
+      // Full: drop the members whose orders are no longer unpaid, then try once more.
+      const ids = (await r.zrange(key, '0', '-1')).filter((m) => ORDER_UUID.test(m));
       if (ids.length) {
         const pending = await db().order.findMany({
           where: { id: { in: ids }, status: 'PENDING_PAYMENT' },
@@ -199,14 +220,10 @@ async function ipPendingGuard(ipKey: string): Promise<IpGuard> {
         const still = new Set(pending.map((o) => o.id));
         const done = ids.filter((id) => !still.has(id));
         if (done.length) await r.zrem(key, ...done);
-        members = members.filter((m) => !done.includes(m));
       }
-      if (members.length >= MAX_PENDING_PER_IP) throw OrderProblems.tooManyPendingFromIp();
+      if (!(await take())) throw OrderProblems.tooManyPendingFromIp();
     }
-    const provisional = `p:${now}:${Math.random().toString(36).slice(2)}`;
     let committed: string | null = null;
-    await r.zadd(key, now, provisional);
-    await r.pexpire(key, ttl);
     return {
       commit: async (orderId) => {
         committed = orderId;

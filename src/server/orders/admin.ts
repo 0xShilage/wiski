@@ -11,6 +11,7 @@ import { logger } from '../log';
 import { MercadoPagoError, refundMpOrder } from '../payments/mercadopago';
 import { creditContributionInTx, flushOutbox, syncMpOrder } from '../payments/sync';
 import { confirmQueueJump } from '../pricing/queue-jump';
+import { fitsRemaining } from './checkout';
 import { newAccessToken } from './identity';
 import { publishOrderState } from './lifecycle';
 import { maskEmail } from './read';
@@ -46,7 +47,7 @@ export const AdminOrderProblems = {
       'ORDER_NO_ROOM',
       kind === 'MOVIE'
         ? 'O filme não está mais disponível (foi patrocinado ou reservado por outra pessoa). Faça o reembolso.'
-        : 'A campanha não tem mais espaço para este valor (ou não está aberta). Faça o reembolso.',
+        : 'A campanha não está aberta, ou este valor deixaria menos de R$ 5,00 faltando para a meta. Faça o reembolso.',
     ),
   notRefundable: () =>
     new HttpError(
@@ -60,7 +61,13 @@ export const AdminOrderProblems = {
     new HttpError(
       502,
       'REFUND_FAILED',
-      'O Mercado Pago não confirmou o reembolso agora. Nada mudou; tente de novo em instantes.',
+      'O Mercado Pago não respondeu ao pedido de reembolso. Ele fica pendente: tente de novo em instantes (nunca é devolvido duas vezes).',
+    ),
+  refundRejected: (code: string | null) =>
+    new HttpError(
+      409,
+      'REFUND_REJECTED',
+      `O Mercado Pago recusou o reembolso${code ? ` (${code})` : ''}. O pedido voltou ao estado anterior; confira o motivo no painel do Mercado Pago.`,
     ),
 };
 
@@ -147,7 +154,7 @@ async function loadByCode(code: string) {
       item: {
         select: { title: true, slug: true, kind: true, status: true, reservedOrderId: true },
       },
-      campaign: { select: { id: true, status: true, remainingCents: true } },
+      campaign: { select: { id: true, status: true, remainingCents: true, deadlineAt: true } },
       user: { select: { username: true } },
       payment: { include: { refunds: { orderBy: { createdAt: 'desc' } } } },
     },
@@ -164,7 +171,12 @@ function roomFor(o: Loaded): boolean {
       o.item.status === 'ACTIVE' && (!o.item.reservedOrderId || o.item.reservedOrderId === o.id)
     );
   }
-  return !!o.campaign && o.campaign.status === 'OPEN' && o.campaign.remainingCents >= o.totalCents;
+  return (
+    !!o.campaign &&
+    o.campaign.status === 'OPEN' &&
+    o.campaign.deadlineAt.getTime() > Date.now() &&
+    fitsRemaining(o.totalCents, o.campaign.remainingCents)
+  );
 }
 
 function detailView(o: Loaded, viewer: Actor) {
@@ -173,6 +185,9 @@ function detailView(o: Loaded, viewer: Actor) {
   const refundOpen = pay?.refunds.some(
     (r) => r.status === 'REQUESTED' || r.status === 'IN_PROCESS',
   );
+  // a refund whose Mercado Pago call failed (or never happened) can be sent again
+  const refundRetry =
+    o.status === 'REFUND_PENDING' && !!pay?.refunds.some((r) => r.status === 'REQUESTED');
   return {
     ...listView(o),
     lines: o.breakdown as unknown as PriceLine[],
@@ -214,8 +229,8 @@ function detailView(o: Loaded, viewer: Actor) {
       refund:
         viewer.role === 'STREAMER' &&
         approved &&
-        !refundOpen &&
-        (o.status === 'NEEDS_ATTENTION' || o.status === 'PAID'),
+        ((!refundOpen && (o.status === 'NEEDS_ATTENTION' || o.status === 'PAID')) || refundRetry),
+      refundRetry: viewer.role === 'STREAMER' && refundRetry,
     },
   };
 }
@@ -335,6 +350,47 @@ export async function acceptLateApproval(ctx: Ctx, code: string, now = new Date(
 
 // ── exception refund (04 §8) ─────────────────────────────────────────────────────────────────
 
+/**
+ * Mercado Pago refused the refund (a definite 4xx). Unless a verified read shows it refunded
+ * after all, the refund is REJECTED and the order goes back to where it was (PAID if it had been
+ * counted, NEEDS_ATTENTION otherwise) — never stuck in REFUND_PENDING.
+ */
+async function settleRejectedRefund(
+  ctx: Ctx,
+  o: Loaded,
+  refundId: string,
+  providerOrderId: string,
+  mpCode: string | null,
+): Promise<never> {
+  await syncMpOrder(providerOrderId, 'order').catch(() => 'unchanged' as const);
+  const r = await db().refund.findUniqueOrThrow({ where: { id: refundId } });
+  if (r.status === 'APPROVED') throw AdminOrderProblems.refundFailed(); // it went through after all
+  await db().$transaction(async (tx) => {
+    const moved = await tx.refund.updateMany({
+      where: { id: refundId, status: { in: ['REQUESTED', 'IN_PROCESS'] } },
+      data: { status: 'REJECTED' },
+    });
+    if (moved.count !== 1) return;
+    await tx.order.updateMany({
+      where: { id: o.id, status: 'REFUND_PENDING' },
+      data: { status: o.paidAt ? 'PAID' : 'NEEDS_ATTENTION', version: { increment: 1 } },
+    });
+    await audit(
+      {
+        action: 'order.refund',
+        actor: ctx.actor,
+        requestId: ctx.requestId,
+        targetType: 'Order',
+        targetId: o.id,
+        metadata: { kind: o.kind, amountCents: r.amountCents, reason: r.reason, state: 'rejected' },
+      },
+      tx,
+    );
+  });
+  await publishOrderState(o.id);
+  throw AdminOrderProblems.refundRejected(mpCode);
+}
+
 export type RefundReason = 'DUPLICATE_PAYMENT' | 'PROCESSING_ERROR' | 'LEGAL_REQUIREMENT';
 
 /**
@@ -428,8 +484,6 @@ export async function requestRefund(
       try {
         await refundMpOrder(pay.providerOrderId, pay.providerPaymentId, refund.idempotencyKey);
       } catch (err) {
-        // Nothing refunded, or unknown: back to REQUESTED so a retry re-sends the same request;
-        // reconcile settles it from Mercado Pago's side either way.
         await db().refund.updateMany({
           where: { id: refund.id, status: 'IN_PROCESS' },
           data: { status: 'REQUESTED' },
@@ -441,6 +495,11 @@ export async function requestRefund(
           },
           'refund call failed',
         );
+        if (err instanceof MercadoPagoError && err.kind === 'rejected') {
+          await settleRejectedRefund(ctx, o, refund.id, pay.providerOrderId, err.mpCode);
+        }
+        // No answer: the refund stays REQUESTED (order REFUND_PENDING); a retry re-sends it with
+        // the same key and reconcile checks the order every 2 minutes meanwhile.
         throw AdminOrderProblems.refundFailed();
       }
     }

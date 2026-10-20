@@ -8,9 +8,10 @@ import { redis } from '../redis';
 import { PUBLIC_CODE_PATTERN } from './identity';
 
 /**
- * The buyer's view of an order (03 §5.3). Access: the signed-in owner, a guest holding the order
- * in `__Host-wf_order`, or staff. Anyone else gets 404 (no existence leak). Never shows the full
- * contact e-mail, internal ids of other people, or Mercado Pago identifiers.
+ * The buyer's view of an order (03 §5.3). Access: the signed-in owner or a guest holding the
+ * order in `__Host-wf_order`. Anyone else — staff included, who use /admin/pedidos behind the
+ * passkey — gets 404 (no existence leak). Never shows the full contact e-mail, internal ids of
+ * other people, or Mercado Pago identifiers.
  */
 export function publicCodeOk(code: unknown): code is string {
   return typeof code === 'string' && PUBLIC_CODE_PATTERN.test(code);
@@ -21,8 +22,7 @@ export function canAccessOrder(
   who: { user: Pick<User, 'id' | 'role'> | null; cookieIds: readonly string[] },
 ): boolean {
   if (who.user && order.userId === who.user.id) return true;
-  if (who.cookieIds.includes(order.id)) return true;
-  return who.user?.role === 'MODERATOR' || who.user?.role === 'STREAMER';
+  return who.cookieIds.includes(order.id);
 }
 
 export function maskEmail(email: string): string {

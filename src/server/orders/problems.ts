@@ -70,6 +70,12 @@ export const OrderProblems = {
       'ORDER_NOT_CANCELLABLE',
       'Só pedidos aguardando pagamento podem ser cancelados.',
     ),
+  pixStillCreating: () =>
+    new HttpError(
+      409,
+      'PIX_STILL_CREATING',
+      'O Pix ainda está sendo gerado. Tente cancelar de novo em alguns segundos.',
+    ),
   alreadyClaimed: () =>
     new HttpError(409, 'ORDER_ALREADY_CLAIMED', 'Este pedido já está vinculado a uma conta.'),
 };

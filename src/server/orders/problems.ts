@@ -1,4 +1,5 @@
 import 'server-only';
+import { formatBRL as brl } from '@/lib/catalog/pricing';
 import { HttpError } from '../http/problem';
 
 /** Checkout errors (04 §10, 11 §2) with pt-BR copy in one place. */
@@ -56,7 +57,11 @@ export const OrderProblems = {
     new HttpError(
       409,
       'AMOUNT_ABOVE_REMAINING',
-      'O valor passa do que falta para a meta. Escolha um valor menor.',
+      remainingCents === 0
+        ? 'Os Pix aguardando pagamento já completam a meta. Se algum não for pago, abre espaço de novo.'
+        : remainingCents >= 1000
+          ? `Escolha até ${brl(remainingCents - 500)} ou exatamente ${brl(remainingCents)} (o que falta para a meta), para não sobrar menos de R$ 5,00.`
+          : `Faltam ${brl(remainingCents)} para a meta: contribua com exatamente esse valor.`,
       { members: { remainingCents } },
     ),
   notCancellable: () =>

@@ -228,6 +228,8 @@ export async function syncMpOrder(
             where: { id: order.id },
             data: { status: 'REFUNDED', version: { increment: 1 } },
           });
+          // Only an order that was counted (paidAt set) gives something back to the catalog.
+          if (order.paidAt) await reverseCreditInTx(tx, order);
           await audit(
             {
               action: 'order.refund',
@@ -274,7 +276,44 @@ export async function syncMpOrder(
 
 type PendingOrder = Prisma.OrderGetPayload<object>;
 
-async function markPaidInTx(
+/**
+ * An approved refund of a counted order: the movie is available again; the contribution leaves
+ * the campaign (a "Meta atingida" campaign not yet scheduled re-opens). Watched or scheduled
+ * items are left as they are.
+ */
+async function reverseCreditInTx(tx: Prisma.TransactionClient, order: PendingOrder) {
+  if (order.kind === 'MOVIE') {
+    await tx.catalogItem.updateMany({
+      where: { id: order.itemId, status: 'SPONSORED' },
+      data: { status: 'ACTIVE' },
+    });
+    return;
+  }
+  if (!order.campaignId) return;
+  const c = await tx.campaign.findUniqueOrThrow({ where: { id: order.campaignId } });
+  if (c.raisedCents < order.totalCents) return;
+  if (c.status === 'SCHEDULED' || c.status === 'WATCHED') return;
+  const reopen = c.status === 'FUNDED';
+  await tx.campaign.update({
+    where: { id: c.id },
+    data: {
+      raisedCents: { decrement: order.totalCents },
+      remainingCents: { increment: order.totalCents },
+      ...(c.supporterCount > 0 ? { supporterCount: { decrement: 1 } } : {}),
+      ...(reopen ? { status: 'OPEN' as const, fundedAt: null } : {}),
+      version: { increment: 1 },
+    },
+  });
+  if (reopen) {
+    await tx.catalogItem.updateMany({
+      where: { id: order.itemId, status: 'FUNDED' },
+      data: { status: 'ACTIVE' },
+    });
+  }
+}
+
+/** PENDING (or an accepted late approval) → PAID with every side effect (one transaction). */
+export async function markPaidInTx(
   tx: Prisma.TransactionClient,
   order: PendingOrder,
   source: 'webhook' | 'reconcile' | 'order' | 'admin',
@@ -367,7 +406,7 @@ export async function creditContributionInTx(
 }
 
 /** Hand the order's ready e-mails to the worker (after commit). */
-async function flushOutbox(orderId: string): Promise<void> {
+export async function flushOutbox(orderId: string): Promise<void> {
   const ready = await db().emailOutbox.findMany({
     where: { status: 'PENDING', OR: [{ orderId }, { template: 'CAMPAIGN_FUNDED' }] },
     select: { id: true },

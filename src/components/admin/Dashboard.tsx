@@ -1,16 +1,14 @@
 'use client';
-import Link from 'next/link';
 import { useCallback, useState } from 'react';
-import { Logo } from '@/components/brand/Logo';
 import { IconPlus } from '@/components/ui/icons';
 import { adminFetch } from '@/lib/passkey-client';
+import { AdminSidebar } from './AdminSidebar';
 import { ItemEditor } from './ItemEditor';
 import { SlotBoard } from './SlotBoard';
 import { type AdminItem, type AdminListItem, KIND_UI, type Kind, LIMIT, tileState } from './types';
 
 type Counts = Record<Kind, number>;
 const KINDS: Kind[] = ['MOVIE', 'SERIES', 'FRANCHISE'];
-const ROLE_LABEL = { MODERATOR: 'Moderação', STREAMER: 'Streamer', USER: '' } as const;
 
 /**
  * /admin/catalogo (11 §4, design §4): sidebar with the live counts, the slot board and the editor.
@@ -21,12 +19,14 @@ export function Dashboard({
   initialItems,
   initialCounts,
   initialItem,
+  attention,
   user,
 }: {
   initialKind: Kind;
   initialItems: AdminListItem[];
   initialCounts: Counts;
   initialItem: AdminItem | null;
+  attention: number | null;
   user: { username: string; role: 'MODERATOR' | 'STREAMER' | 'USER' };
 }) {
   const [kind, setKind] = useState<Kind>(initialKind);
@@ -113,47 +113,31 @@ export function Dashboard({
 
   return (
     <div className="wf-admin">
-      <aside className="wf-admin__side" aria-label="Painel">
-        <Link href="/" className="wf-logo" aria-label="Wiski — ver o site">
-          <Logo />
-        </Link>
-        <p className="wf-admin__group">Catálogo</p>
-        <nav className="wf-admin__nav" aria-label="Catálogo">
-          {KINDS.map((k) => (
-            <a
-              key={k}
-              href={`/admin/catalogo?tipo=${KIND_UI[k].tipo}`}
-              aria-current={k === kind ? 'page' : undefined}
-              onClick={(e) => {
-                e.preventDefault();
-                void switchKind(k);
-              }}
-            >
-              {KIND_UI[k].many}
-              <small>
-                {counts[k]}/{LIMIT[k]}
-              </small>
-            </a>
-          ))}
-        </nav>
-        <p className="wf-admin__group">Operação · em breve</p>
-        <nav className="wf-admin__nav wf-admin__nav--ops" aria-label="Operação (em breve)">
-          {['Campanhas', 'Sessões da live', 'Moderação', 'Auditoria'].map((l) => (
-            <span key={l} aria-disabled="true" title="Em breve">
-              {l}
-            </span>
-          ))}
-        </nav>
-        <div className="wf-admin__me">
-          <p className="m-0 font-semibold">
-            @{user.username} · {ROLE_LABEL[user.role]}
-          </p>
-          <p className="wf-admin__ok m-0 mt-1">● Passkey verificada</p>
-          <Link href="/perfil" className="wf-linkbtn text-xs">
-            Perfil
-          </Link>
-        </div>
-      </aside>
+      <AdminSidebar
+        current="catalogo"
+        attention={attention}
+        user={user}
+        catalogNav={
+          <nav className="wf-admin__nav" aria-label="Catálogo">
+            {KINDS.map((k) => (
+              <a
+                key={k}
+                href={`/admin/catalogo?tipo=${KIND_UI[k].tipo}`}
+                aria-current={k === kind ? 'page' : undefined}
+                onClick={(e) => {
+                  e.preventDefault();
+                  void switchKind(k);
+                }}
+              >
+                {KIND_UI[k].many}
+                <small>
+                  {counts[k]}/{LIMIT[k]}
+                </small>
+              </a>
+            ))}
+          </nav>
+        }
+      />
 
       <section className="wf-admin__board" aria-labelledby="board-title">
         <div className="wf-admin__head">

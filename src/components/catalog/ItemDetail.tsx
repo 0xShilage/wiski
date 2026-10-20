@@ -3,13 +3,10 @@ import { MediaPicture } from '@/components/media/MediaPicture';
 import { KIND_LABEL, KIND_PATH } from '@/lib/catalog/kinds';
 import { formatRuntime } from '@/lib/catalog/pricing';
 import type { PublicItem } from '@/lib/catalog/types';
-import {
-  CampaignChips,
-  CampaignProgress,
-  CampaignStatus,
-  ContributeCta,
-  campaignSubtitle,
-} from './CampaignBits';
+import { CampaignPanel } from '@/components/checkout/CampaignPanel';
+import { MovieCheckout } from '@/components/checkout/MovieCheckout';
+import type { CheckoutContext } from '@/components/checkout/types';
+import { campaignSubtitle } from './CampaignBits';
 import { MetaRow } from './MetaRow';
 import { PriceLine, SponsorCta } from './SponsorLine';
 import { TrailerButton } from './TrailerButton';
@@ -20,7 +17,15 @@ const dateFmt = new Intl.DateTimeFormat('pt-BR', {
 });
 
 /** Shareable detail page for a movie, series or franchise (11 §3). */
-export function ItemDetail({ item, watchedAt }: { item: PublicItem; watchedAt?: string | null }) {
+export function ItemDetail({
+  item,
+  watchedAt,
+  checkout,
+}: {
+  item: PublicItem;
+  watchedAt?: string | null;
+  checkout: CheckoutContext;
+}) {
   const kindPath = KIND_PATH[item.kind];
   const back = item.kind === 'MOVIE' ? '/' : `/${kindPath}`;
   return (
@@ -112,28 +117,28 @@ export function ItemDetail({ item, watchedAt }: { item: PublicItem; watchedAt?: 
               <div className="wf-panel" id="patrocinar">
                 <h2>Patrocinar este filme</h2>
                 <PriceLine item={item} className="wf-muted" />
-                <SponsorCta item={item} />
                 {item.state === 'ACTIVE' ? (
-                  <p className="wf-notice mt-4">
-                    O pagamento com Pix abre em breve. Uma pessoa paga o filme inteiro; ele entra
-                    numa das próximas sessões da live.
-                  </p>
-                ) : null}
+                  <>
+                    <MovieCheckout
+                      ctx={checkout}
+                      item={{
+                        id: item.id,
+                        slug: item.slug,
+                        title: item.title,
+                        priceCents: item.priceCents,
+                      }}
+                    />
+                    <p className="wf-hint mt-3">
+                      Uma pessoa paga o filme inteiro, por Pix. Ele entra numa das próximas sessões
+                      da live.
+                    </p>
+                  </>
+                ) : (
+                  <SponsorCta item={item} />
+                )}
               </div>
             ) : item.campaign ? (
-              <div className="wf-panel" id="contribuir">
-                <h2>Campanha coletiva</h2>
-                <CampaignProgress c={item.campaign} />
-                <CampaignStatus c={item.campaign} />
-                <CampaignChips c={item.campaign} />
-                <ContributeCta item={item} kindPath={kindPath} />
-                {item.campaign.state === 'OPEN' ? (
-                  <p className="wf-notice mt-4">
-                    As contribuições com Pix abrem em breve: qualquer valor a partir de R$ 5, sem
-                    ultrapassar a meta.
-                  </p>
-                ) : null}
-              </div>
+              <CampaignPanel ctx={checkout} title={item.title} campaign={item.campaign} />
             ) : null}
           </aside>
         </div>

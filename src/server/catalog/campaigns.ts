@@ -1,6 +1,12 @@
 import 'server-only';
 import type { Campaign, CatalogItem } from '@/generated/prisma/client';
-import { DEFAULT_CAMPAIGN_DAYS, franchiseGoalCents, seriesGoalCents } from '@/lib/catalog/pricing';
+import {
+  DEFAULT_CAMPAIGN_DAYS,
+  formatBRL,
+  franchiseGoalCents,
+  MIN_CONTRIBUTION_CENTS,
+  seriesGoalCents,
+} from '@/lib/catalog/pricing';
 import { audit } from '../audit/audit';
 import { db } from '../db';
 import { HttpError, Problems } from '../http/problem';
@@ -160,6 +166,16 @@ export async function lowerGoal(ctx: Ctx, itemId: string, goalCents: number, now
   }
   const floor = c.raisedCents + c.reservedCents;
   if (goalCents < floor) throw CampaignProblems.goalTooLow(floor);
+  // Contributions are ≥ R$ 5: a smaller gap could never be closed (Phase 2 checkout rule).
+  const gap = goalCents - floor;
+  if (gap > 0 && gap < MIN_CONTRIBUTION_CENTS) {
+    throw Problems.validation([
+      {
+        path: 'goalCents',
+        message: `A meta deve ser igual a ${formatBRL(floor)} (arrecadado + reservado) ou pelo menos R$ 5,00 acima.`,
+      },
+    ]);
+  }
   const funded = goalCents === c.raisedCents && c.reservedCents === 0;
   return catalogTx(c.item.kind, async (t) => {
     // Conditional on the money columns too: a contribution landing in between makes this a 409.

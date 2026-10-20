@@ -178,6 +178,28 @@ export const MATRIX: Row[] = [
   R('/api/v1/campaigns/[id]/events', 'GET', 'public', { params: { id: NO_ID } }),
   R('/api/v1/me/orders', 'GET', 'user'),
   R('/api/v1/legal/current', 'GET', 'public'),
+  // /admin/pedidos: staff reads + moderation; accept/refund are STREAMER money actions
+  R('/api/v1/admin/orders', 'GET', 'moderator', { url: '/api/v1/admin/orders?filtro=todos' }),
+  R('/api/v1/admin/orders/[code]', 'GET', 'moderator', {
+    url: `/api/v1/admin/orders/${CODE}`,
+    params: { code: CODE },
+  }),
+  R('/api/v1/admin/orders/[code]/moderate', 'POST', 'moderator', {
+    url: `/api/v1/admin/orders/${CODE}/moderate`,
+    params: { code: CODE },
+    body: { field: 'message', decision: 'APPROVED' },
+  }),
+  R('/api/v1/admin/orders/[code]/resolve', 'POST', 'streamer', {
+    url: `/api/v1/admin/orders/${CODE}/resolve`,
+    params: { code: CODE },
+    body: { outcome: 'accept' },
+  }),
+  R('/api/v1/admin/orders/[code]/refund', 'POST', 'streamer', {
+    url: `/api/v1/admin/orders/${CODE}/refund`,
+    params: { code: CODE },
+    headers: { 'idempotency-key': '00000000-0000-4000-8000-000000000002' },
+    body: { reason: 'PROCESSING_ERROR' },
+  }),
   // Mercado Pago notifications: HMAC-signed, no session involved
   R('/api/webhooks/mercadopago', 'POST', 'public', {
     hmac: true,

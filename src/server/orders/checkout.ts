@@ -592,6 +592,15 @@ export async function checkoutMovie(
 
 export type ContributionInput = SponsorFields & { amountCents: number };
 
+/**
+ * A contribution fits when it closes the goal exactly or leaves at least R$ 5 for the next one
+ * (11 §2.2: every contribution is a whole amount ≥ R$ 5, so a smaller remainder could never be
+ * paid). Goals and contributions are whole reais, so the remainder always is too.
+ */
+export function fitsRemaining(amountCents: number, remainingCents: number): boolean {
+  return amountCents === remainingCents || amountCents + MIN_CONTRIBUTION_CENTS <= remainingCents;
+}
+
 export async function checkoutContribution(
   b: Buyer,
   campaignId: string,
@@ -620,8 +629,9 @@ export async function checkoutContribution(
       { path: 'amountCents', message: 'Contribua com um valor inteiro a partir de R$ 5,00.' },
     ]);
   }
-  if (amount > campaign.remainingCents)
+  if (!fitsRemaining(amount, campaign.remainingCents)) {
     throw OrderProblems.amountAboveRemaining(campaign.remainingCents);
+  }
 
   const breakdown: Breakdown = {
     lines: [
@@ -662,7 +672,11 @@ export async function checkoutContribution(
               id: campaign.id,
               status: 'OPEN',
               deadlineAt: { gt: now },
-              remainingCents: { gte: amount },
+              // fits, and never leaves R$ 0,01–4,99 that no contribution could close
+              OR: [
+                { remainingCents: amount },
+                { remainingCents: { gte: amount + MIN_CONTRIBUTION_CENTS } },
+              ],
             },
             data: {
               remainingCents: { decrement: amount },

@@ -1,5 +1,5 @@
 import 'server-only';
-import type { NextRequest, NextResponse } from 'next/server';
+import type { NextResponse } from 'next/server';
 import { COOKIE, setHostCookie } from '../auth/cookies';
 import { getEnv } from '../env';
 import { seal, unseal } from '../security/crypto';
@@ -19,7 +19,10 @@ const keys = () => {
   return { current: env.COOKIE_SEAL_KEY, previous: env.COOKIE_SEAL_KEY_PREVIOUS };
 };
 
-export function orderIdsFromCookie(req: Pick<NextRequest, 'cookies'>): string[] {
+/** Anything with a cookie jar: a NextRequest, or `{ cookies: await cookies() }` in a page. */
+export type CookieSource = { cookies: { get(name: string): { value: string } | undefined } };
+
+export function orderIdsFromCookie(req: CookieSource): string[] {
   const raw = req.cookies.get(COOKIE.order)?.value;
   if (!raw) return [];
   const v = unseal<{ ids?: unknown }>(raw, keys(), PURPOSE);
@@ -29,11 +32,7 @@ export function orderIdsFromCookie(req: Pick<NextRequest, 'cookies'>): string[] 
 }
 
 /** Add an order to the cookie (most recent first, at most 10). */
-export function addOrderToCookie(
-  res: NextResponse,
-  req: Pick<NextRequest, 'cookies'>,
-  orderId: string,
-): void {
+export function addOrderToCookie(res: NextResponse, req: CookieSource, orderId: string): void {
   const ids = [orderId, ...orderIdsFromCookie(req).filter((x) => x !== orderId)].slice(
     0,
     MAX_ORDERS,

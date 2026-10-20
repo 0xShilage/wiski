@@ -41,6 +41,37 @@ export async function holdReceiptInTx(tx: Tx, orderId: string, accessToken: stri
   });
 }
 
+/**
+ * An accepted late approval (13 D4): the receipt was cancelled with its token when the Pix
+ * expired, so it is re-armed with a fresh order-link token and becomes sendable at once.
+ */
+export async function rearmReceiptInTx(
+  tx: Tx,
+  orderId: string,
+  accessToken: string,
+  now = new Date(),
+): Promise<void> {
+  const sealedToken = seal({ t: accessToken }, sealKeys(), TOKEN_PURPOSE, TOKEN_TTL_MS);
+  const res = await tx.emailOutbox.updateMany({
+    where: { orderId, template: 'ORDER_RECEIPT', status: { in: ['HELD', 'CANCELLED'] } },
+    data: { status: 'PENDING', sealedToken, attempts: 0, nextAttemptAt: now, lastError: null },
+  });
+  if (res.count === 0) {
+    await tx.emailOutbox.upsert({
+      where: { dedupeKey: `receipt:${orderId}` },
+      create: {
+        template: 'ORDER_RECEIPT',
+        orderId,
+        dedupeKey: `receipt:${orderId}`,
+        status: 'PENDING',
+        sealedToken,
+        nextAttemptAt: now,
+      },
+      update: {}, // already PENDING / SENDING / SENT / FAILED: leave it
+    });
+  }
+}
+
 /** One notice per contributor (latest paid contribution of each buyer). */
 async function contributorsOf(tx: Tx | ReturnType<typeof db>, campaignId: string) {
   const paid = await tx.order.findMany({

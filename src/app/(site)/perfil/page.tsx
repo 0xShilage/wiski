@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Avatar } from '@/components/Avatar';
 import { LogoutButton } from '@/components/account/LogoutButton';
+import { MyOrders } from '@/components/account/MyOrders';
 import { ProfileForm } from '@/components/account/ProfileForm';
 import { Mascote } from '@/components/brand/Mascote';
 import { button, card, heading } from '@/components/ui/styles';
@@ -11,6 +12,7 @@ import { formatDate, formatMonthYear } from '@/lib/format';
 import { nextUsernameChange } from '@/server/auth/accounts';
 import { getCurrentSession } from '@/server/auth/current';
 import { isGoogleLoginConfigured } from '@/server/env';
+import { listMyOrders } from '@/server/orders/read';
 import { safeReturnTo } from '@/server/security/return-to';
 
 export const metadata: Metadata = { title: 'Perfil', robots: { index: false } };
@@ -142,14 +144,11 @@ export default async function PerfilPage({ searchParams }: Props) {
         />
       </section>
 
-      <section aria-labelledby="meus-pedidos" className={card}>
-        <h2 id="meus-pedidos" className={`${heading.h3} mb-2`}>
-          Meus patrocínios e contribuições
+      <section aria-labelledby="minhas-compras-titulo" id="minhas-compras" className={card}>
+        <h2 id="minhas-compras-titulo" className={`${heading.h3} mb-4`}>
+          Minhas compras
         </h2>
-        <p className="text-fg/90">
-          Quando os pagamentos com Pix abrirem, seus patrocínios de filmes e contribuições para
-          séries e franquias aparecem aqui.
-        </p>
+        <MyOrders orders={await listMyOrders(user.id)} />
       </section>
     </div>
   );

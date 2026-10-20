@@ -128,6 +128,16 @@ export const AUDIT_ACTIONS = {
     })
     .strict(),
   'campaign.funded': z.object({ goalCents: z.int().positive() }).strict(),
+  /** operator script (npm run voucher:create) — the code itself is not logged */
+  'voucher.create': z
+    .object({
+      kind: z.enum(['PERCENT', 'FIXED']),
+      percentBps: z.int().positive().nullable(),
+      amountCents: z.int().positive().nullable(),
+      maxRedemptions: z.int().positive().nullable(),
+      endsAt: z.iso.datetime().nullable(),
+    })
+    .strict(),
 } as const;
 
 export type AuditAction = keyof typeof AUDIT_ACTIONS;

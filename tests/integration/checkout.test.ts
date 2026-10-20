@@ -528,6 +528,25 @@ describe('campaign contributions', () => {
     });
   });
 
+  it('never leaves less than R$ 5 to go: up to remaining − R$ 5, or exactly the remainder', async () => {
+    const { campaign } = await makeCampaign({ goalCents: 2300 });
+    // R$ 23 left: R$ 20 would leave R$ 3 that nobody could pay
+    const leaves3 = await contribute(campaign.id, 2000);
+    expect(leaves3.status).toBe(409);
+    expect(await json(leaves3)).toMatchObject({
+      code: 'AMOUNT_ABOVE_REMAINING',
+      remainingCents: 2300,
+    });
+    expect((await contribute(campaign.id, 1800)).status).toBe(201); // leaves R$ 5
+    expect((await contribute(campaign.id, 500)).status).toBe(201); // exactly the remainder
+    const c = await db().campaign.findUniqueOrThrow({ where: { id: campaign.id } });
+    expect(c).toMatchObject({ reservedCents: 2300, remainingCents: 0 });
+    expect(await json(await contribute(campaign.id, 500))).toMatchObject({
+      code: 'AMOUNT_ABOVE_REMAINING',
+      remainingCents: 0,
+    });
+  });
+
   it('no overfunding: 30 parallel R$ 10 contributions to a R$ 100 goal → exactly 10 reserved', async () => {
     const { campaign } = await makeCampaign({ goalCents: 10_000 });
     const results = await Promise.all(

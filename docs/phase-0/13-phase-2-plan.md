@@ -1,6 +1,6 @@
 # 13 — Phase 2 plan: payments (hand-off)
 
-> Status: **draft for approval** · 2026-10-19 · Read first: [11-redesign-spec.md](./11-redesign-spec.md) §2 (product rules), §7–§9 · [04-pricing-spec.md](./04-pricing-spec.md) · [05-threat-model.md](./05-threat-model.md) §6 (webhook spec) · [01-architecture.md](./01-architecture.md) §3.2–3.3 · [09-mercadopago-setup.md](./09-mercadopago-setup.md) · what exists: [`../r1/README.md`](../r1/README.md). Written so any Claude session attached to the Wiskiflix project can start cold.
+> Status: **approved and built** 2026-10-19 (D1–D6 as proposed; delivered: [`../phase-2/README.md`](../phase-2/README.md)) · Read first: [11-redesign-spec.md](./11-redesign-spec.md) §2 (product rules), §7–§9 · [04-pricing-spec.md](./04-pricing-spec.md) · [05-threat-model.md](./05-threat-model.md) §6 (webhook spec) · [01-architecture.md](./01-architecture.md) §3.2–3.3 · [09-mercadopago-setup.md](./09-mercadopago-setup.md) · what exists: [`../r1/README.md`](../r1/README.md). Written so any Claude session attached to the Wiskiflix project can start cold.
 
 ## 0. Preconditions (check in this order)
 

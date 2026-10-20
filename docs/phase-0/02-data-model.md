@@ -1,6 +1,17 @@
 # 02 — Data model
 
-> Status: **rev 3** (guest checkout, VIP perk, per-season packages with price override, fixed queue-jump tiers, exception-only refunds). Full Prisma source: [`schema.draft.prisma`](./schema.draft.prisma) (Prisma 7). It was hand-checked; `prisma validate` and a first migration run in Phase 1 (the package registry wasn't reachable from this environment). · **R1 delta (2026-10-02) at the top — read it first**
+> Status: **rev 3** (guest checkout, VIP perk, per-season packages with price override, fixed queue-jump tiers, exception-only refunds). Full Prisma source: [`schema.draft.prisma`](./schema.draft.prisma) (Prisma 7). It was hand-checked; `prisma validate` and a first migration run in Phase 1 (the package registry wasn't reachable from this environment). · **R1 delta (2026-10-02) at the top — read it first** · **Phase 2 delta (2026-10-19) at the top**
+
+## Phase 2 delta (2026-10-19)
+
+Migrations `20261019180000_p2_payments` + `20261019180100_p2_constraints` (reviewed):
+
+- `Order.buyerKey` — `u:<userId>` or `e:<sha256(normalised e-mail)>` (CHECK: never an e-mail); partial unique `order_one_pending_per_buyer` (one PENDING_PAYMENT per buyer); `attentionReason` required with NEEDS_ATTENTION; paid states need `paidAt`; public codes Crockford base32.
+- `Payment.providerOrderId` (MP order) + `providerPaymentId` (the Pix inside it), raw `providerStatus` / `statusDetail` / `providerUpdatedAt` next to our forward-only `PaymentStatus`.
+- `AttentionReason`: LATE_APPROVAL, AMOUNT_MISMATCH, ACCOUNT_MISMATCH, CHARGEBACK, REFUNDED_OUTSIDE.
+- `EmailOutbox` (template, order/campaign, `dedupeKey`, HELD → PENDING → SENT/FAILED/CANCELLED; the sealed order-link token is erased on final states; the address is resolved at send time).
+- `QueueJumpSlot.tierIndex` + unique `(day, tierId, tierIndex)` for per-tier daily caps.
+- Seeded: `PriceRuleSet` v1 ACTIVE (04 §3 rev 3); `LegalDocument` rows mirror `src/content/legal`.
 
 ## R1 delta (2026-10-02) — what the database looks like now
 

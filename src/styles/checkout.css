@@ -467,6 +467,15 @@
     margin: 0;
     overflow-wrap: anywhere;
   }
+  @media (max-width: 479px) {
+    .wf-order__meta {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0;
+    }
+    .wf-order__meta dd + dt {
+      margin-top: 10px;
+    }
+  }
   .wf-order__link {
     display: grid;
     justify-items: start;

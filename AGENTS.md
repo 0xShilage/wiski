@@ -12,7 +12,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 Design baseline: `docs/phase-0/` (architecture, data model, API, pricing, threat model, tokens).
 Phase 1 status, how to run, decisions and deviations: `docs/phase-1/README.md`; results: `docs/phase-1/test-report.md`.
-R1 (redesign foundation — current): `docs/r1/README.md`; results: `docs/r1/test-report.md`; rules: `docs/phase-0/11-redesign-spec.md`.
+R1 (redesign foundation): `docs/r1/README.md`; results: `docs/r1/test-report.md`; rules: `docs/phase-0/11-redesign-spec.md`.
+Phase 2 (payments — current): `docs/phase-2/README.md`; results: `docs/phase-2/test-report.md`; plan: `docs/phase-0/13-phase-2-plan.md`.
 
 Non-negotiables (enforced by lint/tests — keep them green):
 
@@ -23,5 +24,6 @@ Non-negotiables (enforced by lint/tests — keep them green):
 - **Audit log is append-only**: write through `audit()` with an allow-listed metadata schema; never UPDATE/DELETE it.
 - **Admin routes need a passkey**: `route()` enforces `Session.mfaAt` ≤ 10 min for `moderator`/`streamer` access by default — never pass `mfa: false` on an admin endpoint. STREAMER money actions also need Google step-up.
 - **User images only through the media pipeline** (`src/server/media`): bytes decide the format, everything is re-encoded under content-hash names; nginx serves `/media/` in production (the app route is development-only).
+- **Money state moves only after a verified Mercado Pago `GET`** (`src/server/payments/sync.ts`); the webhook body is never trusted. Every money-moving POST takes an `Idempotency-Key`; amounts cross the Mercado Pago boundary as exact decimal strings, never floats.
 - **Raw SQL only in reviewed migrations** (`prisma/migrations/*_constraints`) plus the documented tagged-template exceptions.
 - **Secrets never in the repo, chat, logs or client bundle** (`npm run check:bundle-secrets`, gitleaks). Code/docs/identifiers in English, UI copy in pt-BR.

@@ -1,7 +1,15 @@
 # 01 — Architecture
 
-> Status: **rev 4** · Phase 0 · 2026-10-02 · canonical origin `https://wiski.fun`
+> Status: **rev 4** · Phase 0 · 2026-10-02 · canonical origin `https://wiski.fun` · **Phase 2 delta (2026-10-19) below**
 > Rendered diagram: [`architecture.svg`](./architecture.svg) (Mermaid sources below render on GitHub / VS Code).
+
+## Phase 2 delta (2026-10-19)
+
+- **Mercado Pago Orders API** instead of the Payments API (13 D1): `POST /v1/orders` (Pix, `PT30M`), `GET /v1/orders/{id}`, `…/cancel`, `…/refund`; notifications with topic `order`.
+- **Worker** (`npm run worker`, same image/env): BullMQ queues `wf-payments` (sync, recover, cancel, reconcile 2 min + nightly 48 h, expiry every minute) and `wf-email` (send + sweep). Image processing stays in the upload request (deviation, see [../phase-2/README.md](../phase-2/README.md) §5).
+- **Realtime**: Redis pub/sub → SSE for `/api/v1/orders/[code]/events` and `/api/v1/campaigns/[id]/events`, 4 s polling fallback.
+- **E-mail**: transactional outbox → Resend (production) / log + `.tmp/emails` (development).
+- Payment flow end to end: [../phase-2/README.md](../phase-2/README.md) §3.
 
 ## 1. Goals and constraints
 

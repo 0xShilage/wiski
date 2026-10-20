@@ -1,4 +1,4 @@
-# 07 — Open questions (rev 7 · 2026-10-02, R1 built; Q26 + Q27 answered)
+# 07 — Open questions (rev 8 · 2026-10-19, Phase 2 built; Q13 recipient name answered, S2 still open)
 
 ## A. Resolved — your answers (2026-10-01)
 
@@ -45,11 +45,13 @@
 | # | Needed for | What I need |
 |---|---|---|
 | S1 | ~~now~~ **mostly done (2026-10-02)** | Production Access Token renewed; `DATA.txt` is no longer in the project folder. Optional: also renew the production Client Secret (not used by the site) and the test user's password. |
-| **S2** | Phase 2 / 5 | Confirm the **production** `collector_id` and Application ID in Suas integrações › Produção. Rev 4 recorded the **test** ids as if they were production (09 corrected). |
+| **S2** | Phase 5 | Confirm the **production** `collector_id` and Application ID in Suas integrações › Produção. The ids sent on 2026-10-19 (`3733347216` / `5754049850745190`) are the **test** ones; the production Access Token reads `APP_USR-<Application ID>-…-<User ID>` — compare its digit groups (09). Not blocking until go-live: the app refuses to boot when token and `MP_COLLECTOR_ID` disagree. |
 | P1-a | now | Run `npx prisma migrate status` once on your computer (Claude's workspace can't download Prisma's engine binary). |
-| P1-c | Phase 2 forms | Cloudflare Turnstile widget for `wiski.fun` + `localhost` (site key + secret; dev uses Cloudflare's test keys). |
+| P1-c | Phase 5 | Cloudflare Turnstile widget for `wiski.fun` + `localhost` (site key + secret). Phase 2 checkout uses it; dev uses Cloudflare's test keys, the suites a local stand-in. |
 | P1-d | Phase 5 | Trusted Types enforcement: Next.js's chunk loader still triggers report-only violations on pages with client components; needs a TT policy for `/_next/static`. |
-| **Q13** | Phase 2 (legal texts) | Name payers see as the Pix recipient (for a pessoa física account usually your legal name — confirm with a small Pix), plus the terms / privacy / no-refund texts from your lawyer. The site shows clearly-marked provisional pages until then. |
+| **Q13** | Phase 5 (legal texts) | ~~Pix recipient name~~ received 2026-10-19 (goes into the server `.env` as `PIX_RECIPIENT_NAME`, not the repository). Still needed: the terms / privacy / no-refund texts from your lawyer, including the crowdfunding wording (money can wait for deadline extensions). Provisional, versioned texts are online and accepted at checkout; **production refuses to start while they are current.** |
+| **P2-a** | Phase 5 | Resend account + `mail.wiski.fun` DNS (SPF/DKIM/DMARC) for receipts; key into the server `.env`. |
+| **P2-b** | Phase 5 | Mercado Pago panel: webhook URL with events **Order (Mercado Pago)** + chargebacks; secret into the server `.env` (09 §C). |
 | **Q21b** | Phase 5 | RedHosting's answers to the checklist in 08 §1 (KVM? data-center city? IPv4? snapshots?) before you buy. |
 
 ## C. Defaults now in force (you didn't object) — still easy to change

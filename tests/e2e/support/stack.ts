@@ -191,6 +191,7 @@ async function main() {
     .replaceAll('__MEDIA_SNIPPET__', join(ROOT, 'docker/nginx/snippets/media.conf'))
     .replaceAll('__UPLOAD_SNIPPET__', join(ROOT, 'docker/nginx/snippets/upload.conf'))
     .replaceAll('__SSE_SNIPPET__', join(ROOT, 'docker/nginx/snippets/sse.conf'))
+    .replaceAll('__WEBHOOK_SNIPPET__', join(ROOT, 'docker/nginx/snippets/mercadopago-webhook.conf'))
     .replaceAll('__MEDIA_DIR__', mediaDir);
   writeFileSync(join(tmp, 'nginx.conf'), conf);
   const nginx = spawn('nginx', ['-c', join(tmp, 'nginx.conf'), '-p', tmp, '-g', 'daemon off;'], {

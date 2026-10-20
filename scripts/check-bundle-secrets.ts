@@ -19,6 +19,7 @@ const SECRET_KEYS = [
   'MP_ACCESS_TOKEN',
   'MP_WEBHOOK_SECRET',
   'MP_WEBHOOK_SECRET_PREVIOUS',
+  'RESEND_API_KEY',
   'DATABASE_URL',
   'MIGRATE_DATABASE_URL',
   'REDIS_URL',
@@ -27,6 +28,7 @@ const PATTERNS: [string, RegExp][] = [
   ['Mercado Pago access token', /APP_USR-\d{6,}-\d{6}-[0-9a-f]{20,}-\d+/],
   ['Mercado Pago test token', /TEST-\d{6,}-\d{6}-[0-9a-f]{20,}-\d+/],
   ['Google OAuth client secret', /GOCSPX-[\w-]{20,}/],
+  ['Resend API key', /\bre_[A-Za-z0-9]{8}_[A-Za-z0-9]{20,}/],
   ['private key', /-----BEGIN [A-Z ]*PRIVATE KEY-----/],
   ['postgres URL with password', /postgres(?:ql)?:\/\/[^:\s/]+:[^@\s/]+@/],
 ];

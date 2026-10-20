@@ -34,9 +34,9 @@ const ATTENTION_TEXT: Record<string, string> = {
 };
 
 const REASONS = [
-  { id: 'PROCESSING_ERROR', label: 'Erro de processamento (valor, prazo, pedido impossível)' },
+  { id: 'PROCESSING_ERROR', label: 'Erro de processamento' },
   { id: 'DUPLICATE_PAYMENT', label: 'Pagamento em duplicidade' },
-  { id: 'LEGAL_REQUIREMENT', label: 'Exigência legal (orientação jurídica)' },
+  { id: 'LEGAL_REQUIREMENT', label: 'Exigência legal' },
 ] as const;
 
 const when = new Intl.DateTimeFormat('pt-BR', {

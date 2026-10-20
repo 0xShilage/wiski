@@ -405,9 +405,14 @@
     align-content: start;
     min-width: 0;
   }
+  .wf-steps li::marker {
+    color: var(--color-lavender);
+    font-weight: 600;
+  }
   .wf-steps {
     margin: 0;
     padding-left: 20px;
+    list-style: decimal;
     display: grid;
     gap: 6px;
     font-size: 15px;
@@ -464,6 +469,7 @@
   }
   .wf-order__link {
     display: grid;
+    justify-items: start;
     gap: 8px;
     margin-top: 18px;
     padding-top: 14px;

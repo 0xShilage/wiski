@@ -172,18 +172,55 @@ async function remember(buyerKey: string, key: string, requestHash: string, r: C
 
 // ── per-IP pending limit (04 §5.4: 1 pending per buyer [DB], 2 per IP [here]) ─────────────────
 
-async function ipPendingGuard(ipKey: string): Promise<() => Promise<void>> {
+const ORDER_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+type IpGuard = { commit: (orderId: string) => Promise<void>; release: () => Promise<void> };
+
+/**
+ * At most 2 UNPAID orders per IP. Members are order ids (plus a provisional member while a
+ * checkout is in flight); an order that is no longer pending — paid, expired, cancelled — stops
+ * counting, so people behind one carrier NAT can keep buying one after the other.
+ */
+async function ipPendingGuard(ipKey: string): Promise<IpGuard> {
   const key = `pend:ip:${ipKey}`;
   const now = Date.now();
+  const ttl = TOTAL_TTL_MIN * 60_000;
   try {
     const r = redis();
-    await r.zremrangebyscore(key, '-inf', now - TOTAL_TTL_MIN * 60_000);
-    if ((await r.zcard(key)) >= MAX_PENDING_PER_IP) throw OrderProblems.tooManyPendingFromIp();
-    const member = `${now}:${Math.random().toString(36).slice(2)}`;
-    await r.zadd(key, now, member);
-    await r.pexpire(key, TOTAL_TTL_MIN * 60_000);
-    return async () => {
-      await r.zrem(key, member).catch(() => {});
+    await r.zremrangebyscore(key, '-inf', now - ttl);
+    let members = await r.zrange(key, '0', '-1');
+    if (members.length >= MAX_PENDING_PER_IP) {
+      const ids = members.filter((m) => ORDER_UUID.test(m));
+      if (ids.length) {
+        const pending = await db().order.findMany({
+          where: { id: { in: ids }, status: 'PENDING_PAYMENT' },
+          select: { id: true },
+        });
+        const still = new Set(pending.map((o) => o.id));
+        const done = ids.filter((id) => !still.has(id));
+        if (done.length) await r.zrem(key, ...done);
+        members = members.filter((m) => !done.includes(m));
+      }
+      if (members.length >= MAX_PENDING_PER_IP) throw OrderProblems.tooManyPendingFromIp();
+    }
+    const provisional = `p:${now}:${Math.random().toString(36).slice(2)}`;
+    let committed: string | null = null;
+    await r.zadd(key, now, provisional);
+    await r.pexpire(key, ttl);
+    return {
+      commit: async (orderId) => {
+        committed = orderId;
+        await r
+          .multi()
+          .zrem(key, provisional)
+          .zadd(key, now, orderId)
+          .pexpire(key, ttl)
+          .exec()
+          .catch(() => {});
+      },
+      release: async () => {
+        await r.zrem(key, provisional, ...(committed ? [committed] : [])).catch(() => {});
+      },
     };
   } catch (err) {
     if (err instanceof HttpError) throw err;
@@ -509,7 +546,7 @@ export async function checkoutMovie(
   if (breakdown.totalCents !== input.expectedTotalCents)
     throw OrderProblems.priceChanged(breakdown);
 
-  const release = await ipPendingGuard(b.ipKey);
+  const guard = await ipPendingGuard(b.ipKey);
   const superseded: string[] = [];
   let written;
   try {
@@ -573,9 +610,10 @@ export async function checkoutMovie(
       now,
     );
   } catch (err) {
-    await release();
+    await guard.release();
     throw err;
   }
+  await guard.commit(written.order.id);
   for (const id of superseded) {
     await publishOrderState(id);
     await enqueue.paymentCancel(id);
@@ -583,7 +621,7 @@ export async function checkoutMovie(
   try {
     return await finish(b, buyer.buyerKey, idempotencyKey, requestHash, written, buyer.email);
   } catch (err) {
-    await release();
+    await guard.release();
     throw err;
   }
 }
@@ -647,7 +685,7 @@ export async function checkoutContribution(
     tier: null,
   };
 
-  const release = await ipPendingGuard(b.ipKey);
+  const guard = await ipPendingGuard(b.ipKey);
   let written;
   try {
     written = await writeOrder(
@@ -694,13 +732,14 @@ export async function checkoutContribution(
       now,
     );
   } catch (err) {
-    await release();
+    await guard.release();
     throw err;
   }
+  await guard.commit(written.order.id);
   try {
     return await finish(b, buyer.buyerKey, idempotencyKey, requestHash, written, buyer.email);
   } catch (err) {
-    await release();
+    await guard.release();
     throw err;
   }
 }

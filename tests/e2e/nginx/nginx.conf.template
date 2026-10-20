@@ -70,7 +70,7 @@ http {
     }
 
     # Phase 2: live order/campaign updates (SSE) — streamed, idle timeout above the 20 s heartbeat.
-    location ~ ^/api/v1/(orders/WF-[0-9A-Z]{6}|campaigns/[0-9a-f-]{36})/events$ {
+    location ~ "^/api/v1/(orders/WF-[0-9A-Z]{6}|campaigns/[0-9a-f-]{36})/events$" {
       include __SNIPPET__;
       include __SSE_SNIPPET__;
       proxy_pass http://app;
@@ -78,7 +78,7 @@ http {
     # Phase 2: Mercado Pago notifications (05 §6): small JSON only.
     location = /api/webhooks/mercadopago {
       include __SNIPPET__;
-      client_max_body_size 16k;
+      include __WEBHOOK_SNIPPET__;
       proxy_pass http://app;
     }
 

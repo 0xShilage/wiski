@@ -15,6 +15,7 @@ import * as contributions from '@/app/api/v1/campaigns/[id]/contributions/route'
 import { COOKIE } from '@/server/auth/cookies';
 import { db } from '@/server/db';
 import { recoverFailedCreate } from '@/server/orders/checkout';
+import { syncMpOrder } from '@/server/payments/sync';
 import { clearCatalog, makeCampaign, makeItem } from '../support/catalog';
 import { makeUser } from '../support/db';
 import { call, freshIp, req, setCookies, signedIn } from '../support/http';
@@ -273,11 +274,18 @@ describe('movie sponsorship', () => {
     expect((await json(second)).code).toBe('PENDING_ORDER_EXISTS');
 
     const ip = freshIp();
-    expect((await sponsor(m2!.id, {}, { ip })).status).toBe(201);
+    const paidSoon = await sponsor(m2!.id, {}, { ip });
+    expect(paidSoon.status).toBe(201);
     expect((await sponsor(m3!.id, {}, { ip })).status).toBe(201);
     const third = await sponsor(m4!.id, {}, { ip });
     expect(third.status).toBe(429);
     expect((await json(third)).code).toBe('PENDING_ORDERS_IP_LIMIT');
+
+    // only UNPAID orders count: once one is paid, the next person on that IP (a carrier NAT) can buy
+    const { order } = (await json(paidSoon)) as { order: { id: string } };
+    mock.approve(mock.orderFor(order.id)!.id);
+    expect(await syncMpOrder(mock.orderFor(order.id)!.id)).toBe('paid');
+    expect((await sponsor(m4!.id, {}, { ip })).status).toBe(201);
   });
 
   it('Mercado Pago down → 503, nothing charged, every hold released, recovery cancels a late create', async () => {

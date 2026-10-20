@@ -19,12 +19,17 @@ import { join } from 'node:path';
 import EmbeddedPostgres from 'embedded-postgres';
 import pg from 'pg';
 import { applyMigrations } from '../../integration/setup/global-setup';
+import { fakeMpToken, fakePaymentEnv } from '../../support/fake-payment-env';
+import { MockExternals } from '../../support/mock-externals';
 
 const ROOT = join(import.meta.dirname, '../../..');
 export const HTTPS_PORT = Number(process.env.E2E_HTTPS_PORT ?? 8443);
 const APP_PORT = 3100;
 const PG_PORT = 54331;
 const REDIS_PORT = 63791;
+export const MOCK_PORT = 63792;
+/** Mercado Pago account of the e2e stack (fictional). */
+const COLLECTOR = '3333333333';
 const children: ChildProcess[] = [];
 
 async function main() {
@@ -106,6 +111,17 @@ async function main() {
     { stdio: 'ignore' },
   );
 
+  // Phase 2: Mercado Pago, Turnstile siteverify and Resend stand-ins on a local port (the same
+  // mock the integration suite uses); endpoint overrides are allowed only for a localhost origin.
+  const payEnv = fakePaymentEnv(COLLECTOR);
+  const mock = new MockExternals({
+    port: MOCK_PORT,
+    token: fakeMpToken(COLLECTOR),
+    collectorId: COLLECTOR,
+    applicationId: payEnv.MP_APPLICATION_ID!,
+  });
+  const mockUrl = await mock.start();
+
   const origin = `https://localhost:${HTTPS_PORT}`;
   const appEnv = {
     PATH: process.env.PATH ?? '',
@@ -127,6 +143,10 @@ async function main() {
     TURNSTILE_SECRET_KEY: '0x4AAAAAAAe2e-secret-key',
     MEDIA_DIR: mediaDir,
     LOG_LEVEL: 'warn',
+    ...payEnv,
+    MP_API_BASE: mockUrl,
+    TURNSTILE_VERIFY_URL: `${mockUrl}/turnstile/v0/siteverify`,
+    RESEND_API_BASE: mockUrl,
   };
   // R1: the fictional catalogue (scripts/seed-dev.ts) through the real services and media
   // pipeline, so the pages, carousel and dashboard have every state to show.
@@ -151,6 +171,18 @@ async function main() {
   });
   children.push(app);
 
+  // Phase 2 worker (BullMQ): payment.sync from the webhooks, expiry, e-mail.
+  const worker = spawn(
+    process.execPath,
+    [
+      join(ROOT, 'node_modules/tsx/dist/cli.mjs'),
+      '--conditions=react-server',
+      join(ROOT, 'src/worker/main.ts'),
+    ],
+    { cwd: ROOT, env: appEnv, stdio: ['ignore', 'inherit', 'inherit'] },
+  );
+  children.push(worker);
+
   const conf = readFileSync(join(ROOT, 'tests/e2e/nginx/nginx.conf.template'), 'utf8')
     .replaceAll('__TMP__', tmp)
     .replaceAll('__APP_PORT__', String(APP_PORT))
@@ -158,6 +190,8 @@ async function main() {
     .replaceAll('__SNIPPET__', join(ROOT, 'docker/nginx/snippets/security-headers.conf'))
     .replaceAll('__MEDIA_SNIPPET__', join(ROOT, 'docker/nginx/snippets/media.conf'))
     .replaceAll('__UPLOAD_SNIPPET__', join(ROOT, 'docker/nginx/snippets/upload.conf'))
+    .replaceAll('__SSE_SNIPPET__', join(ROOT, 'docker/nginx/snippets/sse.conf'))
+    .replaceAll('__WEBHOOK_SNIPPET__', join(ROOT, 'docker/nginx/snippets/mercadopago-webhook.conf'))
     .replaceAll('__MEDIA_DIR__', mediaDir);
   writeFileSync(join(tmp, 'nginx.conf'), conf);
   const nginx = spawn('nginx', ['-c', join(tmp, 'nginx.conf'), '-p', tmp, '-g', 'daemon off;'], {
@@ -173,6 +207,7 @@ async function main() {
         origin,
         adminDatabaseUrl: `postgresql://postgres:postgres@127.0.0.1:${PG_PORT}/wiskiflix`,
         appEnv,
+        mockUrl,
       },
       null,
       2,
@@ -181,6 +216,7 @@ async function main() {
 
   const stop = async () => {
     for (const c of children) c.kill('SIGTERM');
+    await mock.stop().catch(() => {});
     await pgServer.stop().catch(() => {});
     process.exit(0);
   };
@@ -188,6 +224,7 @@ async function main() {
   process.on('SIGINT', () => void stop());
   for (const [name, proc] of [
     ['app', app],
+    ['worker', worker],
     ['nginx', nginx],
   ] as const) {
     proc.on('exit', (code) => {

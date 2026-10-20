@@ -1,6 +1,12 @@
 # 05 — Threat model and security controls
 
-> Status: **rev 3** (guest checkout, VIP perk, season packages, no refunds, origin `wiski.fun`) · Method: asset/actor inventory → trust boundaries → STRIDE per element → abuse cases → controls mapped to files and tests. Controls marked **[P1]…[P5]** land in that phase. · **R1 delta (2026-10-02) at the top — read it first**
+> Status: **rev 3** (guest checkout, VIP perk, season packages, no refunds, origin `wiski.fun`) · Method: asset/actor inventory → trust boundaries → STRIDE per element → abuse cases → controls mapped to files and tests. Controls marked **[P1]…[P5]** land in that phase. · **R1 delta (2026-10-02) at the top — read it first** · **Phase 2 delta (2026-10-19) at the top**
+
+## Phase 2 delta (2026-10-19) — payments
+
+- **§6 adapted to the Orders API**: topic `order`, `data.id` = Mercado Pago order id; manifest `id:<lower-cased id>;request-id:<x-request-id>;ts:<ts>;` (the id as received is accepted too); the worker reads `GET /v1/orders/{id}` and checks `external_reference`, stored ids, both amounts, Pix as the method, `user_id` (collector) and `integration_data.application_id` (no currency field in Orders; the pinned collector is a BRL account). Any mismatch → NEEDS_ATTENTION, never PAID. Every order transition in the sync is conditional on the status and version it read (a racing expiry/cancel makes it re-read). Chargebacks and refunds made in Mercado Pago's panel are caught by a nightly re-read of approved payments (120 days); stored-but-unprocessed notifications are re-queued every 2 min.
+- **nginx must not replace `x-request-id` on the webhook path** — it is part of Mercado Pago's signature (`docker/nginx/snippets/mercadopago-webhook.conf`; found by the e2e run).
+- New controls, all tested: Turnstile via a one-URL Trusted Types policy; Idempotency-Key with sealed replay; one unpaid order per buyer (DB) and two unpaid per IP; order link token only in the fragment → sealed `__Host-wf_order` cookie; QR drawn from the copia-e-cola text (no provider image); staff see masked e-mails only; exception refund = STREAMER + passkey + Google step-up + Idempotency-Key + single-caller lease; production refuses provisional legal texts. Details: [../phase-2/README.md](../phase-2/README.md) §4.
 
 ## R1 delta (2026-10-02) — new surface and its controls
 

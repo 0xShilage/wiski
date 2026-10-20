@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '@/server/db';
 import { clearCatalog, makeItem } from '../support/catalog';
 import { makeUser, withAdmin } from '../support/db';
+import { orderIdentity } from '../support/orders';
 
 /** Postgres SQLSTATE of a failed Prisma call (driver adapter error or raw pg error). */
 async function sqlState(p: Promise<unknown>): Promise<string> {
@@ -294,13 +295,7 @@ describe('Order kind-specific CHECKs', () => {
       },
     });
   }
-  const common = () => ({
-    publicCode: `WF-${randomUUID().slice(0, 6).toUpperCase()}`,
-    contactEmail: 'guest@example.com',
-    accessTokenHash: crypto.getRandomValues(new Uint8Array(32)),
-    breakdown: [],
-    clientRequestId: randomUUID(),
-  });
+  const common = () => orderIdentity();
 
   it('MOVIE orders need a rule set, runtime and reschedule counter, and no campaign', async () => {
     const m = await makeItem({ status: 'ACTIVE', slot: 1 });

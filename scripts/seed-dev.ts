@@ -12,7 +12,7 @@
 import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { randomBytes, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import type { ArtSpec } from './seed-art';
 
 for (const file of ['.env.local', '.env']) {
@@ -29,6 +29,9 @@ const { ingestFile } = await import('../src/server/media/pipeline');
 const { createItem, publishMovie } = await import('../src/server/catalog/service');
 const { openCampaign } = await import('../src/server/catalog/campaigns');
 const { sha256Bytes } = await import('../src/server/security/crypto');
+const { ensureActiveRuleSet } = await import('../src/server/pricing/rulesets');
+const { buyerKeyForEmail, buyerKeyForUser, newPublicCode } =
+  await import('../src/server/orders/identity');
 const { mediaDir } = await import('../src/server/env');
 const { PALETTES, renderArt, renderLogo } = await import('./seed-art');
 
@@ -322,6 +325,10 @@ async function main() {
     await db().$transaction([
       db().watchEvent.deleteMany({}),
       db().review.deleteMany({}),
+      db().refund.deleteMany({}),
+      db().payment.deleteMany({}),
+      db().legalAcceptance.deleteMany({ where: { orderId: { not: null } } }),
+      db().emailOutbox.deleteMany({}),
       db().order.deleteMany({}),
       db().campaign.deleteMany({}),
       db().catalogRevision.deleteMany({}),
@@ -378,24 +385,17 @@ async function main() {
   });
 
   // states: slot 4 sponsored (paid by @luana_v), slot 6 reserved (Pix pending), slot 13 watched
-  const ruleSet = await db().priceRuleSet.upsert({
-    where: { version: 1 },
-    update: {},
-    create: {
-      version: 1,
-      status: 'DRAFT',
-      config: { schemaVersion: 1, note: 'seed placeholder — Phase 2 publishes the real rule set' },
-      configHash: sha256Bytes('seed-ruleset-v1'),
-    },
-  });
+  // Phase 2: the real rule set (04 §3) — the first checkout would create it anyway.
+  const ruleSet = await ensureActiveRuleSet();
   const order = (itemId: string, status: 'PAID' | 'PENDING_PAYMENT', userId: string | null) =>
     db().order.create({
       data: {
-        publicCode: `WF-${randomBytes(3).toString('hex').toUpperCase()}`,
+        publicCode: newPublicCode(),
         kind: 'MOVIE',
         itemId,
         userId,
         contactEmail: userId ? 'luana_v@seed.invalid' : 'convidado@seed.invalid',
+        buyerKey: userId ? buyerKeyForUser(userId) : buyerKeyForEmail('convidado@seed.invalid'),
         accessTokenHash: sha256Bytes(randomUUID()),
         runtimeMinutes: 89,
         ruleSetId: ruleSet.id,
@@ -406,6 +406,16 @@ async function main() {
         status,
         clientRequestId: randomUUID(),
         ...(status === 'PAID' ? { paidAt: new Date() } : {}),
+        // demo orders: a local payment row without a Mercado Pago order behind it
+        payment: {
+          create: {
+            idempotencyKey: randomUUID(),
+            amountCents: 2000,
+            status: status === 'PAID' ? 'APPROVED' : 'PENDING',
+            expiresAt: new Date(Date.now() + 30 * 60_000),
+            ...(status === 'PAID' ? { approvedAt: new Date() } : {}),
+          },
+        },
       },
     });
   const sponsored = movieIds[MOVIE_SLOTS.indexOf(4)]!;

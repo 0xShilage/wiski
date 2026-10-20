@@ -15,7 +15,7 @@ export class HttpError extends Error {
       errors?: ProblemField[];
       headers?: Record<string, string>;
       /** extra RFC 9457 extension members (non-sensitive, e.g. a step-up URL) */
-      members?: Record<string, string>;
+      members?: Record<string, unknown>;
     } = {},
   ) {
     super(`${status} ${code}`);

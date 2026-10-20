@@ -1,6 +1,12 @@
 # 08 — Hosting, domain and e-mail
 
-> Status: **rev 4** · 2026-10-02 · domain **wiski.fun** on Cloudflare (done) · Hostinger dropped (no Brazil server offered to you) · candidate: **RedHosting** VPS, 2 vCPU · 2 GB RAM · 20 GB NVMe · 500 Mbps · expected traffic ≈ 1,000 visits/month.
+> Status: **rev 4** · 2026-10-02 · domain **wiski.fun** on Cloudflare (done) · Hostinger dropped (no Brazil server offered to you) · candidate: **RedHosting** VPS, 2 vCPU · 2 GB RAM · 20 GB NVMe · 500 Mbps · expected traffic ≈ 1,000 visits/month. · **Phase 2 delta (2026-10-19) below**
+
+## Phase 2 delta (2026-10-19)
+
+- The **worker** is a second process of the same image (`npm run worker`), same env file; give it its own memory limit in Phase 5 (measured under load then).
+- nginx gets two more locations (snippets in `docker/nginx/snippets/`): **SSE** (`sse.conf`: no buffering, 60 s idle timeout) for `/api/v1/(orders/WF-…|campaigns/<uuid>)/events`, and the **Mercado Pago webhook** (`mercadopago-webhook.conf`: 16 KB, passes Mercado Pago's `x-request-id` through). Cloudflare: WAF skip rule for the webhook path only (it is HMAC-verified at the origin).
+- E-mail: Resend from `mail.wiski.fun` (SPF/DKIM/DMARC) — key in the server `.env` (Phase 5).
 
 ## 1. Is 2 vCPU / 2 GB / 20 GB enough?
 

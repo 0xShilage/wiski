@@ -14,6 +14,14 @@ import { db } from '../db';
 const username = z.string().regex(USERNAME_PATTERN);
 const itemKind = z.enum(['MOVIE', 'SERIES', 'FRANCHISE']);
 const mediaRole = z.enum(['POSTER', 'BACKDROP', 'LOGO']);
+const orderKind = z.enum(['MOVIE', 'CONTRIBUTION']);
+const attentionReason = z.enum([
+  'LATE_APPROVAL',
+  'AMOUNT_MISMATCH',
+  'ACCOUNT_MISMATCH',
+  'CHARGEBACK',
+  'REFUNDED_OUTSIDE',
+]);
 /** Names of edited catalog fields (never their values). */
 const catalogField = z.enum([
   'title',
@@ -91,6 +99,44 @@ export const AUDIT_ACTIONS = {
     .strict(),
   'campaign.goal': z
     .object({ fromCents: z.int().positive(), toCents: z.int().positive(), funded: z.boolean() })
+    .strict(),
+
+  // ── Phase 2 (payments): money state changes, by the worker (actor null) or the staff ──
+  'order.paid': z
+    .object({
+      kind: orderKind,
+      totalCents: z.int().positive(),
+      source: z.enum(['webhook', 'reconcile', 'order', 'admin']),
+    })
+    .strict(),
+  'order.expired': z.object({ kind: orderKind }).strict(),
+  'order.cancelled': z.object({ kind: orderKind, by: z.enum(['buyer', 'system']) }).strict(),
+  'order.attention': z.object({ kind: orderKind, reason: attentionReason }).strict(),
+  'order.resolve': z.object({ kind: orderKind, outcome: z.enum(['accepted']) }).strict(),
+  'order.refund': z
+    .object({
+      kind: orderKind,
+      amountCents: z.int().positive(),
+      reason: z.enum(['DUPLICATE_PAYMENT', 'PROCESSING_ERROR', 'LEGAL_REQUIREMENT']),
+      state: z.enum(['requested', 'approved', 'rejected']),
+    })
+    .strict(),
+  'order.moderate': z
+    .object({
+      field: z.enum(['displayName', 'message']),
+      decision: z.enum(['APPROVED', 'REJECTED']),
+    })
+    .strict(),
+  'campaign.funded': z.object({ goalCents: z.int().positive() }).strict(),
+  /** operator script (npm run voucher:create) — the code itself is not logged */
+  'voucher.create': z
+    .object({
+      kind: z.enum(['PERCENT', 'FIXED']),
+      percentBps: z.int().positive().nullable(),
+      amountCents: z.int().positive().nullable(),
+      maxRedemptions: z.int().positive().nullable(),
+      endsAt: z.iso.datetime().nullable(),
+    })
     .strict(),
 } as const;
 

@@ -8,6 +8,10 @@ import { z } from 'zod';
  * and the rule — never the value — so secrets cannot leak into logs.
  */
 
+export const MP_API_DEFAULT = 'https://api.mercadopago.com';
+export const RESEND_API_DEFAULT = 'https://api.resend.com';
+export const TURNSTILE_VERIFY_DEFAULT = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
+
 /** Cloudflare's documented Turnstile test keys ("always passes"). Allowed outside production only. */
 export const TURNSTILE_TEST_SITE_KEY = '1x00000000000000000000AA';
 export const TURNSTILE_TEST_SECRET_KEY = '1x0000000000000000000000000000000AA';
@@ -63,6 +67,19 @@ export const envSchema = z
     ),
     MP_WEBHOOK_SECRET: optional(z.string().min(16).max(256)),
     MP_WEBHOOK_SECRET_PREVIOUS: optional(z.string().min(16).max(256)),
+    /** Only for the local test stack (mock server); production must use the real API (below). */
+    MP_API_BASE: z.url({ protocol: /^https?$/ }).default(MP_API_DEFAULT),
+    /** Shown on the Pix page: "confira o nome do recebedor" (Q13). Not secret. */
+    PIX_RECIPIENT_NAME: optional(z.string().min(3).max(80)),
+
+    // Transactional e-mail (Phase 2, 08 §3): Resend over HTTPS. Without a key, e-mails are
+    // written to the log in development and kept in memory in tests.
+    RESEND_API_KEY: optional(z.string().regex(/^re_[\w-]{10,200}$/, 'must be a Resend API key')),
+    RESEND_API_BASE: z.url({ protocol: /^https?$/ }).default(RESEND_API_DEFAULT),
+    EMAIL_FROM: z.string().min(6).max(120).default('Wiski <nao-responda@mail.wiski.fun>'),
+
+    /** Turnstile siteverify endpoint — overridable for the local test stack only (below). */
+    TURNSTILE_VERIFY_URL: z.url({ protocol: /^https?$/ }).default(TURNSTILE_VERIFY_DEFAULT),
 
     /** Processed images (11 §5). Production: the Docker volume /var/lib/wiski/media, served by
      *  nginx at /media/. Development/test default: <cwd>/.media (served by the app). */
@@ -145,13 +162,35 @@ export const envSchema = z
       }
       if (!env.MEDIA_DIR)
         issue('MEDIA_DIR', 'is required in production (e.g. /var/lib/wiski/media)');
-      if (env.MP_ACCESS_TOKEN) {
-        if (!env.MP_ACCESS_TOKEN.startsWith('APP_USR-')) {
-          issue('MP_ACCESS_TOKEN', 'production requires an APP_USR- access token');
-        }
-        if (!env.MP_COLLECTOR_ID) issue('MP_COLLECTOR_ID', 'is required with MP_ACCESS_TOKEN');
-        if (!env.MP_WEBHOOK_SECRET) issue('MP_WEBHOOK_SECRET', 'is required with MP_ACCESS_TOKEN');
+      // Phase 2: production takes payments and sends receipts.
+      if (!env.MP_ACCESS_TOKEN) issue('MP_ACCESS_TOKEN', 'is required in production');
+      else if (!env.MP_ACCESS_TOKEN.startsWith('APP_USR-')) {
+        issue('MP_ACCESS_TOKEN', 'production requires an APP_USR- access token');
       }
+      if (!env.MP_COLLECTOR_ID) issue('MP_COLLECTOR_ID', 'is required in production');
+      if (!env.MP_WEBHOOK_SECRET) issue('MP_WEBHOOK_SECRET', 'is required in production');
+      if (!env.RESEND_API_KEY) issue('RESEND_API_KEY', 'is required in production');
+      if (!env.PIX_RECIPIENT_NAME) issue('PIX_RECIPIENT_NAME', 'is required in production');
+      // Service endpoints are fixed in production; overriding them is only for the local test
+      // stack (the production build served on https://localhost).
+      if (!isLocal) {
+        if (env.MP_API_BASE !== MP_API_DEFAULT) issue('MP_API_BASE', `must be ${MP_API_DEFAULT}`);
+        if (env.RESEND_API_BASE !== RESEND_API_DEFAULT) {
+          issue('RESEND_API_BASE', `must be ${RESEND_API_DEFAULT}`);
+        }
+        if (env.TURNSTILE_VERIFY_URL !== TURNSTILE_VERIFY_DEFAULT) {
+          issue('TURNSTILE_VERIFY_URL', `must be ${TURNSTILE_VERIFY_DEFAULT}`);
+        }
+      }
+    }
+    for (const [key, url] of [
+      ['MP_API_BASE', env.MP_API_BASE],
+      ['RESEND_API_BASE', env.RESEND_API_BASE],
+      ['TURNSTILE_VERIFY_URL', env.TURNSTILE_VERIFY_URL],
+    ] as const) {
+      const u = new URL(url);
+      const local = u.hostname === 'localhost' || u.hostname === '127.0.0.1';
+      if (u.protocol !== 'https:' && !local) issue(key, 'must use https');
     }
   });
 
@@ -194,6 +233,12 @@ export function resetEnvCache(): void {
 /** Absolute media directory (MEDIA_DIR, or <cwd>/.media outside production). */
 export function mediaDir(env: Env = getEnv()): string {
   return env.MEDIA_DIR ?? join(process.cwd(), '.media');
+}
+
+/** True when the app runs on localhost (development, or the production build in the test stack). */
+export function isLocalOrigin(env: Env = getEnv()): boolean {
+  const host = new URL(env.APP_ORIGIN).hostname;
+  return host === 'localhost' || host === '127.0.0.1';
 }
 
 export function isGoogleLoginConfigured(env: Env = getEnv()): boolean {

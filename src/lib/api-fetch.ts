@@ -14,6 +14,10 @@ export type Problem = {
   verifyUrl?: string;
   currentVersion?: string;
   minGoalCents?: string;
+  /** PRICE_CHANGED: the server's current breakdown */
+  breakdown?: unknown;
+  /** AMOUNT_ABOVE_REMAINING */
+  remainingCents?: number;
 };
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; problem: Problem };
 
@@ -28,10 +32,12 @@ export async function apiFetch<T>(
     body?: unknown;
     /** binary upload (sent as-is, application/octet-stream) */
     blob?: Blob;
+    /** extra request headers (Idempotency-Key, x-turnstile-token) */
+    headers?: Record<string, string>;
   } = {},
 ): Promise<ApiResult<T>> {
   if (!path.startsWith('/api/')) throw new Error('apiFetch only talks to our own API');
-  const headers = new Headers({ accept: 'application/json' });
+  const headers = new Headers({ ...init.headers, accept: 'application/json' });
   const token = csrfToken();
   if (token) headers.set('x-csrf-token', token);
   if (init.body !== undefined) headers.set('content-type', 'application/json');

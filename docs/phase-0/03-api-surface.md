@@ -1,6 +1,10 @@
 # 03 — API surface
 
-> Status: **rev 3** (guest checkout, VIP perk, per-season series/anime packages, fixed queue-jump tiers, YouTube disabled for now). All JSON APIs are Next.js Route Handlers. No Server Actions for mutations (one explicit, testable guard pipeline for everything). · **R1 delta (2026-10-02) at the top — read it first**
+> Status: **rev 3** (guest checkout, VIP perk, per-season series/anime packages, fixed queue-jump tiers, YouTube disabled for now). All JSON APIs are Next.js Route Handlers. No Server Actions for mutations (one explicit, testable guard pipeline for everything). · **R1 delta (2026-10-02) at the top — read it first** · **Phase 2 delta (2026-10-19) at the top**
+
+## Phase 2 delta (2026-10-19) — endpoints that exist now
+
+Checkout and order endpoints moved from `/sponsorships` to **`/api/v1/orders`** (movie) and **`/api/v1/campaigns/[id]/contributions`**; order pages are addressed by public code (`/orders/[code]`). Full table with access levels: [../phase-2/README.md](../phase-2/README.md) §1. Money-moving POSTs need `Idempotency-Key: <uuid>`; checkout also `x-turnstile-token`; the webhook is `POST /api/webhooks/mercadopago?data.id=<MP order id>&type=order`. Errors stay RFC 9457 with pt-BR `detail`; new codes: `PRICE_CHANGED` (+ `breakdown`), `ITEM_RESERVED`, `ITEM_UNAVAILABLE`, `PENDING_ORDER_EXISTS`, `PENDING_ORDERS_IP_LIMIT`, `AMOUNT_ABOVE_REMAINING` (+ `remainingCents`), `CAMPAIGN_CLOSED`, `PIX_UNAVAILABLE`, `IDEMPOTENCY_*`, `VOUCHER_*`, `QUEUE_JUMP_*`, `ORDER_NOT_CANCELLABLE`, `ORDER_ALREADY_CLAIMED`, `ORDER_NOT_RESOLVABLE`, `ORDER_NO_ROOM`, `ORDER_NOT_REFUNDABLE`, `REFUND_FAILED`.
 
 ## R1 delta (2026-10-02) — endpoints that exist now
 

@@ -410,7 +410,8 @@ enum ReservationStatus {
 model VoucherRedemption {
   id            String            @id @default(uuid(7)) @db.Uuid
   voucherId     String            @db.Uuid
-  userId        String            @db.Uuid
+  userId        String?           @db.Uuid // null = guest order (vouchers work for guests, 04 §4)
+  buyerKey      String // = Order.buyerKey; maxPerUser is counted per buyer
   orderId       String            @unique @db.Uuid
   status        ReservationStatus @default(RESERVED)
   discountCents Int
@@ -418,10 +419,10 @@ model VoucherRedemption {
   updatedAt     DateTime          @updatedAt @db.Timestamptz(3)
 
   voucher Voucher @relation(fields: [voucherId], references: [id], onDelete: Restrict)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  user    User?   @relation(fields: [userId], references: [id], onDelete: Restrict)
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  @@index([voucherId, userId, status])
+  @@index([voucherId, buyerKey, status])
 }
 
 /// Fixed queue-jump tiers (e.g. "prioridade" +80 %, "topo" +160 %; defined in PriceRuleSet.config).
@@ -511,6 +512,11 @@ model Order {
   itemId            String         @db.Uuid
   userId            String?        @db.Uuid // null = guest checkout (login not required)
   contactEmail      String // payer.email for MP; receipt + order link. Users: Google e-mail; guests: typed
+  /// Who is buying, for caps and limits (05 §5): "u:<userId>" or "e:<sha256 hex of contactEmail>".
+  buyerKey          String
+  /// Keyed HMAC of the client IP while PENDING_PAYMENT only (≤ 2 pending orders per IP); cleared
+  /// on every transition out of PENDING_PAYMENT (CHECK), so it is never kept with paid orders.
+  ipKey             String?
   accessTokenHash   Bytes          @unique // SHA-256 of the order access token (guest link / claim)
   claimedAt         DateTime?      @db.Timestamptz(3) // guest order later attached to an account
   // MOVIE only
@@ -554,6 +560,8 @@ model Order {
   watchEvent        WatchEvent?
 
   @@unique([contactEmail, clientRequestId])
+  /// At most one unpaid order per buyer (05 §9: "max 1 pending order per buyer").
+  @@unique([buyerKey], map: "order_one_pending_per_buyer", where: raw("(status = 'PENDING_PAYMENT'::\"OrderStatus\")"))
   /// One sponsor per movie: at most one order that holds or bought the movie (11 §9).
   /// The predicate is written exactly as Postgres normalises it, so the drift check stays empty.
   @@unique([itemId], map: "order_one_active_movie", where: raw("((kind = 'MOVIE'::\"OrderKind\") AND (status = ANY (ARRAY['PENDING_PAYMENT'::\"OrderStatus\", 'PAID'::\"OrderStatus\", 'SCHEDULED'::\"OrderStatus\", 'WATCHING'::\"OrderStatus\", 'COMPLETED'::\"OrderStatus\"])))"))
@@ -562,6 +570,7 @@ model Order {
   @@index([campaignId, status])
   @@index([userId, createdAt])
   @@index([contactEmail, status])
+  @@index([ipKey])
 }
 
 // ═══════════════════════════ Payments (Mercado Pago Pix) ═════════════════════
@@ -615,7 +624,7 @@ enum WebhookOutcome {
   FAILED
 }
 
-/// One row per verified delivery. Unique x-request-id = replay/duplicate guard (Redis SETNX in front).
+/// One row per verified delivery. Unique x-request-id = replay/duplicate guard.
 model WebhookEvent {
   id          String          @id @default(uuid(7)) @db.Uuid
   provider    PaymentProvider
@@ -627,8 +636,14 @@ model WebhookEvent {
   receivedAt  DateTime        @default(now()) @db.Timestamptz(3)
   processedAt DateTime?       @db.Timestamptz(3)
   outcome     WebhookOutcome  @default(RECEIVED)
+  // The row is also the worker's job (Phase 2): claimed with a lease, retried with backoff.
+  attempts      Int       @default(0)
+  nextAttemptAt DateTime  @default(now()) @db.Timestamptz(3)
+  lockedUntil   DateTime? @db.Timestamptz(3)
 
   @@index([resourceId])
+  @@index([outcome, nextAttemptAt])
+  @@index([receivedAt])
 }
 
 enum RefundStatus {

@@ -35,7 +35,9 @@
     "postinstall": "prisma generate",
     "test:brand": "playwright test -c playwright.brand.config.ts",
     "setup:dev": "node scripts/setup-dev-env.mjs",
-    "db:seed": "tsx --conditions=react-server scripts/seed-dev.ts"
+    "db:seed": "tsx --conditions=react-server scripts/seed-dev.ts",
+    "worker": "tsx --conditions=react-server src/worker/main.ts",
+    "dev:pay": "tsx --conditions=react-server scripts/dev-pay.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.1",
@@ -68,6 +70,7 @@
     "eslint": "9.39.5",
     "eslint-config-next": "16.4.2",
     "eslint-plugin-regexp": "3.3.1",
+    "fast-check": "4.10.2",
     "globals": "17.13.0",
     "jose": "6.2.12",
     "opentype.js": "2.0.0",
@@ -88,5 +91,12 @@
     "@next/eslint-plugin-next": {
       "fast-glob": "npm:tinyglobby@0.2.17"
     }
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "@embedded-postgres/windows-x64@17.10.0-beta.17": true,
+    "@prisma/engines@7.10.1": true,
+    "prisma@7.10.1": true,
+    "unrs-resolver@1.12.2": true
   }
 }

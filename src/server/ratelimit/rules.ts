@@ -55,4 +55,36 @@ export const RL = {
   },
   /** Public catalog reads (cached; generous). */
   catalogRead: { name: 'catalog-read', perIp: { limit: 240, windowMs: MIN } },
+
+  // ── Phase 2 (05 §9) ──
+  quote: {
+    name: 'quote',
+    perIp: { limit: 60, windowMs: MIN },
+    perUser: { limit: 60, windowMs: MIN },
+  },
+  /** + 5/h per buyer (user id or e-mail), counted by the checkout itself */
+  orderCreate: {
+    name: 'order-create',
+    perIp: { limit: 10, windowMs: HOUR },
+    perUser: { limit: 5, windowMs: HOUR },
+  },
+  orderAccess: {
+    name: 'order-access',
+    perIp: { limit: 10, windowMs: MIN },
+    perUser: { limit: 10, windowMs: MIN },
+  },
+  orderRead: {
+    name: 'order-read',
+    perIp: { limit: 30, windowMs: MIN },
+    perUser: { limit: 60, windowMs: MIN },
+  },
+  orderWrite: {
+    name: 'order-write',
+    perIp: { limit: 20, windowMs: MIN },
+    perUser: { limit: 20, windowMs: MIN },
+  },
+  events: { name: 'events', perIp: { limit: 30, windowMs: MIN } },
+  /** Mercado Pago's notifications: generous; the signature check is cheap and comes first. */
+  webhook: { name: 'webhook', perIp: { limit: 600, windowMs: MIN } },
+  legalRead: { name: 'legal-read', perIp: { limit: 120, windowMs: MIN } },
 } as const satisfies Record<string, RateLimitRule>;

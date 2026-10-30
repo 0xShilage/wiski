@@ -12,7 +12,7 @@
 import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { randomBytes, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import type { ArtSpec } from './seed-art';
 
 for (const file of ['.env.local', '.env']) {
@@ -29,6 +29,7 @@ const { ingestFile } = await import('../src/server/media/pipeline');
 const { createItem, publishMovie } = await import('../src/server/catalog/service');
 const { openCampaign } = await import('../src/server/catalog/campaigns');
 const { sha256Bytes } = await import('../src/server/security/crypto');
+const { buyerKeyFor, newPublicCode } = await import('../src/server/checkout/buyer');
 const { mediaDir } = await import('../src/server/env');
 const { PALETTES, renderArt, renderLogo } = await import('./seed-art');
 
@@ -322,6 +323,10 @@ async function main() {
     await db().$transaction([
       db().watchEvent.deleteMany({}),
       db().review.deleteMany({}),
+      db().refund.deleteMany({}),
+      db().payment.deleteMany({}),
+      db().legalAcceptance.deleteMany({ where: { orderId: { not: null } } }),
+      db().webhookEvent.deleteMany({}),
       db().order.deleteMany({}),
       db().campaign.deleteMany({}),
       db().catalogRevision.deleteMany({}),
@@ -331,6 +336,21 @@ async function main() {
     ]);
   }
   log(`media → ${mediaDir()}`);
+
+  // Provisional legal texts so the LOCAL checkout opens. Production stays closed until the
+  // lawyer's texts are registered as the current versions (Q13).
+  for (const type of ['TERMS', 'PRIVACY', 'REFUND'] as const) {
+    if (await db().legalDocument.findFirst({ where: { type, isCurrent: true } })) continue;
+    await db().legalDocument.create({
+      data: {
+        type,
+        version: 'provisorio-dev',
+        sha256: sha256Bytes(`provisional ${type} (development seed)`),
+        publishedAt: new Date(),
+        isCurrent: true,
+      },
+    });
+  }
 
   const mod = await user('mod_ana', 'MODERATOR', 'mascote-2-lavender');
   const streamer = await user('wiski', 'STREAMER', 'mascote-4-lilac');
@@ -378,23 +398,16 @@ async function main() {
   });
 
   // states: slot 4 sponsored (paid by @luana_v), slot 6 reserved (Pix pending), slot 13 watched
-  const ruleSet = await db().priceRuleSet.upsert({
-    where: { version: 1 },
-    update: {},
-    create: {
-      version: 1,
-      status: 'DRAFT',
-      config: { schemaVersion: 1, note: 'seed placeholder — Phase 2 publishes the real rule set' },
-      configHash: sha256Bytes('seed-ruleset-v1'),
-    },
-  });
+  // the ACTIVE rule set comes from the Phase 2 reviewed migration (rev 3)
+  const ruleSet = await db().priceRuleSet.findFirstOrThrow({ where: { status: 'ACTIVE' } });
   const order = (itemId: string, status: 'PAID' | 'PENDING_PAYMENT', userId: string | null) =>
     db().order.create({
       data: {
-        publicCode: `WF-${randomBytes(3).toString('hex').toUpperCase()}`,
+        publicCode: newPublicCode(),
         kind: 'MOVIE',
         itemId,
         userId,
+        buyerKey: buyerKeyFor(userId, userId ? 'luana_v@seed.invalid' : 'convidado@seed.invalid'),
         contactEmail: userId ? 'luana_v@seed.invalid' : 'convidado@seed.invalid',
         accessTokenHash: sha256Bytes(randomUUID()),
         runtimeMinutes: 89,

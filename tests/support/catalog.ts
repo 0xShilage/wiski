@@ -53,6 +53,12 @@ export async function clearCatalog(): Promise<void> {
   await db().$transaction([
     db().watchEvent.deleteMany({}),
     db().review.deleteMany({}),
+    db().refund.deleteMany({}),
+    db().payment.deleteMany({}),
+    db().legalAcceptance.deleteMany({ where: { orderId: { not: null } } }),
+    db().voucherRedemption.deleteMany({}),
+    db().queueJumpSlot.deleteMany({}),
+    db().webhookEvent.deleteMany({}),
     db().order.deleteMany({}),
     db().campaign.deleteMany({}),
     db().catalogRevision.deleteMany({}),

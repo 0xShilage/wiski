@@ -28,7 +28,7 @@ import { type ImageFormat, SNIFF_BYTES, sniffImage } from './sniff';
  *   at fixed widths (metadata is never copied: EXIF/GPS/ICC/XMP and trailing bytes are gone)
  *   → files named <content hash>-<width>.<ext> in MEDIA_DIR → MediaAsset row → temp file deleted.
  *
- * One job at a time with a timeout (inline for R1 volume; BullMQ worker in Phase 2).
+ * One job at a time with a timeout (inline: enough at this volume — Phase 2 deviation 10).
  */
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 export const MAX_PIXELS = 40_000_000;

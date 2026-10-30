@@ -1,6 +1,6 @@
 <!-- BEGIN:nextjs-agent-rules -->
 
-# This is NOT the Next.js you know
+## This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
 
@@ -12,7 +12,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 Design baseline: `docs/phase-0/` (architecture, data model, API, pricing, threat model, tokens).
 Phase 1 status, how to run, decisions and deviations: `docs/phase-1/README.md`; results: `docs/phase-1/test-report.md`.
-R1 (redesign foundation — current): `docs/r1/README.md`; results: `docs/r1/test-report.md`; rules: `docs/phase-0/11-redesign-spec.md`.
+R1 (redesign foundation): `docs/r1/README.md`; results: `docs/r1/test-report.md`; rules: `docs/phase-0/11-redesign-spec.md`.
+Phase 2 (payments — current): `docs/phase-2/README.md`; results: `docs/phase-2/test-report.md`.
 
 Non-negotiables (enforced by lint/tests — keep them green):
 
@@ -24,4 +25,5 @@ Non-negotiables (enforced by lint/tests — keep them green):
 - **Admin routes need a passkey**: `route()` enforces `Session.mfaAt` ≤ 10 min for `moderator`/`streamer` access by default — never pass `mfa: false` on an admin endpoint. STREAMER money actions also need Google step-up.
 - **User images only through the media pipeline** (`src/server/media`): bytes decide the format, everything is re-encoded under content-hash names; nginx serves `/media/` in production (the app route is development-only).
 - **Raw SQL only in reviewed migrations** (`prisma/migrations/*_constraints`) plus the documented tagged-template exceptions.
+- **Order and payment state changes only in `src/server/payments/{sync,jobs}.ts` and `src/server/checkout/{orders,access,holds}.ts`**: never trust a webhook body (re-fetch and verify every MP payment); every transition is a compare-and-set with its holds in the same transaction, and is audited.
 - **Secrets never in the repo, chat, logs or client bundle** (`npm run check:bundle-secrets`, gitleaks). Code/docs/identifiers in English, UI copy in pt-BR.

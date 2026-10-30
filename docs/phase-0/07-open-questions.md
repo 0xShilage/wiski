@@ -1,4 +1,4 @@
-# 07 — Open questions (rev 7 · 2026-10-02, R1 built; Q26 + Q27 answered)
+# 07 — Open questions (rev 8 · 2026-10-30, Phase 2 built; payment provider decided)
 
 ## A. Resolved — your answers (2026-10-01)
 
@@ -20,6 +20,8 @@
 | Q22 | Mercado Pago | Pessoa física, Pix key registered, production credentials activated; ids `3733347216`/`5754049850745190` are the **test** app (production ids in 09 rev 5) | [09-mercadopago-setup.md](./09-mercadopago-setup.md) — only the payer-visible recipient name is missing |
 | Phase 1 | Go-ahead | npm reachable; **Phase 1 built and tested on 2026-10-02** (`binaries.prisma.sh` is still blocked in Claude's workspace — migrations are checked by CI and locally) | [../phase-1/README.md](../phase-1/README.md), [../phase-1/test-report.md](../phase-1/test-report.md) |
 | R1 | Redesign foundation | **Built and tested on 2026-10-02** (catalogue, dashboard, passkeys, media pipeline, new theme, desktop resolutions) | [../r1/README.md](../r1/README.md), [../r1/test-report.md](../r1/test-report.md) |
+| Payments provider | Mercado Pago or LivePix? | **Mercado Pago** for the site's checkout (2026-10-29); LivePix stays for donations on stream. The LivePix comparison is kept in [13-livepix-alternative.md](./13-livepix-alternative.md) | [../phase-2/README.md](../phase-2/README.md) |
+| Phase 2 | Payments | **Built and tested on 2026-10-30** (price engine, movie checkout, contributions, webhook, worker, order pages) | [../phase-2/README.md](../phase-2/README.md), [../phase-2/test-report.md](../phase-2/test-report.md) |
 | Q26 | GitHub | **Private** repository `github.com/0xShilage/wiski` (anonymous read access is refused, so it is not public) | first push and repository settings: [../r1/README.md](../r1/README.md) §7; CI, Dependabot and CodeQL start with that push |
 | Q27 | Google sign-in | OAuth client (Web application) `333411243821-f80tvc0hpoj3mh3sp9ocmcj17dhet5tc.apps.googleusercontent.com` (a client id is public by design). The **client secret stays with you**: type it into `.env.local` (and later the server's env), never into a chat | redirect URIs and consent screen as in 10 §5; real login testable locally once both values are in `.env.local` ([../r1/README.md](../r1/README.md) §7) |
 
@@ -49,7 +51,8 @@
 | P1-a | now | Run `npx prisma migrate status` once on your computer (Claude's workspace can't download Prisma's engine binary). |
 | P1-c | Phase 2 forms | Cloudflare Turnstile widget for `wiski.fun` + `localhost` (site key + secret; dev uses Cloudflare's test keys). |
 | P1-d | Phase 5 | Trusted Types enforcement: Next.js's chunk loader still triggers report-only violations on pages with client components; needs a TT policy for `/_next/static`. |
-| **Q13** | Phase 2 (legal texts) | Name payers see as the Pix recipient (for a pessoa física account usually your legal name — confirm with a small Pix), plus the terms / privacy / no-refund texts from your lawyer. The site shows clearly-marked provisional pages until then. |
+| **E1** | Launch | **E-mail provider** for receipts and campaign notices (e.g. Amazon SES, Brevo or Resend; domain `wiski.fun` with SPF/DKIM/DMARC). Until then the order page offers "Copiar link do pedido". |
+| **Q13** | Launch (checkout stays closed in production without them) | Name payers see as the Pix recipient (for a pessoa física account usually your legal name — confirm with a small Pix), plus the terms / privacy / no-refund texts from your lawyer. The site shows clearly-marked provisional pages until then. |
 | **Q21b** | Phase 5 | RedHosting's answers to the checklist in 08 §1 (KVM? data-center city? IPv4? snapshots?) before you buy. |
 
 ## C. Defaults now in force (you didn't object) — still easy to change

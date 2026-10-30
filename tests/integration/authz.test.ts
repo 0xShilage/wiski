@@ -5,7 +5,7 @@
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AccessLevel } from '@/server/rbac';
 import { makeUser } from '../support/db';
 import { call, req, signedIn } from '../support/http';
@@ -22,10 +22,24 @@ type Row = {
   rawBody?: string;
   contentType?: string;
   params?: Record<string, string>;
+  headers?: Record<string, string>;
+  /** statuses that still count as "allowed" for this row (the webhook authenticates by HMAC, not
+   *  by role — its signature checks live in tests/integration/webhook.test.ts) */
+  alsoAllowed?: number[];
 };
 
 /** A well-formed id that matches nothing. */
 const NO_ID = '00000000-0000-7000-8000-000000000000';
+const NO_CODE = 'WF-000000';
+const LEGAL = { terms: 'x', privacy: 'x', refund: 'x' };
+const SAMPLE_MOVIE_ORDER = {
+  movieId: NO_ID,
+  queueJumpTier: null,
+  expectedTotalCents: 2000,
+  contactEmail: 'matriz@example.com',
+  legal: LEGAL,
+};
+const SAMPLE_CONTRIBUTION = { amountCents: 500, contactEmail: 'matriz@example.com', legal: LEGAL };
 
 const R = (path: string, method: Method, access: AccessLevel, extra: Partial<Row> = {}): Row => ({
   path,
@@ -125,6 +139,50 @@ export const MATRIX: Row[] = [
     params: { id: NO_ID },
     body: { goalCents: 10000 },
   }),
+
+  // ── Phase 2 (payments) ──
+  R('/api/v1/sponsorships/quote', 'POST', 'public', {
+    body: { movieId: NO_ID, queueJumpTier: null },
+    params: {},
+  }),
+  R('/api/v1/sponsorships', 'POST', 'public', {
+    body: SAMPLE_MOVIE_ORDER,
+    headers: { 'idempotency-key': NO_ID, 'x-turnstile-token': 'tok' },
+  }),
+  R('/api/v1/campaigns/[id]/contributions', 'POST', 'public', {
+    params: { id: NO_ID },
+    body: SAMPLE_CONTRIBUTION,
+    headers: { 'idempotency-key': NO_ID, 'x-turnstile-token': 'tok' },
+  }),
+  R('/api/v1/campaigns/[id]/events', 'GET', 'public', { params: { id: NO_ID } }),
+  R('/api/v1/orders/[code]', 'GET', 'public', {
+    params: { code: NO_CODE },
+    url: `/api/v1/orders/${NO_CODE}`,
+  }),
+  R('/api/v1/orders/[code]/access', 'POST', 'public', {
+    params: { code: NO_CODE },
+    url: `/api/v1/orders/${NO_CODE}/access`,
+    body: { token: 'A'.repeat(43) },
+  }),
+  R('/api/v1/orders/[code]/events', 'GET', 'public', {
+    params: { code: NO_CODE },
+    url: `/api/v1/orders/${NO_CODE}/events`,
+  }),
+  R('/api/v1/orders/[code]/cancel', 'POST', 'public', {
+    params: { code: NO_CODE },
+    url: `/api/v1/orders/${NO_CODE}/cancel`,
+  }),
+  R('/api/v1/orders/[code]/claim', 'POST', 'user', {
+    params: { code: NO_CODE },
+    url: `/api/v1/orders/${NO_CODE}/claim`,
+  }),
+  R('/api/v1/me/orders', 'GET', 'user'),
+  R('/api/v1/legal/current', 'GET', 'public'),
+  R('/api/webhooks/mercadopago', 'POST', 'public', {
+    url: '/api/webhooks/mercadopago?data.id=123&type=payment',
+    body: { type: 'payment', data: { id: '123' } },
+    alsoAllowed: [401],
+  }),
 ];
 
 const ROLES = ['anonymous', 'USER', 'MODERATOR', 'STREAMER'] as const;
@@ -135,6 +193,15 @@ function expected(role: (typeof ROLES)[number], access: AccessLevel): 'allow' | 
   if (RANK[role] >= NEED[access]) return 'allow';
   return role === 'anonymous' ? 401 : 404;
 }
+
+// Turnstile (checkout routes): Cloudflare's siteverify answers "success" for the probe token.
+beforeEach(() => {
+  vi.stubGlobal('fetch', async (url: string | URL) =>
+    String(url).startsWith('https://challenges.cloudflare.com/')
+      ? Response.json({ success: true })
+      : Response.json({ message: 'unexpected outbound call in the authz matrix' }, { status: 599 }),
+  );
+});
 
 describe('authz matrix', () => {
   for (const row of MATRIX) {
@@ -159,6 +226,7 @@ describe('authz matrix', () => {
             cookies: auth.cookies,
             headers: {
               ...auth.headers,
+              ...row.headers,
               ...(row.contentType ? { 'content-type': row.contentType } : {}),
               ...(row.rawBody !== undefined
                 ? { 'content-length': String(row.rawBody.length) }
@@ -170,7 +238,9 @@ describe('authz matrix', () => {
           row.params,
         );
         if (want === 'allow') {
-          expect([401, 403, 405]).not.toContain(res.status);
+          expect([401, 403, 405].filter((s) => !row.alsoAllowed?.includes(s))).not.toContain(
+            res.status,
+          );
           // A 404 is only acceptable where the resource itself doesn't exist (IDOR-safe lookups).
           if (res.status === 404) expect(row.params).toBeDefined();
         } else {

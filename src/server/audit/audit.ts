@@ -14,6 +14,30 @@ import { db } from '../db';
 const username = z.string().regex(USERNAME_PATTERN);
 const itemKind = z.enum(['MOVIE', 'SERIES', 'FRANCHISE']);
 const mediaRole = z.enum(['POSTER', 'BACKDROP', 'LOGO']);
+const orderKind = z.enum(['MOVIE', 'CONTRIBUTION']);
+const paymentStatus = z.enum([
+  'PENDING',
+  'APPROVED',
+  'AUTHORIZED',
+  'IN_PROCESS',
+  'IN_MEDIATION',
+  'REJECTED',
+  'CANCELLED',
+  'REFUNDED',
+  'CHARGED_BACK',
+]);
+const orderStatus = z.enum([
+  'PENDING_PAYMENT',
+  'PAID',
+  'SCHEDULED',
+  'WATCHING',
+  'COMPLETED',
+  'EXPIRED',
+  'CANCELLED',
+  'NEEDS_ATTENTION',
+  'REFUND_PENDING',
+  'REFUNDED',
+]);
 /** Names of edited catalog fields (never their values). */
 const catalogField = z.enum([
   'title',
@@ -91,6 +115,42 @@ export const AUDIT_ACTIONS = {
     .strict(),
   'campaign.goal': z
     .object({ fromCents: z.int().positive(), toCents: z.int().positive(), funded: z.boolean() })
+    .strict(),
+
+  // ── Phase 2 (payments) — amounts and statuses only; never e-mail, IP, Pix payloads or tokens ──
+  'order.create': z
+    .object({
+      kind: orderKind,
+      totalCents: z.int().positive(),
+      voucher: z.boolean(),
+      queueJumpTier: z.string().max(24).nullable(),
+      guest: z.boolean(),
+    })
+    .strict(),
+  'order.cancel': z.object({ kind: orderKind, by: z.enum(['buyer', 'checkout-failure']) }).strict(),
+  'order.expire': z.object({ kind: orderKind }).strict(),
+  'order.claim': z.object({ kind: orderKind }).strict(),
+  'payment.status': z
+    .object({
+      from: paymentStatus,
+      to: paymentStatus,
+      orderFrom: orderStatus,
+      orderTo: orderStatus,
+      reason: z.enum([
+        'approved',
+        'late-approval',
+        'hold-lost',
+        'verification-failed',
+        'unknown-status',
+        'rejected',
+        'cancelled',
+        'refunded',
+        'charged-back',
+        'in-mediation',
+        'update',
+      ]),
+      funded: z.boolean().optional(),
+    })
     .strict(),
 } as const;
 

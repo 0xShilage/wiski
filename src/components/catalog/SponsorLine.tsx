@@ -14,7 +14,7 @@ type MovieState = Pick<
   'slug' | 'state' | 'priceCents' | 'runtimeMinutes' | 'sponsorName'
 >;
 
-/** "Patrocine agora" with its sold / reserved states (design §2, O8). Checkout opens in Phase 2. */
+/** "Patrocine agora" with its sold / reserved states (design §2, O8); the checkout form is on the detail page. */
 export function SponsorCta({ item, className = '' }: { item: MovieState; className?: string }) {
   if (item.state === 'SPONSORED') {
     return (

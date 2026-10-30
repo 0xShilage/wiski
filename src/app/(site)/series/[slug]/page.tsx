@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ItemDetail } from '@/components/catalog/ItemDetail';
 import { getPublic } from '@/server/catalog/read';
+import { checkoutProps } from '@/server/checkout/page-props';
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -32,5 +33,5 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function Page({ params }: Props) {
   const item = await load((await params).slug);
   if (!item) notFound();
-  return <ItemDetail item={item} />;
+  return <ItemDetail item={item} checkout={await checkoutProps()} />;
 }

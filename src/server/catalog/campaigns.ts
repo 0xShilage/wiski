@@ -9,8 +9,8 @@ import { type Actor, CatalogProblems, catalogTx, goLiveInTx } from './service';
 /**
  * Crowdfunding campaigns for series and franchises (11 §2.2). A moderator prepares the item;
  * the STREAMER opens it (goal + deadline), extends deadlines and lowers goals — money actions
- * that need the Google step-up on top of the passkey (route options). Contributions arrive in
- * Phase 2; the money columns already carry their CHECKs.
+ * that need the Google step-up on top of the passkey (route options). Contributions are the
+ * Phase 2 checkout (src/server/checkout); the money columns carry their CHECKs.
  */
 type Ctx = { actor: Actor; requestId: string | null };
 const DAY = 86_400_000;
@@ -140,7 +140,7 @@ export async function extendCampaign(ctx: Ctx, itemId: string, days: number, now
       },
       t,
     );
-    // Contributors with an e-mail get a notice (Phase 2, with contributions).
+    // Contributors with an e-mail get a notice once an e-mail provider exists (Phase 2 open item E1).
     return t.campaign.findUniqueOrThrow({ where: { id: c.id } });
   });
 }

@@ -8,7 +8,10 @@ import { Mascote } from '@/components/brand/Mascote';
 import { button, card, heading } from '@/components/ui/styles';
 import { resolveAvatarKey } from '@/lib/avatars';
 import { formatDate, formatMonthYear } from '@/lib/format';
+import { formatBRL } from '@/lib/catalog/pricing';
+import { ORDER_STATUS_LABEL } from '@/lib/checkout/types';
 import { nextUsernameChange } from '@/server/auth/accounts';
+import { myOrders } from '@/server/checkout/access';
 import { getCurrentSession } from '@/server/auth/current';
 import { isGoogleLoginConfigured } from '@/server/env';
 import { safeReturnTo } from '@/server/security/return-to';
@@ -90,6 +93,7 @@ export default async function PerfilPage({ searchParams }: Props) {
   if (!user.username) redirect('/bem-vindo?next=%2Fperfil');
   const nextChange = nextUsernameChange(user);
   const privileged = user.role !== 'USER';
+  const orders = await myOrders(user);
 
   return (
     <div className="wf-page wf-page--narrow space-y-8">
@@ -146,10 +150,30 @@ export default async function PerfilPage({ searchParams }: Props) {
         <h2 id="meus-pedidos" className={`${heading.h3} mb-2`}>
           Meus patrocínios e contribuições
         </h2>
-        <p className="text-fg/90">
-          Quando os pagamentos com Pix abrirem, seus patrocínios de filmes e contribuições para
-          séries e franquias aparecem aqui.
-        </p>
+        {orders.length === 0 ? (
+          <p className="text-fg/90">
+            Seus patrocínios de filmes e contribuições para séries e franquias aparecem aqui.
+            Comprou sem login? Abra o link do pedido e toque em “Vincular à minha conta”.
+          </p>
+        ) : (
+          <ul className="wf-myorders">
+            {orders.map((o) => (
+              <li key={o.code}>
+                <Link href={`/pedido/${o.code}`} className="wf-myorders__main">
+                  <span className="wf-myorders__title">{o.item.title}</span>
+                  <span className="wf-co__muted text-sm">
+                    {o.kind === 'MOVIE' ? 'Patrocínio' : 'Contribuição'} · {o.code} ·{' '}
+                    {formatDate(new Date(o.createdAt))}
+                  </span>
+                </Link>
+                <span className="wf-myorders__side">
+                  <b>{formatBRL(o.totalCents)}</b>
+                  <span className="text-sm">{ORDER_STATUS_LABEL[o.status]}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   );

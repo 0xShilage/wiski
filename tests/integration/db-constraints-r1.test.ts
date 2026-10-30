@@ -3,6 +3,7 @@
  * deferred live-slot exclusion, the 35/10/10 live limit trigger, campaign money invariants and
  * the kind-specific Order checks (12 §2 step 2 "done when").
  */
+import { testBuyerKey, testPublicCode } from '../support/orders';
 import { randomUUID } from 'node:crypto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '@/server/db';
@@ -295,7 +296,8 @@ describe('Order kind-specific CHECKs', () => {
     });
   }
   const common = () => ({
-    publicCode: `WF-${randomUUID().slice(0, 6).toUpperCase()}`,
+    publicCode: testPublicCode(),
+    buyerKey: testBuyerKey(),
     contactEmail: 'guest@example.com',
     accessTokenHash: crypto.getRandomValues(new Uint8Array(32)),
     breakdown: [],

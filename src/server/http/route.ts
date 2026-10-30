@@ -54,6 +54,9 @@ export type RouteOptions<A extends AccessLevel, B extends AnyZod, Q extends AnyZ
    *  session, role, CSRF and passkey checks. */
   rawBody?: { maxBytes: number; contentTypes: readonly string[] };
   body?: B;
+  /** Provider callbacks only (Mercado Pago webhook): the body is size- and type-checked but never
+   *  parsed or trusted — the handler re-fetches the resource from the provider (05 §6). */
+  ignoreBody?: boolean;
   query?: Q;
   maxBodyBytes?: number;
   /** Accepted request media types for bodies (default application/json). */
@@ -308,7 +311,7 @@ export function route<
         const parsed = options.body.safeParse(json);
         if (!parsed.success) throw Problems.validation(zodErrors(parsed.error));
         body = parsed.data;
-      } else if (!options.rawBody && rawBody.trim().length > 0) {
+      } else if (!options.rawBody && !options.ignoreBody && rawBody.trim().length > 0) {
         // A handler that declares no body must not silently accept one.
         throw Problems.validation([{ path: '(body)', message: 'Esta rota não aceita corpo.' }]);
       }

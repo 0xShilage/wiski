@@ -311,9 +311,37 @@ const FRANCHISES = [
   },
 ];
 
+/**
+ * Provisional legal texts so the LOCAL checkout opens. Production stays closed until the
+ * lawyer's texts are registered as the current versions (Q13). Runs even on an already-seeded
+ * catalog, so a Phase 1 database gets them without --reset.
+ */
+async function ensureDevLegalTexts(): Promise<number> {
+  let created = 0;
+  for (const type of ['TERMS', 'PRIVACY', 'REFUND'] as const) {
+    if (await db().legalDocument.findFirst({ where: { type, isCurrent: true } })) continue;
+    await db().legalDocument.create({
+      data: {
+        type,
+        version: 'provisorio-dev',
+        sha256: sha256Bytes(`provisional ${type} (development seed)`),
+        publishedAt: new Date(),
+        isCurrent: true,
+      },
+    });
+    created++;
+  }
+  return created;
+}
+
 async function main() {
   const existing = await db().catalogItem.count();
   if (existing && !RESET) {
+    const created = await ensureDevLegalTexts();
+    if (created) {
+      log(`published ${created} provisional legal text(s); catalog left as is (${existing} items)`);
+      process.exit(0);
+    }
     console.error(
       `seed-dev: the catalog already has ${existing} items (use --reset on a development DB).`,
     );
@@ -337,20 +365,7 @@ async function main() {
   }
   log(`media → ${mediaDir()}`);
 
-  // Provisional legal texts so the LOCAL checkout opens. Production stays closed until the
-  // lawyer's texts are registered as the current versions (Q13).
-  for (const type of ['TERMS', 'PRIVACY', 'REFUND'] as const) {
-    if (await db().legalDocument.findFirst({ where: { type, isCurrent: true } })) continue;
-    await db().legalDocument.create({
-      data: {
-        type,
-        version: 'provisorio-dev',
-        sha256: sha256Bytes(`provisional ${type} (development seed)`),
-        publishedAt: new Date(),
-        isCurrent: true,
-      },
-    });
-  }
+  await ensureDevLegalTexts();
 
   const mod = await user('mod_ana', 'MODERATOR', 'mascote-2-lavender');
   const streamer = await user('wiski', 'STREAMER', 'mascote-4-lilac');

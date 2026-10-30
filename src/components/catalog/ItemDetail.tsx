@@ -128,7 +128,14 @@ export function ItemDetail({
                   <MovieCheckout movieId={item.id} props={checkout} />
                 ) : (
                   <>
-                    <SponsorCta item={item} />
+                    {item.state === 'ACTIVE' ? (
+                      // checkout closed: on this page the CTA would only link to itself
+                      <span className="wf-btn wf-btn--done" aria-disabled="true">
+                        Patrocine agora
+                      </span>
+                    ) : (
+                      <SponsorCta item={item} />
+                    )}
                     {item.state === 'ACTIVE' ? (
                       <p className="wf-notice mt-4">
                         {checkout?.closedCopy ?? 'O pagamento com Pix abre em breve.'} Uma pessoa
@@ -152,7 +159,14 @@ export function ItemDetail({
                   />
                 ) : (
                   <>
-                    <ContributeCta item={item} kindPath={kindPath} />
+                    {item.campaign.state === 'OPEN' ? (
+                      // checkout closed: on this page the CTA would only link to itself
+                      <span className="wf-btn wf-btn--done" aria-disabled="true">
+                        Contribuir
+                      </span>
+                    ) : (
+                      <ContributeCta item={item} kindPath={kindPath} />
+                    )}
                     {item.campaign.state === 'OPEN' ? (
                       <p className="wf-notice mt-4">
                         {checkout?.closedCopy ?? 'As contribuições com Pix abrem em breve.'}{' '}

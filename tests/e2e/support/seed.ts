@@ -12,7 +12,7 @@ export const stack = () =>
     appEnv: Record<string, string>;
   };
 
-async function withDb<T>(fn: (c: pg.Client) => Promise<T>): Promise<T> {
+export async function withDb<T>(fn: (c: pg.Client) => Promise<T>): Promise<T> {
   const c = new pg.Client({ connectionString: stack().adminDatabaseUrl });
   await c.connect();
   try {

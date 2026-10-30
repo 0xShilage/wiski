@@ -688,6 +688,12 @@ enum ModerationStatus {
   REMOVED // removed for policy violation
 }
 
+/// Why a review is AUTO_HIDDEN (Phase 3): too many links, or the report threshold (05 §8, Q15).
+enum ReviewHoldReason {
+  LINKS
+  REPORTS
+}
+
 model Review {
   id               String           @id @default(uuid(7)) @db.Uuid
   userId           String           @db.Uuid
@@ -696,7 +702,10 @@ model Review {
   body             String // sanitised plain text, ≤ 2000 chars (CHECK)
   containsSpoilers Boolean          @default(false)
   status           ModerationStatus @default(VISIBLE)
-  likeCount        Int              @default(0) // maintained in the same tx as ReviewLike writes
+  likeCount        Int              @default(0) // maintained by the review_like_count trigger (Phase 3 constraints)
+  heldReason       ReviewHoldReason? // set exactly when status = AUTO_HIDDEN (CHECK)
+  openReportCount  Int              @default(0) // OPEN reports; the increment row-locks the review, serialising the auto-hide count
+  moderatedAt      DateTime?        @db.Timestamptz(3) // last moderator action (HIDE/RESTORE/DISMISS/REMOVE)
   createdAt        DateTime         @default(now()) @db.Timestamptz(3)
   updatedAt        DateTime         @updatedAt @db.Timestamptz(3)
   editedAt         DateTime?        @db.Timestamptz(3)
@@ -708,7 +717,10 @@ model Review {
 
   @@unique([userId, itemId]) // one review per user per watched item (editable)
   @@index([itemId, status, createdAt])
+  @@index([itemId, status, likeCount])
+  @@index([status, createdAt])
   @@index([userId, createdAt])
+  @@index([openReportCount])
 }
 
 model ReviewLike {
@@ -720,7 +732,7 @@ model ReviewLike {
   review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
 
   @@id([userId, reviewId]) // one like per user per review
-  @@index([reviewId])
+  @@index([reviewId, createdAt])
 }
 
 enum ReportReason {
@@ -757,6 +769,8 @@ model ReviewReport {
 
   @@unique([reviewId, reporterId]) // one report per user per review
   @@index([status, createdAt])
+  @@index([reviewId, status])
+  @@index([reporterId, createdAt])
 }
 
 // ═══════════════════════════ Admin, overlays, media kit ══════════════════════

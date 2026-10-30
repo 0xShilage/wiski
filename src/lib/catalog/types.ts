@@ -38,6 +38,8 @@ export type PublicItem = {
   backdrop: Picture | null;
   logo: Picture | null;
   state: PublicState;
+  /** when it was watched on stream (WATCHED items; null otherwise) */
+  watchedAt: string | null;
   /** MOVIE: full sponsorship price */
   priceCents: number | null;
   /** SPONSORED: "@user" | display name | null (anonymous) */

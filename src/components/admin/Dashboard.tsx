@@ -5,6 +5,7 @@ import { Logo } from '@/components/brand/Logo';
 import { IconPlus } from '@/components/ui/icons';
 import { adminFetch } from '@/lib/passkey-client';
 import { ItemEditor } from './ItemEditor';
+import { OpsNav } from './OpsNav';
 import { SlotBoard } from './SlotBoard';
 import { type AdminItem, type AdminListItem, KIND_UI, type Kind, LIMIT, tileState } from './types';
 
@@ -22,12 +23,15 @@ export function Dashboard({
   initialCounts,
   initialItem,
   user,
+  waiting = 0,
 }: {
   initialKind: Kind;
   initialItems: AdminListItem[];
   initialCounts: Counts;
   initialItem: AdminItem | null;
   user: { username: string; role: 'MODERATOR' | 'STREAMER' | 'USER' };
+  /** reviews waiting in the moderation queue */
+  waiting?: number;
 }) {
   const [kind, setKind] = useState<Kind>(initialKind);
   const [items, setItems] = useState(initialItems);
@@ -136,14 +140,7 @@ export function Dashboard({
             </a>
           ))}
         </nav>
-        <p className="wf-admin__group">Operação · em breve</p>
-        <nav className="wf-admin__nav wf-admin__nav--ops" aria-label="Operação (em breve)">
-          {['Campanhas', 'Sessões da live', 'Moderação', 'Auditoria'].map((l) => (
-            <span key={l} aria-disabled="true" title="Em breve">
-              {l}
-            </span>
-          ))}
-        </nav>
+        <OpsNav waiting={waiting} />
         <div className="wf-admin__me">
           <p className="m-0 font-semibold">
             @{user.username} · {ROLE_LABEL[user.role]}

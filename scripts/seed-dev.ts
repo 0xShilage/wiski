@@ -453,6 +453,7 @@ async function main() {
   await db().watchEvent.create({ data: { itemId: watched, watchedAt: new Date() } });
 
   // two titles watched earlier and already replaced (Avaliações → assistidos)
+  const archived: string[] = [];
   for (const [j, title] of ['A Primeira Live', 'Esquilo de Natal'].entries()) {
     const a = art[(j + 2) % art.length]!;
     const done = await createItem(modCtx, {
@@ -472,7 +473,71 @@ async function main() {
       data: { status: 'ARCHIVED', publishedAt: when, watchedAt: when, archivedAt: when },
     });
     await db().watchEvent.create({ data: { itemId: done.id, watchedAt: when } });
+    archived.push(done.id);
   }
+
+  // ── reviews (Phase 3): a few on the watched titles, likes, one open report for the queue ──
+  const fans = [];
+  for (const [n, av] of [
+    ['bia_cine', 'mascote-1-lavender'],
+    ['teo_lima', 'mascote-3-lilac'],
+    ['duda_ve', 'mascote-2-lilac'],
+  ] as const) {
+    const u = await user(n, 'USER', av);
+    // old enough to report (≥ 24 h) and to count towards auto-hide (≥ 7 days)
+    fans.push(
+      await db().user.update({
+        where: { id: u.id },
+        data: { createdAt: new Date(Date.now() - 40 * 86_400_000) },
+      }),
+    );
+  }
+  const REVIEWS: [number, number, number, string, boolean][] = [
+    // [title index (0 = in its slot, 1–2 = archived), author index (0–2 fans, 3 = @luana_v), stars, text, spoiler]
+    [
+      0,
+      3,
+      5,
+      'Patrocinei e não me arrependo: a trilha sonora é linda e o chat foi à loucura no final.',
+      false,
+    ],
+    [0, 0, 4, 'Muito divertido. O segundo ato arrasta um pouco, mas o desfecho compensa.', false],
+    [
+      0,
+      1,
+      3,
+      'Achei ok. Quando o esquilo revela que era o vilão desde o começo, perdeu a graça pra mim.',
+      false,
+    ],
+    [1, 2, 5, 'A live mais divertida até agora. Revi no dia seguinte!', false],
+    [1, 0, 4, 'Clássico de fim de ano, assisti com a família toda.', false],
+    [2, 1, 2, 'Não é o meu estilo de filme, mas a companhia do chat salvou.', false],
+  ];
+  const titles = [watched, ...archived];
+  const authors = [...fans, sponsor];
+  const reviewIds: string[] = [];
+  for (const [t, a, rating, body, containsSpoilers] of REVIEWS) {
+    const r = await db().review.create({
+      data: { itemId: titles[t]!, userId: authors[a]!.id, rating, body, containsSpoilers },
+    });
+    reviewIds.push(r.id);
+  }
+  await db().reviewLike.createMany({
+    data: [
+      { userId: fans[0]!.id, reviewId: reviewIds[0]! },
+      { userId: fans[1]!.id, reviewId: reviewIds[0]! },
+      { userId: fans[2]!.id, reviewId: reviewIds[0]! },
+      { userId: fans[2]!.id, reviewId: reviewIds[1]! },
+    ],
+  });
+  await db().reviewReport.create({
+    data: {
+      reviewId: reviewIds[2]!,
+      reporterId: fans[2]!.id,
+      reason: 'UNMARKED_SPOILER',
+      note: 'Conta o final logo na primeira frase.',
+    },
+  });
 
   // ── series (campaigns opened by the streamer; fictional amounts) ──
   for (const [i, s] of SERIES.entries()) {

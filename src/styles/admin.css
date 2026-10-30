@@ -461,7 +461,7 @@
       margin: 0 8px 0 0;
     }
     .wf-admin__group,
-    .wf-admin__nav--ops {
+    .wf-admin__nav--ops span[aria-disabled='true'] {
       display: none;
     }
     .wf-admin__nav {

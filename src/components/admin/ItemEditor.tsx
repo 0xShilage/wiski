@@ -246,6 +246,7 @@ export function ItemEditor({
     backdrop: pics.backdrop,
     logo: pics.logo,
     state: 'ACTIVE',
+    watchedAt: null,
     priceCents: kind === 'MOVIE' && money ? money.cents : null,
     sponsorName: null,
     campaign: null,

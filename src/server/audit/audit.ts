@@ -38,6 +38,7 @@ const orderStatus = z.enum([
   'REFUND_PENDING',
   'REFUNDED',
 ]);
+const moderationStatus = z.enum(['VISIBLE', 'AUTO_HIDDEN', 'HIDDEN', 'REMOVED']);
 /** Names of edited catalog fields (never their values). */
 const catalogField = z.enum([
   'title',
@@ -150,6 +151,17 @@ export const AUDIT_ACTIONS = {
         'update',
       ]),
       funded: z.boolean().optional(),
+    })
+    .strict(),
+
+  // ── Phase 3 (reviews) — statuses and counts only; never review text or report notes ──
+  'review.autohide': z.object({ reports: z.int().positive() }).strict(),
+  'moderation.review': z
+    .object({
+      action: z.enum(['HIDE', 'RESTORE', 'DISMISS', 'REMOVE']),
+      from: moderationStatus,
+      to: moderationStatus,
+      reports: z.int().nonnegative(),
     })
     .strict(),
 } as const;

@@ -87,4 +87,29 @@ export const RL = {
   /** Mercado Pago's notifications: generous; the signature check is cheap and comes first. */
   webhook: { name: 'webhook', perIp: { limit: 600, windowMs: MIN } },
   legalRead: { name: 'legal-read', perIp: { limit: 120, windowMs: MIN } },
+
+  // ── Phase 3 (05 §9) ──
+  reviewCreate: {
+    name: 'review-create',
+    perIp: { limit: 10, windowMs: HOUR },
+    perUser: { limit: 5, windowMs: HOUR },
+  },
+  reviewCreateDaily: { name: 'review-create-day', perUser: { limit: 20, windowMs: 24 * HOUR } },
+  reviewEdit: {
+    name: 'review-edit',
+    perIp: { limit: 60, windowMs: HOUR },
+    perUser: { limit: 20, windowMs: HOUR },
+  },
+  like: {
+    name: 'like',
+    perIp: { limit: 300, windowMs: HOUR },
+    perUser: { limit: 120, windowMs: HOUR },
+  },
+  report: {
+    name: 'report',
+    perIp: { limit: 20, windowMs: HOUR },
+    perUser: { limit: 10, windowMs: HOUR },
+  },
+  /** Public review/profile reads. */
+  reviewRead: { name: 'review-read', perIp: { limit: 120, windowMs: MIN } },
 } as const satisfies Record<string, RateLimitRule>;

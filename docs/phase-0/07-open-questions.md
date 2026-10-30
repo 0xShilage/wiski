@@ -1,4 +1,4 @@
-# 07 — Open questions (rev 8 · 2026-10-30, Phase 2 built; payment provider decided)
+# 07 — Open questions (rev 9 · 2026-10-30, Phase 3 built; rev 8: Phase 2 built, payment provider decided)
 
 ## A. Resolved — your answers (2026-10-01)
 
@@ -22,6 +22,7 @@
 | R1 | Redesign foundation | **Built and tested on 2026-10-02** (catalogue, dashboard, passkeys, media pipeline, new theme, desktop resolutions) | [../r1/README.md](../r1/README.md), [../r1/test-report.md](../r1/test-report.md) |
 | Payments provider | Mercado Pago or LivePix? | **Mercado Pago** for the site's checkout (2026-10-29); LivePix stays for donations on stream. The LivePix comparison is kept in [13-livepix-alternative.md](./13-livepix-alternative.md) | [../phase-2/README.md](../phase-2/README.md) |
 | Phase 2 | Payments | **Built and tested on 2026-10-30** (price engine, movie checkout, contributions, webhook, worker, order pages) | [../phase-2/README.md](../phase-2/README.md), [../phase-2/test-report.md](../phase-2/test-report.md) |
+| Phase 3 | Reviews | **Built and tested on 2026-10-30** (reviews, likes, reports, auto-hide, moderation queue, public profiles) — open: P3-a…d in the Phase 3 README (suspensions, LGPD erasure endpoint, appeal path, community rules text) | [../phase-3/README.md](../phase-3/README.md), [../phase-3/test-report.md](../phase-3/test-report.md) |
 | Q26 | GitHub | **Private** repository `github.com/0xShilage/wiski` (anonymous read access is refused, so it is not public) | first push and repository settings: [../r1/README.md](../r1/README.md) §7; CI, Dependabot and CodeQL start with that push |
 | Q27 | Google sign-in | OAuth client (Web application) `333411243821-f80tvc0hpoj3mh3sp9ocmcj17dhet5tc.apps.googleusercontent.com` (a client id is public by design). The **client secret stays with you**: type it into `.env.local` (and later the server's env), never into a chat | redirect URIs and consent screen as in 10 §5; real login testable locally once both values are in `.env.local` ([../r1/README.md](../r1/README.md) §7) |
 

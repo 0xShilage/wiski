@@ -23,15 +23,8 @@ const dateFmt = new Intl.DateTimeFormat('pt-BR', {
 });
 
 /** Shareable detail page for a movie, series or franchise (11 §3); checkout lives in the aside. */
-export function ItemDetail({
-  item,
-  watchedAt,
-  checkout,
-}: {
-  item: PublicItem;
-  watchedAt?: string | null;
-  checkout?: CheckoutProps;
-}) {
+export function ItemDetail({ item, checkout }: { item: PublicItem; checkout?: CheckoutProps }) {
+  const watchedAt = item.watchedAt;
   const canPay = Boolean(checkout?.open && checkout.legal);
   const kindPath = KIND_PATH[item.kind];
   const back = item.kind === 'MOVIE' ? '/' : `/${kindPath}`;
@@ -113,12 +106,12 @@ export function ItemDetail({
               <div className="wf-panel">
                 <h2>Assistido na live</h2>
                 <p className="wf-muted">
-                  {watchedAt ? `Em ${dateFmt.format(new Date(watchedAt))}. ` : ''}As avaliações da
-                  comunidade abrem em breve.
+                  {watchedAt ? `Em ${dateFmt.format(new Date(watchedAt))}. ` : ''}Viu com a gente?
+                  Dê sua nota de 1 a 5 e conte o que achou.
                 </p>
-                <Link href="/avaliacoes" className="wf-btn wf-btn--ghost">
-                  Ver avaliações
-                </Link>
+                <a href="#avaliacoes" className="wf-btn wf-btn--neon">
+                  Ver e escrever avaliações
+                </a>
               </div>
             ) : item.kind === 'MOVIE' ? (
               <div className="wf-panel" id="patrocinar">

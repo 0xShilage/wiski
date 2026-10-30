@@ -63,8 +63,8 @@ function toPublic(row: PublicRow, now: Date): PublicItem {
       ? 'SPONSORED'
       : row.status === 'FUNDED'
         ? 'FUNDED'
-        : row.status === 'WATCHED'
-          ? 'WATCHED'
+        : row.status === 'WATCHED' || row.status === 'ARCHIVED'
+          ? 'WATCHED' // ARCHIVED is only read publicly when it was watched (reviews stay)
           : 'ACTIVE';
   if (state === 'ACTIVE' && row.reservedUntil && row.reservedUntil > now) state = 'RESERVED';
   if (state === 'ACTIVE' && campaign?.state === 'PAUSED') state = 'PAUSED';
@@ -90,6 +90,7 @@ function toPublic(row: PublicRow, now: Date): PublicItem {
     backdrop: pictureFrom(row.backdrop),
     logo: pictureFrom(row.logo),
     state,
+    watchedAt: row.watchedAt?.toISOString() ?? null,
     priceCents: row.kind === 'MOVIE' ? moviePriceCents(row.runtimeMinutes) : null,
     sponsorName: row.status === 'SPONSORED' ? sponsorName(row) : null,
     campaign,
@@ -112,10 +113,18 @@ export async function listPublic(kind: ItemKind, now = new Date()): Promise<Publ
   return rows.map((r) => toPublic(r, now));
 }
 
-/** Detail page: live or already watched (watched titles keep their page for reviews). */
+/** Detail page: live or already watched — also after the slot was replaced (ARCHIVED), so a
+ *  watched title keeps its page and its reviews. */
 export async function getPublic(kind: ItemKind, slug: string, now = new Date()) {
   const row = await db().catalogItem.findFirst({
-    where: { kind, slug, status: { in: [...PUBLIC_STATUSES, 'WATCHED'] } },
+    where: {
+      kind,
+      slug,
+      OR: [
+        { status: { in: [...PUBLIC_STATUSES, 'WATCHED'] } },
+        { status: 'ARCHIVED', watchedAt: { not: null } },
+      ],
+    },
     include: publicInclude,
   });
   return row ? toPublic(row, now) : null;

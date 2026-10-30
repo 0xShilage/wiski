@@ -1,4 +1,4 @@
-/** Every page (Phase 1 + R1), as visited by the CSP / a11y / layout specs. */
+/** Every page (Phase 1 + R1 + Phase 3), as visited by the CSP / a11y / layout specs. */
 export type PageCase = {
   name: string;
   path: string | ((username: string) => string);
@@ -17,6 +17,9 @@ export const PAGES: PageCase[] = [
   { name: 'serie-detalhe', path: '/series/cronicas-do-bosque' },
   { name: 'franquia-detalhe', path: '/franquias/saga-rabinho-4-filmes' },
   { name: 'avaliacoes', path: '/avaliacoes' },
+  { name: 'filme-assistido', path: '/filmes/a-primeira-live' },
+  { name: 'filme-assistido-logado', path: '/filmes/a-primeira-live', auth: 'user' },
+  { name: 'perfil-publico-avaliacoes', path: '/u/bia_cine' },
   { name: 'perfil-entrar', path: '/perfil' },
   { name: 'perfil-erro', path: '/perfil?erro=expirado' },
   { name: 'termos', path: '/termos' },
@@ -32,4 +35,5 @@ export const PAGES: PageCase[] = [
   { name: 'seguranca', path: '/perfil/seguranca', auth: 'moderator' },
   { name: 'painel-passkey', path: '/admin/catalogo', auth: 'moderator', shell: false },
   { name: 'painel', path: '/admin/catalogo', auth: 'admin', shell: false },
+  { name: 'moderacao', path: '/admin/moderacao', auth: 'admin', shell: false },
 ];

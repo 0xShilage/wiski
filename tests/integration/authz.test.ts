@@ -183,6 +183,36 @@ export const MATRIX: Row[] = [
     body: { type: 'payment', data: { id: '123' } },
     alsoAllowed: [401],
   }),
+
+  // ── Phase 3 (reviews, likes, reports, moderation, profiles) ──
+  R('/api/v1/items/[id]/reviews', 'GET', 'public', { params: { id: NO_ID } }),
+  R('/api/v1/items/[id]/reviews', 'POST', 'user', {
+    params: { id: NO_ID },
+    body: { rating: 4, body: 'Matriz', containsSpoilers: false },
+    headers: { 'x-turnstile-token': 'tok' },
+  }),
+  R('/api/v1/reviews', 'GET', 'public'),
+  R('/api/v1/reviews/[id]', 'PATCH', 'user', { params: { id: NO_ID }, body: { rating: 3 } }),
+  R('/api/v1/reviews/[id]', 'DELETE', 'user', { params: { id: NO_ID } }),
+  R('/api/v1/reviews/[id]/like', 'PUT', 'user', { params: { id: NO_ID } }),
+  R('/api/v1/reviews/[id]/like', 'DELETE', 'user', { params: { id: NO_ID } }),
+  R('/api/v1/reviews/[id]/reports', 'POST', 'user', {
+    params: { id: NO_ID },
+    body: { reason: 'SPAM' },
+  }),
+  R('/api/v1/users/[username]', 'GET', 'public', {
+    params: { username: 'ninguem_aqui' },
+    url: '/api/v1/users/ninguem_aqui',
+  }),
+  R('/api/v1/users/[username]/reviews', 'GET', 'public', {
+    params: { username: 'ninguem_aqui' },
+    url: '/api/v1/users/ninguem_aqui/reviews',
+  }),
+  R('/api/v1/admin/moderation/queue', 'GET', 'moderator'),
+  R('/api/v1/admin/moderation/reviews/[id]', 'POST', 'moderator', {
+    params: { id: NO_ID },
+    body: { action: 'HIDE', expectedStatus: 'VISIBLE' },
+  }),
 ];
 
 const ROLES = ['anonymous', 'USER', 'MODERATOR', 'STREAMER'] as const;

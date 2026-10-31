@@ -19,7 +19,14 @@ export async function setOrdersOpen(ctx: Ctx, open: boolean) {
       update: { value: open },
     });
     await audit(
-      { action: 'settings.update', actor: ctx.actor, requestId: ctx.requestId, targetType: 'AppSetting', targetId: 'orders.open', metadata: { key: 'orders.open', value: open } },
+      {
+        action: 'settings.update',
+        actor: ctx.actor,
+        requestId: ctx.requestId,
+        targetType: 'AppSetting',
+        targetId: 'orders.open',
+        metadata: { key: 'orders.open', value: open },
+      },
       t,
     );
   });

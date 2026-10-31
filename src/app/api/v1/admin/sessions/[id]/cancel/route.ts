@@ -8,6 +8,10 @@ import { cancelSession } from '@/server/live/schedule';
 export const POST = route<'streamer', typeof versionInput, undefined, { id: string }>(
   { methods: ['POST'], access: 'streamer', rateLimit: RL.adminWrite, body: versionInput },
   async ({ body, user, requestId, params }) => ({
-    session: await cancelSession({ actor: user, requestId }, uuidParam(params.id), body.expectedVersion),
+    session: await cancelSession(
+      { actor: user, requestId },
+      uuidParam(params.id),
+      body.expectedVersion,
+    ),
   }),
 );

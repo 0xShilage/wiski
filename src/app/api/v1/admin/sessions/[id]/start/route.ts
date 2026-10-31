@@ -8,6 +8,10 @@ import { startSession } from '@/server/live/schedule';
 export const POST = route<'moderator', typeof versionInput, undefined, { id: string }>(
   { methods: ['POST'], access: 'moderator', rateLimit: RL.adminWrite, body: versionInput },
   async ({ body, user, requestId, params }) => ({
-    session: await startSession({ actor: user, requestId }, uuidParam(params.id), body.expectedVersion),
+    session: await startSession(
+      { actor: user, requestId },
+      uuidParam(params.id),
+      body.expectedVersion,
+    ),
   }),
 );

@@ -51,6 +51,10 @@ export async function makeItem(
 /** Remove every catalog row (and dependants) so slot/limit tests start from an empty catalog. */
 export async function clearCatalog(): Promise<void> {
   await db().$transaction([
+    db().streamSession.updateMany({
+      where: { nowItemId: { not: null } },
+      data: { nowItemId: null },
+    }),
     db().watchEvent.deleteMany({}),
     db().review.deleteMany({}),
     db().refund.deleteMany({}),

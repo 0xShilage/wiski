@@ -349,6 +349,10 @@ async function main() {
   }
   if (RESET) {
     await db().$transaction([
+      db().streamSession.updateMany({
+        where: { nowItemId: { not: null } },
+        data: { nowItemId: null },
+      }),
       db().watchEvent.deleteMany({}),
       db().review.deleteMany({}),
       db().refund.deleteMany({}),

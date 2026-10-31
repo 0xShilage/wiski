@@ -14,7 +14,9 @@ export const GET = route<'public'>(
         title: g.title,
         metric: g.metric,
         percent: g.percent,
-        ...(g.metric === 'SPONSORSHIP_REVENUE_CENTS' ? {} : { current: g.current, target: g.target }),
+        ...(g.metric === 'SPONSORSHIP_REVENUE_CENTS'
+          ? {}
+          : { current: g.current, target: g.target }),
       })),
     };
   },

@@ -39,6 +39,7 @@ const SAMPLE_MOVIE_ORDER = {
   contactEmail: 'matriz@example.com',
   legal: LEGAL,
 };
+const VERSION0 = { expectedVersion: 0 };
 const SAMPLE_CONTRIBUTION = { amountCents: 500, contactEmail: 'matriz@example.com', legal: LEGAL };
 
 const R = (path: string, method: Method, access: AccessLevel, extra: Partial<Row> = {}): Row => ({
@@ -212,6 +213,140 @@ export const MATRIX: Row[] = [
   R('/api/v1/admin/moderation/reviews/[id]', 'POST', 'moderator', {
     params: { id: NO_ID },
     body: { action: 'HIDE', expectedStatus: 'VISIBLE' },
+  }),
+
+  // ── Phase 4 (live schedule, orders, people, overlays, media kit, contact, audit, settings) ──
+  R('/api/v1/admin/live', 'GET', 'moderator'),
+  R('/api/v1/admin/sessions', 'POST', 'moderator', {
+    body: { startsAt: '2030-01-01T20:00:00.000Z', capacityMinutes: 240 },
+  }),
+  R('/api/v1/admin/sessions/[id]', 'PATCH', 'moderator', {
+    params: { id: NO_ID },
+    body: { expectedVersion: 0, capacityMinutes: 200 },
+  }),
+  R('/api/v1/admin/sessions/[id]/start', 'POST', 'moderator', {
+    params: { id: NO_ID },
+    body: VERSION0,
+  }),
+  R('/api/v1/admin/sessions/[id]/end', 'POST', 'moderator', {
+    params: { id: NO_ID },
+    body: VERSION0,
+  }),
+  R('/api/v1/admin/sessions/[id]/cancel', 'POST', 'streamer', {
+    params: { id: NO_ID },
+    body: VERSION0,
+  }),
+  R('/api/v1/admin/schedule', 'POST', 'moderator', {
+    body: { action: 'remove', target: { kind: 'ORDER', id: NO_ID, expectedVersion: 0 } },
+    params: {},
+  }),
+  R('/api/v1/sessions', 'GET', 'public'),
+  R('/api/v1/orders/[code]/reschedule', 'GET', 'user', {
+    params: { code: NO_CODE },
+    url: `/api/v1/orders/${NO_CODE}/reschedule`,
+  }),
+  R('/api/v1/orders/[code]/reschedule', 'POST', 'user', {
+    params: { code: NO_CODE },
+    url: `/api/v1/orders/${NO_CODE}/reschedule`,
+    body: { sessionId: NO_ID },
+  }),
+  R('/api/v1/admin/orders', 'GET', 'moderator'),
+  R('/api/v1/admin/orders/[id]', 'GET', 'moderator', { params: { id: NO_ID } }),
+  R('/api/v1/admin/orders/[id]/texts', 'POST', 'moderator', {
+    params: { id: NO_ID },
+    body: { expectedVersion: 0, message: 'APPROVED' },
+  }),
+  R('/api/v1/admin/orders/[id]/accept', 'POST', 'streamer', {
+    params: { id: NO_ID },
+    body: VERSION0,
+  }),
+  R('/api/v1/admin/orders/[id]/refund', 'POST', 'streamer', {
+    params: { id: NO_ID },
+    body: { expectedVersion: 0, reason: 'DUPLICATE_PAYMENT' },
+    headers: { 'idempotency-key': NO_ID },
+  }),
+  R('/api/v1/admin/users', 'GET', 'moderator'),
+  R('/api/v1/admin/users/[id]/suspend', 'POST', 'moderator', {
+    params: { id: NO_ID },
+    body: { days: 1 },
+  }),
+  R('/api/v1/admin/users/[id]/unsuspend', 'POST', 'moderator', { params: { id: NO_ID } }),
+  R('/api/v1/admin/users/[id]/role', 'POST', 'streamer', {
+    params: { id: NO_ID },
+    body: { role: 'MODERATOR' },
+  }),
+  R('/api/v1/admin/users/[id]/vip', 'POST', 'streamer', {
+    params: { id: NO_ID },
+    body: { vip: true },
+  }),
+  R('/api/v1/me/export', 'GET', 'user'),
+  R('/api/v1/me/erase', 'POST', 'user', { body: { confirmUsername: 'nao-confere' } }),
+  R('/api/v1/admin/overlay-keys', 'GET', 'streamer'),
+  R('/api/v1/admin/overlay-keys', 'POST', 'streamer', {
+    body: { label: 'Matriz', widgets: ['agora'] },
+  }),
+  R('/api/v1/admin/overlay-keys/[id]', 'DELETE', 'streamer', { params: { id: NO_ID } }),
+  // overlay credentials are the key / the overlay cookie, not a role: 401 without them
+  R('/api/v1/overlay/session', 'POST', 'public', {
+    body: { key: `wfo_${'A'.repeat(43)}` },
+    alsoAllowed: [401],
+  }),
+  R('/api/v1/overlay/stream', 'GET', 'public', {
+    url: '/api/v1/overlay/stream?widget=agora',
+    alsoAllowed: [401],
+  }),
+  R('/api/v1/admin/goals', 'GET', 'streamer'),
+  R('/api/v1/admin/goals', 'POST', 'streamer', {
+    body: {
+      title: 'Matriz',
+      metric: 'SPONSORSHIP_COUNT',
+      target: 10,
+      startsAt: '2030-01-01T00:00:00.000Z',
+    },
+  }),
+  R('/api/v1/admin/goals/[id]', 'PATCH', 'streamer', {
+    params: { id: NO_ID },
+    body: { target: 5 },
+  }),
+  R('/api/v1/admin/goals/[id]', 'DELETE', 'streamer', { params: { id: NO_ID } }),
+  R('/api/v1/admin/stats', 'GET', 'streamer'),
+  R('/api/v1/admin/stats', 'PUT', 'streamer', {
+    body: { platform: 'KICK', metric: 'followers', value: null },
+  }),
+  R('/api/v1/stats', 'GET', 'public'),
+  R('/api/v1/contact', 'POST', 'public', {
+    body: {
+      name: 'Matriz',
+      email: 'matriz@example.com',
+      subject: 'Teste',
+      body: 'Teste',
+      website: '',
+      formToken: 'x'.repeat(40),
+    },
+    headers: { 'x-turnstile-token': 'tok' },
+  }),
+  R('/api/v1/admin/contact', 'GET', 'streamer'),
+  R('/api/v1/admin/contact/[id]', 'PATCH', 'streamer', {
+    params: { id: NO_ID },
+    body: { status: 'READ' },
+  }),
+  R('/api/v1/admin/contact/[id]', 'DELETE', 'streamer', { params: { id: NO_ID } }),
+  R('/api/v1/admin/audit', 'GET', 'streamer'),
+  R('/api/v1/admin/audit/export', 'GET', 'streamer'),
+  R('/api/v1/admin/settings', 'GET', 'streamer'),
+  R('/api/v1/admin/settings', 'PUT', 'streamer', { body: { ordersOpen: true } }),
+  R('/api/v1/admin/vouchers', 'GET', 'streamer'),
+  R('/api/v1/admin/vouchers', 'POST', 'streamer', {
+    body: {
+      code: `MATRIZ-${Date.now().toString(36).toUpperCase()}`.slice(0, 32),
+      kind: 'PERCENT',
+      percentBps: 100,
+      maxPerUser: 1,
+    },
+  }),
+  R('/api/v1/admin/vouchers/[id]', 'PATCH', 'streamer', {
+    params: { id: NO_ID },
+    body: { active: false },
   }),
 ];
 

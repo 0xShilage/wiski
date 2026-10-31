@@ -212,7 +212,9 @@ export const AUDIT_ACTIONS = {
   'user.unsuspend': z.object({}).strict(),
   'user.role': z.object({ from: role, to: role }).strict(),
   'user.vip': z.object({ vip: z.boolean() }).strict(),
-  'user.erase': z.object({ reviews: z.int().nonnegative(), orders: z.int().nonnegative() }).strict(),
+  'user.erase': z
+    .object({ reviews: z.int().nonnegative(), orders: z.int().nonnegative() })
+    .strict(),
   'user.export': z.object({}).strict(),
   'overlay.key.create': z.object({ widgets: z.array(overlayWidget).min(1).max(4) }).strict(),
   'overlay.key.revoke': z.object({}).strict(),
@@ -221,24 +223,36 @@ export const AUDIT_ACTIONS = {
     .object({
       fields: z
         .array(
-          z.enum(['title', 'target', 'startsAt', 'endsAt', 'active', 'showOnOverlay', 'showOnMediaKit']),
+          z.enum([
+            'title',
+            'target',
+            'startsAt',
+            'endsAt',
+            'active',
+            'showOnOverlay',
+            'showOnMediaKit',
+          ]),
         )
         .max(7),
     })
     .strict(),
   'goal.delete': z.object({}).strict(),
   'stats.update': z
-    .object({ platform: platform, metric: z.string().regex(/^[a-z0-9_]{2,32}$/), manual: z.boolean() })
+    .object({
+      platform: platform,
+      metric: z.string().regex(/^[a-z0-9_]{2,32}$/),
+      manual: z.boolean(),
+    })
     .strict(),
   'contact.status': z.object({ to: z.enum(['NEW', 'READ', 'ARCHIVED', 'SPAM']) }).strict(),
   'contact.delete': z.object({}).strict(),
-  'settings.update': z
-    .object({ key: z.enum(['orders.open']), value: z.boolean() })
-    .strict(),
+  'settings.update': z.object({ key: z.enum(['orders.open']), value: z.boolean() }).strict(),
   'voucher.create': z
     .object({ kind: z.enum(['PERCENT', 'FIXED']), maxRedemptions: z.int().positive().nullable() })
     .strict(),
-  'voucher.update': z.object({ fields: z.array(z.enum(['active', 'endsAt', 'maxRedemptions'])).max(3) }).strict(),
+  'voucher.update': z
+    .object({ fields: z.array(z.enum(['active', 'endsAt', 'maxRedemptions'])).max(3) })
+    .strict(),
   'audit.export': z.object({ rows: z.int().nonnegative() }).strict(),
 } as const;
 

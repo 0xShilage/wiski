@@ -20,7 +20,11 @@ const PAGE = 30;
 
 export const AdminOrderProblems = {
   changed: () =>
-    new HttpError(409, 'ORDER_CHANGED', 'Este pedido mudou enquanto você olhava. Atualize a lista.'),
+    new HttpError(
+      409,
+      'ORDER_CHANGED',
+      'Este pedido mudou enquanto você olhava. Atualize a lista.',
+    ),
   nothing: () => new HttpError(409, 'NOTHING_TO_REVIEW', 'Não há texto aguardando aprovação.'),
   notAcceptable: (detail: string) => new HttpError(409, 'CANNOT_ACCEPT', detail),
 };
@@ -92,7 +96,9 @@ export async function listOrders(
   const where: Prisma.OrderWhereInput = {
     ...(q.status ? { status: q.status } : { status: { not: 'PENDING_PAYMENT' } }),
     ...(q.code ? { publicCode: q.code } : {}),
-    ...(q.pendingTexts ? { OR: [{ messageStatus: 'PENDING' }, { displayNameStatus: 'PENDING' }] } : {}),
+    ...(q.pendingTexts
+      ? { OR: [{ messageStatus: 'PENDING' }, { displayNameStatus: 'PENDING' }] }
+      : {}),
     ...(q.before ? { createdAt: { lt: new Date(q.before) } } : {}),
   };
   const rows = await db().order.findMany({
@@ -133,7 +139,11 @@ export async function getOrder(role: Role, id: string) {
 export async function reviewTexts(
   ctx: Ctx,
   id: string,
-  input: { expectedVersion: number; message?: 'APPROVED' | 'REJECTED'; displayName?: 'APPROVED' | 'REJECTED' },
+  input: {
+    expectedVersion: number;
+    message?: 'APPROVED' | 'REJECTED';
+    displayName?: 'APPROVED' | 'REJECTED';
+  },
 ) {
   await db().$transaction(async (t) => {
     const o = await t.order.findUnique({ where: { id } });

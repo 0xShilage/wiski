@@ -47,6 +47,8 @@ export class FakeMp {
   failCreate: Fail | null = null;
   failGet: Fail | null = null;
   failCancel: Fail | null = null;
+  failRefund: Fail | null = null;
+  refunds: { id: number; paymentId: number; key: string }[] = [];
   /** mutate the next created payment (e.g. wrong amount) */
   tamperCreate: ((p: FakePayment) => void) | null = null;
   turnstile = true;
@@ -110,6 +112,28 @@ export class FakeMp {
       this.payments.set(p.id, p);
       this.byIdempotency.set(key, p.id);
       return Response.json(p, { status: 201 });
+    }
+    const r = /^\/v1\/payments\/(\d+)\/refunds$/.exec(url.pathname);
+    if (r && method === 'POST') {
+      const f = this.fail(this.failRefund);
+      if (f === 'timeout') return timeout();
+      if (f) return f;
+      const p = this.payments.get(Number(r[1]));
+      if (!p) return Response.json({ message: 'not found' }, { status: 404 });
+      const key = headers['x-idempotency-key'] ?? '';
+      const prior = this.refunds.find((x) => x.key === key && x.paymentId === p.id);
+      if (!prior && p.status !== 'approved') {
+        return Response.json({ message: 'cannot refund' }, { status: 400 });
+      }
+      const refund = prior ?? { id: this.nextId++, paymentId: p.id, key };
+      if (!prior) {
+        this.refunds.push(refund);
+        this.set(p.id, { status: 'refunded', status_detail: 'refunded' });
+      }
+      return Response.json(
+        { id: refund.id, payment_id: p.id, amount: p.transaction_amount, status: 'approved' },
+        { status: 201 },
+      );
     }
     const m = /^\/v1\/payments\/(\d+)$/.exec(url.pathname);
     if (m) {

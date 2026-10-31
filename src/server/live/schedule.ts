@@ -28,7 +28,11 @@ export const RESCHEDULE_MAX = 2;
 
 export const LiveProblems = {
   changed: () =>
-    new HttpError(409, 'SCHEDULE_CHANGED', 'Outra pessoa mudou isto agora mesmo. Atualize a agenda.'),
+    new HttpError(
+      409,
+      'SCHEDULE_CHANGED',
+      'Outra pessoa mudou isto agora mesmo. Atualize a agenda.',
+    ),
   state: (detail: string) => new HttpError(409, 'INVALID_STATE', detail),
   full: () =>
     new HttpError(409, 'SESSION_FULL', 'Não cabe nesta sessão: a duração passa da capacidade.'),
@@ -198,7 +202,12 @@ async function tellOrders(ids: string[], now: Date) {
   }
 }
 
-export async function startSession(ctx: Ctx, id: string, expectedVersion: number, now = new Date()) {
+export async function startSession(
+  ctx: Ctx,
+  id: string,
+  expectedVersion: number,
+  now = new Date(),
+) {
   const s = await inTx(async (t) => {
     const res = await t.streamSession.updateMany({
       where: { id, status: 'PLANNED', version: expectedVersion },
@@ -231,7 +240,9 @@ export async function endSession(ctx: Ctx, id: string, expectedVersion: number, 
   const s = await inTx(async (t) => {
     const playing = await t.order.count({ where: { sessionId: id, status: 'WATCHING' } });
     if (playing) {
-      throw LiveProblems.state('Marque o filme em exibição como concluído (ou volte-o) antes de encerrar.');
+      throw LiveProblems.state(
+        'Marque o filme em exibição como concluído (ou volte-o) antes de encerrar.',
+      );
     }
     const res = await t.streamSession.updateMany({
       where: { id, status: 'LIVE', version: expectedVersion },
@@ -261,7 +272,12 @@ export async function endSession(ctx: Ctx, id: string, expectedVersion: number, 
 }
 
 /** PLANNED → CANCELLED (streamer): everything on it goes back to the queue (04 §7). */
-export async function cancelSession(ctx: Ctx, id: string, expectedVersion: number, now = new Date()) {
+export async function cancelSession(
+  ctx: Ctx,
+  id: string,
+  expectedVersion: number,
+  now = new Date(),
+) {
   let returned: string[] = [];
   const s = await inTx(async (t) => {
     const res = await t.streamSession.updateMany({
@@ -401,7 +417,10 @@ export async function sessionsWithEntries(opts: {
 }) {
   const sessions = await db().streamSession.findMany({
     where: {
-      OR: [{ startsAt: { gte: opts.from, ...(opts.to ? { lte: opts.to } : {}) } }, { status: 'LIVE' }],
+      OR: [
+        { startsAt: { gte: opts.from, ...(opts.to ? { lte: opts.to } : {}) } },
+        { status: 'LIVE' },
+      ],
       ...(opts.statuses ? { status: { in: opts.statuses } } : {}),
     },
     orderBy: { startsAt: 'asc' },
@@ -552,8 +571,10 @@ export async function nowPlaying(ctx: Ctx, target: Target, now = new Date()) {
     if (target.kind === 'ORDER') {
       const o = await t.order.findUnique({ where: { id: target.id } });
       if (!o || o.kind !== 'MOVIE') throw Problems.notFound();
-      if (o.sessionId !== live.id) throw LiveProblems.state('Este filme não está na sessão ao vivo.');
-      if (o.version !== target.expectedVersion || o.status !== 'SCHEDULED') throw LiveProblems.changed();
+      if (o.sessionId !== live.id)
+        throw LiveProblems.state('Este filme não está na sessão ao vivo.');
+      if (o.version !== target.expectedVersion || o.status !== 'SCHEDULED')
+        throw LiveProblems.changed();
       // whatever was playing goes back to "scheduled" in the same session
       const prev = await t.order.findMany({
         where: { sessionId: live.id, status: 'WATCHING' },
@@ -676,12 +697,14 @@ export async function complete(ctx: Ctx, target: Target, now = new Date()) {
     } else {
       const c = await t.campaign.findUnique({ where: { id: target.id } });
       if (!c) throw Problems.notFound();
-      if (c.version !== target.expectedVersion || c.status !== 'SCHEDULED') throw LiveProblems.changed();
+      if (c.version !== target.expectedVersion || c.status !== 'SCHEDULED')
+        throw LiveProblems.changed();
       itemId = c.itemId;
       sessionId = c.sessionId!;
     }
     const s = await t.streamSession.findUniqueOrThrow({ where: { id: sessionId } });
-    if (s.status !== 'LIVE') throw LiveProblems.state('Só dá para concluir durante a sessão ao vivo.');
+    if (s.status !== 'LIVE')
+      throw LiveProblems.state('Só dá para concluir durante a sessão ao vivo.');
     const done = await completeInTx(t, itemId, sessionId, now);
     await audit(
       {
@@ -719,9 +742,12 @@ export async function rescheduleOwn(
       throw LiveProblems.rescheduleClosed('Você já trocou a data 2 vezes.');
     }
     if (o.session.startsAt.getTime() - now.getTime() < RESCHEDULE_MIN_NOTICE_MS) {
-      throw LiveProblems.rescheduleClosed('Faltam menos de 24 horas para a sessão: a data não muda mais.');
+      throw LiveProblems.rescheduleClosed(
+        'Faltam menos de 24 horas para a sessão: a data não muda mais.',
+      );
     }
-    if (o.sessionId === sessionId) throw LiveProblems.rescheduleClosed('Esta já é a sessão do seu filme.');
+    if (o.sessionId === sessionId)
+      throw LiveProblems.rescheduleClosed('Esta já é a sessão do seu filme.');
     const target = await t.streamSession.findUnique({ where: { id: sessionId } });
     if (
       !target ||
@@ -772,7 +798,11 @@ export async function rescheduleOwn(
 }
 
 /** Sessions an owner may move to (PLANNED, 24 h – 60 days ahead, with room for the runtime). */
-export async function rescheduleOptions(runtimeMinutes: number, currentSessionId: string | null, now = new Date()) {
+export async function rescheduleOptions(
+  runtimeMinutes: number,
+  currentSessionId: string | null,
+  now = new Date(),
+) {
   const rows = await db().streamSession.findMany({
     where: {
       status: 'PLANNED',

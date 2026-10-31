@@ -126,7 +126,10 @@ export async function exchangeOverlayKey(raw: string, now = new Date()): Promise
 }
 
 /** The overlay cookie, if valid and its key still active. */
-export async function overlayAccess(req: NextRequest, widget: Widget): Promise<OverlayCookie | null> {
+export async function overlayAccess(
+  req: NextRequest,
+  widget: Widget,
+): Promise<OverlayCookie | null> {
   const raw = req.cookies.get(COOKIE.overlay)?.value;
   if (!raw) return null;
   const parsed = cookiePayload.safeParse(unseal(raw, keys(), PURPOSE));

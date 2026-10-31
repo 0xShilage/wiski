@@ -32,7 +32,11 @@ export const RefundProblems = {
       'O Mercado Pago não confirmou o reembolso. Tente de novo em instantes (é seguro repetir).',
     ),
   changed: () =>
-    new HttpError(409, 'ORDER_CHANGED', 'Este pedido mudou enquanto você olhava. Atualize a lista.'),
+    new HttpError(
+      409,
+      'ORDER_CHANGED',
+      'Este pedido mudou enquanto você olhava. Atualize a lista.',
+    ),
 };
 
 export async function requestRefund(
@@ -57,7 +61,10 @@ export async function requestRefund(
     }
   }
 
-  if (!(REFUNDABLE as readonly string[]).includes(o.status) || o.version !== input.expectedVersion) {
+  if (
+    !(REFUNDABLE as readonly string[]).includes(o.status) ||
+    o.version !== input.expectedVersion
+  ) {
     throw o.version !== input.expectedVersion
       ? RefundProblems.changed()
       : RefundProblems.notRefundable('Este pedido não pode ser reembolsado no estado atual.');
@@ -150,7 +157,12 @@ export async function requestRefund(
         where: { id: refund.id },
         data: {
           providerRefundId: String(mp.id),
-          status: mp.status === 'approved' ? 'APPROVED' : mp.status === 'rejected' ? 'REJECTED' : 'IN_PROCESS',
+          status:
+            mp.status === 'approved'
+              ? 'APPROVED'
+              : mp.status === 'rejected'
+                ? 'REJECTED'
+                : 'IN_PROCESS',
         },
       });
       await audit(

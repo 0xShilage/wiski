@@ -19,8 +19,10 @@ export const MODERATOR_MAX_SUSPENSION_DAYS = 7;
 const PAGE = 30;
 
 export const UserProblems = {
-  self: () => new HttpError(409, 'NOT_ON_YOURSELF', 'Você não pode fazer isto com a sua própria conta.'),
-  protected: () => new HttpError(409, 'PROTECTED_ACCOUNT', 'A conta do streamer não pode ser alterada aqui.'),
+  self: () =>
+    new HttpError(409, 'NOT_ON_YOURSELF', 'Você não pode fazer isto com a sua própria conta.'),
+  protected: () =>
+    new HttpError(409, 'PROTECTED_ACCOUNT', 'A conta do streamer não pode ser alterada aqui.'),
   privileged: () =>
     new HttpError(
       409,
@@ -33,7 +35,8 @@ export const UserProblems = {
       'STREAMER_ONLY',
       `Moderadores suspendem por até ${MODERATOR_MAX_SUSPENSION_DAYS} dias; o resto é com o streamer.`,
     ),
-  changed: () => new HttpError(409, 'USER_CHANGED', 'Esta conta mudou enquanto você olhava. Atualize.'),
+  changed: () =>
+    new HttpError(409, 'USER_CHANGED', 'Esta conta mudou enquanto você olhava. Atualize.'),
   deleted: () => new HttpError(409, 'ACCOUNT_DELETED', 'Esta conta foi apagada.'),
 };
 
@@ -90,7 +93,10 @@ export async function listUsers(
   });
   const more = rows.length > PAGE;
   const shown = rows.slice(0, PAGE);
-  return { users: shown.map((u) => view(u, viewer)), next: more ? shown.at(-1)!.createdAt.toISOString() : null };
+  return {
+    users: shown.map((u) => view(u, viewer)),
+    next: more ? shown.at(-1)!.createdAt.toISOString() : null,
+  };
 }
 
 async function target(id: string, actor: Ctx['actor']) {

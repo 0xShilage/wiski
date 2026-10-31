@@ -49,8 +49,13 @@ export async function queueSnapshot(now = new Date()): Promise<OverlayEvent> {
       where: { status: 'PLANNED', startsAt: { gte: new Date(now.getTime() - 6 * 3_600_000) } },
       orderBy: { startsAt: 'asc' },
     }));
-  const items: { title: string; sponsor: string | null; jumped: boolean; rank: number; at: number }[] =
-    [];
+  const items: {
+    title: string;
+    sponsor: string | null;
+    jumped: boolean;
+    rank: number;
+    at: number;
+  }[] = [];
   const rank = (tier: string | null) => (tier === 'topo' ? 0 : tier === 'prioridade' ? 1 : 2);
   const orderSel = {
     queueJumpTierId: true,
@@ -81,7 +86,13 @@ export async function queueSnapshot(now = new Date()): Promise<OverlayEvent> {
       });
     }
     for (const c of campaigns) {
-      items.push({ title: c.item.title, sponsor: null, jumped: false, rank: 2, at: c.fundedAt?.getTime() ?? 0 });
+      items.push({
+        title: c.item.title,
+        sponsor: null,
+        jumped: false,
+        rank: 2,
+        at: c.fundedAt?.getTime() ?? 0,
+      });
     }
   }
   items.sort((a, b) => a.rank - b.rank || a.at - b.at);
@@ -131,7 +142,10 @@ export async function refreshOverlays(widgets: Widget[]): Promise<void> {
       const e = await snapshot(w);
       if (e) await publish(w, e);
     } catch (err) {
-      logger.warn({ err: err instanceof Error ? err.message : 'unknown', widget: w }, 'overlay refresh failed');
+      logger.warn(
+        { err: err instanceof Error ? err.message : 'unknown', widget: w },
+        'overlay refresh failed',
+      );
     }
   }
 }

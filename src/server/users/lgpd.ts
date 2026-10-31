@@ -16,7 +16,11 @@ export const LgpdProblems = {
   streamer: () =>
     new HttpError(409, 'STREAMER_ACCOUNT', 'A conta do streamer não pode ser apagada por aqui.'),
   confirm: () =>
-    new HttpError(422, 'CONFIRMATION_MISMATCH', 'Digite seu nome de usuário exatamente como aparece.'),
+    new HttpError(
+      422,
+      'CONFIRMATION_MISMATCH',
+      'Digite seu nome de usuário exatamente como aparece.',
+    ),
   pending: () =>
     new HttpError(
       409,
@@ -107,20 +111,32 @@ export async function exportMyData(user: User, requestId: string | null) {
   };
 }
 
-export async function eraseMyAccount(user: User, confirmUsername: string, requestId: string | null, now = new Date()) {
+export async function eraseMyAccount(
+  user: User,
+  confirmUsername: string,
+  requestId: string | null,
+  now = new Date(),
+) {
   if (user.role === 'STREAMER') throw LgpdProblems.streamer();
   if (!user.username || confirmUsername.trim().toLowerCase() !== user.username) {
     throw LgpdProblems.confirm();
   }
   const pending = await db().order.count({ where: { userId: user.id, status: 'PENDING_PAYMENT' } });
   if (pending) throw LgpdProblems.pending();
-  const tag = randomToken(6).toLowerCase().replace(/[^a-z0-9]/g, '0').slice(0, 8).padEnd(8, '0');
+  const tag = randomToken(6)
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '0')
+    .slice(0, 8)
+    .padEnd(8, '0');
   await db().$transaction(async (t) => {
     const reviews = await t.review.deleteMany({ where: { userId: user.id } }); // likes/reports on them cascade
     await t.reviewLike.deleteMany({ where: { userId: user.id } });
     await t.reviewReport.deleteMany({ where: { reporterId: user.id } });
     await t.passkey.deleteMany({ where: { userId: user.id } });
-    await t.session.updateMany({ where: { userId: user.id, revokedAt: null }, data: { revokedAt: now } });
+    await t.session.updateMany({
+      where: { userId: user.id, revokedAt: null },
+      data: { revokedAt: now },
+    });
     const orders = await t.order.count({ where: { userId: user.id } });
     if (user.username) {
       await t.usernameHold.upsert({
@@ -131,7 +147,11 @@ export async function eraseMyAccount(user: User, confirmUsername: string, reques
           releasedAt: now,
           holdUntil: new Date(now.getTime() + USERNAME_HOLD_MS),
         },
-        update: { userId: user.id, releasedAt: now, holdUntil: new Date(now.getTime() + USERNAME_HOLD_MS) },
+        update: {
+          userId: user.id,
+          releasedAt: now,
+          holdUntil: new Date(now.getTime() + USERNAME_HOLD_MS),
+        },
       });
     }
     await t.user.update({

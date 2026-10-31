@@ -11,7 +11,13 @@ export const GET = route<'streamer'>(
 
 /** PUT /api/v1/admin/settings — `{ordersOpen}` (checkout on/off); Google step-up. */
 export const PUT = route<'streamer', typeof settingsInput>(
-  { methods: ['PUT'], access: 'streamer', stepUp: true, rateLimit: RL.adminWrite, body: settingsInput },
+  {
+    methods: ['PUT'],
+    access: 'streamer',
+    stepUp: true,
+    rateLimit: RL.adminWrite,
+    body: settingsInput,
+  },
   async ({ user, requestId, body }) => ({
     settings: await setOrdersOpen({ actor: user, requestId }, body.ordersOpen),
   }),

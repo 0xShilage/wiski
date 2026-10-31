@@ -73,7 +73,14 @@ export async function createVoucher(ctx: Ctx, input: VoucherInput) {
         },
       });
       await audit(
-        { action: 'voucher.create', actor: ctx.actor, requestId: ctx.requestId, targetType: 'Voucher', targetId: v.id, metadata: { kind: v.kind, maxRedemptions: v.maxRedemptions } },
+        {
+          action: 'voucher.create',
+          actor: ctx.actor,
+          requestId: ctx.requestId,
+          targetType: 'Voucher',
+          targetId: v.id,
+          metadata: { kind: v.kind, maxRedemptions: v.maxRedemptions },
+        },
         t,
       );
       return view(v);
@@ -89,14 +96,26 @@ export async function createVoucher(ctx: Ctx, input: VoucherInput) {
 export async function updateVoucher(
   ctx: Ctx,
   id: string,
-  input: { active?: boolean | undefined; endsAt?: Date | null | undefined; maxRedemptions?: number | null | undefined },
+  input: {
+    active?: boolean | undefined;
+    endsAt?: Date | null | undefined;
+    maxRedemptions?: number | null | undefined;
+  },
 ) {
-  const fields = (['active', 'endsAt', 'maxRedemptions'] as const).filter((k) => input[k] !== undefined);
+  const fields = (['active', 'endsAt', 'maxRedemptions'] as const).filter(
+    (k) => input[k] !== undefined,
+  );
   return db().$transaction(async (t) => {
     const v = await t.voucher.findUnique({ where: { id } });
     if (!v) throw Problems.notFound();
-    if (input.maxRedemptions !== undefined && input.maxRedemptions !== null && input.maxRedemptions < v.redemptionCount) {
-      throw Problems.validation([{ path: 'maxRedemptions', message: 'Menor que os usos já feitos.' }]);
+    if (
+      input.maxRedemptions !== undefined &&
+      input.maxRedemptions !== null &&
+      input.maxRedemptions < v.redemptionCount
+    ) {
+      throw Problems.validation([
+        { path: 'maxRedemptions', message: 'Menor que os usos já feitos.' },
+      ]);
     }
     const u = await t.voucher.update({
       where: { id },
@@ -107,7 +126,14 @@ export async function updateVoucher(
       },
     });
     await audit(
-      { action: 'voucher.update', actor: ctx.actor, requestId: ctx.requestId, targetType: 'Voucher', targetId: id, metadata: { fields: [...fields] } },
+      {
+        action: 'voucher.update',
+        actor: ctx.actor,
+        requestId: ctx.requestId,
+        targetType: 'Voucher',
+        targetId: id,
+        metadata: { fields: [...fields] },
+      },
       t,
     );
     return view(u);

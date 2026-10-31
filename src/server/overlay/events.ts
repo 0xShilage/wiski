@@ -25,7 +25,10 @@ export function overlayText(raw: string | null | undefined, max: number): string
   const s = plainText(raw);
   if (!s) return null;
   if (codePointLength(s) <= max) return s;
-  return `${[...s].slice(0, max - 1).join('').trimEnd()}…`;
+  return `${[...s]
+    .slice(0, max - 1)
+    .join('')
+    .trimEnd()}…`;
 }
 
 /** Re-checks the sanitiser's promise on the way out: the text is already a fixpoint of the
@@ -69,7 +72,9 @@ export const overlayEventSchema = z.discriminatedUnion('type', [
     .object({
       type: z.literal('goal'),
       title: safe(LIMITS.goal).nullable(),
-      metric: z.enum(['SPONSORSHIP_COUNT', 'SPONSORSHIP_REVENUE_CENTS', 'WATCHED_MINUTES']).nullable(),
+      metric: z
+        .enum(['SPONSORSHIP_COUNT', 'SPONSORSHIP_REVENUE_CENTS', 'WATCHED_MINUTES'])
+        .nullable(),
       /** null for revenue goals (shown as a percentage only, Q19) */
       current: z.int().nonnegative().nullable(),
       target: z.int().positive().nullable(),

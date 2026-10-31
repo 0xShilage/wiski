@@ -8,6 +8,10 @@ import { endSession } from '@/server/live/schedule';
 export const POST = route<'moderator', typeof versionInput, undefined, { id: string }>(
   { methods: ['POST'], access: 'moderator', rateLimit: RL.adminWrite, body: versionInput },
   async ({ body, user, requestId, params }) => ({
-    session: await endSession({ actor: user, requestId }, uuidParam(params.id), body.expectedVersion),
+    session: await endSession(
+      { actor: user, requestId },
+      uuidParam(params.id),
+      body.expectedVersion,
+    ),
   }),
 );

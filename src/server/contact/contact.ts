@@ -30,19 +30,28 @@ export function contactFormToken(now = new Date()): string {
 }
 
 export const ContactProblems = {
-  tooFast: () =>
-    new HttpError(422, 'FORM_TOO_FAST', 'Espere alguns segundos e envie de novo.'),
+  tooFast: () => new HttpError(422, 'FORM_TOO_FAST', 'Espere alguns segundos e envie de novo.'),
   expired: () =>
-    new HttpError(422, 'FORM_EXPIRED', 'O formulário expirou. Recarregue a página e envie de novo.'),
+    new HttpError(
+      422,
+      'FORM_EXPIRED',
+      'O formulário expirou. Recarregue a página e envie de novo.',
+    ),
 };
 
-function field(raw: string | undefined, path: string, max: number, opts: { multiline?: boolean; optional?: boolean } = {}) {
+function field(
+  raw: string | undefined,
+  path: string,
+  max: number,
+  opts: { multiline?: boolean; optional?: boolean } = {},
+) {
   const v = raw === undefined ? '' : plainText(raw, { multiline: opts.multiline ?? false });
   if (!v) {
     if (opts.optional) return null;
     throw Problems.validation([{ path, message: 'Preencha este campo.' }]);
   }
-  if (codePointLength(v) > max) throw Problems.validation([{ path, message: `Use no máximo ${max} caracteres.` }]);
+  if (codePointLength(v) > max)
+    throw Problems.validation([{ path, message: `Use no máximo ${max} caracteres.` }]);
   return v;
 }
 
@@ -59,7 +68,9 @@ export async function submitContact(
   now = new Date(),
 ): Promise<{ received: true }> {
   const issued = unseal<{ t: number }>(input.formToken, keys(), PURPOSE);
-  if (!issued || typeof issued.t !== 'number') throw ContactProblems.expired();
+  if (!issued || typeof issued.t !== 'number' || now.getTime() - issued.t > FORM_TTL_MS) {
+    throw ContactProblems.expired();
+  }
   if (now.getTime() - issued.t < MIN_FILL_MS) throw ContactProblems.tooFast();
   // honeypot: a bot filled the hidden field — answer as if it worked, store nothing
   if (input.website.trim() !== '') return { received: true };
@@ -69,7 +80,14 @@ export async function submitContact(
   const body = field(input.body, 'body', 4000, { multiline: true })!;
   const email = normaliseEmail(input.email); // format checked by the route's schema
   await db().contactMessage.create({
-    data: { name, email, company, subject, body, purgeAfter: new Date(now.getTime() + RETENTION_MS) },
+    data: {
+      name,
+      email,
+      company,
+      subject,
+      body,
+      purgeAfter: new Date(now.getTime() + RETENTION_MS),
+    },
   });
   return { received: true };
 }
@@ -88,7 +106,11 @@ export async function listContact(q: { status?: ContactStatus; before?: string }
   const more = rows.length > 30;
   const shown = rows.slice(0, 30);
   return {
-    messages: shown.map((m) => ({ ...m, createdAt: m.createdAt.toISOString(), purgeAfter: m.purgeAfter.toISOString() })),
+    messages: shown.map((m) => ({
+      ...m,
+      createdAt: m.createdAt.toISOString(),
+      purgeAfter: m.purgeAfter.toISOString(),
+    })),
     next: more ? shown.at(-1)!.createdAt.toISOString() : null,
     unread: await db().contactMessage.count({ where: { status: 'NEW' } }),
   };
@@ -101,7 +123,14 @@ export async function setContactStatus(ctx: Ctx, id: string, status: ContactStat
     const res = await t.contactMessage.updateMany({ where: { id }, data: { status } });
     if (res.count !== 1) throw Problems.notFound();
     await audit(
-      { action: 'contact.status', actor: ctx.actor, requestId: ctx.requestId, targetType: 'ContactMessage', targetId: id, metadata: { to: status } },
+      {
+        action: 'contact.status',
+        actor: ctx.actor,
+        requestId: ctx.requestId,
+        targetType: 'ContactMessage',
+        targetId: id,
+        metadata: { to: status },
+      },
       t,
     );
   });
@@ -112,7 +141,14 @@ export async function deleteContact(ctx: Ctx, id: string) {
     const res = await t.contactMessage.deleteMany({ where: { id } });
     if (res.count !== 1) throw Problems.notFound();
     await audit(
-      { action: 'contact.delete', actor: ctx.actor, requestId: ctx.requestId, targetType: 'ContactMessage', targetId: id, metadata: {} },
+      {
+        action: 'contact.delete',
+        actor: ctx.actor,
+        requestId: ctx.requestId,
+        targetType: 'ContactMessage',
+        targetId: id,
+        metadata: {},
+      },
       t,
     );
   });

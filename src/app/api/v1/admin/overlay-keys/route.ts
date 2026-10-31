@@ -11,7 +11,13 @@ export const GET = route<'streamer'>(
 
 /** POST /api/v1/admin/overlay-keys — new key; the raw key is in this answer only. */
 export const POST = route<'streamer', typeof overlayKeyInput>(
-  { methods: ['POST'], access: 'streamer', stepUp: true, rateLimit: RL.adminWrite, body: overlayKeyInput },
+  {
+    methods: ['POST'],
+    access: 'streamer',
+    stepUp: true,
+    rateLimit: RL.adminWrite,
+    body: overlayKeyInput,
+  },
   async ({ user, requestId, body }) =>
     Response.json(await createOverlayKey({ actor: user, requestId }, body), { status: 201 }),
 );

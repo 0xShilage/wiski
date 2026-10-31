@@ -2,7 +2,6 @@ import 'server-only';
 import type { Platform, Role } from '@/generated/prisma/client';
 import { audit } from '../audit/audit';
 import { db } from '../db';
-import { Problems } from '../http/problem';
 
 /**
  * Media kit numbers (Q18, 01 §4: cache → last-known-good → manual). Values the streamer types in
@@ -37,7 +36,9 @@ export type StatView = {
 };
 
 export async function listStats(): Promise<StatView[]> {
-  const rows = await db().platformStat.findMany({ orderBy: [{ platform: 'asc' }, { metric: 'asc' }] });
+  const rows = await db().platformStat.findMany({
+    orderBy: [{ platform: 'asc' }, { metric: 'asc' }],
+  });
   return rows
     .filter((r) => (METRICS as readonly string[]).includes(r.metric))
     .map((r) => ({
@@ -52,22 +53,44 @@ export async function listStats(): Promise<StatView[]> {
 type Ctx = { actor: { id: string; role: Role }; requestId: string | null };
 
 /** Streamer: set (value) or clear (null) a manual number. */
-export async function setStat(ctx: Ctx, platform: Platform, metric: Metric, value: number | null, now = new Date()) {
+export async function setStat(
+  ctx: Ctx,
+  platform: Platform,
+  metric: Metric,
+  value: number | null,
+  now = new Date(),
+) {
   await db().$transaction(async (t) => {
-    const existing = await t.platformStat.findUnique({ where: { platform_metric: { platform, metric } } });
+    const existing = await t.platformStat.findUnique({
+      where: { platform_metric: { platform, metric } },
+    });
     if (value === null) {
-      if (!existing) throw Problems.notFound();
+      if (!existing) return; // clearing something that isn't there: nothing to do
       if (existing.source === 'MANUAL') await t.platformStat.delete({ where: { id: existing.id } });
       else await t.platformStat.update({ where: { id: existing.id }, data: { manualValue: null } });
     } else {
       await t.platformStat.upsert({
         where: { platform_metric: { platform, metric } },
-        create: { platform, metric, value: BigInt(value), source: 'MANUAL', manualValue: BigInt(value), fetchedAt: now },
+        create: {
+          platform,
+          metric,
+          value: BigInt(value),
+          source: 'MANUAL',
+          manualValue: BigInt(value),
+          fetchedAt: now,
+        },
         update: { manualValue: BigInt(value), fetchedAt: now },
       });
     }
     await audit(
-      { action: 'stats.update', actor: ctx.actor, requestId: ctx.requestId, targetType: 'PlatformStat', targetId: `${platform}:${metric}`, metadata: { platform, metric, manual: value !== null } },
+      {
+        action: 'stats.update',
+        actor: ctx.actor,
+        requestId: ctx.requestId,
+        targetType: 'PlatformStat',
+        targetId: `${platform}:${metric}`,
+        metadata: { platform, metric, manual: value !== null },
+      },
       t,
     );
   });

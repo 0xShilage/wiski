@@ -34,7 +34,9 @@ export async function auditPage(q: { action?: string; actor?: string; before?: s
   const more = rows.length > PAGE;
   const shown = rows.slice(0, PAGE);
   const actors = await db().user.findMany({
-    where: { id: { in: [...new Set(shown.map((r) => r.actorId).filter((x): x is string => !!x))] } },
+    where: {
+      id: { in: [...new Set(shown.map((r) => r.actorId).filter((x): x is string => !!x))] },
+    },
     select: { id: true, username: true },
   });
   const name = new Map(actors.map((a) => [a.id, a.username]));
@@ -42,7 +44,11 @@ export async function auditPage(q: { action?: string; actor?: string; before?: s
     entries: shown.map((r) => ({
       id: r.id.toString(),
       at: r.at.toISOString(),
-      actor: r.actorId ? (name.get(r.actorId) ? `@${name.get(r.actorId)}` : 'conta removida') : 'sistema',
+      actor: r.actorId
+        ? name.get(r.actorId)
+          ? `@${name.get(r.actorId)}`
+          : 'conta removida'
+        : 'sistema',
       actorId: r.actorId,
       actorRole: r.actorRole,
       action: r.action,
@@ -70,7 +76,17 @@ export async function auditCsv(q: { action?: string; actor?: string }, maxRows =
     const page = await auditPage({ ...q, ...(before ? { before } : {}) });
     for (const e of page.entries) {
       lines.push(
-        [e.id, e.at, e.actor, e.actorRole, e.action, e.targetType, e.targetId, e.metadata, e.requestId]
+        [
+          e.id,
+          e.at,
+          e.actor,
+          e.actorRole,
+          e.action,
+          e.targetType,
+          e.targetId,
+          e.metadata,
+          e.requestId,
+        ]
           .map(csvCell)
           .join(','),
       );

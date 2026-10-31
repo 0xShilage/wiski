@@ -11,7 +11,16 @@ export const GET = route<'streamer'>(
 
 /** POST /api/v1/admin/vouchers — new voucher (movies only, 04 §6); Google step-up. */
 export const POST = route<'streamer', typeof voucherCreateInput>(
-  { methods: ['POST'], access: 'streamer', stepUp: true, rateLimit: RL.adminWrite, body: voucherCreateInput },
+  {
+    methods: ['POST'],
+    access: 'streamer',
+    stepUp: true,
+    rateLimit: RL.adminWrite,
+    body: voucherCreateInput,
+  },
   async ({ user, requestId, body }) =>
-    Response.json({ voucher: await createVoucher({ actor: user, requestId }, body) }, { status: 201 }),
+    Response.json(
+      { voucher: await createVoucher({ actor: user, requestId }, body) },
+      { status: 201 },
+    ),
 );

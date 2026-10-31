@@ -129,7 +129,14 @@ export async function createGoal(ctx: Ctx, input: GoalInput) {
       },
     });
     await audit(
-      { action: 'goal.create', actor: ctx.actor, requestId: ctx.requestId, targetType: 'Goal', targetId: g.id, metadata: { metric: g.metric, target: g.target } },
+      {
+        action: 'goal.create',
+        actor: ctx.actor,
+        requestId: ctx.requestId,
+        targetType: 'Goal',
+        targetId: g.id,
+        metadata: { metric: g.metric, target: g.target },
+      },
       t,
     );
     return g;
@@ -152,7 +159,9 @@ export async function updateGoal(
     const startsAt = input.startsAt ?? cur.startsAt;
     const endsAt = input.endsAt === undefined ? cur.endsAt : input.endsAt;
     if (endsAt && endsAt <= startsAt) {
-      throw Problems.validation([{ path: 'endsAt', message: 'O fim precisa ser depois do início.' }]);
+      throw Problems.validation([
+        { path: 'endsAt', message: 'O fim precisa ser depois do início.' },
+      ]);
     }
     const g = await t.goal.update({
       where: { id },
@@ -167,7 +176,14 @@ export async function updateGoal(
       },
     });
     await audit(
-      { action: 'goal.update', actor: ctx.actor, requestId: ctx.requestId, targetType: 'Goal', targetId: id, metadata: { fields: [...fields] } },
+      {
+        action: 'goal.update',
+        actor: ctx.actor,
+        requestId: ctx.requestId,
+        targetType: 'Goal',
+        targetId: id,
+        metadata: { fields: [...fields] },
+      },
       t,
     );
     return g;
@@ -181,7 +197,14 @@ export async function deleteGoal(ctx: Ctx, id: string) {
     const res = await t.goal.deleteMany({ where: { id } });
     if (res.count !== 1) throw Problems.notFound();
     await audit(
-      { action: 'goal.delete', actor: ctx.actor, requestId: ctx.requestId, targetType: 'Goal', targetId: id, metadata: {} },
+      {
+        action: 'goal.delete',
+        actor: ctx.actor,
+        requestId: ctx.requestId,
+        targetType: 'Goal',
+        targetId: id,
+        metadata: {},
+      },
       t,
     );
   });

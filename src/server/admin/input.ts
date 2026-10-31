@@ -59,14 +59,21 @@ export const ordersQuery = z
   .object({
     status: orderStatus.optional(),
     texts: z.enum(['1']).optional(),
-    code: z.string().regex(/^WF-[0-9A-Z]{6}$/).optional(),
+    code: z
+      .string()
+      .regex(/^WF-[0-9A-Z]{6}$/)
+      .optional(),
     before,
   })
   .strict();
 
 const decision = z.enum(['APPROVED', 'REJECTED']);
 export const textsInput = z
-  .object({ expectedVersion: version, message: decision.optional(), displayName: decision.optional() })
+  .object({
+    expectedVersion: version,
+    message: decision.optional(),
+    displayName: decision.optional(),
+  })
   .strict();
 
 export const refundInput = z
@@ -145,9 +152,15 @@ export const contactStatusInput = z
 // ── audit ──
 export const auditQuery = z
   .object({
-    action: z.string().regex(/^[a-z][a-z.]{0,40}$/).optional(),
+    action: z
+      .string()
+      .regex(/^[a-z][a-z.]{0,40}$/)
+      .optional(),
     actor: z.uuid().optional(),
-    before: z.string().regex(/^\d{1,19}$/).optional(),
+    before: z
+      .string()
+      .regex(/^\d{1,19}$/)
+      .optional(),
   })
   .strict();
 
@@ -155,7 +168,7 @@ export const auditQuery = z
 const money = z.int().min(1).max(100_000_000);
 export const voucherCreateInput = z
   .object({
-    code: z.string().regex(/^[A-Za-z0-9-]{8,32}$/),
+    code: z.string().regex(/^[a-z0-9-]{8,32}$/i),
     kind: z.enum(['PERCENT', 'FIXED']),
     percentBps: z.int().min(1).max(10_000).nullable().optional(),
     amountCents: money.nullable().optional(),

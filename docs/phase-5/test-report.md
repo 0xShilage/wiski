@@ -11,7 +11,7 @@
 | Shell scripts | `shellcheck -S warning scripts/ops/*.sh tests/smoke/*.sh docker/**/*.sh` | ✅ 0 warnings |
 | Unit | `npm test` | ✅ **293 / 293** (+8: production nginx config, compose hardening) |
 | Integration | `npm run test:integration` | ✅ **877 / 877** |
-| E2E (production build behind the **production nginx template**, 360 + 1280 px) | `npm run build && npm run test:e2e` | E2E_RESULT |
+| E2E (production build behind the **production nginx template**, 360 + 1280 px) | `npm run build && npm run test:e2e` | ✅ **267 passed**, 0 failed, 0 flaky (35 skipped by design: tests that run on one viewport only (touch on mobile, admin tools and once-only checks on desktop)) |
 | Worker bundle | `npm run build:worker && npm run smoke:worker` | ✅ started from the standalone directory exactly as the image runs it, ran its jobs against Postgres 17 + Redis, exited 0 on SIGTERM |
 | **Restore drill** (exit criterion) | `tests/smoke/restore-drill.sh` | ✅ `RESTORE DRILL: ALL CHECKS PASSED` — see below |
 | Site check (Observatory scoring) | `node scripts/ops/check-site.mjs https://localhost:8443 --insecure --http-port 8081` | ✅ **A+ (110)**, 20 / 20 checks |

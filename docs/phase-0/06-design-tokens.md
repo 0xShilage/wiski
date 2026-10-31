@@ -114,6 +114,8 @@ The assets don't encode a spacing system, so the proposal keeps Tailwind's defau
 
 ## 7. Preset avatars
 
+> **Superseded 2026-10-31:** 30 hand-made round icons, keys `perfil-01` … `perfil-30`, default `perfil-01`, WebP built by `npm run avatars` — see [../phase-6/README.md §4](../phase-6/README.md#4-profile-pictures-v2-2026-10-31-later-the-same-day). The original design is kept below for reference.
+
 20 presets = 4 mascot poses × 5 colours, each shown on a fixed background chosen for contrast, with a plum ring. The mascot file is placed unmodified and centred (`object-fit: contain`, 78 % of the circle).
 
 | Mascot colour | Background | Contrast (graphic, ≥ 3:1 needed) |

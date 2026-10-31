@@ -1,4 +1,3 @@
-import { type AvatarColour } from '@/lib/avatars';
 import { cn } from '@/lib/cn';
 import * as Brand from './generated';
 
@@ -10,8 +9,10 @@ const NAMES = {
   lavender: 'Lavender',
   lilac: 'Lilac',
 } as const;
+/** The brand palette the mascot line art comes in (used to be the avatar colours too). */
+export type MascotColour = keyof typeof NAMES;
 
-type Props = { pose: Pose; colour: AvatarColour; className?: string; label?: string };
+type Props = { pose: Pose; colour: MascotColour; className?: string; label?: string };
 
 /** Mascot line art, inlined (server component → zero client JS). Decorative unless `label` is set. */
 export function Mascote({ pose, colour, className, label }: Props) {

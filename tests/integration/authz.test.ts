@@ -59,9 +59,9 @@ export const MATRIX: Row[] = [
   R('/api/auth/logout', 'POST', 'user'),
   R('/api/v1/me', 'GET', 'user'),
   R('/api/v1/me/onboarding', 'POST', 'user', {
-    body: { username: 'matrix_probe', avatarKey: 'mascote-1-ink' },
+    body: { username: 'matrix_probe', avatarKey: 'perfil-01' },
   }),
-  R('/api/v1/me/profile', 'PATCH', 'user', { body: { avatarKey: 'mascote-1-ink' } }),
+  R('/api/v1/me/profile', 'PATCH', 'user', { body: { avatarKey: 'perfil-01' } }),
   R('/api/v1/me/sessions', 'GET', 'user'),
   R('/api/v1/me/sessions', 'DELETE', 'user'),
   R('/api/v1/me/sessions/[id]', 'DELETE', 'user', {

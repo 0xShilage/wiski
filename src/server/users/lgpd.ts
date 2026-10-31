@@ -1,5 +1,6 @@
 import 'server-only';
 import type { User } from '@/generated/prisma/client';
+import { DEFAULT_AVATAR } from '@/lib/avatars';
 import { audit } from '../audit/audit';
 import { db } from '../db';
 import { HttpError } from '../http/problem';
@@ -178,7 +179,7 @@ export async function eraseMyAccount(
         email: `removido-${user.id}@invalid.wiski.fun`,
         emailVerified: false,
         googleSub: `deleted:${user.id}`,
-        avatarKey: 'mascote-4-lavender',
+        avatarKey: DEFAULT_AVATAR,
         role: 'USER',
         isVip: false,
         vipSince: null,

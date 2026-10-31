@@ -39,7 +39,7 @@ export const config = {
     {
       // Everything except immutable static files (they carry no HTML and are cached by nginx/CF).
       source:
-        '/((?!_next/static|_next/image|brand/|media/|favicon\\.ico|icon\\.png|apple-icon\\.png|opengraph-image|manifest\\.webmanifest|robots\\.txt).*)',
+        '/((?!_next/static|_next/image|brand/|avatars/|media/|favicon\\.ico|icon\\.png|apple-icon\\.png|opengraph-image|manifest\\.webmanifest|robots\\.txt).*)',
       missing: [
         { type: 'header', key: 'next-router-prefetch' },
         { type: 'header', key: 'purpose', value: 'prefetch' },

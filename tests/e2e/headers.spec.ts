@@ -40,6 +40,7 @@ for (const [label, path, kind] of [
   ['404 page', '/nao-existe', 'page'],
   ['API', '/api/health', 'api'],
   ['brand asset', '/brand/logo-wiski-lilac.svg', 'static'],
+  ['profile picture', '/avatars/perfil-01-128.webp', 'static'],
   ['favicon', '/favicon.ico', 'static-app'],
 ] as const) {
   test(`${label} (${path}): every security header exactly once`, async ({ request }) => {

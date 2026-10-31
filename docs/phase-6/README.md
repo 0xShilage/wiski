@@ -46,3 +46,18 @@ Decisions taken with you before building:
 - **Links**: Dashboard › Streamer › **Links**. Add each button (name, https address, optional second line), order them with ↑/↓, and hide one without deleting it. The public page is `/links`.
 - **Suggestions**: Dashboard › Operação › **Sugestões** (moderators too). The badge counts new ones. Use **Aceitar** for "we'll consider it" and **Dispensar** for "not this time"; the viewer sees "Aceita" or "Não desta vez" under *Suas sugestões*.
 - **Series slots**: the Séries board now has 20 slots, and nothing else changes.
+
+## 4. Profile pictures v2 (2026-10-31, later the same day)
+
+Your 30 hand-made round icons replace the 20 mascot × colour avatars.
+
+| Area | Where | Notes |
+|---|---|---|
+| Registry | `src/lib/avatars.ts` | Keys `perfil-01` … `perfil-30`. The default (new accounts before onboarding, erased accounts) is `perfil-01`. Unknown or retired keys read from the database fall back to the default. |
+| Images | `ASSETS/PROFILE_ICONS/01.png … 30.png` → `npm run avatars` (`scripts/avatars.ts`) → `public/avatars/perfil-NN-{128,256}.webp` | The originals are 1000 px and about 23 MB in total; they stay on your computer and out of git (`.gitignore`). The site uses WebP copies, about 8 KB at 128 px and 21 KB at 256 px, with metadata stripped and transparency kept. Avatars up to 64 CSS px use the 128 px file, larger ones the 256 px file. **To change an icon**, replace its PNG and run `npm run avatars`. |
+| Existing accounts | migration `20261104120000_avatars_v2` (column default) + `20261104120100_avatars_v2_constraints` (reviewed SQL) | The old preset in position *n* becomes `perfil-n`, so profiles still look different from each other; anything else becomes the default. People can choose again in Perfil. |
+| Picker | `src/components/account/AvatarPicker.tsx` | 30 options, 5 per row on phones and 6 from `sm` up. Each option's accessible name is "Avatar 1" … "Avatar 30". |
+| Serving | `src/proxy.ts`, nginx template | `/avatars/*` skips the per-request CSP middleware like `/brand/`, and nginx caches it for a week (stable names). |
+| Mascot art | `src/components/brand/Mascote.tsx` | The mascot line art stays for the site's own decoration (empty states, Links page); it is no longer tied to avatars. |
+
+**Rights.** These icons show studio characters and photos of real actors. On 2026-10-31 the site owner confirmed they accept the copyright and image-rights risk of using them on a commercial site. If a takedown request arrives, replace that PNG and run `npm run avatars`; the key stays the same, so no migration is needed.

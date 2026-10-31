@@ -1,4 +1,6 @@
 /** Onboarding, usernames (rules, reserved list, 30-day holds), avatars, my sessions, logout. */
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { POST as logout } from '@/app/api/auth/logout/route';
 import { GET as me } from '@/app/api/v1/me/route';
@@ -10,7 +12,7 @@ import { GET as availability } from '@/app/api/v1/usernames/availability/route';
 import { COOKIE } from '@/server/auth/cookies';
 import { loadSession } from '@/server/auth/session';
 import { db } from '@/server/db';
-import { makeUser } from '../support/db';
+import { makeUser, withAdmin } from '../support/db';
 import { call, req, setCookies, signedIn } from '../support/http';
 
 const uniq = () => `u${Math.random().toString(36).slice(2, 10)}`;
@@ -34,16 +36,16 @@ describe('onboarding', () => {
     const name = uniq();
     const res = await post(onboarding, s, {
       username: `  ${name.toUpperCase()} `,
-      avatarKey: 'mascote-2-violet',
+      avatarKey: 'perfil-08',
     });
     expect(res.status).toBe(200);
     const user = await db().user.findUniqueOrThrow({ where: { id: s.user.id } });
-    expect(user).toMatchObject({ username: name, avatarKey: 'mascote-2-violet' });
+    expect(user).toMatchObject({ username: name, avatarKey: 'perfil-08' });
     expect(
       await db().auditLog.count({ where: { action: 'user.onboarding', actorId: s.user.id } }),
     ).toBe(1);
 
-    const again = await post(onboarding, s, { username: uniq(), avatarKey: 'mascote-1-ink' });
+    const again = await post(onboarding, s, { username: uniq(), avatarKey: 'perfil-01' });
     expect(again.status).toBe(409);
   });
 
@@ -59,7 +61,7 @@ describe('onboarding', () => {
     'conta',
   ])('refuses %j', async (username) => {
     const s = await newcomer();
-    const res = await post(onboarding, s, { username, avatarKey: 'mascote-1-ink' });
+    const res = await post(onboarding, s, { username, avatarKey: 'perfil-01' });
     expect(res.status).toBe(422);
   });
 
@@ -73,8 +75,8 @@ describe('onboarding', () => {
     const name = uniq();
     const [a, b] = await Promise.all([newcomer(), newcomer()]);
     const results = await Promise.all([
-      post(onboarding, a, { username: name, avatarKey: 'mascote-1-ink' }),
-      post(onboarding, b, { username: name, avatarKey: 'mascote-1-ink' }),
+      post(onboarding, a, { username: name, avatarKey: 'perfil-01' }),
+      post(onboarding, b, { username: name, avatarKey: 'perfil-01' }),
     ]);
     expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
   });
@@ -109,9 +111,9 @@ describe('username changes and 30-day holds', () => {
     expect(hold.userId).toBe(owner.id);
     expect(hold.holdUntil.getTime() - Date.now()).toBeGreaterThan(29 * 86_400_000);
     const other = await newcomer();
-    expect(
-      (await post(onboarding, other, { username: old, avatarKey: 'mascote-1-ink' })).status,
-    ).toBe(409);
+    expect((await post(onboarding, other, { username: old, avatarKey: 'perfil-01' })).status).toBe(
+      409,
+    );
     const avail = await call(availability, req('GET', `/x?u=${old}`, { cookies: other.cookies }));
     expect(await avail.json()).toEqual({ available: false });
     // …but the original owner may take it back.
@@ -162,14 +164,14 @@ describe('username changes and 30-day holds', () => {
     const res = await call(
       profile,
       req('PATCH', '/x', {
-        body: { avatarKey: 'mascote-3-lilac' },
+        body: { avatarKey: 'perfil-15' },
         cookies: s.cookies,
         headers: s.headers,
       }),
     );
     expect(res.status).toBe(200);
     expect((await db().user.findUniqueOrThrow({ where: { id: user.id } })).avatarKey).toBe(
-      'mascote-3-lilac',
+      'perfil-15',
     );
   });
 });
@@ -267,5 +269,48 @@ describe('me, sessions, logout', () => {
     );
     expect(res.status).toBe(403);
     expect(await loadSession(s.token)).not.toBeNull();
+  });
+});
+
+describe('profile pictures v2 (migration 20261104120100)', () => {
+  it('old mascot presets move to perfil-NN by position; unknown values to the default', async () => {
+    const a = await makeUser();
+    const b = await makeUser();
+    const c = await makeUser();
+    const d = await makeUser();
+    const sql = readFileSync(
+      join(
+        import.meta.dirname,
+        '../../prisma/migrations/20261104120100_avatars_v2_constraints/migration.sql',
+      ),
+      'utf8',
+    );
+    await withAdmin(async (pg) => {
+      for (const [id, key] of [
+        [a.id, 'mascote-1-ink'],
+        [b.id, 'mascote-4-lilac'],
+        [c.id, 'mascote-2-lilac'],
+        [d.id, 'something-else'],
+      ]) {
+        await pg.query(`UPDATE "User" SET "avatarKey" = $2 WHERE id = $1`, [id, key]);
+      }
+      await pg.query(sql);
+    });
+    const keys = await db().user.findMany({
+      where: { id: { in: [a.id, b.id, c.id, d.id] } },
+      select: { id: true, avatarKey: true },
+    });
+    const by = Object.fromEntries(keys.map((k) => [k.id, k.avatarKey]));
+    expect([by[a.id], by[b.id], by[c.id], by[d.id]]).toEqual([
+      'perfil-01',
+      'perfil-20',
+      'perfil-10',
+      'perfil-01',
+    ]);
+    // the column default is a current key
+    const fresh = await db().user.create({
+      data: { googleSub: `av-${a.id}`, email: `av-${a.id}@example.com`, emailVerified: true },
+    });
+    expect(fresh.avatarKey).toBe('perfil-01');
   });
 });

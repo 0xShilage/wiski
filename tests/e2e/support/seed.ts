@@ -45,7 +45,7 @@ export async function seedUser(
         `e2e-${id}`,
         `${id}@example.com`,
         username,
-        opts.avatarKey ?? 'mascote-4-lavender',
+        opts.avatarKey ?? 'perfil-19',
         opts.role ?? 'USER',
       ],
     );
@@ -85,5 +85,5 @@ export async function seedFor(
   if (auth === 'moderator') return seedUser({ role: 'MODERATOR' });
   if (auth === 'admin') return seedUser({ role: 'MODERATOR', passkeyVerified: true });
   if (auth === 'streamer') return seedUser({ role: 'STREAMER', passkeyVerified: true });
-  return seedUser({ avatarKey: 'mascote-2-lilac' });
+  return seedUser({ avatarKey: 'perfil-10' });
 }

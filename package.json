@@ -26,6 +26,7 @@
     "brand:logo": "tsx scripts/logo.ts",
     "brand:icons": "tsx scripts/icons.ts",
     "brand:fonts": "tsx scripts/fonts.ts",
+    "avatars": "tsx scripts/avatars.ts",
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
     "db:migrate": "prisma migrate deploy",

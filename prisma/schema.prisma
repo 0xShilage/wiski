@@ -46,7 +46,7 @@ model User {
   emailVerified     Boolean
   username          String?       @unique // lowercase canonical [a-z0-9_]{3,20}; null until onboarding (CHECK)
   usernameChangedAt DateTime?     @db.Timestamptz(3)
-  avatarKey         String        @default("mascote-4-lavender") // must exist in code registry (Zod enum)
+  avatarKey         String        @default("perfil-01") // must exist in code registry (Zod enum, src/lib/avatars.ts)
   role              Role          @default(USER)
   isVip             Boolean       @default(false) // perk set by STREAMER in Admin → 10 % discount (not a role)
   vipSince          DateTime?     @db.Timestamptz(3)

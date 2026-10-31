@@ -100,8 +100,8 @@ server {
     gzip_min_length 1024;
     proxy_pass http://wf_app;
   }
-  # Brand files keep stable names (not hashed) → long but not immutable.
-  location /brand/ {
+  # Brand files and profile pictures keep stable names (not hashed) → long but not immutable.
+  location ~ ^/(?:brand|avatars)/ {
     include ${WF_SNIPPETS}/security-headers.conf;
     proxy_hide_header Cache-Control;
     add_header Cache-Control "public, max-age=604800, stale-while-revalidate=86400" always;

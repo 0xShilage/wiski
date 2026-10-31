@@ -382,9 +382,9 @@ async function main() {
 
   await ensureDevLegalTexts();
 
-  const mod = await user('mod_ana', 'MODERATOR', 'mascote-2-lavender');
-  const streamer = await user('wiski', 'STREAMER', 'mascote-4-lilac');
-  const sponsor = await user('luana_v', 'USER', 'mascote-1-lilac');
+  const mod = await user('mod_ana', 'MODERATOR', 'perfil-09');
+  const streamer = await user('wiski', 'STREAMER', 'perfil-20');
+  const sponsor = await user('luana_v', 'USER', 'perfil-05');
   const modCtx = { actor: { id: mod.id, role: mod.role }, requestId: 'seed' };
   const streamerCtx = { actor: { id: streamer.id, role: streamer.role }, requestId: 'seed' };
 
@@ -494,9 +494,9 @@ async function main() {
   // ── reviews (Phase 3): a few on the watched titles, likes, one open report for the queue ──
   const fans = [];
   for (const [n, av] of [
-    ['bia_cine', 'mascote-1-lavender'],
-    ['teo_lima', 'mascote-3-lilac'],
-    ['duda_ve', 'mascote-2-lilac'],
+    ['bia_cine', 'perfil-04'],
+    ['teo_lima', 'perfil-15'],
+    ['duda_ve', 'perfil-10'],
   ] as const) {
     const u = await user(n, 'USER', av);
     // old enough to report (≥ 24 h) and to count towards auto-hide (≥ 7 days)

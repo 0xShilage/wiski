@@ -18,7 +18,7 @@ test('onboarding → perfil → perfil público', async ({ page, context }) => {
   await expect(page.getByText('Esse nome é reservado.')).toBeVisible();
   await page.getByLabel('Nome de usuário').fill(name);
   await expect(page.getByText('Disponível!')).toBeVisible();
-  await page.getByLabel('Mascote 2, lilás').check({ force: true });
+  await page.getByLabel('Avatar 10', { exact: true }).check({ force: true });
   await page.getByRole('button', { name: 'Criar meu perfil' }).click();
 
   await expect(page).toHaveURL(/\/perfil$/);

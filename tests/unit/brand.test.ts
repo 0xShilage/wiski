@@ -4,7 +4,7 @@ import sharp from 'sharp';
 import { describe, expect, it } from 'vitest';
 import { svgEntries } from '../../scripts/brand-map';
 import { buildLogoGeometry } from '../../scripts/logo';
-import { AVATAR_KEYS } from '@/lib/avatars';
+import { AVATAR_KEYS, AVATAR_PIXELS } from '@/lib/avatars';
 
 const ROOT = join(import.meta.dirname, '../..');
 const file = (p: string) => join(ROOT, p);
@@ -27,8 +27,18 @@ describe('brand pipeline output', () => {
     }
   });
 
-  it('every avatar preset has its mascot file', () => {
-    for (const key of AVATAR_KEYS) expect(existsSync(file(`public/brand/${key}.svg`))).toBe(true);
+  it('every avatar preset is built: square WebP at 128 and 256 px, alpha kept, small', async () => {
+    for (const key of AVATAR_KEYS) {
+      for (const px of AVATAR_PIXELS) {
+        const path = file(`public/avatars/${key}-${px}.webp`);
+        expect(existsSync(path), path).toBe(true);
+        const meta = await sharp(path).metadata();
+        expect(meta, path).toMatchObject({ format: 'webp', width: px, height: px, hasAlpha: true });
+        expect(meta.size ?? readFileSync(path).length, path).toBeLessThan(
+          px === 128 ? 20_000 : 60_000,
+        );
+      }
+    }
   });
 });
 

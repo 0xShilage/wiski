@@ -1,33 +1,24 @@
 'use client';
 
 import { Img } from '@/components/Img';
-import {
-  AVATAR_BACKGROUND,
-  AVATAR_COLOUR_LABEL,
-  AVATAR_KEYS,
-  type AvatarKey,
-  avatarColour,
-} from '@/lib/avatars';
+import { AVATAR_KEYS, type AvatarKey, avatarLabel, avatarSrc } from '@/lib/avatars';
 import { cn } from '@/lib/cn';
 
 type Props = { value: AvatarKey; onChange: (key: AvatarKey) => void; name?: string };
 
-/** 20 preset avatars as an accessible radio group (arrow keys move between options). */
+/** The 30 preset profile pictures as an accessible radio group (arrow keys move between options). */
 export function AvatarPicker({ value, onChange, name = 'avatar' }: Props) {
   return (
     <fieldset>
       <legend className="mb-3 text-sm font-semibold text-lilac">Escolha seu avatar</legend>
-      <div className="grid grid-cols-4 gap-3 sm:grid-cols-5">
+      <div className="grid grid-cols-5 gap-3 sm:grid-cols-6">
         {AVATAR_KEYS.map((key) => {
-          const [, pose] = key.split('-');
-          const label = `Mascote ${pose}, ${AVATAR_COLOUR_LABEL[avatarColour(key)]}`;
           const checked = key === value;
           return (
             <label
               key={key}
               className={cn(
-                'relative grid aspect-square cursor-pointer place-items-center rounded-full ring-2 transition-shadow has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus',
-                AVATAR_BACKGROUND[avatarColour(key)],
+                'relative block aspect-square cursor-pointer overflow-hidden rounded-full bg-ink ring-2 transition-shadow has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus',
                 checked ? 'shadow-glow ring-accent' : 'ring-plum',
               )}
             >
@@ -38,15 +29,16 @@ export function AvatarPicker({ value, onChange, name = 'avatar' }: Props) {
                 checked={checked}
                 onChange={() => onChange(key)}
                 className="sr-only"
-                aria-label={label}
+                aria-label={avatarLabel(key)}
               />
               <Img
-                src={`/brand/${key}.svg`}
+                src={avatarSrc(key, 64)}
                 alt=""
                 width={64}
                 height={64}
+                loading="lazy"
                 unoptimized
-                className="size-[78%] object-contain"
+                className={cn('size-full object-cover', checked ? '' : 'opacity-90')}
               />
             </label>
           );

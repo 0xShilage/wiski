@@ -119,6 +119,31 @@ describe('username changes and 30-day holds', () => {
     expect(await ownAvail.json()).toEqual({ available: true });
   });
 
+  it('username cool-down: 30 days for viewers, 5 days for moderators and the streamer', async () => {
+    const rename = async (role: 'USER' | 'MODERATOR' | 'STREAMER', daysAgo: number) => {
+      const u = await makeUser({ username: uniq(), role });
+      await db().user.update({
+        where: { id: u.id },
+        data: { usernameChangedAt: new Date(Date.now() - daysAgo * 86_400_000) },
+      });
+      const s = await signedIn(u);
+      const res = await call(
+        profile,
+        req('PATCH', '/x', { body: { username: uniq() }, cookies: s.cookies, headers: s.headers }),
+      );
+      return { status: res.status, body: (await res.json()) as { code?: string; detail?: string } };
+    };
+    const viewer = await rename('USER', 6);
+    expect(viewer.status).toBe(409);
+    expect(viewer.body.detail).toContain('30 dias');
+    expect((await rename('USER', 31)).status).toBe(200);
+    const mod = await rename('MODERATOR', 4);
+    expect(mod.status).toBe(409);
+    expect(mod.body.detail).toContain('5 dias');
+    expect((await rename('MODERATOR', 6)).status).toBe(200);
+    expect((await rename('STREAMER', 6)).status).toBe(200);
+  });
+
   it('availability answers {available} only, and false for reserved names', async () => {
     const s = await signedIn(await makeUser());
     for (const [u, expected] of [

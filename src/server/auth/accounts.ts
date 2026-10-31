@@ -9,7 +9,13 @@ import { audit } from '../audit/audit';
 import type { GoogleIdentity } from './oidc';
 
 export const USERNAME_HOLD_MS = 30 * 24 * 3_600_000;
+/** Username change cooldown: 30 days for viewers, 5 days for staff (moderators and the streamer). */
 export const USERNAME_CHANGE_COOLDOWN_MS = 30 * 24 * 3_600_000;
+export const STAFF_USERNAME_CHANGE_COOLDOWN_MS = 5 * 24 * 3_600_000;
+
+export function usernameCooldownMs(role: User['role']): number {
+  return role === 'USER' ? USERNAME_CHANGE_COOLDOWN_MS : STAFF_USERNAME_CHANGE_COOLDOWN_MS;
+}
 
 /** Identity = Google `sub` (never the e-mail, which can change or be recycled). */
 export async function upsertGoogleUser(identity: GoogleIdentity): Promise<User> {
@@ -80,7 +86,7 @@ export async function completeOnboarding(
   }
 }
 
-/** Username change: at most once per 30 days; the old name is held 30 days for its owner. */
+/** Username change: at most once per 30 days (staff: 5 days); the old name is held 30 days for its owner. */
 export async function changeUsername(
   user: Pick<User, 'id' | 'role' | 'username' | 'usernameChangedAt'>,
   next: string,
@@ -92,12 +98,13 @@ export async function changeUsername(
   if (next === user.username) return;
   if (
     user.usernameChangedAt &&
-    now.getTime() - user.usernameChangedAt.getTime() < USERNAME_CHANGE_COOLDOWN_MS
+    now.getTime() - user.usernameChangedAt.getTime() < usernameCooldownMs(user.role)
   ) {
+    const days = usernameCooldownMs(user.role) / 86_400_000;
     throw new HttpError(
       409,
       'USERNAME_COOLDOWN',
-      'Você só pode trocar o nome de usuário uma vez a cada 30 dias.',
+      `Você só pode trocar o nome de usuário uma vez a cada ${days} dias.`,
     );
   }
   if (!(await isUsernameAvailable(next, user.id, now))) throw taken();
@@ -165,10 +172,10 @@ export async function changeAvatar(
 
 /** When may this user change their username again? (`null` = now) */
 export function nextUsernameChange(
-  user: Pick<User, 'usernameChangedAt'>,
+  user: Pick<User, 'usernameChangedAt' | 'role'>,
   now = new Date(),
 ): Date | null {
   if (!user.usernameChangedAt) return null;
-  const next = new Date(user.usernameChangedAt.getTime() + USERNAME_CHANGE_COOLDOWN_MS);
+  const next = new Date(user.usernameChangedAt.getTime() + usernameCooldownMs(user.role));
   return next > now ? next : null;
 }

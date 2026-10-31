@@ -45,7 +45,10 @@ export type OrderView = {
     messageStatus: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
     pix: { qrCode: string; qrCodeBase64: string } | null;
     guest: boolean;
+    session: { startsAt: string; status: 'PLANNED' | 'LIVE' | 'DONE' | 'CANCELLED' } | null;
+    rescheduleLeft: number;
   };
+  canReschedule: boolean;
   canClaim: boolean;
   canCancel: boolean;
   orderCsrf: string | null;

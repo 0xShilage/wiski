@@ -1,26 +1,74 @@
 import Link from 'next/link';
 
-/** "Operação" in the dashboard sidebar: Moderação is live (Phase 3); the rest comes in Phase 4. */
-export function OpsNav({ active, waiting }: { active?: 'moderacao'; waiting: number }) {
+export type OpsSection =
+  | 'agenda'
+  | 'pedidos'
+  | 'moderacao'
+  | 'pessoas'
+  | 'overlays'
+  | 'metas'
+  | 'media-kit'
+  | 'contato'
+  | 'cupons'
+  | 'auditoria'
+  | 'configuracoes';
+
+export type OpsCounts = { waiting: number; attention: number; texts: number; unread: number };
+
+const OPS: { id: OpsSection; label: string; badge?: (c: OpsCounts) => number }[] = [
+  { id: 'agenda', label: 'Agenda da live' },
+  { id: 'pedidos', label: 'Pedidos', badge: (c) => c.attention + c.texts },
+  { id: 'moderacao', label: 'Moderação', badge: (c) => c.waiting },
+  { id: 'pessoas', label: 'Pessoas' },
+];
+const STREAMER: { id: OpsSection; label: string; badge?: (c: OpsCounts) => number }[] = [
+  { id: 'overlays', label: 'Overlays (OBS)' },
+  { id: 'metas', label: 'Metas' },
+  { id: 'media-kit', label: 'Media kit' },
+  { id: 'contato', label: 'Contato', badge: (c) => c.unread },
+  { id: 'cupons', label: 'Cupons' },
+  { id: 'auditoria', label: 'Auditoria' },
+  { id: 'configuracoes', label: 'Configurações' },
+];
+
+/** The dashboard sidebar sections after "Catálogo" (Phase 4). Streamer-only ones are hidden from moderators. */
+export function OpsNav({
+  active,
+  counts,
+  role,
+}: {
+  active?: OpsSection | undefined;
+  counts: OpsCounts;
+  role: 'MODERATOR' | 'STREAMER' | 'USER';
+}) {
+  const item = (s: (typeof OPS)[number]) => {
+    const n = s.badge?.(counts) ?? 0;
+    return (
+      <Link key={s.id} href={`/admin/${s.id}`} aria-current={active === s.id ? 'page' : undefined}>
+        {s.label}
+        {n ? (
+          <small>
+            {n}
+            <span className="sr-only"> pendente{n === 1 ? '' : 's'}</span>
+          </small>
+        ) : null}
+      </Link>
+    );
+  };
   return (
     <>
       <p className="wf-admin__group">Operação</p>
       <nav className="wf-admin__nav wf-admin__nav--ops" aria-label="Operação">
-        <Link href="/admin/moderacao" aria-current={active === 'moderacao' ? 'page' : undefined}>
-          Moderação
-          {waiting ? (
-            <small>
-              {waiting}
-              <span className="sr-only"> aguardando</span>
-            </small>
-          ) : null}
-        </Link>
-        {['Campanhas', 'Sessões da live', 'Auditoria'].map((l) => (
-          <span key={l} aria-disabled="true" title="Em breve">
-            {l}
-          </span>
-        ))}
+        {OPS.map(item)}
       </nav>
+      {role === 'STREAMER' ? (
+        <>
+          <p className="wf-admin__group">Streamer</p>
+          <nav className="wf-admin__nav wf-admin__nav--ops" aria-label="Streamer">
+            {STREAMER.map(item)}
+          </nav>
+        </>
+      ) : null}
     </>
   );
 }

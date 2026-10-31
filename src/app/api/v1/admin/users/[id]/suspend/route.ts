@@ -15,7 +15,7 @@ export const POST = route<'moderator', typeof suspendInput, undefined, { id: str
   async ({ params, user, requestId, body, session }) => {
     const long = body.days === null || body.days > MODERATOR_MAX_SUSPENSION_DAYS;
     if (long && user.role === 'STREAMER' && !isStepUpFresh(session)) {
-      throw Problems.stepUpRequired(stepUpUrl('/admin/usuarios'));
+      throw Problems.stepUpRequired(stepUpUrl('/admin/pessoas'));
     }
     return { user: await suspendUser({ actor: user, requestId }, uuidParam(params.id), body.days) };
   },

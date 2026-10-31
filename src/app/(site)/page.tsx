@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import { Mascote } from '@/components/brand/Mascote';
 import { HeroCarousel } from '@/components/catalog/HeroCarousel';
+import { UpNext } from '@/components/live/UpNext';
 import { listPublic } from '@/server/catalog/read';
+import { publicSchedule } from '@/server/live/public';
 
 export const metadata: Metadata = {
   title: { absolute: 'Wiski — Filmes' },
@@ -9,9 +11,9 @@ export const metadata: Metadata = {
     'Patrocine o próximo filme da live do Wiski: escolha, pague com Pix e assista junto.',
 };
 
-/** `/` = Filmes (O9): the hero carousel with the live movies in slot order. */
+/** `/` = Filmes (O9): the hero carousel with the live movies in slot order, then the next lives. */
 export default async function FilmesPage() {
-  const movies = await listPublic('MOVIE');
+  const [movies, sessions] = await Promise.all([listPublic('MOVIE'), publicSchedule()]);
   return (
     <>
       <h1 className="sr-only">Filmes — patrocine o próximo filme da live</h1>
@@ -35,6 +37,7 @@ export default async function FilmesPage() {
           </div>
         </section>
       )}
+      <UpNext sessions={sessions} />
     </>
   );
 }

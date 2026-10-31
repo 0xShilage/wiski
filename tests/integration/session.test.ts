@@ -88,7 +88,10 @@ describe('sessions', () => {
   it('drops sessions of deleted accounts', async () => {
     const user = await makeUser();
     const { token } = await createSession(user, { authTime: new Date(), uaFamily: null });
-    await db().user.update({ where: { id: user.id }, data: { status: 'DELETED', deletedAt: new Date() } });
+    await db().user.update({
+      where: { id: user.id },
+      data: { status: 'DELETED', deletedAt: new Date() },
+    });
     expect(await loadSession(token)).toBeNull();
   });
 

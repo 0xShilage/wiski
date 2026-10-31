@@ -17,6 +17,7 @@
 @import '../styles/admin.css';
 @import '../styles/checkout.css';
 @import '../styles/reviews.css';
+@import '../styles/ops.css';
 
 @theme {
   /* Reset Tailwind's default palette so only approved colours exist */

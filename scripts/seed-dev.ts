@@ -31,6 +31,9 @@ const { openCampaign } = await import('../src/server/catalog/campaigns');
 const { sha256Bytes } = await import('../src/server/security/crypto');
 const { buyerKeyFor, newPublicCode } = await import('../src/server/checkout/buyer');
 const { mediaDir } = await import('../src/server/env');
+const { createSession, schedule } = await import('../src/server/live/schedule');
+const { createGoal } = await import('../src/server/goals/goals');
+const { setStat } = await import('../src/server/mediakit/stats');
 const { PALETTES, renderArt, renderLogo } = await import('./seed-art');
 
 const RESET = process.argv.includes('--reset');
@@ -361,6 +364,9 @@ async function main() {
       db().webhookEvent.deleteMany({}),
       db().order.deleteMany({}),
       db().campaign.deleteMany({}),
+      db().streamSession.deleteMany({}),
+      db().goal.deleteMany({}),
+      db().platformStat.deleteMany({}),
       db().catalogRevision.deleteMany({}),
       db().franchiseEntry.deleteMany({}),
       db().catalogItem.deleteMany({}),
@@ -441,7 +447,7 @@ async function main() {
       },
     });
   const sponsored = movieIds[MOVIE_SLOTS.indexOf(4)]!;
-  await order(sponsored, 'PAID', sponsor.id);
+  const sponsoredOrder = await order(sponsored, 'PAID', sponsor.id);
   await db().catalogItem.update({ where: { id: sponsored }, data: { status: 'SPONSORED' } });
   const reserved = movieIds[MOVIE_SLOTS.indexOf(6)]!;
   const pending = await order(reserved, 'PENDING_PAYMENT', null);
@@ -620,6 +626,39 @@ async function main() {
     if (funded)
       await db().catalogItem.update({ where: { id: itemId }, data: { status: 'FUNDED' } });
   }
+
+  // ── Phase 4: the next live (tomorrow 20:00 in São Paulo) with the sponsored movie booked, a
+  // goal for the overlay and the media kit, and a few media kit numbers ──
+  const tomorrow = new Date(Date.now() + 86_400_000).toLocaleDateString('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+  });
+  const live = await createSession(streamerCtx, {
+    startsAt: new Date(`${tomorrow}T20:00:00-03:00`),
+    capacityMinutes: 240,
+    publicNote: 'Sessão de sexta com pipoca',
+  });
+  await schedule(
+    modCtx,
+    { kind: 'ORDER', id: sponsoredOrder.id, expectedVersion: sponsoredOrder.version },
+    live.id,
+  );
+  await createGoal(streamerCtx, {
+    title: '10 filmes patrocinados no mês',
+    metric: 'SPONSORSHIP_COUNT',
+    target: 10,
+    startsAt: new Date(Date.now() - 7 * 86_400_000),
+    showOnOverlay: true,
+    showOnMediaKit: true,
+  });
+  for (const [platform, metric, value] of [
+    ['TWITCH', 'followers', 18_400],
+    ['TWITCH', 'avg_viewers_30d', 320],
+    ['TWITCH', 'hours_streamed_30d', 64],
+    ['YOUTUBE', 'subscribers', 9_100],
+  ] as const) {
+    await setStat(streamerCtx, platform, metric, value);
+  }
+  log('next live scheduled, goal and media kit numbers set');
 
   const counts = await db().catalogItem.groupBy({ by: ['kind', 'status'], _count: { _all: true } });
   log('done', counts.map((c) => `${c.kind}/${c.status}=${c._count._all}`).join(' '));

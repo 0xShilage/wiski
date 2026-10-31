@@ -1,0 +1,357 @@
+/* ── Phase 4 dashboard pages: agenda, orders, people, overlays, goals, media kit, contact, vouchers,
+   audit, settings — and the public schedule strip, contact form, media kit and overlay pages. ── */
+@layer components {
+  .wf-ops-grid {
+    display: grid;
+    grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.6fr);
+    gap: 24px;
+    align-items: start;
+  }
+  .wf-ops-card {
+    background: rgb(36 26 51 / 0.92);
+    border: 1px solid rgb(169 157 224 / 0.3);
+    border-radius: 14px;
+    padding: 16px 18px;
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+  }
+  .wf-ops-card.is-live {
+    border-color: var(--color-lavender);
+    box-shadow: var(--glow-sm);
+  }
+  .wf-ops-card h2,
+  .wf-ops-card h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #f7f2fb;
+  }
+  .wf-ops-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+  }
+  .wf-ops-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgb(46 33 65 / 0.7);
+    min-width: 0;
+  }
+  .wf-ops-row.is-now {
+    outline: 2px solid var(--color-lavender);
+  }
+  .wf-ops-row__main {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+    flex: 1 1 220px;
+  }
+  .wf-ops-row__title {
+    font-weight: 600;
+    color: #f7f2fb;
+    overflow-wrap: anywhere;
+  }
+  .wf-ops-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+  }
+  .wf-ops-actions .wf-btn,
+  .wf-ops-card .wf-btn {
+    width: auto;
+    margin-top: 0;
+  }
+  .wf-ops-actions select,
+  .wf-ops-filters select,
+  .wf-ops-select {
+    min-height: 36px;
+    border-radius: 8px;
+    border: 1px solid rgb(79 61 114 / 0.95);
+    background: var(--color-surface-2);
+    color: var(--color-lilac);
+    font: inherit;
+    font-size: 13px;
+    padding: 0 8px;
+    max-width: 100%;
+  }
+  .wf-ops-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+  .wf-ops-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    align-items: end;
+  }
+  .wf-ops-form .wf-btn {
+    width: auto;
+    margin-top: 0;
+    justify-self: start;
+  }
+  .wf-ops-form .full {
+    grid-column: 1 / -1;
+  }
+  .wf-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    border: 1px solid rgb(169 157 224 / 0.45);
+    color: var(--color-lilac);
+    white-space: nowrap;
+  }
+  .wf-pill--ok {
+    border-color: rgb(127 214 164 / 0.6);
+    color: var(--color-success);
+  }
+  .wf-pill--warn {
+    border-color: rgb(242 196 109 / 0.7);
+    color: var(--color-warning);
+  }
+  .wf-pill--bad {
+    border-color: rgb(255 143 154 / 0.7);
+    color: var(--color-danger);
+  }
+  .wf-meter {
+    display: grid;
+    gap: 4px;
+  }
+  .wf-code {
+    font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+    font-size: 12px;
+    word-break: break-all;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: var(--color-ink);
+    border: 1px dashed rgb(169 157 224 / 0.5);
+  }
+  .wf-table-wrap {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid rgb(79 61 114 / 0.8);
+  }
+  .wf-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .wf-table th,
+  .wf-table td {
+    padding: 8px 10px;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid rgb(79 61 114 / 0.5);
+  }
+  .wf-table th {
+    color: var(--fg-70);
+    font-weight: 500;
+    background: var(--color-surface-1);
+  }
+  .wf-table td code {
+    font-size: 12px;
+    word-break: break-all;
+  }
+  .wf-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+  }
+  .wf-switch input {
+    accent-color: var(--color-lavender);
+    width: 18px;
+    height: 18px;
+  }
+
+  /* ── public: "Próximos na live" strip ── */
+  .wf-upnext {
+    margin: 0 auto;
+    max-width: calc(1280px + 2 * var(--pad));
+    padding: 0 var(--pad) 48px;
+  }
+  .wf-upnext__list {
+    list-style: none;
+    margin: 16px 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+  }
+  .wf-upnext__card {
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgb(36 26 51 / 0.92);
+    border: 1px solid rgb(169 157 224 / 0.3);
+    display: grid;
+    gap: 6px;
+  }
+  .wf-upnext__card.is-live {
+    border-color: var(--color-lavender);
+    box-shadow: var(--glow-sm);
+  }
+  .wf-upnext__when {
+    font-size: 13px;
+    color: var(--color-lavender);
+    font-weight: 600;
+  }
+  .wf-upnext__titles {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 4px;
+    font-size: 14px;
+  }
+  .wf-upnext__titles a {
+    color: #f7f2fb;
+    text-decoration: none;
+  }
+  .wf-upnext__titles a:hover {
+    text-decoration: underline;
+  }
+
+  /* ── public: contact form honeypot (off-screen, not display:none — some bots skip hidden inputs) ── */
+  .wf-hp {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  /* ── public: media kit ── */
+  .wf-kit {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .wf-kit__stat {
+    padding: 16px;
+    border-radius: 14px;
+    background: rgb(36 26 51 / 0.92);
+    border: 1px solid rgb(169 157 224 / 0.3);
+    display: grid;
+    gap: 4px;
+  }
+  .wf-kit__num {
+    font-family: var(--font-display);
+    font-size: 36px;
+    line-height: 1;
+    color: #f7f2fb;
+    margin: 0;
+  }
+
+  /* ── overlay pages (OBS browser source: transparent, big readable text) ── */
+  .wf-overlay {
+    min-height: 100vh;
+    display: grid;
+    align-content: end;
+    padding: 24px;
+    color: #fff;
+    font-family: var(--font-sans);
+  }
+  .wf-overlay__box {
+    justify-self: start;
+    max-width: min(900px, 100%);
+    padding: 14px 20px;
+    border-radius: 16px;
+    background: rgb(27 18 37 / 0.86);
+    border: 2px solid var(--color-lavender);
+    box-shadow: var(--glow);
+    display: grid;
+    gap: 6px;
+  }
+  .wf-overlay__label {
+    font-size: 16px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-lavender);
+    margin: 0;
+  }
+  .wf-overlay__title {
+    font-family: var(--font-display);
+    font-size: 44px;
+    line-height: 1.05;
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+  .wf-overlay__sub {
+    font-size: 22px;
+    margin: 0;
+    color: var(--color-lilac);
+    overflow-wrap: anywhere;
+  }
+  .wf-overlay__queue {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 6px;
+    font-size: 24px;
+  }
+  .wf-overlay__queue li {
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+  }
+  .wf-overlay__queue small {
+    font-size: 18px;
+    color: var(--color-lilac);
+  }
+  .wf-overlay progress {
+    width: min(600px, 80vw);
+    height: 16px;
+  }
+  .wf-overlay__flash {
+    animation: wf-flash 8s ease forwards;
+  }
+  @keyframes wf-flash {
+    0% {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    8%,
+    85% {
+      opacity: 1;
+      transform: none;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .wf-overlay__flash {
+      animation: none;
+    }
+  }
+
+  @media (max-width: 1000px) {
+    .wf-ops-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+/* Unlayered on purpose: it must beat the body's `bg-bg` utility on overlay pages only. */
+html:has(.wf-overlay),
+html:has(.wf-overlay) body {
+  background: transparent;
+}
+html:has(.wf-overlay) .skip-link {
+  display: none;
+}

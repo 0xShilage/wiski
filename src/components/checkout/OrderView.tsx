@@ -34,6 +34,93 @@ function useCountdown(until: string | null, onZero: () => void): number | null {
   return until ? Math.max(0, Math.floor((Date.parse(until) - now) / 1000)) : null;
 }
 
+const sessionFmt = new Intl.DateTimeFormat('pt-BR', {
+  weekday: 'long',
+  day: '2-digit',
+  month: 'long',
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: 'America/Sao_Paulo',
+});
+
+/** "Trocar data" (04 §7): owner only, up to 24 h before, at most twice. */
+function Reschedule({ code, left, onDone }: { code: string; left: number; onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [options, setOptions] = useState<
+    { id: string; startsAt: string; publicNote: string | null }[] | null
+  >(null);
+  const [pick, setPick] = useState('');
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  if (left <= 0) return <p className="wf-co__muted mt-2 text-sm">Você já trocou a data 2 vezes.</p>;
+  return (
+    <div className="mt-3 grid gap-2">
+      {!open ? (
+        <button
+          type="button"
+          className="wf-btn wf-btn--ghost wf-btn--sm justify-self-start"
+          onClick={async () => {
+            setOpen(true);
+            const r = await apiFetch<{
+              sessions: { id: string; startsAt: string; publicNote: string | null }[];
+            }>(`/api/v1/orders/${code}/reschedule`);
+            setOptions(r.ok ? r.data.sessions : []);
+          }}
+        >
+          Trocar a data ({left} {left === 1 ? 'troca restante' : 'trocas restantes'})
+        </button>
+      ) : options === null ? (
+        <p className="wf-co__muted text-sm">Carregando sessões…</p>
+      ) : options.length ? (
+        <form
+          className="wf-co__row flex-wrap"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const r = await apiFetch(`/api/v1/orders/${code}/reschedule`, {
+              method: 'POST',
+              body: { sessionId: pick },
+            });
+            setMsg(
+              r.ok ? { ok: true, text: 'Data trocada!' } : { ok: false, text: r.problem.detail },
+            );
+            if (r.ok) onDone();
+          }}
+        >
+          <label className="sr-only" htmlFor="wf-resched">
+            Nova sessão
+          </label>
+          <select
+            id="wf-resched"
+            className="wf-input"
+            value={pick}
+            onChange={(e) => setPick(e.target.value)}
+            required
+          >
+            <option value="">Escolha uma sessão…</option>
+            {options.map((s) => (
+              <option key={s.id} value={s.id}>
+                {sessionFmt.format(new Date(s.startsAt))}
+                {s.publicNote ? ` — ${s.publicNote}` : ''}
+              </option>
+            ))}
+          </select>
+          <button type="submit" className="wf-btn wf-btn--neon wf-btn--sm" disabled={!pick}>
+            Confirmar
+          </button>
+        </form>
+      ) : (
+        <p className="wf-co__muted text-sm">
+          Nenhuma outra sessão com espaço nos próximos 60 dias.
+        </p>
+      )}
+      {msg ? (
+        <p className={msg.ok ? 'wf-hint wf-hint--ok' : 'wf-hint wf-hint--err'} role="status">
+          {msg.text}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
 /**
@@ -232,6 +319,16 @@ export function OrderView({ code, signedIn }: { code: string; signedIn: boolean 
               Tentar de novo
             </Link>
           </p>
+        ) : null}
+        {o.session && (o.status === 'SCHEDULED' || o.status === 'WATCHING') ? (
+          <p className="mt-4">
+            {o.status === 'WATCHING'
+              ? 'Passando agora na live!'
+              : `Agendado para a live de ${sessionFmt.format(new Date(o.session.startsAt))}.`}
+          </p>
+        ) : null}
+        {view.canReschedule ? (
+          <Reschedule code={o.code} left={o.rescheduleLeft} onDone={() => void load()} />
         ) : null}
         {o.status === 'NEEDS_ATTENTION' ? (
           <p className="mt-4">

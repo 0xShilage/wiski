@@ -14,7 +14,8 @@ Design baseline: `docs/phase-0/` (architecture, data model, API, pricing, threat
 Phase 1 status, how to run, decisions and deviations: `docs/phase-1/README.md`; results: `docs/phase-1/test-report.md`.
 R1 (redesign foundation): `docs/r1/README.md`; results: `docs/r1/test-report.md`; rules: `docs/phase-0/11-redesign-spec.md`.
 Phase 2 (payments): `docs/phase-2/README.md`; results: `docs/phase-2/test-report.md`.
-Phase 3 (reviews and moderation — current): `docs/phase-3/README.md`; results: `docs/phase-3/test-report.md`.
+Phase 3 (reviews and moderation): `docs/phase-3/README.md`; results: `docs/phase-3/test-report.md`.
+Phase 4 (operations: live schedule, orders/people admin, overlays, media kit, contact, LGPD — current): `docs/phase-4/README.md`; results: `docs/phase-4/test-report.md`.
 
 Non-negotiables (enforced by lint/tests — keep them green):
 
@@ -26,6 +27,7 @@ Non-negotiables (enforced by lint/tests — keep them green):
 - **Admin routes need a passkey**: `route()` enforces `Session.mfaAt` ≤ 10 min for `moderator`/`streamer` access by default — never pass `mfa: false` on an admin endpoint. STREAMER money actions also need Google step-up.
 - **User images only through the media pipeline** (`src/server/media`): bytes decide the format, everything is re-encoded under content-hash names; nginx serves `/media/` in production (the app route is development-only).
 - **Raw SQL only in reviewed migrations** (`prisma/migrations/*_constraints`) plus the documented tagged-template exceptions.
-- **Order and payment state changes only in `src/server/payments/{sync,jobs}.ts` and `src/server/checkout/{orders,access,holds}.ts`**: never trust a webhook body (re-fetch and verify every MP payment); every transition is a compare-and-set with its holds in the same transaction, and is audited.
+- **Order and payment state changes only in `src/server/payments/{sync,jobs,refunds}.ts`, `src/server/checkout/{orders,access,holds,admin}.ts`, `src/server/live/schedule.ts` and `catalog/service.ts` `markWatched`**: never trust a webhook body (re-fetch and verify every MP payment); every transition is a compare-and-set with its holds in the same transaction, and is audited.
 - **Review counters are database triggers** (`likeCount`, `openReportCount`): never adjust them in code. Every moderator action goes through `src/server/reviews/moderation.ts` (compare-and-set on the status the moderator saw, reports resolved in the same transaction, audited).
+- **Overlay payloads only through `src/server/overlay/events.ts`**: build them from sanitised text with the widget limits and validate against `overlayEventSchema` before publishing; the overlay page renders text nodes only.
 - **Secrets never in the repo, chat, logs or client bundle** (`npm run check:bundle-secrets`, gitleaks). Code/docs/identifiers in English, UI copy in pt-BR.

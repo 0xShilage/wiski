@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Avatar } from '@/components/Avatar';
+import { DataTools } from '@/components/account/DataTools';
 import { LogoutButton } from '@/components/account/LogoutButton';
 import { ProfileForm } from '@/components/account/ProfileForm';
 import { Mascote } from '@/components/brand/Mascote';
@@ -173,6 +174,19 @@ export default async function PerfilPage({ searchParams }: Props) {
               </li>
             ))}
           </ul>
+        )}
+      </section>
+
+      <section aria-labelledby="seus-dados" id="dados" className={card}>
+        <h2 id="seus-dados" className={`${heading.h3} mb-4`}>
+          Seus dados
+        </h2>
+        {user.role === 'STREAMER' ? (
+          <a href="/api/v1/me/export" className="wf-btn wf-btn--ghost" download>
+            Baixar meus dados
+          </a>
+        ) : (
+          <DataTools username={user.username} />
         )}
       </section>
     </div>

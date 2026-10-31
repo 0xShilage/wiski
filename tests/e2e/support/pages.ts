@@ -1,9 +1,12 @@
-/** Every page (Phase 1 + R1 + Phase 3), as visited by the CSP / a11y / layout specs. */
+/** Every page (Phase 1 + R1 + Phases 3–4), as visited by the CSP / a11y / layout specs. */
 export type PageCase = {
   name: string;
   path: string | ((username: string) => string);
-  /** user: signed-in viewer; newcomer: no username yet; admin: MODERATOR with a verified passkey */
-  auth?: 'user' | 'newcomer' | 'moderator' | 'admin';
+  /**
+   * user: signed-in viewer; newcomer: no username yet; admin: MODERATOR with a verified passkey;
+   * streamer: STREAMER with a verified passkey
+   */
+  auth?: 'user' | 'newcomer' | 'moderator' | 'admin' | 'streamer';
   status?: number;
   /** pages without the public header/footer (the dashboard) */
   shell?: false;
@@ -36,4 +39,18 @@ export const PAGES: PageCase[] = [
   { name: 'painel-passkey', path: '/admin/catalogo', auth: 'moderator', shell: false },
   { name: 'painel', path: '/admin/catalogo', auth: 'admin', shell: false },
   { name: 'moderacao', path: '/admin/moderacao', auth: 'admin', shell: false },
+  // Phase 4: operations
+  { name: 'agenda', path: '/admin/agenda', auth: 'admin', shell: false },
+  { name: 'pedidos', path: '/admin/pedidos', auth: 'admin', shell: false },
+  { name: 'pessoas', path: '/admin/pessoas', auth: 'admin', shell: false },
+  { name: 'agenda-streamer', path: '/admin/agenda', auth: 'streamer', shell: false },
+  { name: 'overlays', path: '/admin/overlays', auth: 'streamer', shell: false },
+  { name: 'metas', path: '/admin/metas', auth: 'streamer', shell: false },
+  { name: 'media-kit-admin', path: '/admin/media-kit', auth: 'streamer', shell: false },
+  { name: 'caixa-contato', path: '/admin/contato', auth: 'streamer', shell: false },
+  { name: 'cupons', path: '/admin/cupons', auth: 'streamer', shell: false },
+  { name: 'auditoria', path: '/admin/auditoria', auth: 'streamer', shell: false },
+  { name: 'configuracoes', path: '/admin/configuracoes', auth: 'streamer', shell: false },
+  { name: 'streamer-bloqueado', path: '/admin/overlays', auth: 'admin', status: 404, shell: false },
+  { name: 'overlay-sem-chave', path: '/overlay/fila', shell: false },
 ];

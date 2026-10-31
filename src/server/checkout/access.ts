@@ -80,6 +80,12 @@ export async function orderView(
       ? await loadPix(order.id, order.payment.providerPaymentId, expiresAt)
       : null;
   const cookie = readOrderCookie(req);
+  const session = order.sessionId
+    ? await db().streamSession.findUnique({
+        where: { id: order.sessionId },
+        select: { startsAt: true, status: true },
+      })
+    : null;
   return {
     order: {
       code: order.publicCode,
@@ -99,7 +105,13 @@ export async function orderView(
       messageStatus: order.messageStatus,
       pix,
       guest: order.userId === null,
+      /** the live session it's on (Phase 4) */
+      session: session
+        ? { startsAt: session.startsAt.toISOString(), status: session.status }
+        : null,
+      rescheduleLeft: order.kind === 'MOVIE' ? Math.max(0, 2 - (order.rescheduleCount ?? 0)) : 0,
     },
+    canReschedule: viewer.kind === 'owner' && order.status === 'SCHEDULED',
     canClaim: Boolean(user) && order.userId === null && viewer.kind === 'cookie',
     canCancel: pending && viewer.kind !== 'staff',
     /** for guest mutations (cancel) — bound to this browser's order cookie (03 §2) */

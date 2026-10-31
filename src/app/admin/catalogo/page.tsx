@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { adminGate } from '@/components/admin/AdminGate';
 import { Dashboard } from '@/components/admin/Dashboard';
 import { adminCounts, getAdmin, listAdmin } from '@/server/catalog/read';
-import { waitingCount } from '@/server/reviews/moderation';
+import { opsCounts } from '@/server/admin/counts';
 
 export const metadata: Metadata = { title: 'Catálogo' };
 
@@ -26,11 +26,11 @@ export default async function CatalogoPage({ searchParams }: Props) {
       : 'filmes';
   const kind = TIPO[tipo];
   const id = typeof params.item === 'string' && UUID.test(params.item) ? params.item : null;
-  const [items, counts, item, waiting] = await Promise.all([
+  const [items, counts, item, ops] = await Promise.all([
     listAdmin(kind),
     adminCounts(),
     id ? getAdmin(id) : Promise.resolve(null),
-    waitingCount(),
+    opsCounts(),
   ]);
 
   return (
@@ -40,7 +40,7 @@ export default async function CatalogoPage({ searchParams }: Props) {
       initialCounts={counts}
       initialItem={item && item.kind === kind ? item : null}
       user={{ username: ctx.user.username ?? 'moderacao', role: ctx.user.role }}
-      waiting={waiting}
+      ops={ops}
     />
   );
 }

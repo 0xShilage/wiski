@@ -78,9 +78,12 @@ export async function signIn(context: BrowserContext, token: string) {
 }
 
 /** Users for a PageCase `auth` value. */
-export async function seedFor(auth: 'user' | 'newcomer' | 'moderator' | 'admin' | undefined) {
+export async function seedFor(
+  auth: 'user' | 'newcomer' | 'moderator' | 'admin' | 'streamer' | undefined,
+) {
   if (auth === 'newcomer') return seedUser({ username: null });
   if (auth === 'moderator') return seedUser({ role: 'MODERATOR' });
   if (auth === 'admin') return seedUser({ role: 'MODERATOR', passkeyVerified: true });
+  if (auth === 'streamer') return seedUser({ role: 'STREAMER', passkeyVerified: true });
   return seedUser({ avatarKey: 'mascote-2-lilac' });
 }

@@ -241,6 +241,7 @@ model CatalogItem {
   orders           Order[]
   reviews          Review[]
   watchEvents      WatchEvent[]
+  nowPlayingIn     StreamSession[] @relation("NowPlaying")
 
   @@index([kind, status, slot])
   @@index([status, watchedAt])
@@ -326,15 +327,20 @@ model Campaign {
   openedAt       DateTime       @db.Timestamptz(3)
   openedById     String         @db.Uuid
   fundedAt       DateTime?      @db.Timestamptz(3)
+  /// Phase 4: the live session a funded campaign starts in (series may run over several lives)
+  sessionId      String?        @db.Uuid
+  scheduledAt    DateTime?      @db.Timestamptz(3)
   version        Int            @default(0)
   createdAt      DateTime       @default(now()) @db.Timestamptz(3)
   updatedAt      DateTime       @updatedAt @db.Timestamptz(3)
 
-  item     CatalogItem @relation(fields: [itemId], references: [id], onDelete: Restrict)
-  openedBy User        @relation("CampaignOpener", fields: [openedById], references: [id], onDelete: Restrict)
+  item     CatalogItem    @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  openedBy User           @relation("CampaignOpener", fields: [openedById], references: [id], onDelete: Restrict)
+  session  StreamSession? @relation(fields: [sessionId], references: [id], onDelete: Restrict)
   orders   Order[]
 
   @@index([status, deadlineAt])
+  @@index([sessionId])
 }
 
 /// Proof an item was watched on stream → unlocks reviews for that item.
@@ -462,18 +468,27 @@ enum StreamSessionStatus {
 model StreamSession {
   id              String              @id @default(uuid(7)) @db.Uuid
   startsAt        DateTime            @db.Timestamptz(3)
-  endsAt          DateTime?           @db.Timestamptz(3)
+  endsAt          DateTime?           @db.Timestamptz(3) // set when the live ends (DONE)
   capacityMinutes Int
-  bookedMinutes   Int                 @default(0) // conditional updateMany guards capacity
+  bookedMinutes   Int                 @default(0) // movie runtimes scheduled here; conditional updateMany guards capacity
   status          StreamSessionStatus @default(PLANNED)
-  publicNote      String?
+  publicNote      String? // ≤ 140, sanitised, shown on the public schedule
+  startedAt       DateTime?           @db.Timestamptz(3) // went LIVE
+  cancelledAt     DateTime?           @db.Timestamptz(3)
+  /// Phase 4: what is on screen right now ("Agora assistindo"); only while LIVE (CHECK)
+  nowItemId       String?             @db.Uuid
+  version         Int                 @default(0)
   createdAt       DateTime            @default(now()) @db.Timestamptz(3)
   updatedAt       DateTime            @updatedAt @db.Timestamptz(3)
 
   orders      Order[]
+  campaigns   Campaign[]
   watchEvents WatchEvent[]
+  nowItem     CatalogItem?        @relation("NowPlaying", fields: [nowItemId], references: [id], onDelete: Restrict)
 
   @@index([startsAt])
+  /// At most one live session at a time.
+  @@unique([status], map: "session_one_live", where: raw("(status = 'LIVE'::\"StreamSessionStatus\")"))
 }
 
 /// Order lifecycle (shared by movie sponsorships and campaign contributions).

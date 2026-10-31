@@ -72,6 +72,15 @@ export async function loadSession(
   ) {
     return null;
   }
+  // A timed suspension that ran out lifts itself on the next request (Phase 4).
+  if (user.status === 'SUSPENDED' && user.suspendedUntil && user.suspendedUntil.getTime() <= t) {
+    await db().user.updateMany({
+      where: { id: user.id, status: 'SUSPENDED', suspendedUntil: user.suspendedUntil },
+      data: { status: 'ACTIVE', suspendedUntil: null },
+    });
+    user.status = 'ACTIVE';
+    user.suspendedUntil = null;
+  }
   if (t - session.lastSeenAt.getTime() >= TOUCH_INTERVAL_MS) {
     const idleExpiresAt = new Date(Math.min(t + life.idleMs, session.expiresAt.getTime()));
     // Conditional update: a concurrent revoke wins.

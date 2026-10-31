@@ -17,6 +17,7 @@ import {
 import { closeRealtime } from '@/server/realtime/events';
 import { disconnectDb } from '@/server/db';
 import { disconnectRedis } from '@/server/redis';
+import { purgeContact } from '@/server/contact/contact';
 import { runAuditVerify } from './jobs/audit-verify';
 import { WAKE_CHANNEL } from '@/server/payments/wake';
 
@@ -60,6 +61,7 @@ const jobs: Job[] = [
       if (sweepDue(now)) {
         await sweepRecent(now);
         await purgeWebhookEvents(now);
+        await purgeContact(now); // LGPD: contact messages after 12 months (Phase 4)
       }
     },
   },

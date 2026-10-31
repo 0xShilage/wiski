@@ -109,6 +109,16 @@ async function call(
   body?: unknown,
   idempotencyKey?: string,
 ): Promise<MpPayment> {
+  return request(mpPaymentSchema, method, path, body, idempotencyKey);
+}
+
+async function request<T>(
+  schema: z.ZodType<T>,
+  method: 'GET' | 'POST' | 'PUT',
+  path: string,
+  body?: unknown,
+  idempotencyKey?: string,
+): Promise<T> {
   const token = getEnv().MP_ACCESS_TOKEN;
   if (!token) throw new MpError('not-configured');
   const headers: Record<string, string> = {
@@ -146,7 +156,7 @@ async function call(
   } catch {
     throw new MpError('invalid-response', res.status);
   }
-  const parsed = mpPaymentSchema.safeParse(json);
+  const parsed = schema.safeParse(json);
   if (!parsed.success) throw new MpError('invalid-response', res.status);
   return parsed.data;
 }
@@ -189,6 +199,23 @@ export function getPayment(id: string): Promise<MpPayment> {
 export function cancelPayment(id: string): Promise<MpPayment> {
   if (!/^\d{1,20}$/.test(id)) throw new MpError('invalid-response');
   return call('PUT', `/v1/payments/${id}`, { status: 'cancelled' });
+}
+
+export const mpRefundSchema = z.object({
+  id: z.number().int().positive(),
+  payment_id: z.number().int().positive(),
+  amount: z.number().positive(),
+  status: z.string().min(1).max(40),
+});
+export type MpRefund = z.infer<typeof mpRefundSchema>;
+
+/**
+ * Full refund of an approved payment (POST /v1/payments/{id}/refunds) — the streamer's exception
+ * tool only (04 §8). The idempotency key makes a retried request return the same refund.
+ */
+export function refundPayment(id: string, idempotencyKey: string): Promise<MpRefund> {
+  if (!/^\d{1,20}$/.test(id)) throw new MpError('invalid-response');
+  return request(mpRefundSchema, 'POST', `/v1/payments/${id}/refunds`, {}, idempotencyKey);
 }
 
 const BASE64 = /^[a-z\d+/]+={0,2}$/i;

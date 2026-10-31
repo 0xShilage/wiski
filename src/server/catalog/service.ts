@@ -8,6 +8,9 @@ import { audit } from '../audit/audit';
 import { db } from '../db';
 import { PG, pgErrorCode } from '../db-errors';
 import { HttpError, type ProblemField, Problems } from '../http/problem';
+import { completeInTx } from '../live/schedule';
+import { refreshOverlays } from '../overlay/state';
+import { publishOrder } from '../realtime/events';
 import type { ItemFieldsInput } from './input';
 import { type CatalogSnapshot, changedFields, snapshotOf, snapshotSchema } from './snapshot';
 
@@ -501,19 +504,16 @@ export async function markWatched(ctx: Ctx, id: string, now = new Date()) {
   if (item.reservedUntil && item.reservedUntil > now) {
     throw CatalogProblems.invalidState('Há um Pix pendente para este filme.');
   }
-  return tx(item.kind, async (t) => {
-    const res = await t.catalogItem.updateMany({
-      where: { id, status: item.status, version: item.version },
-      data: { status: 'WATCHED', watchedAt: now },
+  let completed: string[] = [];
+  const row = await tx(item.kind, async (t) => {
+    // same path as the live agenda's "Concluído": the movie's order is COMPLETED too (Phase 4)
+    const done = await completeInTx(t, id, null, now).catch((err: unknown) => {
+      if (err instanceof HttpError && err.code === 'SCHEDULE_CHANGED') {
+        throw CatalogProblems.versionConflict(item.version);
+      }
+      throw err;
     });
-    if (res.count !== 1) throw CatalogProblems.versionConflict(item.version);
-    if (item.campaign) {
-      await t.campaign.update({
-        where: { id: item.campaign.id },
-        data: { status: 'WATCHED', version: { increment: 1 } },
-      });
-    }
-    await t.watchEvent.create({ data: { itemId: id, watchedAt: now } });
+    completed = done.orderIds;
     await audit(
       {
         action: 'catalog.watched',
@@ -527,6 +527,19 @@ export async function markWatched(ctx: Ctx, id: string, now = new Date()) {
     );
     return t.catalogItem.findUniqueOrThrow({ where: { id } });
   });
+  for (const orderId of completed) {
+    const o = await db().order.findUnique({ where: { id: orderId }, select: { publicCode: true } });
+    if (o) {
+      await publishOrder(orderId, {
+        type: 'status',
+        code: o.publicCode,
+        status: 'COMPLETED',
+        at: now.toISOString(),
+      });
+    }
+  }
+  await refreshOverlays(['agora', 'fila', 'meta']);
+  return row;
 }
 
 /** Delete a draft that never went live (no orders, no campaign). */

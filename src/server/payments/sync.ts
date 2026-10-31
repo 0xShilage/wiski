@@ -7,6 +7,7 @@ import { confirmHolds, releaseHolds } from '../checkout/holds';
 import { db } from '../db';
 import { getEnv } from '../env';
 import { logger } from '../log';
+import { announcePaidOrder } from '../overlay/state';
 import { publishCampaign, publishOrder } from '../realtime/events';
 import { amountToCents, getPayment, mapStatus, type MpPayment } from './mercadopago/client';
 
@@ -366,6 +367,7 @@ export async function announce(
     status,
     at: now.toISOString(),
   });
+  if (status === 'PAID') await announcePaidOrder(order.id); // "Novo patrocínio" on stream
   if (order.campaignId) {
     const c = await db().campaign.findUnique({ where: { id: order.campaignId } });
     if (c) {

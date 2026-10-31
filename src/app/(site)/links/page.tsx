@@ -21,17 +21,22 @@ export default async function LinksPage() {
       </header>
       {links.length ? (
         <ul className="wf-links__list">
-          {links.map((l) => (
-            <li key={l.id}>
-              <a className="wf-links__btn" href={l.url} rel="me noreferrer">
-                <span className="wf-links__text">
-                  <span className="wf-links__label">{l.label}</span>
-                  {l.note ? <span className="wf-links__note">{l.note}</span> : null}
-                </span>
-                <span className="wf-links__where">{l.platform ?? l.host}</span>
-              </a>
-            </li>
-          ))}
+          {links.map((l) => {
+            // "Twitch" next to a button already named "Twitch" says nothing new
+            const where = l.platform ?? l.host;
+            const showWhere = where.toLowerCase() !== l.label.toLowerCase();
+            return (
+              <li key={l.id}>
+                <a className="wf-links__btn" href={l.url} rel="me noreferrer">
+                  <span className="wf-links__text">
+                    <span className="wf-links__label">{l.label}</span>
+                    {l.note ? <span className="wf-links__note">{l.note}</span> : null}
+                  </span>
+                  {showWhere ? <span className="wf-links__where">{where}</span> : null}
+                </a>
+              </li>
+            );
+          })}
         </ul>
       ) : (
         <p className="wf-links__empty">Os links chegam em breve.</p>

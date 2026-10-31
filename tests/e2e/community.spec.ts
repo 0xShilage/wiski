@@ -36,7 +36,9 @@ test('links: the seeded buttons in order, platform names as text, no new tab', a
   await expect(links).toHaveCount(4);
   await expect(links.first()).toHaveAttribute('href', 'https://twitch.tv/wiski');
   await expect(links.first()).toContainText('Lives de terça a sábado');
-  await expect(links.first().locator('.wf-links__where')).toHaveText('Twitch');
+  // the platform name shows only when the button says something else
+  await expect(links.first().locator('.wf-links__where')).toHaveCount(0);
+  await expect(links.nth(3).locator('.wf-links__where')).toHaveText('Discord');
   await expect(links.first()).not.toHaveAttribute('target', /.+/);
   expect(await links.first().getAttribute('rel')).toContain('noreferrer');
 });
@@ -70,7 +72,7 @@ test('suggestions: a viewer suggests, a moderator accepts, the viewer sees it', 
   // the same title again
   await page.getByLabel('Nome').fill(title.toUpperCase());
   await page.getByRole('button', { name: 'Enviar sugestão' }).click();
-  await expect(page.getByRole('alert')).toContainText('Você já sugeriu este título');
+  await expect(page.locator('.wf-toast--err')).toContainText('Você já sugeriu este título');
 
   const mod = await seedUser({ role: 'MODERATOR', passkeyVerified: true });
   const mctx = await browser.newContext();

@@ -62,6 +62,19 @@
       0 0 14px rgb(115 107 178 / 0.7);
   }
 
+  /* 761–880 px: eight tabs next to the logo need a smaller label and tighter gaps (Phase 6) */
+  @media (min-width: 761px) and (max-width: 880px) {
+    .wf-header__inner {
+      gap: 16px;
+    }
+    .wf-nav {
+      gap: 11px;
+    }
+    .wf-nav a {
+      font-size: 14px;
+    }
+  }
+
   /* ── Bottom tab bar (≤ 760 px): the five tabs, icons + labels, active one glows ── */
   .wf-tabbar {
     display: none;
@@ -85,7 +98,7 @@
       justify-content: space-around;
       align-items: center;
     }
-    .wf-tabbar a,
+    .wf-tabbar > a,
     .wf-tabbar__more {
       /* six tabs share 360 px: equal columns, no minimum width */
       flex: 1 1 0;
@@ -109,21 +122,23 @@
       font: inherit;
       cursor: pointer;
     }
-    .wf-tabbar svg {
+    .wf-tabbar > a svg,
+    .wf-tabbar__more svg {
       width: 22px;
       height: 22px;
     }
-    .wf-tabbar span {
+    .wf-tabbar > a > span,
+    .wf-tabbar__more > span {
       max-width: 100%;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .wf-tabbar a[aria-current='page'],
+    .wf-tabbar > a[aria-current='page'],
     .wf-tabbar__more.is-active {
       color: var(--color-lilac);
       text-shadow: 0 0 10px rgb(169 157 224 / 0.8);
     }
-    .wf-tabbar a[aria-current='page'] svg,
+    .wf-tabbar > a[aria-current='page'] svg,
     .wf-tabbar__more.is-active svg {
       filter: drop-shadow(0 0 4px rgb(169 157 224 / 0.9));
     }
@@ -152,6 +167,11 @@
       display: grid;
       gap: 2px;
     }
+    .wf-more svg {
+      width: 20px;
+      height: 20px;
+      flex: none;
+    }
     .wf-more a {
       display: flex;
       align-items: center;
@@ -178,7 +198,7 @@
   }
   /* six labels on a 360 px phone ("Cronograma", "Avaliações" are the long ones) */
   @media (max-width: 420px) {
-    .wf-tabbar a,
+    .wf-tabbar > a,
     .wf-tabbar__more {
       font-size: 9.5px;
       letter-spacing: -0.02em;

@@ -25,6 +25,7 @@ if (process.env.NODE_ENV === 'production') {
 (process.env as Record<string, string | undefined>).NODE_ENV ??= 'development';
 
 const { db, disconnectDb } = await import('../src/server/db');
+const { disconnectRedis } = await import('../src/server/redis');
 const { ingestFile } = await import('../src/server/media/pipeline');
 const { createItem, publishMovie } = await import('../src/server/catalog/service');
 const { openCampaign } = await import('../src/server/catalog/campaigns');
@@ -669,4 +670,5 @@ try {
 } finally {
   rmSync(tmp, { recursive: true, force: true });
   await disconnectDb();
+  await disconnectRedis(); // the schedule refreshes the overlays (Redis publish)
 }

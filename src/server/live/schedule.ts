@@ -71,7 +71,7 @@ function cleanNote(raw: string | null | undefined): string | null | undefined {
 
 export async function createSession(
   ctx: Ctx,
-  input: { startsAt: Date; capacityMinutes: number; publicNote?: string | null },
+  input: { startsAt: Date; capacityMinutes: number; publicNote?: string | null | undefined },
 ) {
   const note = cleanNote(input.publicNote) ?? null;
   return inTx(async (t) => {
@@ -98,9 +98,9 @@ export async function updateSession(
   id: string,
   input: {
     expectedVersion: number;
-    startsAt?: Date;
-    capacityMinutes?: number;
-    publicNote?: string | null;
+    startsAt?: Date | undefined;
+    capacityMinutes?: number | undefined;
+    publicNote?: string | null | undefined;
   },
 ) {
   const note = cleanNote(input.publicNote);

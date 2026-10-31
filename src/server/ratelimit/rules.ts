@@ -112,4 +112,21 @@ export const RL = {
   },
   /** Public review/profile reads. */
   reviewRead: { name: 'review-read', perIp: { limit: 120, windowMs: MIN } },
+
+  // ── Phase 4 (05 §9) ──
+  overlaySession: { name: 'overlay-session', perIp: { limit: 10, windowMs: MIN } },
+  overlayStream: { name: 'overlay-stream', perIp: { limit: 60, windowMs: MIN } },
+  contact: { name: 'contact', perIp: { limit: 5, windowMs: HOUR } },
+  contactDaily: { name: 'contact-day', perIp: { limit: 20, windowMs: 24 * HOUR } },
+  publicRead: { name: 'public-read', perIp: { limit: 120, windowMs: MIN } },
+  dataExport: {
+    name: 'data-export',
+    perIp: { limit: 10, windowMs: HOUR },
+    perUser: { limit: 5, windowMs: HOUR },
+  },
+  accountErase: {
+    name: 'account-erase',
+    perIp: { limit: 10, windowMs: HOUR },
+    perUser: { limit: 3, windowMs: HOUR },
+  },
 } as const satisfies Record<string, RateLimitRule>;

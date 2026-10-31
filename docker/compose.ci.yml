@@ -1,0 +1,12 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CI override for the production stack (tests/smoke/compose-smoke.sh). Only what cannot exist in
+# CI changes: no Cloudflare in front (Authenticated Origin Pulls off), and the site answers as
+# "localhost". Everything else — images, hardening, limits, networks, secrets as files — is the
+# production compose file.
+# ─────────────────────────────────────────────────────────────────────────────
+services:
+  nginx:
+    environment:
+      WF_SERVER_NAME: localhost
+    volumes:
+      - ./ci/origin-pull.conf:/etc/nginx/snippets/origin-pull.conf:ro

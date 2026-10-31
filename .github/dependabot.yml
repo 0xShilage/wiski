@@ -34,3 +34,19 @@ updates:
     groups:
       actions:
         patterns: ['*']
+
+  # Phase 5: base images (Dockerfile) and the infrastructure images (production compose file)
+  - package-ecosystem: docker
+    directory: /
+    schedule: { interval: weekly, day: monday, time: '06:00', timezone: America/Sao_Paulo }
+    groups:
+      base-images:
+        patterns: ['*']
+        update-types: [minor, patch]
+  - package-ecosystem: docker-compose
+    directory: /docker
+    schedule: { interval: weekly, day: monday, time: '06:00', timezone: America/Sao_Paulo }
+    groups:
+      infra-images:
+        patterns: ['*']
+        update-types: [minor, patch]

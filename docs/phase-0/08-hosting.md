@@ -1,6 +1,6 @@
 # 08 — Hosting, domain and e-mail
 
-> Status: **rev 4** · 2026-10-02 · domain **wiski.fun** on Cloudflare (done) · Hostinger dropped (no Brazil server offered to you) · candidate: **RedHosting** VPS, 2 vCPU · 2 GB RAM · 20 GB NVMe · 500 Mbps · expected traffic ≈ 1,000 visits/month.
+> Status: **rev 5** · 2026-10-31 · Phase 5 built the stack described here: [../phase-5/deploy-guide.md](../phase-5/deploy-guide.md) (step by step), [../phase-5/security-checklist.md](../phase-5/security-checklist.md) · rev 4 · 2026-10-02 · domain **wiski.fun** on Cloudflare (done) · Hostinger dropped (no Brazil server offered to you) · candidate: **RedHosting** VPS, 2 vCPU · 2 GB RAM · 20 GB NVMe · 500 Mbps · expected traffic ≈ 1,000 visits/month.
 
 ## 1. Is 2 vCPU / 2 GB / 20 GB enough?
 
@@ -18,7 +18,7 @@
 | Redis | 128 MB | ~30 MB | `maxmemory 64mb`, `noeviction` (required for job queues); every cache key has a TTL |
 | **Total** | **≈ 1.3 GB** | **≈ 0.9–1.1 GB** | 2 GB swap only as a safety net |
 
-If memory is ever tight, the worker can run inside the web process (`WORKER_MODE=inline`), saving about 150 MB. Built as an option in Phase 5, off by default.
+If memory is ever tight, the worker could run inside the web process (`WORKER_MODE=inline`), saving about 150 MB. Not built in Phase 5 (phase-5 D1): the limits above fit.
 
 ### Disk budget (20 GB)
 
@@ -73,6 +73,6 @@ DNS: SPF and DKIM for `mail.wiski.fun` (from Resend). DMARC on the apex starting
 
 ## 5. Backups
 
-Nightly encrypted Postgres dumps to Cloudflare R2 (off-site), 7 local copies, and provider snapshots if RedHosting offers them. Restore tested quarterly.
+Nightly encrypted Postgres dumps **and media** (age, to a public key whose private half stays off the server) to Cloudflare R2 (off-site), 7 local copies, and provider snapshots if RedHosting offers them. Restore drilled quarterly with `scripts/ops/restore.sh --drill` (phase-5 deploy guide §6).
 
 Sources: [RedHosting](https://redhosting.com.br/) · [Hostinger server locations](https://www.hostinger.com/support/1583267-where-are-hostinger-servers-located/) · [Resend pricing guide](https://flexprice.io/blog/detailed-resend-pricing-guide) · [Cloudflare Email Routing](https://www.cloudflare.com/en-in/developer-platform/products/email-routing/)

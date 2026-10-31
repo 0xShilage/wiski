@@ -1,4 +1,4 @@
-# Wiskiflix CI (Phase 1 skeleton, 10 §2 step 13). Third-party actions are pinned by commit SHA;
+# Wiskiflix CI (Phase 1 skeleton, 10 §2 step 13; Phase 5: image, production-stack smoke, restore drill). Third-party actions are pinned by commit SHA;
 # Dependabot keeps them (and npm) moving. Runs once the repository is on GitHub (Q26).
 name: ci
 
@@ -28,11 +28,15 @@ jobs:
         with: { persist-credentials: false }
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with: { node-version-file: .nvmrc, cache: npm }
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends nginx-light shellcheck
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run format:check
+      # nginx -t on the production config, the compose hardening rules (docker compose config)
       - run: npm test
+      - name: shellcheck (ops scripts)
+        run: shellcheck -S warning scripts/ops/*.sh tests/smoke/*.sh docker/postgres/*.sh docker/dev/*.sh
 
   integration:
     name: integration (embedded Postgres 17 + Redis)
@@ -124,8 +128,84 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with: { node-version-file: .nvmrc, cache: npm }
       - run: npm audit --audit-level=high
+      # Phase 5: what ships (the image has no dev dependencies) must have no advisory at all
+      - run: npm audit --omit=dev --audit-level=low
       - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_CONFIG: .gitleaks.toml
           GITLEAKS_ENABLE_COMMENTS: 'false'
+
+  restore-drill:
+    name: restore drill (backup.sh → restore.sh --drill, local Postgres)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends redis-server age postgresql-16
+      - run: npm ci
+      - run: npm run build:worker
+      - run: tests/smoke/restore-drill.sh
+        env: { PG_BIN: /usr/lib/postgresql/16/bin }
+
+  image:
+    name: image · production-stack smoke · release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    needs: [quality, integration, migrations]
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version-file: .nvmrc }
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends age
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build runtime image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          target: runtime
+          load: true
+          tags: wiski:ci
+          cache-from: type=gha,scope=runtime
+          cache-to: type=gha,mode=max,scope=runtime
+      - name: Build migrate image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          target: migrate
+          load: true
+          tags: wiski-migrate:ci
+          cache-from: type=gha,scope=migrate
+          cache-to: type=gha,mode=max,scope=migrate
+      - name: Production stack smoke test (check-site, users, read-only, backup + restore drill)
+        run: tests/smoke/compose-smoke.sh
+        env: { WF_IMAGE: 'wiski:ci', WF_MIGRATE_IMAGE: 'wiski-migrate:ci' }
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with: { name: compose-smoke-log, path: test-results/compose-smoke.log, retention-days: 14 }
+      - name: Push to GHCR and write release.env (main only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          repo="ghcr.io/${GITHUB_REPOSITORY,,}"
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          for pair in "wiski:ci $repo:$GITHUB_SHA" "wiski-migrate:ci $repo-migrate:$GITHUB_SHA"; do
+            set -- $pair; docker tag "$1" "$2"; docker push --quiet "$2"
+          done
+          {
+            echo "WF_IMAGE=$(docker inspect --format '{{index .RepoDigests 0}}' "$repo:$GITHUB_SHA")"
+            echo "WF_MIGRATE_IMAGE=$(docker inspect --format '{{index .RepoDigests 0}}' "$repo-migrate:$GITHUB_SHA")"
+            echo "WF_COMMIT=$GITHUB_SHA"
+          } > release.env
+          cat release.env
+      - if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with: { name: release, path: release.env, retention-days: 90 }

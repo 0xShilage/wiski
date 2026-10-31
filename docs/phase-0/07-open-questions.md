@@ -54,6 +54,8 @@
 | P1-d | Phase 5 | Trusted Types enforcement: Next.js's chunk loader still triggers report-only violations on pages with client components; needs a TT policy for `/_next/static`. |
 | **E1** | Launch | **E-mail provider** for receipts and campaign notices (e.g. Amazon SES, Brevo or Resend; domain `wiski.fun` with SPF/DKIM/DMARC). Until then the order page offers "Copiar link do pedido", and new contact messages only show in Admin › Contato (no e-mail alert). |
 | P4-a | Media kit (optional) | Twitch and YouTube app credentials so the media kit numbers update themselves; until then the streamer types them in Admin › Media kit. |
+| P5-a | First deploy | Cloudflare R2 bucket `wiskiflix-backups` + scoped token, and your backup key pair (`age-keygen`; private key in your password manager) — [phase-5 deploy guide](../phase-5/deploy-guide.md) §0, §3 |
+| P5-b | Launch | First deploy, then the real Mozilla Observatory and SSL Labs scans (expected A+) and the first restore drill on the server |
 | **Q13** | Launch (checkout stays closed in production without them) | Name payers see as the Pix recipient (for a pessoa física account usually your legal name — confirm with a small Pix), plus the terms / privacy / no-refund texts from your lawyer. The site shows clearly-marked provisional pages until then. |
 | **Q21b** | Phase 5 | RedHosting's answers to the checklist in 08 §1 (KVM? data-center city? IPv4? snapshots?) before you buy. |
 

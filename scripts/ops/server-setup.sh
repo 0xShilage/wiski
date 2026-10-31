@@ -1,0 +1,171 @@
+#!/usr/bin/env bash
+# ─────────────────────────────────────────────────────────────────────────────
+# One-time preparation of a fresh Ubuntu 24.04 LTS VPS (KVM) for Wiskiflix (Phase 5,
+# docs/phase-5/deploy-guide.md). Idempotent: re-running keeps existing secrets and settings.
+#
+#   curl -fsSLO https://raw.githubusercontent.com/<owner>/<repo>/<commit>/scripts/ops/server-setup.sh
+#   less server-setup.sh                   # read it first
+#   sudo WF_ADMIN_IP=<your public IP> WF_REPO=git@github.com:<owner>/<repo>.git bash server-setup.sh
+#
+# What it does: system updates + unattended security upgrades · Docker Engine from Docker's
+# repository with log limits and no-new-privileges · 2 GB swap · journald cap · SSH keys only ·
+# firewall (SSH from you, web from Cloudflare) · /etc/wiskiflix with freshly generated database,
+# Redis and app secrets (0600, never printed) · Cloudflare origin-pull CA · the repository in
+# /opt/wiskiflix · daily backup and weekly Cloudflare-ranges timers.
+# What it does NOT do (you, by hand — the guide lists them): paste the Cloudflare Origin
+# certificate, Google/Turnstile/Mercado Pago credentials, the backup public key, the rclone remote.
+# ─────────────────────────────────────────────────────────────────────────────
+set -euo pipefail
+[ "$(id -u)" = 0 ] || { echo "run with sudo"; exit 1; }
+: "${WF_ADMIN_IP:?set WF_ADMIN_IP to the public IP you SSH from}"
+REPO="${WF_REPO:-}"
+DOMAIN="${WF_SERVER_NAME:-wiski.fun}"
+ETC=/etc/wiskiflix
+. /etc/os-release
+[ "$ID" = ubuntu ] && [ "$VERSION_ID" = 24.04 ] || { echo "expects Ubuntu 24.04 (found $PRETTY_NAME)"; exit 1; }
+[ "$(systemd-detect-virt)" != openvz ] && [ "$(systemd-detect-virt)" != lxc ] || { echo "needs KVM, not $(systemd-detect-virt)"; exit 1; }
+step() { printf '\n── %s\n' "$*"; }
+
+step "system updates"
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -q
+apt-get -y -q upgrade
+apt-get -y -q install ca-certificates curl gnupg git jq ufw unattended-upgrades age rclone \
+  iptables openssl
+dpkg-reconfigure -f noninteractive unattended-upgrades
+cat > /etc/apt/apt.conf.d/52wiskiflix-upgrades <<'CONF'
+Unattended-Upgrade::Automatic-Reboot "true";
+Unattended-Upgrade::Automatic-Reboot-Time "05:30";
+CONF
+
+step "Docker Engine (docker.com repository)"
+if ! command -v docker >/dev/null; then
+  install -m 0755 -d /etc/apt/keyrings
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+  chmod a+r /etc/apt/keyrings/docker.asc
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu ${VERSION_CODENAME} stable" \
+    > /etc/apt/sources.list.d/docker.list
+  apt-get update -q
+  apt-get -y -q install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+fi
+mkdir -p /etc/docker
+cat > /etc/docker/daemon.json <<'JSON'
+{
+  "log-driver": "json-file",
+  "log-opts": { "max-size": "10m", "max-file": "3" },
+  "live-restore": true,
+  "no-new-privileges": true,
+  "userland-proxy": false,
+  "icc": false
+}
+JSON
+systemctl restart docker
+
+step "memory: 2 GB swap, low swappiness"
+if ! swapon --show | grep -q /swapfile; then
+  fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile >/dev/null && swapon /swapfile
+  grep -q '^/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+fi
+echo 'vm.swappiness=10' > /etc/sysctl.d/90-wiskiflix.conf
+sysctl -q --system
+
+step "logs: journald capped at 200 MB"
+mkdir -p /etc/systemd/journald.conf.d
+printf '[Journal]\nSystemMaxUse=200M\n' > /etc/systemd/journald.conf.d/90-wiskiflix.conf
+systemctl restart systemd-journald
+
+step "SSH: keys only"
+if [ -s /root/.ssh/authorized_keys ] || compgen -G '/home/*/.ssh/authorized_keys' >/dev/null; then
+  cat > /etc/ssh/sshd_config.d/90-wiskiflix.conf <<'CONF'
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitRootLogin prohibit-password
+MaxAuthTries 3
+X11Forwarding no
+CONF
+  systemctl reload ssh
+else
+  echo "WARNING: no authorized_keys found — password login left on; add your key and re-run"
+fi
+
+step "configuration directory $ETC (0700, root)"
+install -d -m 0700 "$ETC" "$ETC/secrets" "$ETC/tls" "$ETC/nginx"
+install -d -m 0700 /var/backups/wiskiflix
+rand_hex() { openssl rand -hex 32; }
+rand_key() { openssl rand 32 | basenc --base64url | tr -d '='; }
+for s in pg_superuser pg_migrator pg_app redis; do
+  [ -s "$ETC/secrets/$s" ] || { rand_hex > "$ETC/secrets/$s"; chmod 600 "$ETC/secrets/$s"; }
+done
+# the postgres image reads the secret files as uid 999; Docker secrets from files keep host perms
+chown 999:999 "$ETC/secrets/pg_superuser" "$ETC/secrets/pg_migrator" "$ETC/secrets/pg_app"
+chown 999:1000 "$ETC/secrets/redis"
+[ -s "$ETC/admin-ips.txt" ] || echo "$WF_ADMIN_IP" > "$ETC/admin-ips.txt"
+
+app="$ETC/app.env"
+if [ ! -s "$app" ]; then
+  umask 077
+  cat > "$app" <<ENV
+# Wiskiflix production environment — generated by server-setup.sh on $(date -u +%F).
+# 0600 root. Fill in every CHANGE_ME (the app refuses to start while one is left).
+APP_ORIGIN=https://${DOMAIN}
+DATABASE_URL=postgresql://wf_app:$(cat "$ETC/secrets/pg_app")@postgres:5432/wiskiflix
+REDIS_URL=redis://:$(cat "$ETC/secrets/redis")@redis:6379
+CSRF_SECRET=$(rand_key)
+COOKIE_SEAL_KEY=$(rand_key)
+IP_HASH_SECRET=$(rand_key)
+TOTP_ENCRYPTION_KEY=$(rand_key)
+CLIENT_IP_HEADER=x-real-ip
+LOG_LEVEL=info
+GOOGLE_CLIENT_ID=CHANGE_ME
+GOOGLE_CLIENT_SECRET=CHANGE_ME
+TURNSTILE_SITE_KEY=CHANGE_ME
+TURNSTILE_SECRET_KEY=CHANGE_ME
+MP_COLLECTOR_ID=CHANGE_ME
+MP_APPLICATION_ID=CHANGE_ME
+MP_ACCESS_TOKEN=CHANGE_ME
+MP_WEBHOOK_SECRET=CHANGE_ME
+ENV
+  chmod 600 "$app"
+fi
+mig="$ETC/migrate.env"
+if [ ! -s "$mig" ]; then
+  umask 077
+  echo "MIGRATE_DATABASE_URL=postgresql://wf_migrator:$(cat "$ETC/secrets/pg_migrator")@postgres:5432/wiskiflix" > "$mig"
+  chmod 600 "$mig"
+fi
+
+step "Cloudflare origin-pull CA (public)"
+curl -fsS --proto '=https' https://developers.cloudflare.com/ssl/static/authenticated_origin_pull_ca.pem \
+  -o "$ETC/tls/origin-pull-ca.pem"
+openssl x509 -in "$ETC/tls/origin-pull-ca.pem" -noout -subject
+
+step "repository in /opt/wiskiflix"
+if [ ! -d /opt/wiskiflix/.git ]; then
+  [ -n "$REPO" ] || { echo "set WF_REPO to clone the repository (deploy key with read access)"; exit 1; }
+  git clone --quiet "$REPO" /opt/wiskiflix
+fi
+cd /opt/wiskiflix
+[ -s "$ETC/nginx/cloudflare-real-ip.conf" ] || cp docker/nginx/snippets/cloudflare-real-ip.conf "$ETC/nginx/"
+
+step "firewall (SSH from $WF_ADMIN_IP, web from Cloudflare)"
+scripts/ops/cloudflare-ips.sh || true
+scripts/ops/firewall.sh
+install -m 0644 docker/systemd/wiskiflix-firewall.service /etc/systemd/system/
+
+step "timers: daily backup, weekly Cloudflare ranges"
+install -m 0644 docker/systemd/wiskiflix-backup.service docker/systemd/wiskiflix-backup.timer \
+  docker/systemd/wiskiflix-cloudflare-ips.service docker/systemd/wiskiflix-cloudflare-ips.timer \
+  /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now wiskiflix-firewall.service wiskiflix-backup.timer wiskiflix-cloudflare-ips.timer
+
+cat <<NEXT
+
+Server prepared. Still to do by hand (docs/phase-5/deploy-guide.md §3):
+  1. $ETC/tls/origin.pem + origin.key   ← Cloudflare › SSL/TLS › Origin Server › Create certificate
+  2. $ETC/app.env                        ← replace every CHANGE_ME
+  3. $ETC/backup-recipient.txt           ← your age PUBLIC key (age-keygen on YOUR computer)
+  4. rclone config                       ← remote "wiskiflix-r2" (Cloudflare R2, bucket wiskiflix-backups)
+  5. docker login ghcr.io                ← read-only package token
+  6. sudo scripts/ops/deploy.sh release.env
+NEXT

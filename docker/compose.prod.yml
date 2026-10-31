@@ -1,0 +1,219 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Wiskiflix — production stack (Phase 5) for one 2 vCPU / 2 GB VPS (08 §1). Run by
+# scripts/ops/deploy.sh from /opt/wiskiflix; never edited on the server by hand.
+#
+#   WF_IMAGE        ghcr.io/<owner>/wiski@sha256:…   (runtime target, pinned by digest)
+#   WF_MIGRATE_IMAGE ghcr.io/<owner>/wiski-migrate@sha256:…
+#   secrets         /etc/wiskiflix (WF_ETC): the app and migrate environment files and secrets/*, all 0600 root
+#
+# Hardening on every service: read-only root filesystem (tmpfs where a process must write),
+# all Linux capabilities dropped (nginx gets back only what it needs to bind and switch user),
+# no-new-privileges, memory/CPU/PID limits from the 08 budget, logs capped at 3 × 10 MB, and
+# only nginx publishes ports. Postgres and Redis are on an internal network with no internet.
+# ─────────────────────────────────────────────────────────────────────────────
+name: wiskiflix
+
+x-hardening: &hardening
+  read_only: true
+  security_opt: ['no-new-privileges:true']
+  cap_drop: [ALL]
+  restart: unless-stopped
+  init: true
+  logging:
+    driver: json-file
+    options: { max-size: 10m, max-file: '3' }
+
+services:
+  nginx:
+    <<: *hardening
+    image: nginx:1.28-alpine
+    cap_add: [CHOWN, SETUID, SETGID, NET_BIND_SERVICE]
+    ports: ['443:443', '80:80']
+    environment:
+      NGINX_ENVSUBST_FILTER: '^WF_'
+      WF_SERVER_NAME: ${WF_SERVER_NAME:-wiski.fun}
+      WF_UPSTREAM: web:3000
+      WF_LISTEN_HTTPS: '443'
+      WF_LISTEN_HTTP: '80'
+      WF_CERT: /etc/nginx/tls/origin.pem
+      WF_CERT_KEY: /etc/nginx/tls/origin.key
+      WF_MEDIA_ROOT: /var/lib/wiski/media
+      WF_SNIPPETS: /etc/nginx/snippets
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/templates:/etc/nginx/templates:ro
+      - ./nginx/snippets:/etc/nginx/snippets:ro
+      # Cloudflare's ranges, kept current on the server by scripts/ops/cloudflare-ips.sh
+      - '${WF_ETC:-/etc/wiskiflix}/nginx/cloudflare-real-ip.conf:/etc/nginx/snippets/cloudflare-real-ip.conf:ro'
+      - '${WF_ETC:-/etc/wiskiflix}/tls:/etc/nginx/tls:ro'
+      - media:/var/lib/wiski/media:ro
+    tmpfs:
+      - /etc/nginx/conf.d:uid=101,gid=101,mode=0755
+      - /var/cache/nginx:uid=101,gid=101,mode=0700
+      - /var/run/nginx:uid=101,gid=101,mode=0755
+    depends_on:
+      web: { condition: service_healthy }
+    networks: [edge]
+    deploy:
+      resources: { limits: { memory: 64m, cpus: '0.5', pids: 64 } }
+    healthcheck:
+      test: ['CMD-SHELL', 'nginx -t -q || exit 1']
+      interval: 60s
+      timeout: 5s
+
+  web:
+    <<: *hardening
+    image: ${WF_IMAGE:?set WF_IMAGE to the image digest}
+    env_file: ['${WF_ETC:-/etc/wiskiflix}/app.env']
+    environment:
+      NODE_ENV: production
+      PORT: '3000'
+      HOSTNAME: 0.0.0.0
+      CLIENT_IP_HEADER: x-real-ip
+      MEDIA_DIR: /var/lib/wiski/media
+    command: ['node', '--max-old-space-size=320', 'server.js']
+    volumes:
+      - media:/var/lib/wiski/media
+    tmpfs:
+      # the media pipeline's private upload temp files and Next's cache
+      - /tmp:uid=10001,gid=10001,mode=0700,size=64m
+      - /app/.next/cache:uid=10001,gid=10001,mode=0700,size=32m
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    networks: [edge, data]
+    deploy:
+      resources: { limits: { memory: 448m, cpus: '1.5', pids: 256 } }
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/ready').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  worker:
+    <<: *hardening
+    image: ${WF_IMAGE:?set WF_IMAGE to the image digest}
+    env_file: ['${WF_ETC:-/etc/wiskiflix}/app.env']
+    environment:
+      NODE_ENV: production
+      MEDIA_DIR: /var/lib/wiski/media
+    command: ['node', '--max-old-space-size=192', '--conditions=react-server', 'dist/worker.mjs']
+    healthcheck: { disable: true }
+    tmpfs: ['/tmp:uid=10001,gid=10001,mode=0700,size=16m']
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    # the worker calls Mercado Pago's API: it needs the outbound network too
+    networks: [edge, data]
+    deploy:
+      resources: { limits: { memory: 256m, cpus: '0.5', pids: 128 } }
+
+  postgres:
+    <<: *hardening
+    image: postgres:17-bookworm
+    # the entrypoint needs these to set up and own the data directory, then drops to `postgres`
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETUID, SETGID]
+    environment:
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_superuser
+      POSTGRES_INITDB_ARGS: '--encoding=UTF8 --locale=C.UTF-8 --data-checksums'
+      TZ: UTC
+      PGTZ: UTC
+    command:
+      - postgres
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - max_connections=20
+      - -c
+      - work_mem=4MB
+      - -c
+      - maintenance_work_mem=32MB
+      - -c
+      - effective_cache_size=384MB
+      - -c
+      - timezone=UTC
+      - -c
+      - password_encryption=scram-sha-256
+      - -c
+      - log_min_duration_statement=1000
+      - -c
+      - log_connections=off
+    secrets: [pg_superuser, pg_migrator, pg_app]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init-roles.sh:/docker-entrypoint-initdb.d/10-roles.sh:ro
+    tmpfs:
+      - /var/run/postgresql:uid=999,gid=999,mode=0775
+      - /tmp:mode=1777,size=64m
+    shm_size: 128m
+    networks: [data]
+    deploy:
+      resources: { limits: { memory: 384m, cpus: '1.0', pids: 128 } }
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d wiskiflix']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  redis:
+    <<: *hardening
+    image: redis:7.4-alpine
+    # the image's `redis` user (the entrypoint only drops root for a bare `redis-server` command)
+    user: '999:1000'
+    # noeviction: the job queue must never lose keys; every cache key has a TTL (08 §1).
+    # Password from a Docker secret (REDIS_URL in the app environment carries the same one).
+    command:
+      - sh
+      - -c
+      - >-
+        exec redis-server --requirepass "$$(cat /run/secrets/redis)"
+        --maxmemory 64mb --maxmemory-policy noeviction
+        --appendonly yes --save ''
+        --rename-command FLUSHALL '' --rename-command CONFIG ''
+    secrets: [redis]
+    volumes: [redisdata:/data]
+    networks: [data]
+    deploy:
+      resources: { limits: { memory: 128m, cpus: '0.5', pids: 64 } }
+    healthcheck:
+      test:
+        ['CMD-SHELL', 'REDISCLI_AUTH="$$(cat /run/secrets/redis)" redis-cli ping | grep -q PONG']
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  # One-off: `docker compose run --rm migrate` (scripts/ops/deploy.sh does it before `up`).
+  migrate:
+    <<: *hardening
+    image: ${WF_MIGRATE_IMAGE:-none}
+    profiles: [ops]
+    restart: 'no'
+    env_file: ['${WF_ETC:-/etc/wiskiflix}/migrate.env']
+    tmpfs: ['/tmp:mode=1777,size=64m', '/home/migrate:uid=10002,gid=10002,mode=0700']
+    depends_on:
+      postgres: { condition: service_healthy }
+    networks: [data]
+
+networks:
+  edge: {}
+  data:
+    internal: true
+
+volumes:
+  pgdata: {}
+  redisdata: {}
+  media: {}
+
+secrets:
+  pg_superuser: { file: '${WF_ETC:-/etc/wiskiflix}/secrets/pg_superuser' }
+  pg_migrator: { file: '${WF_ETC:-/etc/wiskiflix}/secrets/pg_migrator' }
+  pg_app: { file: '${WF_ETC:-/etc/wiskiflix}/secrets/pg_app' }
+  redis: { file: '${WF_ETC:-/etc/wiskiflix}/secrets/redis' }

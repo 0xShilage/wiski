@@ -11,6 +11,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:worker": "node scripts/build-worker.mjs",
     "start": "next start",
     "lint": "eslint --max-warnings=0 .",
     "format": "prettier --write .",
@@ -37,7 +38,9 @@
     "setup:dev": "node scripts/setup-dev-env.mjs",
     "db:seed": "tsx --conditions=react-server scripts/seed-dev.ts",
     "worker": "tsx --conditions=react-server src/worker/main.ts",
-    "dev:pay": "tsx --conditions=react-server scripts/dev-pay.ts"
+    "start:worker": "node --conditions=react-server dist/worker.mjs",
+    "dev:pay": "tsx --conditions=react-server scripts/dev-pay.ts",
+    "smoke:worker": "tsx tests/smoke/worker-smoke.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.1",

@@ -1,5 +1,6 @@
 node_modules
 .next
+dist
 src/generated
 src/components/brand/generated
 public

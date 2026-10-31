@@ -1,0 +1,15 @@
+# Re-apply the web firewall (DOCKER-USER rules) after every Docker start: Docker recreates its
+# chains on start, and DOCKER-USER rules do not survive a reboot on their own.
+[Unit]
+Description=Wiskiflix firewall (SSH from the admin, web from Cloudflare only)
+Requires=docker.service
+After=docker.service
+PartOf=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+ExecStart=/opt/wiskiflix/scripts/ops/firewall.sh
+
+[Install]
+WantedBy=docker.service

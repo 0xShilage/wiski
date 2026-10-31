@@ -112,7 +112,19 @@ async function main() {
   process.on('SIGINT', () => void stop('SIGINT'));
 }
 
-void main().catch((err: unknown) => {
+/**
+ * `node dist/worker.mjs --verify-audit` (Phase 5): check the audit hash chain once and exit 0/1 —
+ * used by the restore drill (scripts/ops/restore.sh) against a restored database.
+ */
+async function verifyOnce() {
+  getEnv();
+  const ok = await runAuditVerify();
+  await disconnectRedis();
+  await disconnectDb();
+  process.exit(ok ? 0 : 1);
+}
+
+void (process.argv.includes('--verify-audit') ? verifyOnce() : main()).catch((err: unknown) => {
   logger.fatal({ err: err instanceof Error ? err.message : 'unknown' }, 'worker crashed');
   process.exit(1);
 });

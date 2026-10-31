@@ -72,7 +72,8 @@ for (const [w, h, margin] of [
     expect(Math.round(m.titleX)).toBe(margin);
     expect(Math.round(m.logoX)).toBe(margin);
     expect(Math.abs(m.activeCentre - m.W / 2)).toBeLessThan(2);
-    expect(m.nav).toEqual(['Filmes', 'Séries', 'Franquias', 'Avaliações', 'Perfil']);
+    // Cronograma (2026-10-31) is an addition to the Figma header
+    expect(m.nav).toEqual(['Filmes', 'Séries', 'Franquias', 'Cronograma', 'Avaliações', 'Perfil']);
     await sideBySide(page, `r1-filmes-${w}`);
   });
 }

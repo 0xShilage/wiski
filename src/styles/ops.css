@@ -386,7 +386,10 @@ html:has(.wf-overlay) .skip-link {
     font-size: 1.1rem;
     font-weight: 600;
     color: var(--color-lilac);
-    text-transform: capitalize;
+  }
+  /* "sábado, 31 de outubro" → "Sábado, 31 de outubro" (pt-BR: only the first letter) */
+  .wf-cron__date::first-letter {
+    text-transform: uppercase;
   }
   .wf-cron__session {
     padding: 16px 18px;

@@ -88,7 +88,11 @@ export function OverlayClient({ widget }: { widget: keyof typeof LABEL }) {
   }, [widget]);
 
   if (denied && !ev) {
-    return <p className="wf-overlay__sub">Overlay sem acesso: confira a chave no painel.</p>;
+    return (
+      <div className="wf-overlay__box">
+        <p className="wf-overlay__sub">Overlay sem acesso: confira a chave no painel.</p>
+      </div>
+    );
   }
 
   if (widget === 'patrocinio') {

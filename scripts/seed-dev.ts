@@ -636,7 +636,7 @@ async function main() {
   const live = await createSession(streamerCtx, {
     startsAt: new Date(`${tomorrow}T20:00:00-03:00`),
     capacityMinutes: 240,
-    publicNote: 'Sessão de sexta com pipoca',
+    publicNote: 'Sessão com pipoca e chat aberto',
   });
   await schedule(
     modCtx,

@@ -874,7 +874,8 @@ export function AuditPanel({ initial }: { initial: { entries: AuditRow[]; next: 
           Baixar CSV
         </a>
       </form>
-      <div className="wf-table-wrap">
+      {/* scrolls sideways on narrow screens: focusable so keyboard users can scroll it too */}
+      <div className="wf-table-wrap" tabIndex={0} role="region" aria-label="Histórico de auditoria">
         <table className="wf-table">
           <caption className="sr-only">Histórico de auditoria</caption>
           <thead>

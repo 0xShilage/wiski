@@ -95,6 +95,11 @@
     gap: 12px;
     align-items: end;
   }
+  .wf-ops-form .wf-field,
+  .wf-ops-form .wf-input {
+    min-width: 0; /* a datetime-local input would otherwise push into the next column */
+    width: 100%;
+  }
   .wf-ops-form .wf-btn {
     width: auto;
     margin-top: 0;
@@ -179,9 +184,12 @@
 
   /* ── public: "Próximos na live" strip ── */
   .wf-upnext {
+    /* above the hero's fade-out, with room for the display face's accents (Ó, Ú) */
+    position: relative;
+    z-index: 1;
     margin: 0 auto;
     max-width: calc(1280px + 2 * var(--pad));
-    padding: 0 var(--pad) 48px;
+    padding: 24px var(--pad) 48px;
   }
   .wf-upnext__list {
     list-style: none;

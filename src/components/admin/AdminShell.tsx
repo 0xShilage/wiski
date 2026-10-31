@@ -1,3 +1,4 @@
+import { LIVE_LIMIT } from '@/lib/catalog/pricing';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Logo } from '@/components/brand/Logo';
@@ -6,9 +7,9 @@ import { OpsNav, type OpsCounts, type OpsSection } from './OpsNav';
 
 const ROLE_LABEL = { MODERATOR: 'Moderação', STREAMER: 'Streamer', USER: '' } as const;
 const CATALOG = [
-  ['filmes', 'Filmes', 'MOVIE', 35],
-  ['series', 'Séries', 'SERIES', 10],
-  ['franquias', 'Franquias', 'FRANCHISE', 10],
+  ['filmes', 'Filmes', 'MOVIE', LIVE_LIMIT.MOVIE],
+  ['series', 'Séries', 'SERIES', LIVE_LIMIT.SERIES],
+  ['franquias', 'Franquias', 'FRANCHISE', LIVE_LIMIT.FRANCHISE],
 ] as const;
 
 /** Dashboard pages other than the catalogue board: sidebar + one content column. */

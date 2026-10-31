@@ -78,7 +78,7 @@ export async function paidMovie(
 }
 
 export async function fundedCampaign() {
-  for (let s = 1; s <= 10; s++) {
+  for (let s = 1; s <= 20; s++) {
     const taken = await db().catalogItem.count({
       where: { kind: 'SERIES', slot: s, status: { in: ['ACTIVE', 'FUNDED', 'WATCHED'] } },
     });

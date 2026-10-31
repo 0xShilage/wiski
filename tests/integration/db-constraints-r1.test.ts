@@ -1,6 +1,6 @@
 /**
  * R1 reviewed SQL (prisma/migrations/20261002230100_r1_constraints): every new CHECK, the
- * deferred live-slot exclusion, the 35/10/10 live limit trigger, campaign money invariants and
+ * deferred live-slot exclusion, the 35/20/10 live limit trigger, campaign money invariants and
  * the kind-specific Order checks (12 §2 step 2 "done when").
  */
 import { testBuyerKey, testPublicCode } from '../support/orders';
@@ -73,8 +73,11 @@ describe('CatalogItem CHECKs', () => {
       '23514',
     );
     expect(await sqlState(makeItem({ kind: 'MOVIE', status: 'FUNDED', slot: 1 }))).toBe('23514');
-    // series slots stop at 10
-    expect(await sqlState(makeItem({ kind: 'SERIES', status: 'ACTIVE', slot: 11 }))).toBe('23514');
+    // series slots stop at 20 (Phase 6), franchise slots at 10
+    expect(await sqlState(makeItem({ kind: 'SERIES', status: 'ACTIVE', slot: 21 }))).toBe('23514');
+    expect(await sqlState(makeItem({ kind: 'FRANCHISE', status: 'ACTIVE', slot: 11 }))).toBe(
+      '23514',
+    );
     // live without publishedAt
     const d = await makeItem();
     expect(
@@ -119,7 +122,7 @@ describe('live slots (deferred exclusion)', () => {
   });
 });
 
-describe('live limit trigger (35 movies, 10 series, 10 franchises)', () => {
+describe('live limit trigger (35 movies, 20 series, 10 franchises)', () => {
   it('refuses the 36th live movie with SQLSTATE WF409, counting WATCHED too', async () => {
     for (let slot = 1; slot <= 34; slot++) await makeItem({ status: 'ACTIVE', slot });
     await makeItem({ status: 'WATCHED', slot: 35 });
@@ -147,10 +150,10 @@ describe('live limit trigger (35 movies, 10 series, 10 franchises)', () => {
     ).resolves.toBeTruthy();
   });
 
-  it('counts per kind: 10 series and 10 franchises', async () => {
-    for (let slot = 1; slot <= 10; slot++) {
+  it('counts per kind: 20 series and 10 franchises', async () => {
+    for (let slot = 1; slot <= 20; slot++) {
       await makeItem({ kind: 'SERIES', status: 'ACTIVE', slot });
-      await makeItem({ kind: 'FRANCHISE', status: 'ACTIVE', slot });
+      if (slot <= 10) await makeItem({ kind: 'FRANCHISE', status: 'ACTIVE', slot });
     }
     expect(await sqlState(makeItem({ kind: 'SERIES', status: 'ACTIVE', slot: 3 }))).toBe('WF409');
     expect(await sqlState(makeItem({ kind: 'FRANCHISE', status: 'FUNDED', slot: 3 }))).toBe(
@@ -160,7 +163,7 @@ describe('live limit trigger (35 movies, 10 series, 10 franchises)', () => {
   });
 
   it('concurrent publishes never exceed the limit (advisory lock)', async () => {
-    for (let slot = 1; slot <= 8; slot++)
+    for (let slot = 1; slot <= 18; slot++)
       await makeItem({ kind: 'SERIES', status: 'ACTIVE', slot });
     const drafts = await Promise.all(
       Array.from({ length: 6 }, () => makeItem({ kind: 'SERIES', status: 'DRAFT' })),
@@ -169,12 +172,12 @@ describe('live limit trigger (35 movies, 10 series, 10 franchises)', () => {
       drafts.map((d, i) =>
         db().catalogItem.update({
           where: { id: d.id },
-          data: { status: 'ACTIVE', slot: 9 + (i % 2), publishedAt: new Date() },
+          data: { status: 'ACTIVE', slot: 19 + (i % 2), publishedAt: new Date() },
         }),
       ),
     );
     expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(2);
-    expect(await db().catalogItem.count({ where: { kind: 'SERIES', status: 'ACTIVE' } })).toBe(10);
+    expect(await db().catalogItem.count({ where: { kind: 'SERIES', status: 'ACTIVE' } })).toBe(20);
   });
 
   it('refuses publishes outside READ COMMITTED', async () => {

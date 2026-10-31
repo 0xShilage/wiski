@@ -1,4 +1,4 @@
-/** Every page (Phase 1 + R1 + Phases 3–4), as visited by the CSP / a11y / layout specs. */
+/** Every page (Phase 1 + R1 + Phases 3–4 + 6), as visited by the CSP / a11y / layout specs. */
 export type PageCase = {
   name: string;
   path: string | ((username: string) => string);
@@ -54,4 +54,10 @@ export const PAGES: PageCase[] = [
   { name: 'configuracoes', path: '/admin/configuracoes', auth: 'streamer', shell: false },
   { name: 'streamer-bloqueado', path: '/admin/overlays', auth: 'admin', status: 404, shell: false },
   { name: 'overlay-sem-chave', path: '/overlay/fila', shell: false },
+  // Phase 6: links page, suggestions
+  { name: 'links', path: '/links' },
+  { name: 'sugestoes-entrar', path: '/sugestoes' },
+  { name: 'sugestoes', path: '/sugestoes', auth: 'user' },
+  { name: 'sugestoes-admin', path: '/admin/sugestoes', auth: 'admin', shell: false },
+  { name: 'links-admin', path: '/admin/links', auth: 'streamer', shell: false },
 ];

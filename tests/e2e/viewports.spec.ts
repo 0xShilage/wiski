@@ -107,3 +107,30 @@ for (const [w, h] of [
     await page.screenshot({ path: `test-results/viewports/painel-${w}x${h}.png` });
   });
 }
+
+// Phase 6: eight header tabs from 761 px (below that the phone tab bar takes over)
+for (const w of [761, 800, 900, 1024, 1180]) {
+  test(`header: logo and eight tabs on one line at ${w} px`, async ({ page }) => {
+    await page.setViewportSize({ width: w, height: 800 });
+    await page.goto('/links', { waitUntil: 'networkidle' });
+    await page.evaluate(() => document.fonts.ready);
+    await noHorizontalScroll(page);
+    const tabs = page.locator('.wf-header nav a');
+    await expect(tabs).toHaveCount(8);
+    const logo = await box(page, '.wf-logo');
+    const boxes = await tabs.evaluateAll((els) =>
+      els.map((e) => {
+        const r = e.getBoundingClientRect();
+        return { left: r.left, right: r.right, top: r.top, width: r.width, scroll: e.scrollWidth };
+      }),
+    );
+    expect(boxes[0]!.left).toBeGreaterThan(logo.x + logo.width);
+    expect(boxes.at(-1)!.right).toBeLessThanOrEqual(w);
+    for (const b of boxes) {
+      expect(Math.abs(b.top - boxes[0]!.top)).toBeLessThan(1); // one row
+      expect(b.scroll).toBeLessThanOrEqual(Math.ceil(b.width)); // no clipped label
+    }
+    for (let i = 1; i < boxes.length; i++)
+      expect(boxes[i]!.left).toBeGreaterThan(boxes[i - 1]!.right);
+  });
+}

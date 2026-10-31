@@ -35,6 +35,8 @@ const { mediaDir } = await import('../src/server/env');
 const { createSession, schedule } = await import('../src/server/live/schedule');
 const { createGoal } = await import('../src/server/goals/goals');
 const { setStat } = await import('../src/server/mediakit/stats');
+const { createLink } = await import('../src/server/links/links');
+const { submitSuggestion } = await import('../src/server/suggestions/suggestions');
 const { PALETTES, renderArt, renderLogo } = await import('./seed-art');
 
 const RESET = process.argv.includes('--reset');
@@ -368,6 +370,8 @@ async function main() {
       db().streamSession.deleteMany({}),
       db().goal.deleteMany({}),
       db().platformStat.deleteMany({}),
+      db().socialLink.deleteMany({}),
+      db().suggestion.deleteMany({}),
       db().catalogRevision.deleteMany({}),
       db().franchiseEntry.deleteMany({}),
       db().catalogItem.deleteMany({}),
@@ -688,6 +692,24 @@ async function main() {
     data: { orderId: lastOrder.id, sessionId: lastLive.id },
   });
   log('next live scheduled, goal and media kit numbers set');
+
+  // Phase 6: the Links page and a few viewer suggestions (placeholder addresses)
+  for (const l of [
+    { label: 'Twitch', url: 'https://twitch.tv/wiski', note: 'Lives de terça a sábado, 20h' },
+    { label: 'YouTube', url: 'https://youtube.com/@wiski', note: 'Cortes e reacts' },
+    { label: 'Instagram', url: 'https://instagram.com/wiski' },
+    { label: 'Discord da comunidade', url: 'https://discord.gg/wiski' },
+  ]) {
+    await createLink(streamerCtx, l);
+  }
+  await submitSuggestion(sponsor, {
+    kind: 'MOVIE',
+    title: 'O Iluminado',
+    year: 1980,
+    note: 'Perfeito para a live de Halloween!',
+  });
+  await submitSuggestion(sponsor, { kind: 'SERIES', title: 'Dark' });
+  log('links page and suggestions set');
 
   const counts = await db().catalogItem.groupBy({ by: ['kind', 'status'], _count: { _all: true } });
   log('done', counts.map((c) => `${c.kind}/${c.status}=${c._count._all}`).join(' '));

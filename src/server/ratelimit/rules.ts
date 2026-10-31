@@ -134,6 +134,12 @@ export const RL = {
   contact: { name: 'contact', perIp: { limit: 5, windowMs: HOUR } },
   contactDaily: { name: 'contact-day', perIp: { limit: 20, windowMs: 24 * HOUR } },
   publicRead: { name: 'public-read', perIp: { limit: 120, windowMs: MIN } },
+  /** Phase 6: viewer suggestions — 5 a day per account, 20 a day per IP. */
+  suggestion: {
+    name: 'suggestion',
+    perIp: { limit: 20, windowMs: 24 * HOUR },
+    perUser: { limit: 5, windowMs: 24 * HOUR },
+  },
   dataExport: {
     name: 'data-export',
     perIp: { limit: 10, windowMs: HOUR },

@@ -187,3 +187,38 @@ export const voucherUpdateInput = z
     maxRedemptions: z.int().min(1).max(100_000).nullable().optional(),
   })
   .strict();
+
+// ── Phase 6: links page ──
+const linkText = z.string().max(400);
+export const linkCreateInput = z
+  .object({
+    label: linkText,
+    note: linkText.nullable().optional(),
+    url: z.string().max(600),
+    visible: z.boolean().optional(),
+  })
+  .strict();
+export const linkUpdateInput = z
+  .object({
+    label: linkText.optional(),
+    note: linkText.nullable().optional(),
+    url: z.string().max(600).optional(),
+    visible: z.boolean().optional(),
+  })
+  .strict();
+export const linkOrderInput = z.object({ ids: z.array(z.uuid()).max(30) }).strict();
+
+// ── Phase 6: suggestions ──
+const suggestionStatus = z.enum(['NEW', 'ACCEPTED', 'DISMISSED']);
+export const suggestionInput = z
+  .object({
+    kind: z.enum(['MOVIE', 'SERIES', 'FRANCHISE']),
+    title: z.string().max(600),
+    year: z.int().min(1888).max(2100).nullable().optional(),
+    note: z.string().max(1_400).nullable().optional(),
+  })
+  .strict();
+export const suggestionQuery = z.object({ status: suggestionStatus.optional(), before }).strict();
+export const suggestionStatusInput = z
+  .object({ status: suggestionStatus, expectedStatus: suggestionStatus })
+  .strict();

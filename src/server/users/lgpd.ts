@@ -8,7 +8,7 @@ import { randomToken } from '../security/crypto';
 
 /**
  * LGPD self-service (05 §13, 02 §5, Q14): download everything we hold about you, or erase your
- * account. Erasure removes reviews, likes, reports and passkeys, ends every session and
+ * account. Erasure removes reviews, likes, reports, suggestions and passkeys, ends every session and
  * anonymises the account row (it stays only so paid orders — kept 5 years for tax/accounting —
  * still point somewhere). The username is held for 30 days so nobody can take it over at once.
  */
@@ -30,58 +30,64 @@ export const LgpdProblems = {
 };
 
 export async function exportMyData(user: User, requestId: string | null) {
-  const [sessions, orders, reviews, likes, reports, legal, passkeys] = await Promise.all([
-    db().session.findMany({
-      where: { userId: user.id },
-      select: { createdAt: true, lastSeenAt: true, uaFamily: true, revokedAt: true },
-      orderBy: { createdAt: 'desc' },
-      take: 200,
-    }),
-    db().order.findMany({
-      where: { userId: user.id },
-      select: {
-        publicCode: true,
-        kind: true,
-        status: true,
-        totalCents: true,
-        createdAt: true,
-        paidAt: true,
-        contactEmail: true,
-        sponsorMessage: true,
-        showSponsorName: true,
-        item: { select: { title: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    }),
-    db().review.findMany({
-      where: { userId: user.id },
-      select: {
-        rating: true,
-        body: true,
-        containsSpoilers: true,
-        status: true,
-        createdAt: true,
-        editedAt: true,
-        item: { select: { title: true } },
-      },
-    }),
-    db().reviewLike.findMany({
-      where: { userId: user.id },
-      select: { createdAt: true, review: { select: { item: { select: { title: true } } } } },
-    }),
-    db().reviewReport.findMany({
-      where: { reporterId: user.id },
-      select: { reason: true, note: true, status: true, createdAt: true },
-    }),
-    db().legalAcceptance.findMany({
-      where: { OR: [{ userId: user.id }, { order: { userId: user.id } }] },
-      select: { acceptedAt: true, document: { select: { type: true, version: true } } },
-    }),
-    db().passkey.findMany({
-      where: { userId: user.id },
-      select: { label: true, createdAt: true, lastUsedAt: true },
-    }),
-  ]);
+  const [sessions, orders, reviews, likes, reports, legal, passkeys, suggestions] =
+    await Promise.all([
+      db().session.findMany({
+        where: { userId: user.id },
+        select: { createdAt: true, lastSeenAt: true, uaFamily: true, revokedAt: true },
+        orderBy: { createdAt: 'desc' },
+        take: 200,
+      }),
+      db().order.findMany({
+        where: { userId: user.id },
+        select: {
+          publicCode: true,
+          kind: true,
+          status: true,
+          totalCents: true,
+          createdAt: true,
+          paidAt: true,
+          contactEmail: true,
+          sponsorMessage: true,
+          showSponsorName: true,
+          item: { select: { title: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      db().review.findMany({
+        where: { userId: user.id },
+        select: {
+          rating: true,
+          body: true,
+          containsSpoilers: true,
+          status: true,
+          createdAt: true,
+          editedAt: true,
+          item: { select: { title: true } },
+        },
+      }),
+      db().reviewLike.findMany({
+        where: { userId: user.id },
+        select: { createdAt: true, review: { select: { item: { select: { title: true } } } } },
+      }),
+      db().reviewReport.findMany({
+        where: { reporterId: user.id },
+        select: { reason: true, note: true, status: true, createdAt: true },
+      }),
+      db().legalAcceptance.findMany({
+        where: { OR: [{ userId: user.id }, { order: { userId: user.id } }] },
+        select: { acceptedAt: true, document: { select: { type: true, version: true } } },
+      }),
+      db().passkey.findMany({
+        where: { userId: user.id },
+        select: { label: true, createdAt: true, lastUsedAt: true },
+      }),
+      db().suggestion.findMany({
+        where: { userId: user.id },
+        select: { kind: true, title: true, year: true, note: true, status: true, createdAt: true },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
   await audit({
     action: 'user.export',
     actor: { id: user.id, role: user.role },
@@ -108,6 +114,7 @@ export async function exportMyData(user: User, requestId: string | null) {
     reports,
     legalAcceptances: legal.map((l) => ({ ...l.document, acceptedAt: l.acceptedAt })),
     passkeys,
+    suggestions,
     // never the secret or the codes — only whether it is on
     authenticatorApp: {
       enabledAt: user.totpEnabledAt?.toISOString() ?? null,
@@ -137,6 +144,7 @@ export async function eraseMyAccount(
     await t.reviewLike.deleteMany({ where: { userId: user.id } });
     await t.reviewReport.deleteMany({ where: { reporterId: user.id } });
     await t.passkey.deleteMany({ where: { userId: user.id } });
+    await t.suggestion.deleteMany({ where: { userId: user.id } });
     await t.mfaRecoveryCode.deleteMany({ where: { userId: user.id } });
     await t.session.updateMany({
       where: { userId: user.id, revokedAt: null },

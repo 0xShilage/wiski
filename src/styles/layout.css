@@ -28,7 +28,8 @@
   .wf-nav {
     display: flex;
     align-items: flex-start;
-    gap: clamp(20px, 3.33vw, 64px);
+    /* eight tabs (Phase 6): 761 px still fits them next to the logo */
+    gap: clamp(12px, 2.2vw, 48px);
   }
   .wf-nav a {
     position: relative;
@@ -84,7 +85,8 @@
       justify-content: space-around;
       align-items: center;
     }
-    .wf-tabbar a {
+    .wf-tabbar a,
+    .wf-tabbar__more {
       /* six tabs share 360 px: equal columns, no minimum width */
       flex: 1 1 0;
       min-width: 0;
@@ -101,6 +103,12 @@
       color: var(--fg-78);
       text-decoration: none;
     }
+    .wf-tabbar__more {
+      border: 0;
+      background: transparent;
+      font: inherit;
+      cursor: pointer;
+    }
     .wf-tabbar svg {
       width: 22px;
       height: 22px;
@@ -110,12 +118,59 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .wf-tabbar a[aria-current='page'] {
+    .wf-tabbar a[aria-current='page'],
+    .wf-tabbar__more.is-active {
       color: var(--color-lilac);
       text-shadow: 0 0 10px rgb(169 157 224 / 0.8);
     }
-    .wf-tabbar a[aria-current='page'] svg {
+    .wf-tabbar a[aria-current='page'] svg,
+    .wf-tabbar__more.is-active svg {
       filter: drop-shadow(0 0 4px rgb(169 157 224 / 0.9));
+    }
+    .wf-tabbar__more:focus-visible {
+      outline: 2px solid var(--color-lavender);
+      outline-offset: -4px;
+      border-radius: 8px;
+    }
+    /* "Mais": a native popover just above the bar, right-aligned */
+    .wf-more {
+      position: fixed;
+      inset: auto 8px calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 8px) auto;
+      margin: 0;
+      min-width: 200px;
+      padding: 6px;
+      border-radius: 14px;
+      border: 1px solid rgb(79 61 114 / 0.95);
+      background: rgb(27 18 37 / 0.98);
+      color: var(--color-lilac);
+      box-shadow: 0 12px 32px rgb(0 0 0 / 0.5);
+    }
+    .wf-more ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 2px;
+    }
+    .wf-more a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 48px;
+      padding: 0 14px;
+      border-radius: 10px;
+      color: var(--fg-78);
+      text-decoration: none;
+      font-size: 15px;
+    }
+    .wf-more a:hover,
+    .wf-more a:focus-visible {
+      background: rgb(46 33 65 / 0.9);
+      color: var(--color-lilac);
+    }
+    .wf-more a[aria-current='page'] {
+      color: var(--color-lilac);
+      background: rgb(46 33 65 / 0.9);
     }
     body {
       padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
@@ -123,7 +178,8 @@
   }
   /* six labels on a 360 px phone ("Cronograma", "Avaliações" are the long ones) */
   @media (max-width: 420px) {
-    .wf-tabbar a {
+    .wf-tabbar a,
+    .wf-tabbar__more {
       font-size: 9.5px;
       letter-spacing: -0.02em;
     }

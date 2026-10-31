@@ -354,6 +354,26 @@ export const MATRIX: Row[] = [
     params: { id: NO_ID },
     body: { active: false },
   }),
+
+  // ── Phase 6 (links page, suggestions) ──
+  R('/api/v1/admin/links', 'GET', 'streamer'),
+  R('/api/v1/admin/links', 'POST', 'streamer', {
+    body: { label: 'Matriz', url: 'https://example.com/matriz' },
+  }),
+  R('/api/v1/admin/links/[id]', 'PATCH', 'streamer', {
+    params: { id: NO_ID },
+    body: { visible: false },
+  }),
+  R('/api/v1/admin/links/[id]', 'DELETE', 'streamer', { params: { id: NO_ID } }),
+  R('/api/v1/admin/links/order', 'PUT', 'streamer', { body: { ids: [] } }),
+  R('/api/v1/suggestions', 'POST', 'user', {
+    body: { kind: 'MOVIE', title: `Matriz ${Date.now()}` },
+  }),
+  R('/api/v1/admin/suggestions', 'GET', 'moderator'),
+  R('/api/v1/admin/suggestions/[id]', 'PATCH', 'moderator', {
+    params: { id: NO_ID },
+    body: { status: 'ACCEPTED', expectedStatus: 'NEW' },
+  }),
 ];
 
 const ROLES = ['anonymous', 'USER', 'MODERATOR', 'STREAMER'] as const;

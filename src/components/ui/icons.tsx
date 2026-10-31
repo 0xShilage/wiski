@@ -77,3 +77,23 @@ export const IconPlus = ({ className }: P) => (
     <path d="M12 5v14M5 12h14" />
   </svg>
 );
+/** Phase 6: Links (two chain links), Sugestões (a light bulb), Mais (three dots). */
+export const IconLink = ({ className }: P) => (
+  <svg {...base} className={className}>
+    <path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1.2 1.2" />
+    <path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2" />
+  </svg>
+);
+export const IconBulb = ({ className }: P) => (
+  <svg {...base} className={className}>
+    <path d="M9 18h6M10 21h4" />
+    <path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.4 1.1 2.2v.5h5v-.5c0-.8.4-1.6 1.1-2.2A6 6 0 0 0 12 3z" />
+  </svg>
+);
+export const IconMore = ({ className }: P) => (
+  <svg {...base} className={className} fill="currentColor" stroke="none">
+    <circle cx="5.5" cy="12" r="1.9" />
+    <circle cx="12" cy="12" r="1.9" />
+    <circle cx="18.5" cy="12" r="1.9" />
+  </svg>
+);

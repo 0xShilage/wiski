@@ -260,6 +260,19 @@ export const AUDIT_ACTIONS = {
     .object({ fields: z.array(z.enum(['active', 'endsAt', 'maxRedemptions'])).max(3) })
     .strict(),
   'audit.export': z.object({ rows: z.int().nonnegative() }).strict(),
+  // ── Phase 6 ──
+  'link.create': z.object({ visible: z.boolean() }).strict(),
+  'link.update': z
+    .object({ fields: z.array(z.enum(['label', 'note', 'url', 'visible'])).max(4) })
+    .strict(),
+  'link.delete': z.object({}).strict(),
+  'link.reorder': z.object({ count: z.int().min(0).max(30) }).strict(),
+  'suggestion.status': z
+    .object({
+      from: z.enum(['NEW', 'ACCEPTED', 'DISMISSED']),
+      to: z.enum(['NEW', 'ACCEPTED', 'DISMISSED']),
+    })
+    .strict(),
 } as const;
 
 export type AuditAction = keyof typeof AUDIT_ACTIONS;

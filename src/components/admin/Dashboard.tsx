@@ -23,7 +23,7 @@ export function Dashboard({
   initialCounts,
   initialItem,
   user,
-  ops = { waiting: 0, attention: 0, texts: 0, unread: 0 },
+  ops = { waiting: 0, attention: 0, texts: 0, unread: 0, suggestions: 0 },
 }: {
   initialKind: Kind;
   initialItems: AdminListItem[];

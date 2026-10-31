@@ -16,7 +16,8 @@ R1 (redesign foundation): `docs/r1/README.md`; results: `docs/r1/test-report.md`
 Phase 2 (payments): `docs/phase-2/README.md`; results: `docs/phase-2/test-report.md`.
 Phase 3 (reviews and moderation): `docs/phase-3/README.md`; results: `docs/phase-3/test-report.md`.
 Phase 4 (operations: live schedule, orders/people admin, overlays, media kit, contact, LGPD; §6: authenticator 2FA, Cronograma, username cooldown by role): `docs/phase-4/README.md`; results: `docs/phase-4/test-report.md`.
-Phase 5 (production: image, compose stack, nginx, deploy, backups — current): `docs/phase-5/README.md`; deploy: `docs/phase-5/deploy-guide.md`; checklist: `docs/phase-5/security-checklist.md`; results: `docs/phase-5/test-report.md`.
+Phase 5 (production: image, compose stack, nginx, deploy, backups): `docs/phase-5/README.md`; deploy: `docs/phase-5/deploy-guide.md`; checklist: `docs/phase-5/security-checklist.md`; results: `docs/phase-5/test-report.md`.
+Phase 6 (Links page, home progress block, viewer suggestions, 20 live series — current): `docs/phase-6/README.md`; results: `docs/phase-6/test-report.md`.
 
 Non-negotiables (enforced by lint/tests — keep them green):
 

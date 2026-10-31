@@ -79,6 +79,8 @@ model User {
   catalogRevisions   CatalogRevision[]   @relation("RevisionEditor")
   mediaUploads       MediaAsset[]        @relation("MediaUploader")
   campaignsOpened    Campaign[]          @relation("CampaignOpener")
+  suggestions        Suggestion[]        @relation("SuggestionAuthor")
+  suggestionsDecided Suggestion[]        @relation("SuggestionReviewer")
 
   @@index([role])
 }
@@ -262,7 +264,7 @@ model CatalogItem {
   orders           Order[]
   reviews          Review[]
   watchEvents      WatchEvent[]
-  nowPlayingIn     StreamSession[] @relation("NowPlaying")
+  nowPlayingIn     StreamSession[]   @relation("NowPlaying")
 
   @@index([kind, status, slot])
   @@index([status, watchedAt])
@@ -505,11 +507,11 @@ model StreamSession {
   orders      Order[]
   campaigns   Campaign[]
   watchEvents WatchEvent[]
-  nowItem     CatalogItem?        @relation("NowPlaying", fields: [nowItemId], references: [id], onDelete: Restrict)
+  nowItem     CatalogItem? @relation("NowPlaying", fields: [nowItemId], references: [id], onDelete: Restrict)
 
-  @@index([startsAt])
   /// At most one live session at a time.
   @@unique([status], map: "session_one_live", where: raw("(status = 'LIVE'::\"StreamSessionStatus\")"))
+  @@index([startsAt])
 }
 
 /// Order lifecycle (shared by movie sponsorships and campaign contributions).
@@ -662,20 +664,20 @@ enum WebhookOutcome {
 
 /// One row per verified delivery. Unique x-request-id = replay/duplicate guard.
 model WebhookEvent {
-  id          String          @id @default(uuid(7)) @db.Uuid
-  provider    PaymentProvider
-  requestId   String          @unique // x-request-id header
-  topic       String // "payment"
-  action      String? // "payment.updated"
-  resourceId  String // data.id (query string)
-  signatureTs DateTime        @db.Timestamptz(3)
-  receivedAt  DateTime        @default(now()) @db.Timestamptz(3)
-  processedAt DateTime?       @db.Timestamptz(3)
-  outcome     WebhookOutcome  @default(RECEIVED)
+  id            String          @id @default(uuid(7)) @db.Uuid
+  provider      PaymentProvider
+  requestId     String          @unique // x-request-id header
+  topic         String // "payment"
+  action        String? // "payment.updated"
+  resourceId    String // data.id (query string)
+  signatureTs   DateTime        @db.Timestamptz(3)
+  receivedAt    DateTime        @default(now()) @db.Timestamptz(3)
+  processedAt   DateTime?       @db.Timestamptz(3)
+  outcome       WebhookOutcome  @default(RECEIVED)
   // The row is also the worker's job (Phase 2): claimed with a lease, retried with backoff.
-  attempts      Int       @default(0)
-  nextAttemptAt DateTime  @default(now()) @db.Timestamptz(3)
-  lockedUntil   DateTime? @db.Timestamptz(3)
+  attempts      Int             @default(0)
+  nextAttemptAt DateTime        @default(now()) @db.Timestamptz(3)
+  lockedUntil   DateTime?       @db.Timestamptz(3)
 
   @@index([resourceId])
   @@index([outcome, nextAttemptAt])
@@ -731,20 +733,20 @@ enum ReviewHoldReason {
 }
 
 model Review {
-  id               String           @id @default(uuid(7)) @db.Uuid
-  userId           String           @db.Uuid
-  itemId           String           @db.Uuid
+  id               String            @id @default(uuid(7)) @db.Uuid
+  userId           String            @db.Uuid
+  itemId           String            @db.Uuid
   rating           Int // 1..5 (CHECK)
   body             String // sanitised plain text, ≤ 2000 chars (CHECK)
-  containsSpoilers Boolean          @default(false)
-  status           ModerationStatus @default(VISIBLE)
-  likeCount        Int              @default(0) // maintained by the review_like_count trigger (Phase 3 constraints)
+  containsSpoilers Boolean           @default(false)
+  status           ModerationStatus  @default(VISIBLE)
+  likeCount        Int               @default(0) // maintained by the review_like_count trigger (Phase 3 constraints)
   heldReason       ReviewHoldReason? // set exactly when status = AUTO_HIDDEN (CHECK)
-  openReportCount  Int              @default(0) // OPEN reports; the increment row-locks the review, serialising the auto-hide count
-  moderatedAt      DateTime?        @db.Timestamptz(3) // last moderator action (HIDE/RESTORE/DISMISS/REMOVE)
-  createdAt        DateTime         @default(now()) @db.Timestamptz(3)
-  updatedAt        DateTime         @updatedAt @db.Timestamptz(3)
-  editedAt         DateTime?        @db.Timestamptz(3)
+  openReportCount  Int               @default(0) // OPEN reports; the increment row-locks the review, serialising the auto-hide count
+  moderatedAt      DateTime?         @db.Timestamptz(3) // last moderator action (HIDE/RESTORE/DISMISS/REMOVE)
+  createdAt        DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime          @updatedAt @db.Timestamptz(3)
+  editedAt         DateTime?         @db.Timestamptz(3)
 
   user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   item    CatalogItem    @relation(fields: [itemId], references: [id], onDelete: Restrict)
@@ -890,6 +892,51 @@ model ContactMessage {
 
   @@index([status, createdAt])
   @@index([purgeAfter])
+}
+
+// ═══════════════════════════ Phase 6: links page, suggestions ═══════════════
+
+/// The streamer's "Links" page (a link-in-bio list), in `position` order. https only (CHECK).
+model SocialLink {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  label     String // ≤ 40 chars, sanitised plain text
+  note      String? // ≤ 80 chars, a line under the label ("Lives de terça a sábado")
+  url       String // https://…, ≤ 300 chars, no credentials (CHECK + app)
+  position  Int // 1…30, unique (deferred, so a reorder can permute in one transaction)
+  visible   Boolean  @default(true)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
+
+enum SuggestionStatus {
+  NEW
+  ACCEPTED
+  DISMISSED
+}
+
+/// A title a signed-in viewer would like to see on stream. Seen only by moderators and the streamer.
+model Suggestion {
+  id           String           @id @default(uuid(7)) @db.Uuid
+  userId       String           @db.Uuid
+  kind         ItemKind
+  title        String // ≤ 120 chars, sanitised plain text
+  /// lower-case, accents and punctuation removed: groups the same title across viewers, and one
+  /// open suggestion per viewer per title (partial unique)
+  titleKey     String
+  year         Int?
+  note         String? // ≤ 280 chars, sanitised plain text
+  status       SuggestionStatus @default(NEW)
+  reviewedById String?          @db.Uuid
+  reviewedAt   DateTime?        @db.Timestamptz(3)
+  createdAt    DateTime         @default(now()) @db.Timestamptz(3)
+
+  user       User  @relation("SuggestionAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("SuggestionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@unique([userId, titleKey], map: "suggestion_one_open_per_title", where: raw("(status = 'NEW'::\"SuggestionStatus\")"))
+  @@index([status, createdAt])
+  @@index([titleKey])
+  @@index([userId, createdAt])
 }
 
 model AppSetting {

@@ -5,26 +5,36 @@ export type OpsSection =
   | 'pedidos'
   | 'moderacao'
   | 'pessoas'
+  | 'sugestoes'
   | 'overlays'
   | 'metas'
   | 'media-kit'
+  | 'links'
   | 'contato'
   | 'cupons'
   | 'auditoria'
   | 'configuracoes';
 
-export type OpsCounts = { waiting: number; attention: number; texts: number; unread: number };
+export type OpsCounts = {
+  waiting: number;
+  attention: number;
+  texts: number;
+  unread: number;
+  suggestions: number;
+};
 
 const OPS: { id: OpsSection; label: string; badge?: (c: OpsCounts) => number }[] = [
   { id: 'agenda', label: 'Agenda da live' },
   { id: 'pedidos', label: 'Pedidos', badge: (c) => c.attention + c.texts },
   { id: 'moderacao', label: 'Moderação', badge: (c) => c.waiting },
   { id: 'pessoas', label: 'Pessoas' },
+  { id: 'sugestoes', label: 'Sugestões', badge: (c) => c.suggestions },
 ];
 const STREAMER: { id: OpsSection; label: string; badge?: (c: OpsCounts) => number }[] = [
   { id: 'overlays', label: 'Overlays (OBS)' },
   { id: 'metas', label: 'Metas' },
   { id: 'media-kit', label: 'Media kit' },
+  { id: 'links', label: 'Links' },
   { id: 'contato', label: 'Contato', badge: (c) => c.unread },
   { id: 'cupons', label: 'Cupons' },
   { id: 'auditoria', label: 'Auditoria' },

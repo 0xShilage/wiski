@@ -12,8 +12,8 @@
 | Formatting | `npm run format:check` | ✅ |
 | Unit | `npm test` | ✅ **276 / 276** (unchanged; Phase 4 logic is database-bound and tested in integration) |
 | Integration (Postgres 17 + Redis, app role `wf_app`, real migrations) | `npm run test:integration` | ✅ **837 / 837** (Phase 3: 557) |
-| Brand (Chromium, 2×) | `npm run test:brand` | ✅ **BRAND_RESULT** |
-| E2E (production build behind nginx/TLS, seeded, 360 px + 1280 px) | `npm run build && npm run test:e2e` | ✅ **E2E_RESULT** — every earlier page again, plus 13 new pages and `operations.spec.ts` |
+| Brand (Chromium, 2×) | `npm run test:brand` | ✅ **151 / 151** |
+| E2E (production build behind nginx/TLS, seeded, 360 px + 1280 px) | `npm run build && npm run test:e2e` | ✅ **258 / 258**, 0 flaky (+34 intentionally run on one project only) — every earlier page again, plus 13 new pages and `operations.spec.ts` |
 | Dependencies | `npm audit --audit-level=high` | ✅ 0 high/critical. 18 moderate, all in the dev-only lint toolchain (`minimatch` via eslint plugins, `fast-uri`); nothing in the production bundle; no dependency changed in Phase 4 |
 | Client bundle secret scan | `npm run check:bundle-secrets` | ✅ 34 files clean |
 | Migrations vs schema | official schema engine (WASM): migrations applied vs Prisma's own empty→schema SQL | ✅ identical (332 columns, 70 foreign keys, 28 enums; the only extra object is R1's reviewed `ci_live_slot_unique`; Phase 4's partial unique `session_one_live` is in the schema) |

@@ -177,7 +177,11 @@ export async function setRole(ctx: Ctx, id: string, role: 'USER' | 'MODERATOR') 
     throw new HttpError(409, 'ACCOUNT_NOT_ACTIVE', 'Reative a conta antes de mudar o papel.');
   }
   await db().$transaction(async (t) => {
-    const res = await t.user.updateMany({ where: { id, role: u.role }, data: { role } });
+    // the epoch bump also forgets every browser that remembered this person's second factor
+    const res = await t.user.updateMany({
+      where: { id, role: u.role },
+      data: { role, mfaEpoch: { increment: 1 } },
+    });
     if (res.count !== 1) throw UserProblems.changed();
     await audit(
       {

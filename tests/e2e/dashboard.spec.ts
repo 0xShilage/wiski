@@ -69,8 +69,10 @@ test('passkey: enrol on /perfil/seguranca, then verify to open the dashboard', a
     );
   });
   await page.goto('/admin/catalogo');
-  await expect(page.getByRole('heading', { name: 'Cadastre uma passkey' })).toBeVisible();
-  await page.getByRole('link', { name: 'Cadastrar passkey' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Ative a verificação em duas etapas' }),
+  ).toBeVisible();
+  await page.getByRole('link', { name: 'Ativar agora' }).click();
   await page.getByLabel('Nome (opcional)').fill('Notebook E2E');
   await page.getByRole('button', { name: 'Adicionar passkey' }).click();
   await expect(page.getByText('Passkey cadastrada.')).toBeVisible();
@@ -91,7 +93,7 @@ test('passkey: enrol on /perfil/seguranca, then verify to open the dashboard', a
   }
   expect(await problem.allInnerTexts(), why()).toEqual([]);
   await expect(dashboard).toBeVisible();
-  await expect(page.getByText('Passkey verificada')).toBeVisible();
+  await expect(page.getByText('● Verificação em duas etapas ok')).toBeVisible();
 });
 
 test('create → upload → publish → the movie is in the carousel', async ({ page, context }) => {

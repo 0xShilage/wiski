@@ -1,7 +1,7 @@
 /**
  * Passkeys as the admin second factor (11 §9, O6; 12 §2 step 4 "done when"):
  * no passkey → 401 with an enrol/verify hint; enrol needs a fresh Google login; a verified
- * assertion opens admin APIs for 10 minutes; replayed assertions, wrong origin / RP ID, missing
+ * assertion opens admin APIs for 96 hours; replayed assertions, wrong origin / RP ID, missing
  * user verification and counter regressions are rejected.
  */
 import { describe, expect, it } from 'vitest';
@@ -64,18 +64,18 @@ const adminList = (a: Auth) =>
   call(items.GET, req('GET', '/api/v1/admin/catalog/items?kind=MOVIE', as(a)));
 
 describe('admin second factor', () => {
-  it('without a passkey, admin APIs answer 401 PASSKEY_ENROLL_REQUIRED with the enrol URL', async () => {
+  it('without a passkey, admin APIs answer 401 MFA_ENROLL_REQUIRED with the enrol URL', async () => {
     const mod = await makeUser({ role: 'MODERATOR' });
     const a = await signedIn(mod, new Date(), { mfaAt: null });
     const res = await adminList(a);
     expect(res.status).toBe(401);
     expect(await res.json()).toMatchObject({
-      code: 'PASSKEY_ENROLL_REQUIRED',
+      code: 'MFA_ENROLL_REQUIRED',
       enrollUrl: '/perfil/seguranca',
     });
     // The probe itself is reachable and reports the state.
     const probe = await call(adminSession.GET, req('GET', '/api/v1/admin/session', as(a)));
-    expect(await probe.json()).toMatchObject({ passkey: { enrolled: false, verified: false } });
+    expect(await probe.json()).toMatchObject({ mfa: { enrolled: false, verified: false } });
   });
 
   it('enrolling needs a fresh Google login (step-up)', async () => {
@@ -89,7 +89,7 @@ describe('admin second factor', () => {
     expect(await res.json()).toMatchObject({ code: 'STEP_UP_REQUIRED' });
   });
 
-  it('enrol → verify → admin APIs open; after 10 minutes PASSKEY_REQUIRED again', async () => {
+  it('enrol → verify → admin APIs open; after 96 hours MFA_REQUIRED again', async () => {
     const mod = await makeUser({ role: 'MODERATOR' });
     const a = await signedIn(mod, new Date(), { mfaAt: null });
     const authn = new SoftAuthenticator(ORIGIN);
@@ -98,8 +98,8 @@ describe('admin second factor', () => {
     const before = await adminList(a);
     expect(before.status).toBe(401);
     expect(await before.json()).toMatchObject({
-      code: 'PASSKEY_REQUIRED',
-      verifyUrl: '/api/v1/me/passkeys/authentication/options',
+      code: 'MFA_REQUIRED',
+      verifyUrl: '/perfil/seguranca',
     });
 
     const { res } = await verify(a, authn);
@@ -115,9 +115,9 @@ describe('admin second factor', () => {
 
     await db().session.update({
       where: { id: a.session.id },
-      data: { mfaAt: new Date(Date.now() - 11 * 60_000) },
+      data: { mfaAt: new Date(Date.now() - 97 * 3600_000) },
     });
-    expect(await (await adminList(a)).json()).toMatchObject({ code: 'PASSKEY_REQUIRED' });
+    expect(await (await adminList(a)).json()).toMatchObject({ code: 'MFA_REQUIRED' });
 
     const audit = await db().auditLog.findMany({
       where: { actorId: mod.id, action: { startsWith: 'passkey.' } },

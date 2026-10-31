@@ -4,7 +4,7 @@ import { type z } from 'zod';
 import type { Session, User } from '@/generated/prisma/client';
 import { type AuditAction, type AuditEntry, audit } from '../audit/audit';
 import { COOKIE } from '../auth/cookies';
-import { countPasskeys, isMfaFresh } from '../auth/passkeys';
+import { factorsOf, hasFactor, isMfaFresh } from '../auth/mfa';
 import { loadSession, type SessionContext } from '../auth/session';
 import { isStepUpFresh, stepUpUrl } from '../auth/step-up';
 import { getEnv } from '../env';
@@ -46,8 +46,9 @@ export type RouteOptions<A extends AccessLevel, B extends AnyZod, Q extends AnyZ
   turnstile?: string;
   /** Require an interactive login ≤ 10 min old (sensitive admin actions). */
   stepUp?: boolean;
-  /** Require a passkey assertion ≤ 10 min old (Session.mfaAt). Default: on for 'moderator' and
-   *  'streamer' access (11 §9, O6); only the passkey endpoints themselves turn it off. */
+  /** Require the admin second factor checked ≤ 96 h ago (Session.mfaAt: passkey or
+   *  authenticator app). Default: on for 'moderator' and 'streamer' access (11 §9, O6); only the
+   *  second-factor endpoints themselves turn it off. */
   mfa?: boolean;
   /** Binary body (uploads): not read by the pipeline. Content-Length is mandatory and checked
    *  against `maxBytes` before anything else; the handler streams `req.body` itself, AFTER the
@@ -262,12 +263,12 @@ export function route<
         }
       }
 
-      // 7b. passkey (admin second factor)
+      // 7b. admin second factor (passkey or authenticator app, checked in the last 96 h)
       const mfa = options.mfa ?? (options.access === 'moderator' || options.access === 'streamer');
       if (mfa && ctxSession && !isMfaFresh(ctxSession.session)) {
-        throw (await countPasskeys(ctxSession.user.id)) === 0
-          ? Problems.passkeyEnrollRequired()
-          : Problems.passkeyRequired();
+        throw hasFactor(await factorsOf(ctxSession.user.id))
+          ? Problems.mfaRequired()
+          : Problems.mfaEnrollRequired();
       }
 
       // 8. step-up

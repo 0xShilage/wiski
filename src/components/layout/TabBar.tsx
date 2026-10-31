@@ -1,12 +1,19 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { IconFilm, IconLayers, IconStar, IconTv, IconUser } from '@/components/ui/icons';
+import {
+  IconCalendar,
+  IconFilm,
+  IconLayers,
+  IconStar,
+  IconTv,
+  IconUser,
+} from '@/components/ui/icons';
 import { NAV_ITEMS } from './nav-items';
 
-const ICONS = [IconFilm, IconTv, IconLayers, IconStar, IconUser] as const;
+const ICONS = [IconFilm, IconTv, IconLayers, IconCalendar, IconStar, IconUser] as const;
 
-/** Phones (≤ 760 px): the five tabs as a fixed bottom bar (O10). Hidden on larger screens. */
+/** Phones (≤ 760 px): the six tabs as a fixed bottom bar (O10). Hidden on larger screens. */
 export function TabBar() {
   const path = usePathname() ?? '/';
   return (

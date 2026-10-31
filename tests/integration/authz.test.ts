@@ -90,6 +90,12 @@ export const MATRIX: Row[] = [
   R('/api/v1/me/passkeys/authentication/options', 'POST', 'moderator'),
   R('/api/v1/me/passkeys/authentication', 'POST', 'moderator', { body: { response: {} } }),
   R('/api/v1/me/passkeys/[id]', 'DELETE', 'moderator', { params: { id: NO_ID } }),
+  // authenticator app (2026-10-31)
+  R('/api/v1/me/totp/setup', 'POST', 'moderator'),
+  R('/api/v1/me/totp/enable', 'POST', 'moderator', { body: { code: '123456' } }),
+  R('/api/v1/me/totp/verify', 'POST', 'moderator', { body: { code: '123456' } }),
+  R('/api/v1/me/totp/recovery-codes', 'POST', 'moderator'),
+  R('/api/v1/me/totp', 'DELETE', 'moderator'),
   // dashboard (MODERATOR+, passkey)
   R('/api/v1/admin/catalog/items', 'GET', 'moderator', {
     url: '/api/v1/admin/catalog/items?kind=MOVIE',

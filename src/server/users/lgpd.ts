@@ -108,6 +108,10 @@ export async function exportMyData(user: User, requestId: string | null) {
     reports,
     legalAcceptances: legal.map((l) => ({ ...l.document, acceptedAt: l.acceptedAt })),
     passkeys,
+    // never the secret or the codes — only whether it is on
+    authenticatorApp: {
+      enabledAt: user.totpEnabledAt?.toISOString() ?? null,
+    },
   };
 }
 
@@ -133,6 +137,7 @@ export async function eraseMyAccount(
     await t.reviewLike.deleteMany({ where: { userId: user.id } });
     await t.reviewReport.deleteMany({ where: { reporterId: user.id } });
     await t.passkey.deleteMany({ where: { userId: user.id } });
+    await t.mfaRecoveryCode.deleteMany({ where: { userId: user.id } });
     await t.session.updateMany({
       where: { userId: user.id, revokedAt: null },
       data: { revokedAt: now },
@@ -169,6 +174,10 @@ export async function eraseMyAccount(
         role: 'USER',
         isVip: false,
         vipSince: null,
+        totpSecretEnc: null,
+        totpEnabledAt: null,
+        totpLastStep: null,
+        mfaEpoch: { increment: 1 },
       },
     });
     await audit(

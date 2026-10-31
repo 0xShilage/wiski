@@ -55,6 +55,12 @@ export const IconLayers = ({ className }: P) => (
     <path d="M3 14l9 5 9-5" />
   </svg>
 );
+export const IconCalendar = ({ className }: P) => (
+  <svg {...base} className={className}>
+    <rect x="3.5" y="5" width="17" height="15" rx="2" />
+    <path d="M3.5 10h17M8 3v4M16 3v4" />
+  </svg>
+);
 export const IconStar = ({ className }: P) => (
   <svg {...base} className={className}>
     <path d="M12 3.5l2.6 5.6 6 .7-4.5 4.1 1.2 6-5.3-3-5.3 3 1.2-6L3.4 9.8l6-.7z" />

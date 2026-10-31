@@ -126,3 +126,33 @@ Where to look:
 | P4-b | E-mail alerts for new contact messages and reschedule confirmations wait on the e-mail provider (E1) | you (E1) |
 | P4-c | Media kit text and partnership formats are a first draft; adjust in `src/app/(site)/media-kit/page.tsx` or ask for a dashboard editor | you |
 | P3-d | Community rules text (what gets a review hidden) for the lawyer, with the terms | you + lawyer (Q13) |
+
+## 6. Changes after delivery (2026-10-31)
+
+Asked for after the Phase 4 hand-over.
+
+### 6.1 Username cooldown by role
+
+Viewers keep **30 days** between username changes; **moderators and the streamer: 5 days** (`usernameCooldownMs()` in `src/server/auth/accounts.ts`). Released names are still held 30 days for everyone.
+
+### 6.2 Authenticator app (2FA) next to passkeys
+
+The admin second factor is now **an authenticator app (TOTP) or a passkey**, whichever the moderator set up; either one counts for **96 hours** (was 10 minutes).
+
+| Piece | How |
+|---|---|
+| Set-up (`/perfil/seguranca`) | needs a Google login in the last 10 min; when the account already has a factor, that factor too (a stolen Google login can't add its own). A new 160-bit secret waits in Redis for 10 min (encrypted, bound to the session); the QR code is an SVG path drawn by React (no data URL, CSP unchanged) |
+| Enabling | the first 6-digit code proves the app has the secret → secret stored **AES-256-GCM-encrypted** with `TOTP_ENCRYPTION_KEY` (new env var, required in production; development/test derive one); **6 single-use recovery codes** shown once (copy / download .txt / "Guardei os códigos"), stored as HMAC-SHA256 |
+| The check | RFC 6238 (SHA-1, 6 digits, 30 s, ±1 step). A code is accepted once (`totpLastStep` compare-and-set, also under parallel use). 6 tries per 15 min per account (+ 20 per IP). A recovery code works once, case- and dash-insensitive |
+| 96 hours | `Session.mfaAt` counts for 96 h (`src/server/auth/mfa.ts`). Admin sessions still end after 8 h idle / 24 h, so the check is also **remembered in the browser**: a sealed `__Host-wf_mfa` cookie (user, time, epoch; HttpOnly, Secure, Lax) lets the next Google login on the same browser start verified until the 96 h are up. **Logging out clears it.** |
+| Revoking | `User.mfaEpoch` invalidates every remembered browser: bumped when the authenticator or a passkey is removed, when the role changes and on account erasure. Removing the last factor also clears every session's check |
+| Managing | new recovery codes and turning it off need a fresh check + a fresh Google login; audited (`totp.enable`, `totp.verify` with method, `totp.recovery.regenerate`, `totp.disable`, `mfa.remembered`) — never codes or secrets |
+| Unchanged | STREAMER money actions still need a Google login in the last 10 minutes (step-up) |
+
+New endpoints (all MODERATOR+, in the authz matrix): `POST /api/v1/me/totp/setup`, `POST …/enable` `{code}`, `POST …/verify` `{code}` or `{recoveryCode}`, `POST …/recovery-codes`, `DELETE /api/v1/me/totp`. The admin problems are now `MFA_REQUIRED` / `MFA_ENROLL_REQUIRED` (were `PASSKEY_*`). Migrations `20261102120000_mfa_totp` + reviewed `20261102120100_mfa_totp_constraints` (secret ⇔ enabled, sizes, at most 6 unused codes, used codes immutable).
+
+**After pulling:** add `TOTP_ENCRYPTION_KEY` to `.env.local` (32 random bytes, base64url — same format as `COOKIE_SEAL_KEY`, and different from it) before production; locally it is optional. Then `npm ci` (new dependency `qrcode`) and `npm run db:migrate`.
+
+### 6.3 Cronograma
+
+A new public tab, **Cronograma** (`/cronograma`, between Franquias and Avaliações; on phones the bottom bar now has six tabs). It lists, by day (São Paulo time), every upcoming live with the **movies, funded series and franchises already placed in it**, plus lives that ended in the **last two days** with what was watched. Paid titles without a date are not listed; titles left over at the end of a live go back to the queue and disappear from it. Same public facts as the home strip (approved sponsor names or "Anônimo", never e-mails). `cronograma()` in `src/server/live/public.ts`; the dev seed adds yesterday's live.

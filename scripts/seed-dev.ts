@@ -659,6 +659,34 @@ async function main() {
   ] as const) {
     await setStat(streamerCtx, platform, metric, value);
   }
+  // yesterday's live (Cronograma › "Já foi"): the watched movie of slot 13
+  const yesterday = new Date(Date.now() - 86_400_000).toLocaleDateString('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+  });
+  const lastLive = await db().streamSession.create({
+    data: {
+      startsAt: new Date(`${yesterday}T20:00:00-03:00`),
+      startedAt: new Date(`${yesterday}T20:05:00-03:00`),
+      endsAt: new Date(`${yesterday}T22:10:00-03:00`),
+      capacityMinutes: 240,
+      bookedMinutes: 89,
+      status: 'DONE',
+    },
+  });
+  const lastOrder = await order(watched, 'PAID', sponsor.id);
+  await db().order.update({
+    where: { id: lastOrder.id },
+    data: {
+      status: 'COMPLETED',
+      sessionId: lastLive.id,
+      scheduledAt: new Date(`${yesterday}T12:00:00-03:00`),
+      completedAt: new Date(`${yesterday}T21:40:00-03:00`),
+    },
+  });
+  await db().watchEvent.updateMany({
+    where: { itemId: watched },
+    data: { orderId: lastOrder.id, sessionId: lastLive.id },
+  });
   log('next live scheduled, goal and media kit numbers set');
 
   const counts = await db().catalogItem.groupBy({ by: ['kind', 'status'], _count: { _all: true } });

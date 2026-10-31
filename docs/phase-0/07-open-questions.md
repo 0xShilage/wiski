@@ -65,7 +65,7 @@
 | Q14 | Orders kept 5 years (confirm with accountant); reviews deleted on account erasure |
 | Q15 | Whole stars 1–5; editable with "editado"; spoiler toggle; auto-hide at 3 reports from accounts ≥ 7 days old; "watched" set automatically on COMPLETED + manually by moderators |
 | Q16 | Sponsor names public by default, per-order "patrocinar anonimamente" checkbox |
-| Q17 | Passkey second factor **required for STREAMER**, optional for moderators |
+| Q17 | Second factor **required for STREAMER and moderators**: authenticator app (TOTP, 6 recovery codes) or passkey, checked every 96 h per browser (changed 2026-10-31, [phase-4 §6.2](../phase-4/README.md)) |
 | Q18 | Media kit: Twitch + YouTube via official APIs, other platforms as manual values; contact form → Admin inbox + e-mail alert |
 | Q19 | Goals: count, revenue (shown as % only), minutes watched |
 | Q20 | Overlay widgets: Agora assistindo · Próximos da fila (top 5) · Meta · Novo patrocínio |

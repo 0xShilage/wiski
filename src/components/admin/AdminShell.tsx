@@ -51,7 +51,7 @@ export function AdminShell({
           <p className="m-0 font-semibold">
             @{user.username ?? 'moderacao'} · {ROLE_LABEL[user.role]}
           </p>
-          <p className="wf-admin__ok m-0 mt-1">● Passkey verificada</p>
+          <p className="wf-admin__ok m-0 mt-1">● Verificação em duas etapas ok</p>
           <Link href="/perfil" className="wf-linkbtn text-xs">
             Perfil
           </Link>

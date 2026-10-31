@@ -41,6 +41,21 @@ export const RL = {
     perIp: { limit: 30, windowMs: MIN },
     perUser: { limit: 20, windowMs: MIN },
   },
+  /**
+   * Authenticator codes: 6 digits = 10⁶ guesses, so per account only a handful per 15 minutes
+   * (with ±1 time step that is 3 valid codes in a million: ~0.003 % per window).
+   */
+  totpVerify: {
+    name: 'totp-verify',
+    perIp: { limit: 20, windowMs: 15 * MIN },
+    perUser: { limit: 6, windowMs: 15 * MIN },
+  },
+  /** Setting up / removing the authenticator and new recovery codes. */
+  totpManage: {
+    name: 'totp-manage',
+    perIp: { limit: 20, windowMs: HOUR },
+    perUser: { limit: 10, windowMs: HOUR },
+  },
   /** Admin writes (catalog, campaigns). */
   adminWrite: {
     name: 'admin-write',

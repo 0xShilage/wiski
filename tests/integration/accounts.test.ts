@@ -251,6 +251,8 @@ describe('me, sessions, logout', () => {
     expect(cookie.attributes['max-age']).toBe('0');
     expect(cookie.attributes).toMatchObject({ httponly: true, secure: true, path: '/' });
     expect(await loadSession(s.token)).toBeNull();
+    // the remembered second factor goes too (shared computers)
+    expect(setCookies(res)[COOKIE.mfa]!.attributes['max-age']).toBe('0');
   });
 
   it('logout is a CSRF-protected POST (a cross-site form cannot log you out)', async () => {

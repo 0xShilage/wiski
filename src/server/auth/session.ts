@@ -28,7 +28,11 @@ export type SessionContext = { session: Session; user: User };
 
 export async function createSession(
   user: Pick<User, 'id' | 'role'>,
-  { authTime, uaFamily }: { authTime: Date; uaFamily: string | null },
+  {
+    authTime,
+    uaFamily,
+    mfaAt = null,
+  }: { authTime: Date; uaFamily: string | null; mfaAt?: Date | null },
   now = new Date(),
 ): Promise<{ token: string; session: Session; maxAgeSec: number }> {
   const token = randomToken(32);
@@ -38,6 +42,7 @@ export async function createSession(
       tokenHash: sha256Bytes(token),
       userId: user.id,
       authTime,
+      mfaAt,
       createdAt: now,
       lastSeenAt: now,
       idleExpiresAt: new Date(now.getTime() + Math.min(life.idleMs, life.absoluteMs)),

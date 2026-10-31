@@ -12,7 +12,7 @@ type Item = {
   synced: boolean;
 };
 
-/** /perfil/seguranca: enrol, verify and remove passkeys (MODERATOR / STREAMER). */
+/** /perfil/seguranca › Passkeys: enrol, verify and remove (MODERATOR / STREAMER). */
 export function PasskeyPanel({
   items,
   verified,
@@ -56,12 +56,10 @@ export function PasskeyPanel({
 
   return (
     <div className="space-y-6">
-      <p className={verified ? 'text-success' : 'text-warning'} role="status">
-        {verified
-          ? 'Passkey verificada nesta sessão (vale por 10 minutos de cada vez).'
-          : items.length
-            ? 'Esta sessão ainda não foi verificada com a sua passkey.'
-            : 'Você ainda não tem uma passkey. Cadastre uma para usar o painel.'}
+      <p className={items.length ? 'text-success' : 'text-fg-muted'} role="status">
+        {items.length
+          ? `${items.length} passkey${items.length === 1 ? '' : 's'} cadastrada${items.length === 1 ? '' : 's'}.`
+          : 'Nenhuma passkey cadastrada (opcional se você usa o app autenticador).'}
       </p>
       {items.length ? (
         <ul className="divide-y divide-border/60 rounded-md border border-border/60">
@@ -107,21 +105,16 @@ export function PasskeyPanel({
           type="button"
           className="wf-btn wf-btn--neon"
           disabled={busy}
-          onClick={() =>
-            run(
-              () => enrolPasskey(label.trim()),
-              'Passkey cadastrada. Agora verifique para abrir o painel.',
-            )
-          }
+          onClick={() => run(() => enrolPasskey(label.trim()), 'Passkey cadastrada.')}
         >
           Adicionar passkey
         </button>
-        {items.length ? (
+        {items.length && !verified ? (
           <button
             type="button"
             className="wf-btn wf-btn--ghost"
             disabled={busy}
-            onClick={() => run(verifyPasskey, 'Sessão verificada por 10 minutos.')}
+            onClick={() => run(verifyPasskey, 'Verificado por 96 horas neste navegador.')}
           >
             Verificar agora
           </button>

@@ -14,9 +14,10 @@ import type {
 import type { Passkey, Session, User } from '@/generated/prisma/client';
 import { db } from '../db';
 import { getEnv } from '../env';
-import { HttpError } from '../http/problem';
+import { HttpError, Problems } from '../http/problem';
 import { logger } from '../log';
 import { redis } from '../redis';
+import { factorsOf, hasFactor, isMfaFresh, revokeMfaTrust } from './mfa';
 
 /**
  * Passkeys (WebAuthn) — the second factor MODERATOR and STREAMER must present for /admin and
@@ -26,9 +27,11 @@ import { redis } from '../redis';
  *  • User verification is required (PIN/biometric), origin and RP ID are pinned to APP_ORIGIN.
  *  • A sign counter that does not increase (cloned authenticator) is rejected by the library;
  *    the stored counter is updated with a compare-and-set so two parallel assertions can't both win.
- *  • A successful assertion stamps Session.mfaAt; admin routes accept it for MFA_MAX_AGE_SEC.
+ *  • A successful assertion stamps Session.mfaAt; admin routes accept it for MFA_MAX_AGE_SEC
+ *    (96 h, see mfa.ts — the authenticator app is the other accepted factor).
  */
-export const MFA_MAX_AGE_SEC = 10 * 60;
+export { MFA_MAX_AGE_SEC } from './mfa';
+export { isMfaFresh };
 const CHALLENGE_TTL_SEC = 5 * 60;
 const MAX_PASSKEYS_PER_USER = 10;
 
@@ -100,13 +103,16 @@ export async function countPasskeys(userId: string): Promise<number> {
 
 export async function registrationOptions(
   user: Pick<User, 'id' | 'username' | 'email'>,
-  session: Pick<Session, 'id'>,
+  session: Pick<Session, 'id' | 'mfaAt'>,
 ): Promise<PublicKeyCredentialCreationOptionsJSON> {
   const existing = await db().passkey.findMany({
     where: { userId: user.id },
     select: { credentialId: true, transports: true },
   });
   if (existing.length >= MAX_PASSKEYS_PER_USER) throw PasskeyProblems.tooMany();
+  // Adding a factor to an account that has one needs that factor checked first (a stolen Google
+  // login alone must not be able to add its own way in).
+  if (hasFactor(await factorsOf(user.id)) && !isMfaFresh(session)) throw Problems.mfaRequired();
   const { rpID, rpName } = relyingParty();
   const options = await generateRegistrationOptions({
     rpName,
@@ -261,13 +267,16 @@ export async function verifyAuthentication(
   return { passkeyId: passkey.id, mfaAt: now };
 }
 
+/** Remove one of my passkeys: remembered devices are forgotten; the last factor clears sessions. */
 export async function deletePasskey(userId: string, passkeyId: string): Promise<boolean> {
-  const res = await db().passkey.deleteMany({ where: { id: passkeyId, userId } });
-  return res.count === 1;
-}
-
-export function isMfaFresh(session: Pick<Session, 'mfaAt'>, now = new Date()): boolean {
-  if (!session.mfaAt) return false;
-  const age = now.getTime() - session.mfaAt.getTime();
-  return age >= -60_000 && age <= MFA_MAX_AGE_SEC * 1000;
+  return db().$transaction(async (tx) => {
+    const res = await tx.passkey.deleteMany({ where: { id: passkeyId, userId } });
+    if (res.count !== 1) return false;
+    const [left, user] = await Promise.all([
+      tx.passkey.count({ where: { userId } }),
+      tx.user.findUnique({ where: { id: userId }, select: { totpEnabledAt: true } }),
+    ]);
+    await revokeMfaTrust(tx, userId, { clearSessions: left === 0 && !user?.totpEnabledAt });
+    return true;
+  });
 }

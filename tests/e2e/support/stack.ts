@@ -118,6 +118,8 @@ async function main() {
     REDIS_URL: `redis://127.0.0.1:${REDIS_PORT}`,
     CSRF_SECRET: 'e2e-csrf-secret-e2e-csrf-secret-e2e-csrf-secret',
     COOKIE_SEAL_KEY: 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8',
+    // a fixed, obviously-fake 32-byte key built at runtime (production rules require one)
+    TOTP_ENCRYPTION_KEY: Buffer.alloc(32, 0x5a).toString('base64url'),
     IP_HASH_SECRET: 'e2e-ip-hash-secret-e2e-ip-hash-secret-e2e-ip-h',
     CLIENT_IP_HEADER: 'x-real-ip',
     // Production rules apply: real-looking (never contacted) Google/Turnstile config.

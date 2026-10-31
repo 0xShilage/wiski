@@ -442,6 +442,63 @@
     padding: 24px;
   }
 
+  /* ── second factor: authenticator app ── */
+  .wf-otp {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.3em;
+    font-size: 1.25rem;
+    text-align: center;
+  }
+  .wf-qr-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+  }
+  .wf-qr {
+    width: 196px;
+    height: 196px;
+    border-radius: 8px;
+    flex: none;
+  }
+  .wf-secret {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: rgb(36 26 51 / 0.92);
+    color: #f7f2fb;
+    font-size: 0.95rem;
+    letter-spacing: 0.08em;
+    overflow-wrap: anywhere;
+  }
+  .wf-steps {
+    margin: 0;
+    padding-left: 1.25rem;
+    list-style: decimal;
+    display: grid;
+    gap: 6px;
+  }
+  .wf-recovery__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+  }
+  .wf-recovery__list code {
+    display: block;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: rgb(36 26 51 / 0.92);
+    border: 1px solid rgb(169 157 224 / 0.3);
+    color: #f7f2fb;
+    font-size: 1rem;
+    letter-spacing: 0.06em;
+    text-align: center;
+  }
+
   @media (max-width: 1199px) {
     .wf-admin {
       grid-template-columns: minmax(0, 1fr) minmax(400px, 46%);

@@ -29,6 +29,7 @@ import {
   type Who,
 } from '../support/live';
 import { postReview } from '../support/reviews';
+import { cronograma } from '@/server/live/public';
 
 beforeEach(async () => {
   vi.stubGlobal('fetch', async () => Response.json({ success: true })); // Turnstile (reviews)
@@ -399,5 +400,69 @@ describe('public schedule', () => {
       expect.objectContaining({ title: 'Filme do Convidado', sponsor: null }),
     );
     expect(JSON.stringify(r.json)).not.toMatch(/@example\.com|Nome Pendente/);
+  });
+});
+
+describe('cronograma', () => {
+  it('booked titles of upcoming lives by day, watched titles of the last two days, nothing unbooked', async () => {
+    const mod = await as('MODERATOR');
+    // a live that is on now: one title watched, one left over (goes back to the queue at the end)
+    const past = await db().streamSession.create({
+      data: {
+        startsAt: new Date(Date.now() - 3 * 3_600_000),
+        capacityMinutes: 300,
+        status: 'LIVE',
+        startedAt: new Date(Date.now() - 3 * 3_600_000),
+      },
+    });
+    const watched = await paidMovie({ title: 'Já Assistido' });
+    const leftover = await paidMovie({ title: 'Sobrou da Live' });
+    await sched(mod, {
+      action: 'add',
+      target: T('ORDER', watched.order.id, 0),
+      sessionId: past.id,
+    });
+    await sched(mod, {
+      action: 'add',
+      target: T('ORDER', leftover.order.id, 0),
+      sessionId: past.id,
+    });
+    await sched(mod, { action: 'complete', target: T('ORDER', watched.order.id, 1) });
+    const v = (await session(past.id)).version;
+    await hit(endRoute, 'POST', '', {
+      who: mod,
+      params: { id: past.id },
+      body: { expectedVersion: v },
+    });
+
+    // upcoming: a movie and a funded series booked; a paid movie with no date is not listed
+    const next = await makeSession({ inHours: 30 });
+    const booked = await paidMovie({ title: 'Marcado Para Amanhã' });
+    const { campaign, item: series } = await fundedCampaign();
+    await sched(mod, { action: 'add', target: T('ORDER', booked.order.id, 0), sessionId: next.id });
+    await sched(mod, { action: 'add', target: T('CAMPAIGN', campaign.id, 0), sessionId: next.id });
+    await paidMovie({ title: 'Pago Sem Data' });
+    const empty = await makeSession({ inHours: 80 });
+
+    const days = await cronograma();
+    const all = days.flatMap((d) => d.sessions);
+    const titles = all.flatMap((s) => s.titles.map((t) => t.title));
+    expect(titles).toContain('Já Assistido');
+    expect(titles).toContain('Marcado Para Amanhã');
+    expect(titles).toContain(series.title);
+    expect(titles).not.toContain('Sobrou da Live');
+    expect(titles).not.toContain('Pago Sem Data');
+    expect(all.find((s) => s.id === past.id)).toMatchObject({ past: true });
+    expect(all.find((s) => s.id === next.id)).toMatchObject({ past: false });
+    expect(all.find((s) => s.id === empty.id)?.titles).toEqual([]);
+    // grouped by São Paulo calendar day, in order
+    const keys = days.map((d) => d.date);
+    expect([...keys].sort()).toEqual(keys);
+    expect(new Set(keys).size).toBe(keys.length);
+    for (const d of days) expect(d.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+    // three days later the finished live is gone
+    const later = await cronograma(new Date(Date.now() + 3 * 86_400_000));
+    expect(later.flatMap((d) => d.sessions).some((s) => s.id === past.id)).toBe(false);
   });
 });

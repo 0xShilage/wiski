@@ -22,6 +22,8 @@ const production = {
   TURNSTILE_SITE_KEY: '0x4AAAAAAAreal-site-key',
   TURNSTILE_SECRET_KEY: '0x4AAAAAAAreal-secret-key',
   MEDIA_DIR: '/var/lib/wiski/media',
+  // an obviously fake 32-byte key, built at runtime
+  TOTP_ENCRYPTION_KEY: Buffer.alloc(32, 0x42).toString('base64url'),
 };
 
 function problems(source: Record<string, string | undefined>): string[] {
@@ -79,6 +81,16 @@ describe('env validation (refuses to boot on missing/invalid vars)', () => {
 
   it('requires distinct secrets', () => {
     expect(problems({ ...valid, IP_HASH_SECRET: valid.CSRF_SECRET })).toContainEqual(
+      expect.stringContaining('must all differ'),
+    );
+  });
+
+  it('requires TOTP_ENCRYPTION_KEY in production (optional elsewhere), distinct and 32 bytes', () => {
+    const { TOTP_ENCRYPTION_KEY: _t, ...rest } = production;
+    expect(problems(rest)).toContainEqual(expect.stringContaining('TOTP_ENCRYPTION_KEY'));
+    expect(problems(valid)).toEqual([]);
+    expect(problems({ ...valid, TOTP_ENCRYPTION_KEY: 'short' })).not.toEqual([]);
+    expect(problems({ ...valid, TOTP_ENCRYPTION_KEY: valid.COOKIE_SEAL_KEY })).toContainEqual(
       expect.stringContaining('must all differ'),
     );
   });

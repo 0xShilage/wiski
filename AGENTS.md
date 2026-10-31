@@ -15,7 +15,7 @@ Phase 1 status, how to run, decisions and deviations: `docs/phase-1/README.md`; 
 R1 (redesign foundation): `docs/r1/README.md`; results: `docs/r1/test-report.md`; rules: `docs/phase-0/11-redesign-spec.md`.
 Phase 2 (payments): `docs/phase-2/README.md`; results: `docs/phase-2/test-report.md`.
 Phase 3 (reviews and moderation): `docs/phase-3/README.md`; results: `docs/phase-3/test-report.md`.
-Phase 4 (operations: live schedule, orders/people admin, overlays, media kit, contact, LGPD — current): `docs/phase-4/README.md`; results: `docs/phase-4/test-report.md`.
+Phase 4 (operations: live schedule, orders/people admin, overlays, media kit, contact, LGPD — current; §6: authenticator 2FA, Cronograma, username cooldown by role): `docs/phase-4/README.md`; results: `docs/phase-4/test-report.md`.
 
 Non-negotiables (enforced by lint/tests — keep them green):
 
@@ -24,7 +24,7 @@ Non-negotiables (enforced by lint/tests — keep them green):
 - **Identity is the Google `sub`**; sessions are server-side (hash in DB); cookies are `__Host-`, HttpOnly, Secure.
 - **Money is integer cents; time is UTC in the DB** (connections pinned to `TimeZone=UTC`), business rules in America/Sao_Paulo.
 - **Audit log is append-only**: write through `audit()` with an allow-listed metadata schema; never UPDATE/DELETE it.
-- **Admin routes need a passkey**: `route()` enforces `Session.mfaAt` ≤ 10 min for `moderator`/`streamer` access by default — never pass `mfa: false` on an admin endpoint. STREAMER money actions also need Google step-up.
+- **Admin routes need the second factor** (authenticator app or passkey, `src/server/auth/mfa.ts`): `route()` enforces `Session.mfaAt` ≤ 96 h for `moderator`/`streamer` access by default — never pass `mfa: false` on an admin endpoint (only the second-factor endpoints themselves do). TOTP secrets are encrypted with `TOTP_ENCRYPTION_KEY`; recovery codes are stored as HMACs only. STREAMER money actions also need Google step-up (10 min).
 - **User images only through the media pipeline** (`src/server/media`): bytes decide the format, everything is re-encoded under content-hash names; nginx serves `/media/` in production (the app route is development-only).
 - **Raw SQL only in reviewed migrations** (`prisma/migrations/*_constraints`) plus the documented tagged-template exceptions.
 - **Order and payment state changes only in `src/server/payments/{sync,jobs,refunds}.ts`, `src/server/checkout/{orders,access,holds,admin}.ts`, `src/server/live/schedule.ts` and `catalog/service.ts` `markWatched`**: never trust a webhook body (re-fetch and verify every MP payment); every transition is a compare-and-set with its holds in the same transaction, and is audited.

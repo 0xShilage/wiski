@@ -88,6 +88,12 @@ export const AUDIT_ACTIONS = {
     .strict(),
   'passkey.verify': z.object({}).strict(),
   'passkey.delete': z.object({}).strict(),
+  // ── authenticator app (2026-10-31) ──
+  'totp.enable': z.object({}).strict(),
+  'totp.verify': z.object({ method: z.enum(['totp', 'recovery']) }).strict(),
+  'totp.disable': z.object({}).strict(),
+  'totp.recovery.regenerate': z.object({}).strict(),
+  'mfa.remembered': z.object({}).strict(),
   'media.upload': z
     .object({
       role: mediaRole,

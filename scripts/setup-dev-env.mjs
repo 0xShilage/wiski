@@ -26,6 +26,7 @@ REDIS_URL=redis://localhost:6379
 CSRF_SECRET=${secret()}
 COOKIE_SEAL_KEY=${secret()}
 IP_HASH_SECRET=${secret()}
+TOTP_ENCRYPTION_KEY=${secret()}
 CLIENT_IP_HEADER=none
 
 # Google sign-in (Q27): paste the client id, and type the secret yourself.

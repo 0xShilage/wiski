@@ -55,9 +55,17 @@ model User {
   createdAt         DateTime      @default(now()) @db.Timestamptz(3)
   updatedAt         DateTime      @updatedAt @db.Timestamptz(3)
   deletedAt         DateTime?     @db.Timestamptz(3)
+  /// Authenticator app (TOTP, RFC 6238): AES-256-GCM-encrypted secret, set only once enabled (CHECK).
+  totpSecretEnc     Bytes?
+  totpEnabledAt     DateTime?     @db.Timestamptz(3)
+  /// last accepted 30-s time step — a code is never accepted twice (compare-and-set)
+  totpLastStep      BigInt?
+  /// bumped when a second factor is removed or the role changes: every "remembered device" stops counting
+  mfaEpoch          Int           @default(0)
 
   sessions           Session[]
   passkeys           Passkey[]
+  recoveryCodes      MfaRecoveryCode[]
   usernameHolds      UsernameHold[]
   orders             Order[]
   legalAcceptances   LegalAcceptance[]
@@ -73,6 +81,19 @@ model User {
   campaignsOpened    Campaign[]          @relation("CampaignOpener")
 
   @@index([role])
+}
+
+/// Single-use backup codes for the authenticator app (6 per set). Only an HMAC of each code is stored.
+model MfaRecoveryCode {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  userId    String    @db.Uuid
+  codeHash  Bytes
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  usedAt    DateTime? @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, codeHash])
 }
 
 /// Server-side session. Cookie `__Host-wf_session` carries a 256-bit random token; only its SHA-256 is stored.

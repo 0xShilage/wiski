@@ -46,14 +46,14 @@ describe('moderation actions', () => {
     const review = await reported(1);
     const mod = await staff('MODERATOR');
     const stale = await signedIn(mod.user, new Date(), {
-      mfaAt: new Date(Date.now() - 11 * 60_000),
+      mfaAt: new Date(Date.now() - 97 * 3600_000),
     });
     const r = await moderateReview({ user: mod.user, auth: stale }, review.id, {
       action: 'HIDE',
       expectedStatus: 'VISIBLE',
     });
     expect(r.res.status).toBe(401);
-    expect(['PASSKEY_REQUIRED', 'PASSKEY_ENROLL_REQUIRED']).toContain(r.json.code);
+    expect(['MFA_REQUIRED', 'MFA_ENROLL_REQUIRED']).toContain(r.json.code);
     expect((await statusOf(review.id)).status).toBe('VISIBLE');
   });
 

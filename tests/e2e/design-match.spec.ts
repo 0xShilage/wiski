@@ -131,6 +131,6 @@ test('Dashboard 1440', async ({ page, context }) => {
   await signIn(context, mod.token);
   await page.setViewportSize({ width: 1440, height: 1047 });
   await page.goto('/admin/catalogo', { waitUntil: 'networkidle' });
-  await expect(page.getByText('Passkey verificada')).toBeVisible();
+  await expect(page.getByText('● Verificação em duas etapas ok')).toBeVisible();
   await sideBySide(page, 'r1-admin-1440');
 });

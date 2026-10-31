@@ -363,3 +363,87 @@ html:has(.wf-overlay) body {
 html:has(.wf-overlay) .skip-link {
   display: none;
 }
+
+/* ── public: Cronograma ── */
+@layer components {
+  .wf-cron {
+    max-width: calc(880px + 2 * var(--pad));
+    display: grid;
+    gap: 24px;
+  }
+  .wf-cron__intro,
+  .wf-cron__empty {
+    color: var(--fg-78);
+    max-width: 62ch;
+    margin: 0;
+  }
+  .wf-cron__day {
+    display: grid;
+    gap: 12px;
+  }
+  .wf-cron__date {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--color-lilac);
+    text-transform: capitalize;
+  }
+  .wf-cron__session {
+    padding: 16px 18px;
+    border-radius: 14px;
+    background: rgb(36 26 51 / 0.92);
+    border: 1px solid rgb(169 157 224 / 0.3);
+    display: grid;
+    gap: 10px;
+  }
+  .wf-cron__session.is-live {
+    border-color: var(--color-lavender);
+    box-shadow: var(--glow-sm);
+  }
+  .wf-cron__session.is-past {
+    background: rgb(36 26 51 / 0.6);
+  }
+  .wf-cron__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+  }
+  .wf-cron__time {
+    font-family: var(--font-display);
+    font-size: 28px;
+    line-height: 1;
+    color: #f7f2fb;
+  }
+  .wf-cron__note {
+    color: var(--fg-78);
+    font-size: 14px;
+  }
+  .wf-cron__titles {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+  }
+  .wf-cron__titles li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+  }
+  .wf-cron__title {
+    color: #f7f2fb;
+    font-weight: 600;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+  }
+  .wf-cron__title:hover {
+    text-decoration: underline;
+  }
+  .wf-cron__meta {
+    color: var(--fg-78);
+    font-size: 13px;
+    margin: 0;
+  }
+}

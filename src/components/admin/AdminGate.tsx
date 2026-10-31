@@ -4,9 +4,9 @@ import type { ReactNode } from 'react';
 import { Logo } from '@/components/brand/Logo';
 import { card } from '@/components/ui/styles';
 import { getCurrentSession } from '@/server/auth/current';
-import { countPasskeys, isMfaFresh } from '@/server/auth/passkeys';
+import { factorsOf, hasFactor, isMfaFresh } from '@/server/auth/mfa';
 import type { SessionContext } from '@/server/auth/session';
-import { PasskeyGate } from './PasskeyGate';
+import { MfaGate } from './MfaGate';
 
 function Gate({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -21,9 +21,9 @@ function Gate({ title, children }: { title: string; children: ReactNode }) {
 }
 
 /**
- * Every /admin page: MODERATOR / STREAMER only (others: 404), with a passkey verified in the last
- * 10 minutes (11 §9, O6). Returns the session, or the gate to render instead. The API behind the
- * page re-checks all of it on every call.
+ * Every /admin page: MODERATOR / STREAMER only (others: 404), with the second factor (authenticator
+ * app or passkey) checked in the last 96 hours (11 §9, O6). Returns the session, or the gate to
+ * render instead. The API behind the page re-checks all of it on every call.
  */
 export async function adminGate(
   path: string,
@@ -31,15 +31,17 @@ export async function adminGate(
   const ctx = await getCurrentSession();
   if (!ctx) redirect(`/perfil?returnTo=${encodeURIComponent(path)}`);
   if (ctx.user.role === 'USER') notFound();
-  if ((await countPasskeys(ctx.user.id)) === 0) {
+  const factors = await factorsOf(ctx.user.id);
+  if (!hasFactor(factors)) {
     return {
       gate: (
-        <Gate title="Cadastre uma passkey">
+        <Gate title="Ative a verificação em duas etapas">
           <p className="text-fg/90">
-            O painel pede uma passkey além do login com o Google. Cadastre a sua (leva um minuto).
+            O painel pede um segundo passo além do login com o Google: um código do app autenticador
+            (Google Authenticator, Microsoft Authenticator…) ou uma passkey. Leva um minuto.
           </p>
           <Link href="/perfil/seguranca" className="wf-btn wf-btn--neon">
-            Cadastrar passkey
+            Ativar agora
           </Link>
         </Gate>
       ),
@@ -50,9 +52,12 @@ export async function adminGate(
       gate: (
         <Gate title="Confirme que é você">
           <p className="text-fg/90">
-            Use sua passkey para abrir o painel. Ela vale por 10 minutos.
+            {factors.totp
+              ? 'Digite o código do seu app autenticador.'
+              : 'Use sua passkey para abrir o painel.'}{' '}
+            Vale por 96 horas neste navegador.
           </p>
-          <PasskeyGate />
+          <MfaGate totp={factors.totp} passkeys={factors.passkeys > 0} />
         </Gate>
       ),
     };

@@ -91,15 +91,18 @@ export const Problems = {
         members: { stepUpUrl },
       },
     ),
-  /** Admin second factor (11 §9): no passkey yet → enrol at /perfil/seguranca. */
-  passkeyEnrollRequired: () =>
-    new HttpError(401, 'PASSKEY_ENROLL_REQUIRED', 'Cadastre uma passkey para usar o painel.', {
-      members: { enrollUrl: '/perfil/seguranca' },
-    }),
-  /** Admin second factor: passkey assertion missing or older than 10 minutes. */
-  passkeyRequired: () =>
-    new HttpError(401, 'PASSKEY_REQUIRED', 'Confirme com sua passkey para continuar.', {
-      members: { verifyUrl: '/api/v1/me/passkeys/authentication/options' },
+  /** Admin second factor (11 §9): no passkey or authenticator yet → set one up. */
+  mfaEnrollRequired: () =>
+    new HttpError(
+      401,
+      'MFA_ENROLL_REQUIRED',
+      'Ative a verificação em duas etapas (app autenticador ou passkey) para usar o painel.',
+      { members: { enrollUrl: '/perfil/seguranca' } },
+    ),
+  /** Admin second factor: not checked on this session, or more than 96 hours ago. */
+  mfaRequired: () =>
+    new HttpError(401, 'MFA_REQUIRED', 'Confirme a verificação em duas etapas para continuar.', {
+      members: { verifyUrl: '/perfil/seguranca' },
     }),
   conflict: (code: string, detail: string) => new HttpError(409, code, detail),
   turnstileFailed: () =>

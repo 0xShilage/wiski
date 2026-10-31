@@ -6,7 +6,9 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { GET as callback } from '@/app/api/auth/google/callback/route';
 import { GET as start } from '@/app/api/auth/google/start/route';
+import { NextResponse } from 'next/server';
 import { COOKIE } from '@/server/auth/cookies';
+import { rememberDevice } from '@/server/auth/mfa';
 import { resetOidcConfig } from '@/server/auth/oidc';
 import { loadSession } from '@/server/auth/session';
 import { db } from '@/server/db';
@@ -272,6 +274,50 @@ describe('/api/auth/google/callback', () => {
     expect(fresh).not.toBe(planted.token);
     expect(await loadSession(planted.token)).toBeNull();
     expect((await loadSession(fresh))?.user.id).toBe(user.id);
+  });
+
+  it('a browser that passed the second factor in the last 96 h starts the next login verified', async () => {
+    const mod = await makeUser({ role: 'MODERATOR' });
+    // 2FA set up on this account (the device cookie only counts while a factor exists)
+    await db().user.update({
+      where: { id: mod.id },
+      data: { totpSecretEnc: new Uint8Array(48), totpEnabledAt: new Date() },
+    });
+    const a = await signedIn(mod, new Date(), { mfaAt: null });
+    const checkedAt = new Date(Date.now() - 50 * 3600_000);
+    const res0 = NextResponse.json({});
+    rememberDevice(res0, await db().user.findUniqueOrThrow({ where: { id: mod.id } }), checkedAt);
+    const device = setCookies(res0)[COOKIE.mfa]!.value;
+
+    const { res } = await finish(
+      await begin(),
+      { sub: mod.googleSub },
+      {
+        cookies: { ...a.cookies, [COOKIE.mfa]: device },
+      },
+    );
+    const ctx = await loadSession(setCookies(res)[COOKIE.session]!.value);
+    expect(ctx!.session.mfaAt?.getTime()).toBe(checkedAt.getTime());
+    expect(
+      await db().auditLog.count({ where: { actorId: mod.id, action: 'mfa.remembered' } }),
+    ).toBe(1);
+
+    // without the cookie (another browser), or after the epoch moved: not verified
+    const other = await finish(await begin(), { sub: mod.googleSub });
+    expect(
+      (await loadSession(setCookies(other.res)[COOKIE.session]!.value))!.session.mfaAt,
+    ).toBeNull();
+    await db().user.update({ where: { id: mod.id }, data: { mfaEpoch: { increment: 1 } } });
+    const bumped = await finish(
+      await begin(),
+      { sub: mod.googleSub },
+      {
+        cookies: { [COOKIE.mfa]: device },
+      },
+    );
+    expect(
+      (await loadSession(setCookies(bumped.res)[COOKIE.session]!.value))!.session.mfaAt,
+    ).toBeNull();
   });
 
   it('records auth_time for step-up and audits privileged logins only', async () => {

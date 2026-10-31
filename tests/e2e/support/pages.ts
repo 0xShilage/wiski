@@ -20,6 +20,7 @@ export const PAGES: PageCase[] = [
   { name: 'serie-detalhe', path: '/series/cronicas-do-bosque' },
   { name: 'franquia-detalhe', path: '/franquias/saga-rabinho-4-filmes' },
   { name: 'avaliacoes', path: '/avaliacoes' },
+  { name: 'cronograma', path: '/cronograma' },
   { name: 'filme-assistido', path: '/filmes/a-primeira-live' },
   { name: 'filme-assistido-logado', path: '/filmes/a-primeira-live', auth: 'user' },
   { name: 'perfil-publico-avaliacoes', path: '/u/bia_cine' },

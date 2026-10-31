@@ -33,3 +33,13 @@
 | F1 | At 761 px the header was 23 px wider than the screen with eight tabs. | 761–880 px: 14 px labels and tighter gaps. The new viewport test covers 761 to 1180 px. |
 | F2 | The "Mais" menu's links picked up the tab bar's stacked icon-over-label style, because the bar's rules matched every link inside it. | The bar's rules now match only its direct children; the menu has its own row layout (screenshot checked). |
 | F3 | On /links, a button named "Twitch" showed "Twitch" again as its platform tag. | The tag shows only when it differs from the button's name. |
+
+## Addendum — profile pictures v2 (same evening)
+
+| Suite | Result |
+|---|---|
+| Unit | ✅ 312 / 312 — avatar registry (30 keys, default, labels, file per size, retired keys fall back) and every built WebP checked: 128/256 px, square, alpha kept, under 20/60 KB |
+| Integration | ✅ **923 / 923** (+1: the data migration moves old presets by position, sends unknown values to the default, and the column default is `perfil-01`) |
+| E2E | Full run: 295 passed. The only failures were both viewports of the onboarding test, whose forced click on the hidden radio landed outside the new full-bleed picture. **Fixed** by centring the radio in its cell. Then re-run: `account-flow` 8 / 8; the accessibility, layout and CSP checks of `/bem-vindo` and `/perfil` and the review cards 32 / 32; `headers.spec` also covers `/avatars/…` (every security header once). |
+
+Screenshots of the picker (360 px) and a profile header (1280 px) were checked by eye.

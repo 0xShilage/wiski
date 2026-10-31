@@ -18,7 +18,7 @@ export function AvatarPicker({ value, onChange, name = 'avatar' }: Props) {
             <label
               key={key}
               className={cn(
-                'relative block aspect-square cursor-pointer overflow-hidden rounded-full bg-ink ring-2 transition-shadow has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus',
+                'relative grid aspect-square cursor-pointer place-items-center rounded-full bg-ink ring-2 transition-shadow has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus',
                 checked ? 'shadow-glow ring-accent' : 'ring-plum',
               )}
             >
@@ -38,7 +38,7 @@ export function AvatarPicker({ value, onChange, name = 'avatar' }: Props) {
                 height={64}
                 loading="lazy"
                 unoptimized
-                className={cn('size-full object-cover', checked ? '' : 'opacity-90')}
+                className={cn('size-full rounded-full object-cover', checked ? '' : 'opacity-90')}
               />
             </label>
           );

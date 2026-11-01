@@ -401,8 +401,15 @@
     line-height: 1.65;
     overflow-wrap: break-word;
   }
+  .wf-legal > * {
+    min-width: 0;
+  }
   .wf-legal p {
     margin: 0;
+  }
+  /* long policy URLs must wrap on phones instead of widening the page */
+  .wf-legal__link {
+    overflow-wrap: anywhere;
   }
   .wf-legal__head {
     display: grid;
@@ -438,6 +445,7 @@
   }
   .wf-legal__toc a {
     display: inline-block;
+    vertical-align: top;
     min-height: 24px;
     text-transform: lowercase;
   }

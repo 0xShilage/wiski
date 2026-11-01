@@ -24,6 +24,7 @@ export type Form = {
   posterId: string | null;
   backdropId: string | null;
   logoId: string | null;
+  posterTitle: boolean;
   slot: string;
   films: { title: string; year: string; runtimeMinutes: string }[];
 };
@@ -45,6 +46,7 @@ export const emptyForm = (slot: number | null = null): Form => ({
   posterId: null,
   backdropId: null,
   logoId: null,
+  posterTitle: true,
   slot: slot ? String(slot) : '',
   films: [],
 });
@@ -68,6 +70,7 @@ export function formFrom(item: AdminItem): Form {
     posterId: f.posterId,
     backdropId: f.backdropId,
     logoId: f.logoId,
+    posterTitle: f.posterTitle,
     slot: item.slot ? String(item.slot) : '',
     films: f.franchiseEntries.map((e) => ({
       title: e.title,
@@ -100,6 +103,7 @@ export function fieldsFrom(form: Form, kind: Kind, draft: boolean): Record<strin
     backdropId: form.backdropId,
     logoId: form.logoId,
   };
+  if (kind === 'MOVIE') out.posterTitle = form.posterTitle;
   if (kind !== 'FRANCHISE') {
     const r = int(form.runtimeMinutes);
     if (r) out.runtimeMinutes = r;

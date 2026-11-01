@@ -4,6 +4,7 @@
  * only after the click, Esc closes it, and the page has 0 CSP violations with the trailer open.
  */
 import { expect, type Page, test } from '@playwright/test';
+import { withDb } from './support/seed';
 
 const STUB = '<!doctype html><title>player</title><p>stub player</p>';
 
@@ -152,4 +153,26 @@ test('detail pages keep the trailer modal CSP-clean too', async ({ page }) => {
   await expect(page.locator('dialog iframe')).toBeVisible();
   await page.getByRole('button', { name: 'Fechar' }).click();
   expect(await enforced(page)).toEqual([]);
+});
+
+test('"Adicionar texto?" off: the card shows only the poster, its name stays accessible', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'desktop-1280', 'one run is enough (data is shared)');
+  const slug = 'a-noite-do-esquilo';
+  await withDb((c) =>
+    c.query(`UPDATE "CatalogItem" SET "posterTitle" = false WHERE slug = $1`, [slug]),
+  );
+  try {
+    await page.goto('/', { waitUntil: 'networkidle' });
+    const card = page.locator('.wf-rail--ring .wf-card[aria-current="true"]');
+    await expect(card).toHaveAccessibleName(/A Noite do Esquilo/);
+    await expect(card.locator('.wf-card__title')).toHaveCount(0);
+    // the other cards still carry their title
+    await expect(page.locator('.wf-rail--ring .wf-card__title').first()).toBeVisible();
+  } finally {
+    await withDb((c) =>
+      c.query(`UPDATE "CatalogItem" SET "posterTitle" = true WHERE slug = $1`, [slug]),
+    );
+  }
 });

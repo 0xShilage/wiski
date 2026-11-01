@@ -115,9 +115,12 @@ export function HeroCarousel({
         <MediaPicture picture={it.poster} alt="" sizes="(max-width: 760px) 140px, 220px" />
         {/* WCAG 2.5.3 (label in name): title before the badge in the DOM (both are positioned)
             and a real space between them, so the visible text reads as the start of the name. */}
-        <span className="wf-card__title" aria-hidden="true">
-          {it.title}
-        </span>{' '}
+        {/* "Adicionar texto?" off: the poster art already carries the title */}
+        {it.posterTitle ? (
+          <span className="wf-card__title" aria-hidden="true">
+            {it.title}
+          </span>
+        ) : null}{' '}
         {it.state === 'SPONSORED' ? (
           <span className="wf-badge wf-badge--sponsored" aria-hidden="true">
             Patrocinado

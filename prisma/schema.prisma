@@ -241,6 +241,9 @@ model CatalogItem {
   seasonCount      Int? // SERIES: default goal = R$ 100,00 × seasonCount
   episodeCount     Int?
   trailerYoutubeId String? // [A-Za-z0-9_-]{11} (CHECK); never a URL
+  /// MOVIE: draw the title over the poster in the carousel ("Adicionar texto?"); off for posters
+  /// that already have the title in the artwork
+  posterTitle      Boolean    @default(true)
   posterId         String?    @db.Uuid
   backdropId       String?    @db.Uuid
   logoId           String?    @db.Uuid

@@ -319,6 +319,20 @@
     grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.6fr) minmax(0, 0.8fr);
     gap: 10px;
   }
+  /* the poster column: drop zone, then "Adicionar texto?" (movies) */
+  .wf-drop-col {
+    display: grid;
+    gap: 8px;
+    align-content: start;
+    min-width: 0;
+  }
+  .wf-drop-col .wf-check {
+    gap: 8px;
+    font-size: 13px;
+  }
+  .wf-drop-col .wf-hint {
+    line-height: 1.35;
+  }
   .wf-drop {
     position: relative;
     display: grid;

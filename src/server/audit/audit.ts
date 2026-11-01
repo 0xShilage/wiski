@@ -59,6 +59,7 @@ const catalogField = z.enum([
   'seasonCount',
   'episodeCount',
   'trailerYoutubeId',
+  'posterTitle',
   'posterId',
   'backdropId',
   'logoId',

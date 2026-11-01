@@ -84,6 +84,8 @@ export const itemFieldsInput = z
     posterId: mediaId,
     backdropId: mediaId,
     logoId: mediaId,
+    /** MOVIE: title drawn over the poster in the carousel ("Adicionar texto?") */
+    posterTitle: z.boolean(),
     franchiseEntries: z.array(franchiseEntryInput).max(30),
     /** Planned slot for a draft (the slot it will take when published). */
     slot: z.int().min(1).max(35).nullable(),

@@ -86,6 +86,7 @@ function toPublic(row: PublicRow, now: Date): PublicItem {
     seasonCount: row.seasonCount,
     episodeCount: row.episodeCount,
     trailerYoutubeId: row.trailerYoutubeId,
+    posterTitle: row.posterTitle,
     poster: pictureFrom(row.poster),
     backdrop: pictureFrom(row.backdrop),
     logo: pictureFrom(row.logo),
@@ -254,6 +255,7 @@ export async function getAdmin(id: string, now = new Date()) {
       posterId: row.posterId,
       backdropId: row.backdropId,
       logoId: row.logoId,
+      posterTitle: row.posterTitle,
       franchiseEntries: row.franchiseEntries.map(({ title, year, runtimeMinutes }) => ({
         title,
         year,

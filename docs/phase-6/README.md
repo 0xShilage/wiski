@@ -61,3 +61,11 @@ Your 30 hand-made round icons replace the 20 mascot × colour avatars.
 | Mascot art | `src/components/brand/Mascote.tsx` | The mascot line art stays for the site's own decoration (empty states, Links page); it is no longer tied to avatars. |
 
 **Rights.** These icons show studio characters and photos of real actors. On 2026-10-31 the site owner confirmed they accept the copyright and image-rights risk of using them on a commercial site. If a takedown request arrives, replace that PNG and run `npm run avatars`; the key stays the same, so no migration is needed.
+
+## 5. Dashboard images and "Adicionar texto?" (2026-10-31, night)
+
+| Change | Where | Notes |
+|---|---|---|
+| Oversized uploads shrink in the browser | `src/lib/media-downscale.ts`, `MediaDrop.tsx` | **Sizes**: posters scale down to cover 1200 × 1800, backdrops 2560 × 1440, logos fit inside 1920 px. Posters and backdrops are re-encoded as JPEG 0.92, logos as PNG so they keep transparency. **Rules**: the server's checks are unchanged: 600 × 900 is the poster **minimum**, and 10 MB / 40 MP the caps. A file the browser can't decode is sent as it is. **Test**: a browser test uploads a 26 MB, 2400 × 3600 PNG. |
+| Backdrop fades on the left | `src/styles/hero.css` | A mask on `.wf-hero__art` dissolves the image's left half into the page with eased stops, so there's no hard edge at any width (checked at 1432, 1920, 2560 and 3440 px). Phones are unchanged. |
+| "Adicionar texto?" | `CatalogItem.posterTitle` (default on, migration `20261105120000_poster_title`), editor checkbox under the poster (movies), `HeroCarousel` | **On** (the default for every existing movie): the carousel card draws the movie's name over the poster, as before. **Off**: the card shows only the artwork, for posters with the title already printed on them; the card's accessible name still says the title. **History**: the setting is part of the content snapshot, so it reverts with the rest, and snapshots saved before it existed mean "on". Audit entries record the field name only. |

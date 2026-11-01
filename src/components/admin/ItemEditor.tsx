@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { HeroCarousel } from '@/components/catalog/HeroCarousel';
 import { IconClose } from '@/components/ui/icons';
 import { AGE_LABEL, AGE_RATINGS } from '@/lib/catalog/age-rating';
@@ -93,6 +93,7 @@ export function ItemEditor({
     if (!previewOpen && d.open) d.close();
   }, [previewOpen]);
 
+  const fid = useId();
   const set = <K extends keyof Form>(k: K, v: Form[K]) => {
     setForm((f) => ({ ...f, [k]: v }));
     setDirty(true);
@@ -242,6 +243,7 @@ export function ItemEditor({
     seasonCount: Number(form.seasonCount) || null,
     episodeCount: Number(form.episodeCount) || null,
     trailerYoutubeId: ytId,
+    posterTitle: kind !== 'MOVIE' || form.posterTitle,
     poster: pics.poster,
     backdrop: pics.backdrop,
     logo: pics.logo,
@@ -573,21 +575,42 @@ export function ItemEditor({
             automaticamente
           </span>
           <div className="wf-drops">
-            <MediaDrop
-              role="POSTER"
-              label="Pôster 2:3"
-              hint="mínimo 600×900"
-              className="wf-drop--poster"
-              picture={pics.poster}
-              onUploaded={(id, p) => {
-                set('posterId', id);
-                setPics((x) => ({ ...x, poster: p }));
-              }}
-              onClear={() => {
-                set('posterId', null);
-                setPics((x) => ({ ...x, poster: null }));
-              }}
-            />
+            <div className="wf-drop-col">
+              <MediaDrop
+                role="POSTER"
+                label="Pôster 2:3"
+                hint="mínimo 600×900"
+                className="wf-drop--poster"
+                picture={pics.poster}
+                onUploaded={(id, p) => {
+                  set('posterId', id);
+                  setPics((x) => ({ ...x, poster: p }));
+                }}
+                onClear={() => {
+                  set('posterId', null);
+                  setPics((x) => ({ ...x, poster: null }));
+                }}
+              />
+              {kind === 'MOVIE' ? (
+                <label className="wf-check" htmlFor={`${fid}-ptitle`}>
+                  <input
+                    id={`${fid}-ptitle`}
+                    type="checkbox"
+                    checked={form.posterTitle}
+                    onChange={(e) => set('posterTitle', e.target.checked)}
+                    aria-describedby={`${fid}-ptitle-hint`}
+                  />
+                  <span>Adicionar texto?</span>
+                </label>
+              ) : null}
+              {kind === 'MOVIE' ? (
+                <small id={`${fid}-ptitle-hint`} className="wf-hint">
+                  {form.posterTitle
+                    ? 'O nome aparece sobre o pôster no carrossel.'
+                    : 'Sem texto: o pôster já traz o título.'}
+                </small>
+              ) : null}
+            </div>
             <MediaDrop
               role="BACKDROP"
               label="Fundo 16:9 · mín. 1920×1080"

@@ -96,7 +96,14 @@ export async function signedIn(
   opts: { mfaAt?: Date | null } = {},
 ) {
   const { token, session } = await createSession(user, { authTime, uaFamily: 'Chrome · Windows' });
-  const mfaAt = opts.mfaAt === undefined ? (user.role === 'USER' ? null : new Date()) : opts.mfaAt;
+  // Admins: second factor checked 30 minutes ago — inside the 96-h window, but not a fresh
+  // step-up confirmation (10 min), so step-up tests decide freshness through authTime/mfaAt.
+  const mfaAt =
+    opts.mfaAt === undefined
+      ? user.role === 'USER'
+        ? null
+        : new Date(Date.now() - 30 * 60_000)
+      : opts.mfaAt;
   if (mfaAt) {
     await db().session.update({ where: { id: session.id }, data: { mfaAt } });
     session.mfaAt = mfaAt;

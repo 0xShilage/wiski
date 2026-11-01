@@ -21,6 +21,8 @@ export type CodeSpec = {
   expiresInSec?: number;
   iatOffsetSec?: number;
   authTime?: number;
+  /** like real Google by default: no auth_time claim unless enabled for the client */
+  omitAuthTime?: boolean;
   signWithOtherKey?: boolean;
   omitNonce?: boolean;
 };
@@ -94,7 +96,7 @@ export async function startMockGoogle(): Promise<MockGoogle> {
             email: spec.email,
             email_verified: spec.emailVerified ?? true,
             azp: clientId,
-            auth_time: spec.authTime ?? now,
+            ...(spec.omitAuthTime ? {} : { auth_time: spec.authTime ?? now }),
           };
           if (!spec.omitNonce) claims.nonce = spec.nonce;
           const idToken = await new SignJWT(claims)

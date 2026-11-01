@@ -10,6 +10,8 @@ export type Problem = {
   detail: string;
   errors?: { path: string; message: string }[];
   stepUpUrl?: string;
+  /** "totp", "passkey" or "totp,passkey": confirm on the page instead of Google */
+  stepUpFactors?: string;
   enrollUrl?: string;
   verifyUrl?: string;
   currentVersion?: string;

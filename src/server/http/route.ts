@@ -4,7 +4,7 @@ import { type z } from 'zod';
 import type { Session, User } from '@/generated/prisma/client';
 import { type AuditAction, type AuditEntry, audit } from '../audit/audit';
 import { COOKIE } from '../auth/cookies';
-import { factorsOf, hasFactor, isMfaFresh } from '../auth/mfa';
+import { factorList, factorsOf, hasFactor, isMfaFresh } from '../auth/mfa';
 import { loadSession, type SessionContext } from '../auth/session';
 import { isStepUpFresh, stepUpUrl } from '../auth/step-up';
 import { getEnv } from '../env';
@@ -273,7 +273,10 @@ export function route<
 
       // 8. step-up
       if (options.stepUp && ctxSession && !isStepUpFresh(ctxSession.session)) {
-        throw Problems.stepUpRequired(stepUpUrl(refererPath(req.headers.get('referer'))));
+        throw Problems.stepUpRequired(
+          stepUpUrl(refererPath(req.headers.get('referer'))),
+          factorList(await factorsOf(ctxSession.user.id)),
+        );
       }
 
       // 9. Turnstile

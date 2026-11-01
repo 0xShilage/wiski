@@ -1,6 +1,7 @@
 'use client';
 import { useId, useState } from 'react';
 import { apiFetch, type Problem } from '@/lib/api-fetch';
+import { confirmPresence } from '@/lib/step-up-client';
 
 /**
  * Seus dados (LGPD, Phase 4): download everything we hold as JSON, or erase the account. Erasing
@@ -28,8 +29,8 @@ export function DataTools({ username }: { username: string }) {
       window.location.assign(new URL('/', window.location.origin).href);
       return;
     }
-    if (r.problem.code === 'STEP_UP_REQUIRED' && r.problem.stepUpUrl) {
-      window.location.assign(new URL(r.problem.stepUpUrl, window.location.origin).href);
+    if (r.problem.code === 'STEP_UP_REQUIRED') {
+      if (await confirmPresence(r.problem)) await erase(e);
       return;
     }
     setProblem(r.problem);

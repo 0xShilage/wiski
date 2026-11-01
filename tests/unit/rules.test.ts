@@ -72,6 +72,15 @@ describe('step-up freshness', () => {
     expect(isStepUpFresh({ authTime: new Date(now.getTime() - 9 * 60_000) }, now)).toBe(true);
     expect(isStepUpFresh({ authTime: new Date(now.getTime() - 11 * 60_000) }, now)).toBe(false);
     expect(isStepUpFresh({ authTime: new Date(now.getTime() + 5 * 60_000) }, now)).toBe(false);
+    // 2026-11-01: a second-factor check in the last 10 minutes is a step-up too
+    const old = new Date(now.getTime() - 60 * 60_000);
+    expect(isStepUpFresh({ authTime: old, mfaAt: new Date(now.getTime() - 9 * 60_000) }, now)).toBe(
+      true,
+    );
+    expect(
+      isStepUpFresh({ authTime: old, mfaAt: new Date(now.getTime() - 11 * 60_000) }, now),
+    ).toBe(false);
+    expect(isStepUpFresh({ authTime: old, mfaAt: null }, now)).toBe(false);
   });
 });
 

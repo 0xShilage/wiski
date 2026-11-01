@@ -2,6 +2,7 @@
 import { useRouter } from 'next/navigation';
 import { useId, useState } from 'react';
 import type { Problem } from '@/lib/api-fetch';
+import { confirmPresence } from '@/lib/step-up-client';
 import {
   disableTotp,
   enableTotp,
@@ -101,9 +102,11 @@ export function TotpPanel({ enabled, enabledAt, recoveryLeft, verified, stepUpUr
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  function handle(problem: Problem) {
+  async function handle(problem: Problem) {
     if (problem.code === 'STEP_UP_REQUIRED') {
-      window.location.assign(new URL(problem.stepUpUrl ?? stepUpUrl, window.location.origin).href);
+      if (await confirmPresence({ ...problem, stepUpUrl: problem.stepUpUrl ?? stepUpUrl })) {
+        setMsg({ ok: true, text: 'Confirmado. Toque no botão de novo para concluir.' });
+      }
       return;
     }
     setMsg({ ok: false, text: problem.detail });
@@ -135,7 +138,7 @@ export function TotpPanel({ enabled, enabledAt, recoveryLeft, verified, stepUpUr
           if (r.ok) setCodes(r.data.recoveryCodes);
           else {
             setCode('');
-            handle(r.problem);
+            void handle(r.problem);
           }
         }}
       >
@@ -211,7 +214,7 @@ export function TotpPanel({ enabled, enabledAt, recoveryLeft, verified, stepUpUr
                 const r = await regenerateRecoveryCodes();
                 setBusy(false);
                 if (r.ok) setCodes(r.data.recoveryCodes);
-                else handle(r.problem);
+                else void handle(r.problem);
               }}
             >
               Gerar novos códigos de recuperação
@@ -234,7 +237,7 @@ export function TotpPanel({ enabled, enabledAt, recoveryLeft, verified, stepUpUr
                 if (r.ok) {
                   setMsg({ ok: true, text: 'App autenticador desativado.' });
                   router.refresh();
-                } else handle(r.problem);
+                } else void handle(r.problem);
               }}
             >
               Desativar
@@ -257,7 +260,7 @@ export function TotpPanel({ enabled, enabledAt, recoveryLeft, verified, stepUpUr
             const r = await startTotpSetup();
             setBusy(false);
             if (r.ok) setSetup(r.data);
-            else handle(r.problem);
+            else void handle(r.problem);
           }}
         >
           Configurar app autenticador

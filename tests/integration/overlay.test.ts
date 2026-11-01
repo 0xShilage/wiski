@@ -3,6 +3,7 @@
  * stored hashed; the key → cookie exchange; widget scope; revocation; SSE snapshots; and every
  * string that reaches the stream goes through the sanitiser and a strict schema.
  */
+import { randomBytes } from 'node:crypto';
 import Redis from 'ioredis';
 import { inject, beforeEach, describe, expect, it } from 'vitest';
 import { db } from '@/server/db';
@@ -92,6 +93,34 @@ describe('overlay keys', () => {
       body: { label: 'x', widgets: ['chat'] },
     });
     expect(bad.res.status).toBe(422);
+  });
+
+  it('step-up with a second factor: confirm on the page (fresh check), no Google round trip', async () => {
+    // a stale Google login, factor checked 30 min ago (default) → asked to confirm, told how
+    const s = await as('STREAMER', { authTime: new Date(Date.now() - 3_600_000) });
+    await db().passkey.create({
+      data: {
+        userId: s.user.id,
+        credentialId: randomBytes(32),
+        publicKey: randomBytes(77),
+        label: 'teste',
+      },
+    });
+    const asked = await hit(createKeyRoute, 'POST', '', {
+      who: s,
+      body: { label: 'PC da live', widgets: ['fila'] },
+    });
+    expect(asked.res.status).toBe(401);
+    expect(asked.json).toMatchObject({ code: 'STEP_UP_REQUIRED', stepUpFactors: 'passkey' });
+    // the passkey/authenticator check stamps mfaAt = now (what /me/totp/verify does)
+    await db().session.update({ where: { id: s.auth.session.id }, data: { mfaAt: new Date() } });
+    const done = await hit(createKeyRoute, 'POST', '', {
+      who: s,
+      body: { label: 'PC da live', widgets: ['fila'] },
+    });
+    expect(done.res.status).toBe(201);
+    // no factor at all (not possible for admins, but the problem still carries the Google URL)
+    expect(String(asked.json.stepUpUrl)).toMatch(/^\/api\/auth\/google\/start\?stepUp=1/);
   });
 
   it('key → read-only cookie (HttpOnly, Secure, Strict, 12 h); wrong or revoked keys → 401', async () => {

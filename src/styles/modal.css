@@ -84,3 +84,48 @@
     height: 100%;
   }
 }
+
+/* ── "Confirme que é você" (StepUpHost, 2026-11-01): native <dialog> ── */
+@layer components {
+  .wf-stepup {
+    width: min(420px, calc(100vw - 32px));
+    padding: 0;
+    border: 1px solid rgb(169 157 224 / 0.45);
+    border-radius: 16px;
+    background: var(--color-surface-2);
+    color: var(--color-lilac);
+    box-shadow: 0 24px 64px rgb(0 0 0 / 0.6);
+  }
+  .wf-stepup::backdrop {
+    background: rgb(12 8 18 / 0.72);
+  }
+  .wf-stepup__body {
+    display: grid;
+    gap: 14px;
+    padding: 22px 22px 18px;
+  }
+  .wf-stepup__title {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #f7f2fb;
+  }
+  .wf-stepup__text {
+    margin: 0;
+    font-size: 14px;
+    color: var(--fg-78);
+  }
+  .wf-stepup__form {
+    display: grid;
+    gap: 12px;
+  }
+  .wf-stepup__form .wf-btn {
+    justify-self: start;
+  }
+  .wf-stepup__alt {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 16px;
+  }
+}

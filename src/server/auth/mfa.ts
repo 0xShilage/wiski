@@ -42,6 +42,10 @@ export async function factorsOf(userId: string): Promise<Factors> {
 
 export const hasFactor = (f: Factors) => f.passkeys > 0 || f.totp;
 
+/** "totp", "passkey", "totp,passkey" or "" — for the STEP_UP_REQUIRED problem. */
+export const factorList = (f: Factors) =>
+  [f.totp ? 'totp' : null, f.passkeys > 0 ? 'passkey' : null].filter(Boolean).join(',');
+
 // ── remembered device ──
 
 type DeviceClaim = { u: string; at: number; e: number };

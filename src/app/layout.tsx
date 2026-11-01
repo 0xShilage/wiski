@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
+import { StepUpHost } from '@/components/account/StepUpHost';
 import { getCurrentSession } from '@/server/auth/current';
 import { getEnv } from '@/server/env';
 import { csrfTokenFor } from '@/server/security/csrf';
@@ -44,6 +45,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           Pular para o conteúdo
         </a>
         {children}
+        <StepUpHost />
       </body>
     </html>
   );

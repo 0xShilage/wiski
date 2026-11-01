@@ -91,3 +91,40 @@ test('set up the authenticator, keep the recovery codes, open the panel', async 
   await expect(p2.getByText('● Verificação em duas etapas ok')).toBeVisible({ timeout: 10_000 });
   await other.close();
 });
+
+test('an action that needs a recent check asks for the code on the page and then completes', async ({
+  page,
+  context,
+}) => {
+  // 2026-11-01: Google cannot re-check the password, so step-ups use the second factor
+  const st = await seedUser({ role: 'STREAMER' });
+  await signIn(context, st.token);
+  await page.goto('/perfil/seguranca');
+  await page.getByRole('button', { name: 'Configurar app autenticador' }).click();
+  const secret = (await page.locator('.wf-secret').innerText()).trim();
+  await page.getByLabel('Código de 6 dígitos').fill(totp(secret));
+  await page.getByRole('button', { name: 'Ativar' }).click();
+  await page.getByRole('checkbox', { name: /Guardei os códigos/ }).check();
+  await page.getByRole('button', { name: 'Concluir' }).click();
+
+  // an hour later: the Google login is old, the factor check (96 h) is from 30 minutes ago
+  await withDb((c) =>
+    c.query(
+      `UPDATE "Session" SET "authTime" = now() - interval '1 hour', "mfaAt" = now() - interval '30 minutes'
+       WHERE "userId" = $1`,
+      [st.id],
+    ),
+  );
+  await page.goto('/admin/overlays');
+  await page.getByLabel('Nome (ex.: “PC da live”)').fill('PC da live');
+  await page.getByRole('button', { name: 'Criar chave' }).click();
+
+  const dialog = page.getByRole('dialog', { name: 'Confirme que é você' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel('Código do app').fill(totp(secret, 1));
+  await dialog.getByRole('button', { name: 'Confirmar' }).click();
+  await expect(dialog).toBeHidden();
+  // the same request went through: the one-time URL with the key is on the page
+  await expect(page.getByText(/\/overlay\/[a-z]+#k=wfo_/).first()).toBeVisible();
+  expect(page.url()).toMatch(/\/admin\/overlays$/); // never left for Google
+});

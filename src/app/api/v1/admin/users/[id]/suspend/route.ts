@@ -1,3 +1,4 @@
+import { factorList, factorsOf } from '@/server/auth/mfa';
 import { isStepUpFresh, stepUpUrl } from '@/server/auth/step-up';
 import { uuidParam } from '@/server/http/params';
 import { Problems } from '@/server/http/problem';
@@ -8,14 +9,17 @@ import { MODERATOR_MAX_SUSPENSION_DAYS, suspendUser } from '@/server/users/admin
 
 /**
  * POST /api/v1/admin/users/[id]/suspend — `{days}` (1–7 for moderators) or `{days: null}` /
- * longer (streamer, with Google step-up).
+ * longer (streamer, after confirming with the second factor).
  */
 export const POST = route<'moderator', typeof suspendInput, undefined, { id: string }>(
   { methods: ['POST'], access: 'moderator', rateLimit: RL.adminWrite, body: suspendInput },
   async ({ params, user, requestId, body, session }) => {
     const long = body.days === null || body.days > MODERATOR_MAX_SUSPENSION_DAYS;
     if (long && user.role === 'STREAMER' && !isStepUpFresh(session)) {
-      throw Problems.stepUpRequired(stepUpUrl('/admin/pessoas'));
+      throw Problems.stepUpRequired(
+        stepUpUrl('/admin/pessoas'),
+        factorList(await factorsOf(user.id)),
+      );
     }
     return { user: await suspendUser({ actor: user, requestId }, uuidParam(params.id), body.days) };
   },

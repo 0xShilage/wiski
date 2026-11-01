@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { apiFetch } from '@/lib/api-fetch';
 import { enrolPasskey, verifyPasskey } from '@/lib/passkey-client';
+import { confirmPresence } from '@/lib/step-up-client';
 
 type Item = {
   id: string;
@@ -36,7 +37,7 @@ export function PasskeyPanel({
   async function run(
     fn: () => Promise<{
       ok: boolean;
-      problem?: { code: string; detail: string; stepUpUrl?: string };
+      problem?: { code: string; detail: string; stepUpUrl?: string; stepUpFactors?: string };
     }>,
     ok: string,
   ) {
@@ -48,7 +49,15 @@ export function PasskeyPanel({
       setMsg({ kind: 'ok', text: ok });
       router.refresh();
     } else if (res.problem?.code === 'STEP_UP_REQUIRED') {
-      window.location.assign(res.problem.stepUpUrl ?? stepUpUrl);
+      const confirmed = await confirmPresence({
+        status: 401,
+        code: res.problem.code,
+        detail: res.problem.detail,
+        stepUpUrl: res.problem.stepUpUrl ?? stepUpUrl,
+        ...(res.problem.stepUpFactors ? { stepUpFactors: res.problem.stepUpFactors } : {}),
+      });
+      if (confirmed)
+        setMsg({ kind: 'ok', text: 'Confirmado. Toque no botão de novo para concluir.' });
     } else {
       setMsg({ kind: 'err', text: res.problem?.detail ?? 'Erro inesperado.' });
     }

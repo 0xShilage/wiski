@@ -96,9 +96,14 @@ export async function beginLogin(opts: {
     code_challenge_method: 'S256',
     state,
     nonce,
-    prompt: opts.stepUp ? 'login' : 'select_account',
+    // Google supports only none/consent/select_account and has no reauth request (it ignores
+    // prompt=login and max_age): a step-up shows the account chooser, and asks for auth_time
+    // (returned only if enabled for the client); the second factor is the real admin step-up.
+    prompt: 'select_account',
   };
-  if (opts.stepUp) params.max_age = String(STEP_UP_MAX_AGE_SEC);
+  if (opts.stepUp) {
+    params.claims = JSON.stringify({ id_token: { auth_time: { essential: true } } });
+  }
   const payload: OAuthCookie = {
     s: state,
     n: nonce,
@@ -164,7 +169,6 @@ export async function completeLogin(
       expectedState: cookie.s,
       expectedNonce: cookie.n,
       idTokenExpected: true,
-      ...(cookie.m ? { maxAge: cookie.m } : {}),
     });
     claims = tokens.claims();
   } catch (err) {

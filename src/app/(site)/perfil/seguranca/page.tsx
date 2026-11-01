@@ -72,8 +72,9 @@ export default async function SegurancaPage() {
         )}
         {!isStepUpFresh(ctx.session) ? (
           <p className="text-sm text-fg-muted">
-            Para ativar, remover ou gerar códigos, o site pede que você entre com o Google de novo
-            (vale por 10 minutos).
+            Para ativar, remover ou gerar códigos, o site pede uma confirmação recente: o código do
+            app (ou a passkey), se você já tiver um, ou entrar com o Google de novo. Vale por 10
+            minutos.
           </p>
         ) : null}
       </div>

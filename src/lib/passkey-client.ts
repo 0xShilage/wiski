@@ -1,6 +1,7 @@
 'use client';
 import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
 import { type ApiResult, apiFetch, type Problem } from './api-fetch';
+import { fetchWithStepUp } from './step-up-client';
 
 /**
  * Browser side of the passkey second factor (11 §9); the authenticator app is in mfa-client.ts. The ceremonies run in the browser's own
@@ -47,24 +48,20 @@ export async function verifyPasskey(): Promise<ApiResult<{ verifiedUntil: string
 
 /**
  * apiFetch for the dashboard: when the 96-hour second-factor window has passed, reload so the
- * page shows its verification gate (authenticator code or passkey); send the browser to Google
- * for a step-up, or to /perfil/seguranca when no second factor is set up yet.
+ * page shows its verification gate (authenticator code or passkey); for a step-up, confirm on
+ * the page with the second factor and send the request again (Google only for accounts without
+ * one); to /perfil/seguranca when no second factor is set up yet.
  */
 export async function adminFetch<T>(
   path: string,
   init: Parameters<typeof apiFetch>[1] = {},
 ): Promise<ApiResult<T>> {
-  const res = await apiFetch<T>(path, init);
+  const res = await fetchWithStepUp<T>(path, init);
   if (!res.ok && res.problem.code === 'MFA_REQUIRED') {
     window.location.reload();
   }
   if (!res.ok && res.problem.code === 'MFA_ENROLL_REQUIRED') {
     window.location.assign(new URL('/perfil/seguranca', window.location.origin).href);
-  }
-  if (!res.ok && res.problem.code === 'STEP_UP_REQUIRED' && res.problem.stepUpUrl) {
-    if (window.confirm('Esta ação pede que você entre com o Google de novo. Continuar?')) {
-      window.location.assign(res.problem.stepUpUrl);
-    }
   }
   return res;
 }

@@ -36,6 +36,17 @@
     width: 72%;
     z-index: -2;
     background: radial-gradient(120% 90% at 70% 40%, var(--color-surface-3), var(--color-ink) 75%);
+    /* the image's left side dissolves into the page (no hard edge or "void bar" on any width,
+       whatever the uploaded backdrop has on its left); eased stops avoid a visible start line */
+    mask-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgb(0 0 0 / 0.08) 8%,
+      rgb(0 0 0 / 0.28) 18%,
+      rgb(0 0 0 / 0.58) 30%,
+      rgb(0 0 0 / 0.85) 42%,
+      #000 55%
+    );
   }
   .wf-hero__art img,
   .wf-hero__art picture {
@@ -323,6 +334,7 @@
       width: 100%;
       height: var(--art-h);
       inset: 0 0 auto 0;
+      mask-image: none; /* phones: full-width art, faded at the bottom by the shade */
     }
     .wf-hero__art img {
       object-position: 62% 30%;

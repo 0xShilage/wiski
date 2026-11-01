@@ -568,7 +568,10 @@ export function ItemEditor({
         ) : null}
 
         <div className="wf-field full">
-          <span>Imagens · JPEG, PNG, WebP ou AVIF até 10 MB (SVG não é aceito)</span>
+          <span>
+            Imagens · JPEG, PNG, WebP ou AVIF (SVG não é aceito); imagens grandes são reduzidas
+            automaticamente
+          </span>
           <div className="wf-drops">
             <MediaDrop
               role="POSTER"

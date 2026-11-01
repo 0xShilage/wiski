@@ -74,3 +74,16 @@ describe('navigation', () => {
     ]);
   });
 });
+
+describe('dashboard upload downscale', () => {
+  it('posters/backdrops cover their box, logos fit inside; never upscaled', async () => {
+    const { downscaleFactor } = await import('@/lib/media-downscale');
+    expect(downscaleFactor('POSTER', 600, 900)).toBe(1);
+    expect(downscaleFactor('POSTER', 2400, 3600)).toBe(0.5); // → 1200 × 1800
+    // wider than 2:3: the height decides, so the 2:3 crop is still ≥ 1200 × 1800
+    expect(downscaleFactor('POSTER', 4000, 3600)).toBe(0.5);
+    expect(downscaleFactor('BACKDROP', 5120, 2880)).toBe(0.5);
+    expect(downscaleFactor('BACKDROP', 1920, 1080)).toBe(1);
+    expect(downscaleFactor('LOGO', 3840, 960)).toBe(0.5);
+  });
+});

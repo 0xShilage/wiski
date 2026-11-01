@@ -38,7 +38,7 @@
     "test:brand": "playwright test -c playwright.brand.config.ts",
     "setup:dev": "node scripts/setup-dev-env.mjs",
     "db:seed": "tsx --conditions=react-server scripts/seed-dev.ts",
-    "worker": "tsx --conditions=react-server src/worker/main.ts",
+    "worker": "tsx --conditions=react-server scripts/worker-dev.ts",
     "start:worker": "node --conditions=react-server dist/worker.mjs",
     "dev:pay": "tsx --conditions=react-server scripts/dev-pay.ts",
     "smoke:worker": "tsx tests/smoke/worker-smoke.ts"

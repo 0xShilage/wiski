@@ -36,15 +36,15 @@ export default async function AssistidosPage({ searchParams }: Props) {
   const filter = FILTERS.find((f) => f.tipo === tipo) ?? FILTERS[0];
   const [items, progress] = await Promise.all([watchedTitles(filter.kind), watchProgress()]);
   return (
-    <div className="wf-page wf-watched">
+    <div className="wf-page wf-seen">
       <h1 className="wf-h1">Assistidos</h1>
-      <p className="wf-watched__intro">
+      <p className="wf-seen__intro">
         Tudo o que já passou na live: {progress.watched.total}{' '}
         {progress.watched.total === 1 ? 'título' : 'títulos'},{' '}
         {hoursMinutes(progress.minutes.total)} no total. Abra um título para ler as avaliações ou
         deixar a sua.
       </p>
-      <nav className="wf-seg wf-watched__filter" aria-label="Filtrar por tipo">
+      <nav className="wf-seg wf-seen__filter" aria-label="Filtrar por tipo">
         {FILTERS.map((f) => (
           <Link
             key={f.label}
@@ -57,11 +57,11 @@ export default async function AssistidosPage({ searchParams }: Props) {
         ))}
       </nav>
       {items.length ? (
-        <ul className="wf-watched__grid">
+        <ul className="wf-seen__grid">
           {items.map((it) => (
             <li key={it.id}>
-              <Link href={`/${KIND_PATH[it.kind]}/${it.slug}`} className="wf-watched__card">
-                <span className="wf-watched__poster" aria-hidden="true">
+              <Link href={`/${KIND_PATH[it.kind]}/${it.slug}`} className="wf-seen__card">
+                <span className="wf-seen__poster" aria-hidden="true">
                   {it.poster ? (
                     <MediaPicture
                       picture={it.poster}
@@ -70,12 +70,12 @@ export default async function AssistidosPage({ searchParams }: Props) {
                     />
                   ) : null}
                 </span>
-                <span className="wf-watched__title">{it.title}</span>
-                <span className="wf-watched__meta">
+                <span className="wf-seen__title">{it.title}</span>
+                <span className="wf-seen__meta">
                   {KIND_PT[it.kind]}
                   {it.year ? ` · ${it.year}` : ''}
                 </span>
-                <span className="wf-watched__meta">
+                <span className="wf-seen__meta">
                   Assistido em{' '}
                   <time dateTime={it.watchedAt}>{date.format(new Date(it.watchedAt))}</time>
                 </span>
@@ -84,7 +84,7 @@ export default async function AssistidosPage({ searchParams }: Props) {
           ))}
         </ul>
       ) : (
-        <p className="wf-watched__intro">
+        <p className="wf-seen__intro">
           {filter.kind ? 'Nada deste tipo foi assistido ainda.' : 'Nada foi assistido ainda.'}{' '}
           <Link href="/" className="underline">
             Patrocine um filme

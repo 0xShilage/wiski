@@ -174,7 +174,7 @@ test('assistidos: watched titles with posters, filter by kind, cards open the ti
   await expect(page.getByRole('heading', { level: 1, name: 'Assistidos' })).toBeVisible();
   const filter = page.getByRole('navigation', { name: 'Filtrar por tipo' });
   await expect(filter.getByRole('link', { name: 'Todos' })).toHaveAttribute('aria-current', 'page');
-  const cards = page.locator('.wf-watched__card');
+  const cards = page.locator('.wf-seen__card');
   await expect(cards.first()).toBeVisible();
   await expect(cards.first()).toContainText('Assistido em');
   await expect(cards.first().locator('img')).toHaveAttribute('src', /^\/media\//);
@@ -185,7 +185,7 @@ test('assistidos: watched titles with posters, filter by kind, cards open the ti
     'page',
   );
   await filter.getByRole('link', { name: 'Filmes' }).click();
-  const first = page.locator('.wf-watched__card').first();
+  const first = page.locator('.wf-seen__card').first();
   const href = await first.getAttribute('href');
   expect(href).toMatch(/^\/filmes\//);
   await first.click();

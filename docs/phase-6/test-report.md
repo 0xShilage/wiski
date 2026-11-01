@@ -43,3 +43,11 @@
 | E2E | Full run: 295 passed. The only failures were both viewports of the onboarding test, whose forced click on the hidden radio landed outside the new full-bleed picture. **Fixed** by centring the radio in its cell. Then re-run: `account-flow` 8 / 8; the accessibility, layout and CSP checks of `/bem-vindo` and `/perfil` and the review cards 32 / 32; `headers.spec` also covers `/avatars/…` (every security header once). |
 
 Screenshots of the picker (360 px) and a profile header (1280 px) were checked by eye.
+
+## Addendum — Cronograma posters, Assistidos, next seasons (2026-11-01)
+
+| Suite | Result |
+|---|---|
+| Unit | ✅ 313 / 313 (nine tabs; phone "Mais" holds four) |
+| Integration | ✅ **947 / 947**. New `releases.test.ts` (6) covers: add/edit/delete with audit; linked series lend name, poster and link; a movie as the series and bad input are refused; viewers get 404; the 7-day window; drafts lend no poster or link; the database CHECKs and the series-only trigger; Assistidos order and kind filter; posters on Cronograma titles. Plus 4 authz rows × 4 roles. |
+| E2E | Full run: 321 passed. Two failures, both fixed: the Assistidos grid clashed with the Avaliações class `.wf-watched` (renamed `.wf-seen`), and with it the filter's target size. After the fix: `community`, `a11y-layout` and `csp` specs 212 / 212, the phone filter on one row with no horizontal scroll, and the header with nine tabs from 761 to 1280 px (`viewports.spec`). |

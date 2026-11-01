@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { hoursMinutes } from '@/components/live/ProgressBlock';
 import { cleanLinkUrl, displayHost, platformOf } from '@/lib/links';
 import { NAV_ITEMS } from '@/components/layout/nav-items';
+import { PLATFORM_PATHS } from '@/components/links/platform-icons.generated';
 
 describe('cleanLinkUrl', () => {
   it('adds https to a bare address and normalises it', () => {
@@ -42,6 +43,31 @@ describe('labels', () => {
     expect(platformOf('https://discord.gg/abc')).toBe('Discord');
     expect(platformOf('https://evil.example/twitch.tv')).toBeNull();
     expect(platformOf('https://twitch.tv.evil.example/')).toBeNull();
+    expect(platformOf('https://www.amazon.com.br/hz/wishlist/ls/ABC123')).toBe('Amazon');
+    expect(platformOf('https://amzn.to/3xyz')).toBe('Amazon');
+    expect(platformOf('https://amazon.evil.example/hz/wishlist')).toBeNull();
+    expect(platformOf('https://store.steampowered.com/wishlist/id/x')).toBe('Steam');
+    expect(platformOf('https://kick.com/wiski')).toBe('Kick');
+    expect(platformOf('https://cinefy.app/u/wiski')).toBe('Cinefy');
+  });
+  it('every platform has an icon (brand glyph or a drawn one)', () => {
+    const drawn = new Set(['Amazon', 'Cinefy']);
+    for (const url of [
+      'https://instagram.com/a',
+      'https://twitch.tv/a',
+      'https://discord.gg/a',
+      'https://steamcommunity.com/id/a',
+      'https://youtube.com/@a',
+      'https://facebook.com/a',
+      'https://letterboxd.com/a',
+      'https://kick.com/a',
+      'https://tiktok.com/@a',
+    ]) {
+      const p = platformOf(url);
+      expect(p, url).not.toBeNull();
+      expect(PLATFORM_PATHS[p!], url).toMatch(/^M[\d.\sA-Za-z,-]+$/);
+      expect(drawn.has(p!)).toBe(false);
+    }
     expect(displayHost('https://www.exemplo.com.br/a')).toBe('exemplo.com.br');
   });
   it('hours and minutes', () => {

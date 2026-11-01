@@ -1,6 +1,7 @@
 /**
  * The streamer's Links page (Phase 6). Shared by the server (validation) and the pages (labels).
- * Platform names are shown as plain text — no third-party logos are drawn.
+ * The platform comes from the link's host only (never from the label), and picks the button's
+ * icon (`components/links/PlatformIcon`, 2026-11-01) and the small platform name.
  */
 export const LINK_MAX = 30;
 export const LINK_LABEL_MAX = 40;
@@ -22,7 +23,13 @@ const PLATFORMS: [RegExp, string][] = [
   [/(^|\.)(wa\.me|whatsapp\.com)$/, 'WhatsApp'],
   [/(^|\.)letterboxd\.com$/, 'Letterboxd'],
   [/(^|\.)linkedin\.com$/, 'LinkedIn'],
-  [/(^|\.)steamcommunity\.com$/, 'Steam'],
+  [/(^|\.)(steamcommunity\.com|steampowered\.com)$/, 'Steam'],
+  // Amazon's own storefronts only (a wishlist is amazon.com.br/hz/wishlist/…); short links too
+  [
+    /(^|\.)(amazon\.(com|com\.br|com\.mx|ca|co\.uk|de|es|fr|it|nl|co\.jp|in|com\.au)|amzn\.to|amzn\.eu|a\.co)$/,
+    'Amazon',
+  ],
+  [/(^|\.)cinefy\.(app|gg|com|com\.br|io|tv|me)$/, 'Cinefy'],
 ];
 
 /** "Twitch", "YouTube"… from the link's host, or null for any other site. */

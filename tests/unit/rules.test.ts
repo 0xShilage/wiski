@@ -38,10 +38,10 @@ describe('usernames', () => {
 });
 
 describe('avatars', () => {
-  it('30 hand-made presets; the default is one of them', () => {
-    expect(AVATAR_KEYS).toHaveLength(30);
+  it('40 hand-made presets; the default is one of them', () => {
+    expect(AVATAR_KEYS).toHaveLength(40);
     expect(AVATAR_KEYS[0]).toBe('perfil-01');
-    expect(AVATAR_KEYS.at(-1)).toBe('perfil-30');
+    expect(AVATAR_KEYS.at(-1)).toBe('perfil-40');
     expect(AVATAR_KEYS).toContain(DEFAULT_AVATAR);
     expect(avatarLabel('perfil-07')).toBe('Avatar 7');
     expect(avatarSrc('perfil-07', 48)).toBe('/avatars/perfil-07-128.webp');
@@ -51,7 +51,7 @@ describe('avatars', () => {
     expect(resolveAvatarKey('../../x')).toBe(DEFAULT_AVATAR);
     expect(resolveAvatarKey(null)).toBe(DEFAULT_AVATAR);
     expect(resolveAvatarKey('mascote-2-plum')).toBe(DEFAULT_AVATAR);
-    expect(resolveAvatarKey('perfil-31')).toBe(DEFAULT_AVATAR);
+    expect(resolveAvatarKey('perfil-41')).toBe(DEFAULT_AVATAR);
     expect(resolveAvatarKey('perfil-12')).toBe('perfil-12');
   });
 });

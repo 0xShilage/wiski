@@ -26,7 +26,6 @@ export const PAGES: PageCase[] = [
   { name: 'perfil-publico-avaliacoes', path: '/u/bia_cine' },
   { name: 'perfil-entrar', path: '/perfil' },
   { name: 'perfil-erro', path: '/perfil?erro=expirado' },
-  { name: 'termos', path: '/termos' },
   { name: 'privacidade', path: '/privacidade' },
   { name: 'reembolso', path: '/reembolso' },
   { name: 'media-kit', path: '/media-kit' },

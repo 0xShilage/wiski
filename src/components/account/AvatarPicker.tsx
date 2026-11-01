@@ -6,12 +6,12 @@ import { cn } from '@/lib/cn';
 
 type Props = { value: AvatarKey; onChange: (key: AvatarKey) => void; name?: string };
 
-/** The 30 preset profile pictures as an accessible radio group (arrow keys move between options). */
+/** The 40 preset profile pictures as an accessible radio group (arrow keys move between options). */
 export function AvatarPicker({ value, onChange, name = 'avatar' }: Props) {
   return (
     <fieldset>
       <legend className="mb-3 text-sm font-semibold text-lilac">Escolha seu avatar</legend>
-      <div className="grid grid-cols-5 gap-3 sm:grid-cols-6">
+      <div className="grid grid-cols-5 gap-3 sm:grid-cols-8">
         {AVATAR_KEYS.map((key) => {
           const checked = key === value;
           return (

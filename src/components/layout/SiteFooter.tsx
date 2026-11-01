@@ -3,10 +3,9 @@ import { Img } from '@/components/Img';
 
 /** Footer (11 §3): legal pages, media kit, contact and the LGPD privacy channel. */
 const LINKS = [
-  { href: '/termos', label: 'Termos de uso' },
-  { href: '/privacidade', label: 'Privacidade' },
+  { href: '/privacidade', label: 'Termos e privacidade' },
   { href: '/reembolso', label: 'Reembolso' },
-  { href: '/privacidade#canal-lgpd', label: 'Canal de privacidade (LGPD)' },
+  { href: '/privacidade#secao-1', label: 'Canal de privacidade (LGPD)' },
   { href: '/media-kit', label: 'Media kit' },
   { href: '/contato', label: 'Contato' },
 ] as const;

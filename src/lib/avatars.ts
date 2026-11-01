@@ -1,9 +1,10 @@
 import { z } from 'zod';
 
 /**
- * Preset profile pictures (2026-10-31): 30 hand-made round icons (ASSETS/PROFILE_ICONS, built by
- * `npm run avatars` into public/avatars). They replace the 20 mascot × colour presets of 06 §7;
- * old keys were moved to these in migration 20261104120100. No user uploads.
+ * Preset profile pictures: hand-made round icons (ASSETS/PROFILE_ICONS, built by `npm run avatars`
+ * into public/avatars): 30 on 2026-10-31, 40 since 2026-11-01 (keys 01–30 kept, new pictures).
+ * They replace the 20 mascot × colour presets of 06 §7; old keys were moved to these in migration
+ * 20261104120100. No user uploads.
  */
 export const AVATAR_KEYS = [
   'perfil-01',
@@ -36,6 +37,16 @@ export const AVATAR_KEYS = [
   'perfil-28',
   'perfil-29',
   'perfil-30',
+  'perfil-31',
+  'perfil-32',
+  'perfil-33',
+  'perfil-34',
+  'perfil-35',
+  'perfil-36',
+  'perfil-37',
+  'perfil-38',
+  'perfil-39',
+  'perfil-40',
 ] as const;
 
 export type AvatarKey = (typeof AVATAR_KEYS)[number];

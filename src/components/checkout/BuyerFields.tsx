@@ -138,12 +138,8 @@ export function BuyerFields({
         />
         <span>
           Li e aceito os{' '}
-          <a href="/termos" target="_blank" rel="noopener">
-            Termos de uso
-          </a>
-          , a{' '}
           <a href="/privacidade" target="_blank" rel="noopener">
-            Política de privacidade
+            Termos de uso e a Política de privacidade
           </a>{' '}
           e a{' '}
           <a href="/reembolso" target="_blank" rel="noopener">

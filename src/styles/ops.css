@@ -685,7 +685,30 @@ html:has(.wf-overlay) .skip-link {
       transform: translateY(-1px);
     }
   }
+  .wf-links__icon {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: rgb(169 157 224 / 0.14);
+    color: var(--color-lavender);
+    transition:
+      background-color 0.2s,
+      color 0.2s;
+  }
+  .wf-links__icon svg {
+    width: 22px;
+    height: 22px;
+  }
+  .wf-links__btn:hover .wf-links__icon,
+  .wf-links__btn:focus-visible .wf-links__icon {
+    background: var(--color-lavender);
+    color: var(--color-ink);
+  }
   .wf-links__text {
+    flex: 1;
     display: grid;
     gap: 2px;
     min-width: 0;

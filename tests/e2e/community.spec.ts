@@ -32,8 +32,16 @@ test('home: "Nosso progresso" with totals and the per-kind split', async ({ page
 test('links: the seeded buttons in order, platform names as text, no new tab', async ({ page }) => {
   await page.goto('/links');
   await expect(page.getByRole('heading', { level: 1, name: 'Links' })).toBeVisible();
+  await expect(page.getByText('Onde encontrar a Iara fora daqui.')).toBeVisible();
   const links = page.locator('.wf-links__btn');
   await expect(links).toHaveCount(4);
+  // every seeded link is a known platform → its glyph, decorative (hidden from screen readers)
+  for (let i = 0; i < 4; i++) {
+    const icon = links.nth(i).locator('.wf-links__icon svg');
+    await expect(icon).toHaveAttribute('aria-hidden', 'true');
+    await expect(icon.locator('path')).toHaveCount(1);
+  }
+  await expect(links.first()).toHaveAccessibleName(/^Twitch/);
   await expect(links.first()).toHaveAttribute('href', 'https://twitch.tv/wiski');
   await expect(links.first()).toContainText('Lives de terça a sábado');
   // the platform name shows only when the button says something else

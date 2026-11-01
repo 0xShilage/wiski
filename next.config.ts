@@ -16,6 +16,8 @@ const nextConfig: NextConfig = {
       { source: '/conta', destination: '/perfil', statusCode: 301 },
       { source: '/conta/sessoes', destination: '/perfil/sessoes', statusCode: 301 },
       { source: '/admin', destination: '/admin/catalogo', statusCode: 307 },
+      // 2026-11-01: Termos de uso and Privacidade are one text now (src/content/legal/privacy.ts)
+      { source: '/termos', destination: '/privacidade', statusCode: 308 },
     ];
   },
   images: {

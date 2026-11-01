@@ -76,12 +76,8 @@ export default async function PerfilPage({ searchParams }: Props) {
           )}
           <p className="text-xs text-fg-muted">
             Ao entrar, você concorda com os{' '}
-            <a className="underline" href="/termos">
-              Termos de uso
-            </a>{' '}
-            e a{' '}
             <a className="underline" href="/privacidade">
-              Política de privacidade
+              Termos de uso e a Política de privacidade
             </a>
             .
           </p>

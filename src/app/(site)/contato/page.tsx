@@ -21,7 +21,7 @@ export default function ContatoPage() {
             media kit
           </a>
           . Para assuntos de privacidade e dados pessoais (LGPD), use o canal indicado na{' '}
-          <a className="underline" href="/privacidade">
+          <a className="underline" href="/privacidade#secao-1">
             Política de privacidade
           </a>
           .

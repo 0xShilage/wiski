@@ -97,3 +97,10 @@ export const IconMore = ({ className }: P) => (
     <circle cx="18.5" cy="12" r="1.9" />
   </svg>
 );
+/** Assistidos (2026-11-01): an eye. */
+export const IconEye = ({ className }: P) => (
+  <svg {...base} className={className}>
+    <path d="M2.5 12s3.5-6.5 9.5-6.5S21.5 12 21.5 12s-3.5 6.5-9.5 6.5S2.5 12 2.5 12z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);

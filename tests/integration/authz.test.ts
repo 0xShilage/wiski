@@ -374,6 +374,16 @@ export const MATRIX: Row[] = [
     params: { id: NO_ID },
     body: { status: 'ACCEPTED', expectedStatus: 'NEW' },
   }),
+  // "Próximas temporadas" (Admin › Estreias)
+  R('/api/v1/admin/releases', 'GET', 'moderator'),
+  R('/api/v1/admin/releases', 'POST', 'moderator', {
+    body: { title: 'Matriz', seasonLabel: 'Temporada 2', releaseDate: '2030-01-01' },
+  }),
+  R('/api/v1/admin/releases/[id]', 'PATCH', 'moderator', {
+    params: { id: NO_ID },
+    body: { note: 'Netflix' },
+  }),
+  R('/api/v1/admin/releases/[id]', 'DELETE', 'moderator', { params: { id: NO_ID } }),
 ];
 
 const ROLES = ['anonymous', 'USER', 'MODERATOR', 'STREAMER'] as const;

@@ -142,6 +142,21 @@ export async function listWatched(limit = 24, now = new Date()) {
   return rows.map((r) => ({ ...toPublic(r, now), watchedAt: r.watchedAt!.toISOString() }));
 }
 
+/** Assistidos (2026-11-01): every title watched on stream, newest first, optionally one kind. */
+export async function watchedTitles(kind?: ItemKind, limit = 120, now = new Date()) {
+  const rows = await db().catalogItem.findMany({
+    where: {
+      status: { in: ['WATCHED', 'ARCHIVED'] },
+      watchedAt: { not: null },
+      ...(kind ? { kind } : {}),
+    },
+    orderBy: { watchedAt: 'desc' },
+    take: limit,
+    include: publicInclude,
+  });
+  return rows.map((r) => ({ ...toPublic(r, now), watchedAt: r.watchedAt!.toISOString() }));
+}
+
 export async function getPublicCampaign(id: string, now = new Date()) {
   const c = await db().campaign.findUnique({
     where: { id },

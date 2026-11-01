@@ -60,4 +60,8 @@ export const PAGES: PageCase[] = [
   { name: 'sugestoes', path: '/sugestoes', auth: 'user' },
   { name: 'sugestoes-admin', path: '/admin/sugestoes', auth: 'admin', shell: false },
   { name: 'links-admin', path: '/admin/links', auth: 'streamer', shell: false },
+  // 2026-11-01: Assistidos, season releases
+  { name: 'assistidos', path: '/assistidos' },
+  { name: 'assistidos-series', path: '/assistidos?tipo=series' },
+  { name: 'estreias-admin', path: '/admin/estreias', auth: 'admin', shell: false },
 ];

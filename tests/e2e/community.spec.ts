@@ -135,7 +135,7 @@ test('links editor: the streamer adds, moves and hides a link', async ({ browser
   await ctx.close();
 });
 
-test('phone: the bar has five tabs + "Mais", which opens Avaliações, Sugestões and Links', async ({
+test('phone: the bar has five tabs + "Mais", which opens Assistidos, Avaliações, Sugestões and Links', async ({
   page,
 }, info) => {
   test.skip(!info.project.name.startsWith('mobile'), 'touch only');
@@ -152,7 +152,12 @@ test('phone: the bar has five tabs + "Mais", which opens Avaliações, Sugestõe
   await more.click();
   const menu = page.getByRole('list', { name: 'Mais páginas' });
   await expect(menu).toBeVisible();
-  await expect(menu.getByRole('link')).toHaveText(['Avaliações', 'Sugestões', 'Links']);
+  await expect(menu.getByRole('link')).toHaveText([
+    'Assistidos',
+    'Avaliações',
+    'Sugestões',
+    'Links',
+  ]);
   await page.keyboard.press('Escape');
   await expect(menu).toBeHidden();
   await more.click();
@@ -160,4 +165,76 @@ test('phone: the bar has five tabs + "Mais", which opens Avaliações, Sugestõe
   await expect(page).toHaveURL(/\/links$/);
   await expect(menu).toBeHidden();
   await expect(bar.getByRole('button', { name: /você está em Links/ })).toBeVisible();
+});
+
+test('assistidos: watched titles with posters, filter by kind, cards open the title page', async ({
+  page,
+}) => {
+  await page.goto('/assistidos');
+  await expect(page.getByRole('heading', { level: 1, name: 'Assistidos' })).toBeVisible();
+  const filter = page.getByRole('navigation', { name: 'Filtrar por tipo' });
+  await expect(filter.getByRole('link', { name: 'Todos' })).toHaveAttribute('aria-current', 'page');
+  const cards = page.locator('.wf-watched__card');
+  await expect(cards.first()).toBeVisible();
+  await expect(cards.first()).toContainText('Assistido em');
+  await expect(cards.first().locator('img')).toHaveAttribute('src', /^\/media\//);
+  await filter.getByRole('link', { name: 'Franquias' }).click();
+  await expect(page).toHaveURL(/tipo=franquias/);
+  await expect(filter.getByRole('link', { name: 'Franquias' })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+  await filter.getByRole('link', { name: 'Filmes' }).click();
+  const first = page.locator('.wf-watched__card').first();
+  const href = await first.getAttribute('href');
+  expect(href).toMatch(/^\/filmes\//);
+  await first.click();
+  await expect(page).toHaveURL(new RegExp(`${href}$`));
+});
+
+test('cronograma: posters next to the titles and "Próximas temporadas" from the dashboard', async ({
+  page,
+}) => {
+  await page.goto('/cronograma');
+  const thumb = page.locator('.wf-cron__thumb img').first();
+  await expect(thumb).toHaveAttribute('src', /^\/media\//);
+  const panel = page.getByRole('complementary', { name: 'Próximas temporadas' });
+  await expect(panel).toBeVisible();
+  // the seed: a catalog series (poster + link) and one that is only a name
+  await expect(panel.locator('a.wf-rel__row').first()).toHaveAttribute('href', /^\/series\//);
+  await expect(panel).toContainText('Temporada 4');
+  await expect(panel).toContainText('Bosque Sombrio');
+  await expect(panel.locator('div.wf-rel__row')).toContainText('Temporada 2');
+});
+
+test('estreias: a moderator adds a release and it shows on the Cronograma', async ({
+  browser,
+}, info) => {
+  test.skip(info.project.name !== 'desktop-1280', 'the dashboard is a desktop tool');
+  const mod = await seedUser({ role: 'MODERATOR', passkeyVerified: true });
+  const ctx = await browser.newContext();
+  await signIn(ctx, mod.token);
+  const page = await ctx.newPage();
+  await page.goto('/admin/estreias');
+  const form = page
+    .locator('form')
+    .filter({ has: page.getByRole('heading', { name: 'Nova estreia' }) });
+  const name = `Série E2E ${Date.now().toString(36)}`;
+  await form.getByLabel('Nome da série').fill(name);
+  await form.getByLabel('Temporada').fill('Temporada 9');
+  const soon = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
+  await form.getByLabel('Data de estreia').fill(soon);
+  await form.getByLabel('Observação (opcional)').fill('Netflix');
+  await form.getByRole('button', { name: 'Adicionar' }).click();
+  await expect(page.getByRole('status')).toContainText('Estreia adicionada');
+  await expect(page.locator('.wf-ops-card').filter({ hasText: name })).toContainText('Netflix');
+
+  const pub = await ctx.newPage();
+  await pub.goto('/cronograma');
+  const panel = pub.getByRole('complementary', { name: 'Próximas temporadas' });
+  await expect(panel).toContainText(name);
+  await expect(panel).toContainText('Temporada 9');
+
+  await withDb((c) => c.query(`DELETE FROM "SeasonRelease" WHERE title = $1`, [name]));
+  await ctx.close();
 });

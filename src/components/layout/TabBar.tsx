@@ -5,6 +5,7 @@ import { useId, useRef } from 'react';
 import {
   IconBulb,
   IconCalendar,
+  IconEye,
   IconFilm,
   IconLayers,
   IconLink,
@@ -23,6 +24,7 @@ const ICON: Record<
   '/series': IconTv,
   '/franquias': IconLayers,
   '/cronograma': IconCalendar,
+  '/assistidos': IconEye,
   '/avaliacoes': IconStar,
   '/sugestoes': IconBulb,
   '/links': IconLink,
@@ -34,8 +36,8 @@ const MORE = NAV_ITEMS.filter((i) => i.mobile === 'more');
 
 /**
  * Phones (≤ 760 px): a fixed bottom bar — Filmes · Séries · Franquias · Cronograma · Perfil ·
- * Mais (Phase 6). "Mais" opens a native popover (light dismiss and Esc for free) with Avaliações,
- * Sugestões and Links. Hidden on larger screens, where the header shows every tab.
+ * Mais (Phase 6). "Mais" opens a native popover (light dismiss and Esc for free) with Assistidos,
+ * Avaliações, Sugestões and Links. Hidden on larger screens, where the header shows every tab.
  */
 export function TabBar() {
   const path = usePathname() ?? '/';

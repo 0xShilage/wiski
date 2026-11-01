@@ -81,6 +81,7 @@ model User {
   campaignsOpened    Campaign[]          @relation("CampaignOpener")
   suggestions        Suggestion[]        @relation("SuggestionAuthor")
   suggestionsDecided Suggestion[]        @relation("SuggestionReviewer")
+  seasonReleases     SeasonRelease[]     @relation("ReleaseEditor")
 
   @@index([role])
 }
@@ -268,6 +269,7 @@ model CatalogItem {
   reviews          Review[]
   watchEvents      WatchEvent[]
   nowPlayingIn     StreamSession[]   @relation("NowPlaying")
+  seasonReleases   SeasonRelease[]
 
   @@index([kind, status, slot])
   @@index([status, watchedAt])
@@ -940,6 +942,26 @@ model Suggestion {
   @@index([status, createdAt])
   @@index([titleKey])
   @@index([userId, createdAt])
+}
+
+/// "Próximas temporadas" on the Cronograma: when the next season of a series comes out. Kept by
+/// moderators (Admin › Estreias). A series in the catalog lends its poster and page link; any
+/// other series is just a name.
+model SeasonRelease {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  itemId      String?  @db.Uuid // a SERIES in the catalog (optional)
+  title       String // ≤ 120 chars, sanitised; the series name
+  seasonLabel String // ≤ 40 chars: "Temporada 3", "Parte 2"
+  releaseDate DateTime @db.Date // calendar day of the release (no time zone)
+  note        String? // ≤ 80 chars: "Netflix", "data a confirmar"
+  editedById  String   @db.Uuid
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  item     CatalogItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  editedBy User         @relation("ReleaseEditor", fields: [editedById], references: [id], onDelete: Restrict)
+
+  @@index([releaseDate])
 }
 
 model AppSetting {

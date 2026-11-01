@@ -409,3 +409,262 @@ export function SuggestionsBoard({ initial }: { initial: Page }) {
     </>
   );
 }
+
+// ── Estreias ("Próximas temporadas") ─────────────────────────────────────────
+
+export type AdminReleaseRow = {
+  id: string;
+  itemId: string | null;
+  itemTitle: string | null;
+  title: string;
+  seasonLabel: string;
+  releaseDate: string;
+  note: string | null;
+  editor: string | null;
+  updatedAt: string;
+};
+type SeriesOption = { id: string; title: string; status: string };
+type ReleaseForm = {
+  itemId: string;
+  title: string;
+  seasonLabel: string;
+  releaseDate: string;
+  note: string;
+};
+const EMPTY_RELEASE: ReleaseForm = {
+  itemId: '',
+  title: '',
+  seasonLabel: '',
+  releaseDate: '',
+  note: '',
+};
+const dayFmt = new Intl.DateTimeFormat('pt-BR', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+
+function ReleaseFields({
+  id,
+  form,
+  series,
+  onChange,
+}: {
+  id: string;
+  form: ReleaseForm;
+  series: SeriesOption[];
+  onChange: (f: ReleaseForm) => void;
+}) {
+  return (
+    <>
+      <label className="wf-field" htmlFor={`${id}-s`}>
+        <span>Série do catálogo (opcional)</span>
+        <select
+          id={`${id}-s`}
+          className="wf-ops-select"
+          value={form.itemId}
+          onChange={(e) => onChange({ ...form, itemId: e.target.value })}
+        >
+          <option value="">Outra série (digite o nome)</option>
+          {series.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.title}
+              {s.status === 'DRAFT' ? ' (rascunho)' : ''}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="wf-field" htmlFor={`${id}-t`}>
+        <span>{form.itemId ? 'Nome (opcional: usa o do catálogo)' : 'Nome da série'}</span>
+        <input
+          id={`${id}-t`}
+          className="wf-input"
+          maxLength={120}
+          value={form.title}
+          required={!form.itemId}
+          onChange={(e) => onChange({ ...form, title: e.target.value })}
+        />
+      </label>
+      <label className="wf-field" htmlFor={`${id}-l`}>
+        <span>Temporada</span>
+        <input
+          id={`${id}-l`}
+          className="wf-input"
+          maxLength={40}
+          placeholder="Temporada 3"
+          value={form.seasonLabel}
+          required
+          onChange={(e) => onChange({ ...form, seasonLabel: e.target.value })}
+        />
+      </label>
+      <label className="wf-field" htmlFor={`${id}-d`}>
+        <span>Data de estreia</span>
+        <input
+          id={`${id}-d`}
+          type="date"
+          className="wf-input"
+          min="2000-01-01"
+          max="2100-12-31"
+          value={form.releaseDate}
+          required
+          onChange={(e) => onChange({ ...form, releaseDate: e.target.value })}
+        />
+      </label>
+      <label className="wf-field" htmlFor={`${id}-n`}>
+        <span>Observação (opcional)</span>
+        <input
+          id={`${id}-n`}
+          className="wf-input"
+          maxLength={80}
+          placeholder="Netflix · data a confirmar"
+          value={form.note}
+          onChange={(e) => onChange({ ...form, note: e.target.value })}
+        />
+      </label>
+    </>
+  );
+}
+
+const releaseBody = (f: ReleaseForm) => ({
+  itemId: f.itemId || null,
+  title: f.title.trim() || null,
+  seasonLabel: f.seasonLabel,
+  releaseDate: f.releaseDate,
+  note: f.note.trim() || null,
+});
+
+export function ReleasesPanel({
+  initial,
+}: {
+  initial: { releases: AdminReleaseRow[]; series: SeriesOption[] };
+}) {
+  const id = useId();
+  const { busy, act, view } = useAct();
+  const [data, setData] = useState(initial);
+  const [form, setForm] = useState<ReleaseForm>(EMPTY_RELEASE);
+  const [editing, setEditing] = useState<{ id: string; form: ReleaseForm } | null>(null);
+
+  async function reload() {
+    const r = await adminFetch<typeof initial>('/api/v1/admin/releases');
+    if (r.ok) setData(r.data);
+  }
+
+  return (
+    <>
+      {view}
+      <form
+        className="wf-ops-card"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          const r = await act('Estreia adicionada', '/api/v1/admin/releases', {
+            method: 'POST',
+            body: releaseBody(form),
+          });
+          if (r.ok) setForm(EMPTY_RELEASE);
+          await reload();
+        }}
+      >
+        <h2>Nova estreia</h2>
+        <div className="wf-ops-form">
+          <ReleaseFields id={id} form={form} series={data.series} onChange={setForm} />
+          <button type="submit" className="wf-btn wf-btn--neon" disabled={busy}>
+            Adicionar
+          </button>
+        </div>
+      </form>
+
+      <ul className="wf-ops-list" aria-label="Estreias, da mais próxima à mais distante">
+        {data.releases.map((r) => (
+          <li key={r.id} className="wf-ops-card">
+            {editing?.id === r.id ? (
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const res = await act('Estreia salva', `/api/v1/admin/releases/${r.id}`, {
+                    method: 'PATCH',
+                    body: releaseBody(editing.form),
+                  });
+                  if (res.ok) setEditing(null);
+                  await reload();
+                }}
+              >
+                <div className="wf-ops-form">
+                  <ReleaseFields
+                    id={`${id}-${r.id}`}
+                    form={editing.form}
+                    series={data.series}
+                    onChange={(f) => setEditing({ id: r.id, form: f })}
+                  />
+                  <button type="submit" className="wf-btn wf-btn--neon" disabled={busy}>
+                    Salvar
+                  </button>
+                  <button
+                    type="button"
+                    className="wf-btn wf-btn--ghost"
+                    onClick={() => setEditing(null)}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <>
+                <div className="wf-ops-row__main">
+                  <span className="wf-ops-row__title">
+                    {r.title} · {r.seasonLabel}{' '}
+                    {r.itemId ? <span className="wf-pill">No catálogo</span> : null}
+                  </span>
+                  <span className="wf-muted text-xs">
+                    Estreia em {dayFmt.format(new Date(`${r.releaseDate}T12:00:00Z`))}
+                    {r.note ? ` · ${r.note}` : ''} · editado por @{r.editor ?? 'removido'}
+                  </span>
+                </div>
+                <div className="wf-ops-actions">
+                  <button
+                    type="button"
+                    className="wf-btn wf-btn--sm wf-btn--ghost"
+                    disabled={busy}
+                    onClick={() =>
+                      setEditing({
+                        id: r.id,
+                        form: {
+                          itemId: r.itemId ?? '',
+                          title: r.title,
+                          seasonLabel: r.seasonLabel,
+                          releaseDate: r.releaseDate,
+                          note: r.note ?? '',
+                        },
+                      })
+                    }
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    className="wf-linkbtn text-xs"
+                    disabled={busy}
+                    onClick={async () => {
+                      if (!window.confirm(`Apagar a estreia de "${r.title}"?`)) return;
+                      await act('Estreia apagada', `/api/v1/admin/releases/${r.id}`, {
+                        method: 'DELETE',
+                      });
+                      await reload();
+                    }}
+                  >
+                    Apagar
+                  </button>
+                </div>
+              </>
+            )}
+          </li>
+        ))}
+      </ul>
+      {data.releases.length ? null : (
+        <p className="wf-muted">
+          Nenhuma estreia cadastrada. O Cronograma mostra uma mensagem de espera.
+        </p>
+      )}
+    </>
+  );
+}

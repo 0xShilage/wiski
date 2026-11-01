@@ -37,6 +37,7 @@ const { createGoal } = await import('../src/server/goals/goals');
 const { setStat } = await import('../src/server/mediakit/stats');
 const { createLink } = await import('../src/server/links/links');
 const { submitSuggestion } = await import('../src/server/suggestions/suggestions');
+const { createRelease } = await import('../src/server/releases/releases');
 const { PALETTES, renderArt, renderLogo } = await import('./seed-art');
 
 const RESET = process.argv.includes('--reset');
@@ -371,6 +372,7 @@ async function main() {
       db().goal.deleteMany({}),
       db().platformStat.deleteMany({}),
       db().socialLink.deleteMany({}),
+      db().seasonRelease.deleteMany({}),
       db().suggestion.deleteMany({}),
       db().catalogRevision.deleteMany({}),
       db().franchiseEntry.deleteMany({}),
@@ -710,6 +712,28 @@ async function main() {
   });
   await submitSuggestion(sponsor, { kind: 'SERIES', title: 'Dark' });
   log('links page and suggestions set');
+
+  // "Próximas temporadas": one series from the catalog (poster + link), one that is just a name
+  const firstSeries = await db().catalogItem.findFirst({
+    where: { kind: 'SERIES', status: { in: ['ACTIVE', 'FUNDED'] } },
+    orderBy: { slot: 'asc' },
+  });
+  const inDays = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
+  if (firstSeries) {
+    await createRelease(modCtx, {
+      itemId: firstSeries.id,
+      seasonLabel: 'Temporada 4',
+      releaseDate: inDays(12),
+      note: 'data a confirmar',
+    });
+  }
+  await createRelease(modCtx, {
+    title: 'Bosque Sombrio',
+    seasonLabel: 'Temporada 2',
+    releaseDate: inDays(40),
+    note: 'streaming',
+  });
+  log('season releases set');
 
   const counts = await db().catalogItem.groupBy({ by: ['kind', 'status'], _count: { _all: true } });
   log('done', counts.map((c) => `${c.kind}/${c.status}=${c._count._all}`).join(' '));

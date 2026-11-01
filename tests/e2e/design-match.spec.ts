@@ -72,12 +72,14 @@ for (const [w, h, margin] of [
     expect(Math.round(m.titleX)).toBe(margin);
     expect(Math.round(m.logoX)).toBe(margin);
     expect(Math.abs(m.activeCentre - m.W / 2)).toBeLessThan(2);
-    // Cronograma (2026-10-31), Sugestões and Links (Phase 6) are additions to the Figma header
+    // Cronograma (2026-10-31), Sugestões and Links (Phase 6), Assistidos (2026-11-01) are
+    // additions to the Figma header
     expect(m.nav).toEqual([
       'Filmes',
       'Séries',
       'Franquias',
       'Cronograma',
+      'Assistidos',
       'Avaliações',
       'Sugestões',
       'Links',

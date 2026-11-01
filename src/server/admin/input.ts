@@ -222,3 +222,24 @@ export const suggestionQuery = z.object({ status: suggestionStatus.optional(), b
 export const suggestionStatusInput = z
   .object({ status: suggestionStatus, expectedStatus: suggestionStatus })
   .strict();
+
+// ── "Próximas temporadas" (Admin › Estreias) ──
+const calendarDay = z.iso.date();
+export const releaseCreateInput = z
+  .object({
+    itemId: z.uuid().nullable().optional(),
+    title: z.string().max(600).nullable().optional(),
+    seasonLabel: z.string().max(200),
+    releaseDate: calendarDay,
+    note: z.string().max(400).nullable().optional(),
+  })
+  .strict();
+export const releaseUpdateInput = z
+  .object({
+    itemId: z.uuid().nullable().optional(),
+    title: z.string().max(600).nullable().optional(),
+    seasonLabel: z.string().max(200).optional(),
+    releaseDate: calendarDay.optional(),
+    note: z.string().max(400).nullable().optional(),
+  })
+  .strict();

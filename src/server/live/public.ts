@@ -1,4 +1,6 @@
 import 'server-only';
+import { type Picture, pictureFrom } from '@/lib/media';
+import { db } from '../db';
 import { sessionsWithEntries } from './schedule';
 
 /**
@@ -51,7 +53,11 @@ export async function publicSchedule(now = new Date(), take = 4): Promise<Public
  */
 export const CRONOGRAMA_PAST_MS = 2 * 86_400_000;
 
-export type CronogramaDay = { date: string; sessions: (PublicSession & { past: boolean })[] };
+export type CronogramaTitle = PublicSession['titles'][number] & { poster: Picture | null };
+export type CronogramaDay = {
+  date: string;
+  sessions: (Omit<PublicSession, 'titles'> & { past: boolean; titles: CronogramaTitle[] })[];
+};
 
 const dayKey = new Intl.DateTimeFormat('en-CA', {
   timeZone: 'America/Sao_Paulo',
@@ -88,6 +94,18 @@ export async function cronograma(now = new Date()): Promise<CronogramaDay[]> {
     ...upcoming.map((s) => ({ s, past: false, entries: s.entries })),
   ].sort((a, b) => a.s.startsAt.getTime() - b.s.startsAt.getTime());
 
+  // posters (2026-11-01): one query for every title on the page
+  const ids = [...new Set(rows.flatMap((r) => r.entries.map((e) => e.item.id)))];
+  const posters = new Map(
+    (ids.length
+      ? await db().catalogItem.findMany({
+          where: { id: { in: ids } },
+          select: { id: true, poster: { select: { width: true, height: true, variants: true } } },
+        })
+      : []
+    ).map((i) => [i.id, pictureFrom(i.poster)]),
+  );
+
   const days = new Map<string, CronogramaDay>();
   for (const { s, past, entries } of rows) {
     const date = dayKey.format(s.startsAt);
@@ -106,6 +124,7 @@ export async function cronograma(now = new Date()): Promise<CronogramaDay[]> {
         sponsor: e.sponsor,
         jumped: e.tier !== null,
         done: e.status === 'COMPLETED' || e.status === 'WATCHED',
+        poster: posters.get(e.item.id) ?? null,
       })),
     });
   }

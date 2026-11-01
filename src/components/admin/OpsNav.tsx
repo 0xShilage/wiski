@@ -6,6 +6,7 @@ export type OpsSection =
   | 'moderacao'
   | 'pessoas'
   | 'sugestoes'
+  | 'estreias'
   | 'overlays'
   | 'metas'
   | 'media-kit'
@@ -29,6 +30,7 @@ const OPS: { id: OpsSection; label: string; badge?: (c: OpsCounts) => number }[]
   { id: 'moderacao', label: 'Moderação', badge: (c) => c.waiting },
   { id: 'pessoas', label: 'Pessoas' },
   { id: 'sugestoes', label: 'Sugestões', badge: (c) => c.suggestions },
+  { id: 'estreias', label: 'Estreias' },
 ];
 const STREAMER: { id: OpsSection; label: string; badge?: (c: OpsCounts) => number }[] = [
   { id: 'overlays', label: 'Overlays (OBS)' },

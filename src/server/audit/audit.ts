@@ -268,6 +268,13 @@ export const AUDIT_ACTIONS = {
     .strict(),
   'link.delete': z.object({}).strict(),
   'link.reorder': z.object({ count: z.int().min(0).max(30) }).strict(),
+  'release.create': z.object({ linked: z.boolean() }).strict(),
+  'release.update': z
+    .object({
+      fields: z.array(z.enum(['itemId', 'title', 'seasonLabel', 'releaseDate', 'note'])).max(5),
+    })
+    .strict(),
+  'release.delete': z.object({}).strict(),
   'suggestion.status': z
     .object({
       from: z.enum(['NEW', 'ACCEPTED', 'DISMISSED']),

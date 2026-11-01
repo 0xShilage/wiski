@@ -1,7 +1,7 @@
 /**
- * The tabs (11 §3): Filmes · Séries · Franquias · Cronograma · Avaliações · Sugestões · Links ·
- * Perfil. No search. Cronograma (2026-10-31): what is booked on the next lives. Sugestões and
- * Links (Phase 6).
+ * The tabs (11 §3): Filmes · Séries · Franquias · Cronograma · Assistidos · Avaliações ·
+ * Sugestões · Links · Perfil. No search. Cronograma (2026-10-31): what is booked on the next
+ * lives. Sugestões and Links (Phase 6). Assistidos (2026-11-01): everything already watched.
  *
  * Desktop shows every tab. Phones show the `bar` tabs plus "Mais", which opens the `more` ones.
  */
@@ -29,6 +29,12 @@ export const NAV_ITEMS = [
     label: 'Cronograma',
     mobile: 'bar',
     match: (p: string) => p.startsWith('/cronograma'),
+  },
+  {
+    href: '/assistidos',
+    label: 'Assistidos',
+    mobile: 'more',
+    match: (p: string) => p.startsWith('/assistidos'),
   },
   {
     href: '/avaliacoes',

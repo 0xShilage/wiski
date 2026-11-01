@@ -108,15 +108,15 @@ for (const [w, h] of [
   });
 }
 
-// Phase 6: eight header tabs from 761 px (below that the phone tab bar takes over)
-for (const w of [761, 800, 900, 1024, 1180]) {
-  test(`header: logo and eight tabs on one line at ${w} px`, async ({ page }) => {
+// Phase 6: nine header tabs from 761 px (below that the phone tab bar takes over)
+for (const w of [761, 800, 900, 1024, 1080, 1100, 1180, 1280]) {
+  test(`header: logo and nine tabs on one line at ${w} px`, async ({ page }) => {
     await page.setViewportSize({ width: w, height: 800 });
     await page.goto('/links', { waitUntil: 'networkidle' });
     await page.evaluate(() => document.fonts.ready);
     await noHorizontalScroll(page);
     const tabs = page.locator('.wf-header nav a');
-    await expect(tabs).toHaveCount(8);
+    await expect(tabs).toHaveCount(9);
     const logo = await box(page, '.wf-logo');
     const boxes = await tabs.evaluateAll((els) =>
       els.map((e) => {

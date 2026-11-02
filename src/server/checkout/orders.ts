@@ -532,7 +532,8 @@ async function issuePix(
       amountCents: payment.amountCents,
       description: prepared.description,
       externalReference: order.id,
-      payerEmail: order.contactEmail,
+      // with MP test credentials the payer must be a test buyer (development only, env.ts)
+      payerEmail: getEnv().MP_TEST_PAYER_EMAIL ?? order.contactEmail,
       expiresAt: payment.expiresAt,
       idempotencyKey: payment.idempotencyKey,
     });

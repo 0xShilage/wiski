@@ -69,6 +69,9 @@ export const envSchema = z
     ),
     MP_WEBHOOK_SECRET: optional(z.string().min(16).max(256)),
     MP_WEBHOOK_SECRET_PREVIOUS: optional(z.string().min(16).max(256)),
+    /** DEVELOPMENT ONLY: a Mercado Pago test buyer's e-mail sent as the Pix payer. With test
+     *  credentials MP refuses any real payer e-mail ("Unauthorized use of live credentials"). */
+    MP_TEST_PAYER_EMAIL: optional(z.email().max(254)),
 
     /** Processed images (11 §5). Production: the Docker volume /var/lib/wiski/media, served by
      *  nginx at /media/. Development/test default: <cwd>/.media (served by the app). */
@@ -137,6 +140,10 @@ export const envSchema = z
         'MP_COLLECTOR_ID',
         'does not match the account of MP_ACCESS_TOKEN (test vs production ids?)',
       );
+    }
+
+    if (prod && env.MP_TEST_PAYER_EMAIL) {
+      issue('MP_TEST_PAYER_EMAIL', 'is for development only (test buyer); remove it in production');
     }
 
     if (prod) {

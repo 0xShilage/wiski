@@ -137,6 +137,16 @@ describe('env validation (refuses to boot on missing/invalid vars)', () => {
     expect(parseEnv({ ...valid, TMDB_API_KEY: 'k'.repeat(32) })).not.toHaveProperty('TMDB_API_KEY');
   });
 
+  it('MP_TEST_PAYER_EMAIL: a test buyer e-mail in development, refused in production', () => {
+    expect(problems({ ...valid, MP_TEST_PAYER_EMAIL: 'test_user_123@testuser.com' })).toEqual([]);
+    expect(problems({ ...valid, MP_TEST_PAYER_EMAIL: 'não é e-mail' })).toContainEqual(
+      expect.stringContaining('MP_TEST_PAYER_EMAIL'),
+    );
+    expect(
+      problems({ ...production, MP_TEST_PAYER_EMAIL: 'test_user_123@testuser.com' }),
+    ).toContainEqual(expect.stringContaining('MP_TEST_PAYER_EMAIL'));
+  });
+
   it('detects a Mercado Pago token that belongs to another account (test vs production ids)', () => {
     const token = 'APP_USR-1111111111111111-100200-0123456789abcdef0123456789abcdef-2222222222';
     expect(

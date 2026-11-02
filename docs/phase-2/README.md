@@ -55,6 +55,8 @@ Everything from R1 §2 still applies. What's new:
    MP_COLLECTOR_ID=3733347216
    ```
 
+   **Payer e-mail (2026-11-02):** with test credentials Mercado Pago accepts only a *test buyer* as the payer; any real e-mail (yours, from Google) is refused with 401 "Unauthorized use of live credentials". Create a buyer under *Suas integrações › Contas de teste* and add its e-mail (`test_user_…@testuser.com`) as `MP_TEST_PAYER_EMAIL=` in `.env.local`. The site sends it to Mercado Pago instead of the buyer's e-mail. Development only: the app refuses to start with it in production.
+
    Without both values checkout shows "Os pagamentos com Pix ainda não estão ativos neste ambiente." and nothing calls Mercado Pago.
 
 3. **Two processes**, each in its own terminal:

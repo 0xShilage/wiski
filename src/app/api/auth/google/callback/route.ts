@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { completeLogin, LoginError, readOAuthCookie } from '@/server/auth/oidc';
 import { upsertGoogleUser } from '@/server/auth/accounts';
 import { clearHostCookie, COOKIE, setSessionCookie } from '@/server/auth/cookies';
+import { rememberedMfaAt } from '@/server/auth/mfa';
 import { createSession, revokeSessionByToken, uaFamilyFrom } from '@/server/auth/session';
 import { audit } from '@/server/audit/audit';
 import { getEnv } from '@/server/env';
@@ -66,10 +67,23 @@ export const GET = route(
     // Session fixation defence: whatever session came in is revoked; a fresh token is issued.
     await revokeSessionByToken(req.cookies.get(COOKIE.session)?.value);
     const ua = userAgent(req);
-    const { token, maxAgeSec } = await createSession(user, {
+    // This browser passed the admin second factor in the last 96 h (same user, same epoch)?
+    const mfaAt = await rememberedMfaAt(req.cookies.get(COOKIE.mfa)?.value, user);
+    const { token, session, maxAgeSec } = await createSession(user, {
       authTime: identity.authTime,
       uaFamily: uaFamilyFrom(ua.browser.name, ua.os.name),
+      mfaAt,
     });
+    if (mfaAt) {
+      await audit({
+        action: 'mfa.remembered',
+        actor: { id: user.id, role: user.role },
+        targetType: 'Session',
+        targetId: session.id,
+        metadata: {},
+        requestId,
+      });
+    }
 
     if (isPrivileged(user.role)) {
       await audit({

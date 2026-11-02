@@ -1,3 +1,4 @@
+import { LIVE_LIMIT } from '@/lib/catalog/pricing';
 import { AGE_RATINGS, type AgeRatingCode } from '@/lib/catalog/age-rating';
 import type { ItemKindCode } from '@/lib/catalog/kinds';
 import type { AdminItem, AdminListItem } from '@/server/catalog/read';
@@ -23,6 +24,7 @@ export type Form = {
   posterId: string | null;
   backdropId: string | null;
   logoId: string | null;
+  posterTitle: boolean;
   slot: string;
   films: { title: string; year: string; runtimeMinutes: string }[];
 };
@@ -44,6 +46,7 @@ export const emptyForm = (slot: number | null = null): Form => ({
   posterId: null,
   backdropId: null,
   logoId: null,
+  posterTitle: true,
   slot: slot ? String(slot) : '',
   films: [],
 });
@@ -67,6 +70,7 @@ export function formFrom(item: AdminItem): Form {
     posterId: f.posterId,
     backdropId: f.backdropId,
     logoId: f.logoId,
+    posterTitle: f.posterTitle,
     slot: item.slot ? String(item.slot) : '',
     films: f.franchiseEntries.map((e) => ({
       title: e.title,
@@ -99,6 +103,7 @@ export function fieldsFrom(form: Form, kind: Kind, draft: boolean): Record<strin
     backdropId: form.backdropId,
     logoId: form.logoId,
   };
+  if (kind === 'MOVIE') out.posterTitle = form.posterTitle;
   if (kind !== 'FRANCHISE') {
     const r = int(form.runtimeMinutes);
     if (r) out.runtimeMinutes = r;
@@ -137,7 +142,8 @@ export function tileState(i: AdminListItem): string {
   return i.status;
 }
 
-export const LIMIT: Record<Kind, number> = { MOVIE: 35, SERIES: 10, FRANCHISE: 10 };
+/** Live slots per kind — one source of truth with the server (and the reviewed SQL). */
+export const LIMIT: Record<Kind, number> = LIVE_LIMIT;
 export const KIND_UI: Record<Kind, { many: string; one: string; nova: string; tipo: string }> = {
   MOVIE: { many: 'Filmes', one: 'filme', nova: 'Novo filme', tipo: 'filmes' },
   SERIES: { many: 'Séries', one: 'série', nova: 'Nova série', tipo: 'series' },

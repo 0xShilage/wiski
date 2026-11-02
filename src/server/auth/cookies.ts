@@ -14,6 +14,8 @@ export const COOKIE = {
   order: '__Host-wf_order',
   /** Phase 4: overlay read-only session */
   overlay: '__Host-wf_overlay',
+  /** sealed "this browser passed the admin second factor" (user, time, epoch), ≤ 96 h */
+  mfa: '__Host-wf_mfa',
 } as const;
 
 type SameSite = 'lax' | 'strict';

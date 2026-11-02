@@ -1,4 +1,4 @@
-# 07 — Open questions (rev 7 · 2026-10-02, R1 built; Q26 + Q27 answered)
+# 07 — Open questions (rev 9 · 2026-10-30, Phase 3 built; rev 8: Phase 2 built, payment provider decided)
 
 ## A. Resolved — your answers (2026-10-01)
 
@@ -20,6 +20,9 @@
 | Q22 | Mercado Pago | Pessoa física, Pix key registered, production credentials activated; ids `3733347216`/`5754049850745190` are the **test** app (production ids in 09 rev 5) | [09-mercadopago-setup.md](./09-mercadopago-setup.md) — only the payer-visible recipient name is missing |
 | Phase 1 | Go-ahead | npm reachable; **Phase 1 built and tested on 2026-10-02** (`binaries.prisma.sh` is still blocked in Claude's workspace — migrations are checked by CI and locally) | [../phase-1/README.md](../phase-1/README.md), [../phase-1/test-report.md](../phase-1/test-report.md) |
 | R1 | Redesign foundation | **Built and tested on 2026-10-02** (catalogue, dashboard, passkeys, media pipeline, new theme, desktop resolutions) | [../r1/README.md](../r1/README.md), [../r1/test-report.md](../r1/test-report.md) |
+| Payments provider | Mercado Pago or LivePix? | **Mercado Pago** for the site's checkout (2026-10-29); LivePix stays for donations on stream. The LivePix comparison is kept in [13-livepix-alternative.md](./13-livepix-alternative.md) | [../phase-2/README.md](../phase-2/README.md) |
+| Phase 2 | Payments | **Built and tested on 2026-10-30** (price engine, movie checkout, contributions, webhook, worker, order pages) | [../phase-2/README.md](../phase-2/README.md), [../phase-2/test-report.md](../phase-2/test-report.md) |
+| Phase 3 | Reviews | **Built and tested on 2026-10-30** (reviews, likes, reports, auto-hide, moderation queue, public profiles) — open: P3-a…d in the Phase 3 README (suspensions, LGPD erasure endpoint, appeal path, community rules text) | [../phase-3/README.md](../phase-3/README.md), [../phase-3/test-report.md](../phase-3/test-report.md) |
 | Q26 | GitHub | **Private** repository `github.com/0xShilage/wiski` (anonymous read access is refused, so it is not public) | first push and repository settings: [../r1/README.md](../r1/README.md) §7; CI, Dependabot and CodeQL start with that push |
 | Q27 | Google sign-in | OAuth client (Web application) `333411243821-f80tvc0hpoj3mh3sp9ocmcj17dhet5tc.apps.googleusercontent.com` (a client id is public by design). The **client secret stays with you**: type it into `.env.local` (and later the server's env), never into a chat | redirect URIs and consent screen as in 10 §5; real login testable locally once both values are in `.env.local` ([../r1/README.md](../r1/README.md) §7) |
 
@@ -49,7 +52,11 @@
 | P1-a | now | Run `npx prisma migrate status` once on your computer (Claude's workspace can't download Prisma's engine binary). |
 | P1-c | Phase 2 forms | Cloudflare Turnstile widget for `wiski.fun` + `localhost` (site key + secret; dev uses Cloudflare's test keys). |
 | P1-d | Phase 5 | Trusted Types enforcement: Next.js's chunk loader still triggers report-only violations on pages with client components; needs a TT policy for `/_next/static`. |
-| **Q13** | Phase 2 (legal texts) | Name payers see as the Pix recipient (for a pessoa física account usually your legal name — confirm with a small Pix), plus the terms / privacy / no-refund texts from your lawyer. The site shows clearly-marked provisional pages until then. |
+| **E1** | Launch | **E-mail provider** for receipts and campaign notices (e.g. Amazon SES, Brevo or Resend; domain `wiski.fun` with SPF/DKIM/DMARC). Until then the order page offers "Copiar link do pedido", and new contact messages only show in Admin › Contato (no e-mail alert). |
+| P4-a | Media kit (optional) | Twitch and YouTube app credentials so the media kit numbers update themselves; until then the streamer types them in Admin › Media kit. |
+| P5-a | First deploy | Cloudflare R2 bucket `wiskiflix-backups` + scoped token, and your backup key pair (`age-keygen`; private key in your password manager) — [phase-5 deploy guide](../phase-5/deploy-guide.md) §0, §3 |
+| P5-b | Launch | First deploy, then the real Mozilla Observatory and SSL Labs scans (expected A+) and the first restore drill on the server |
+| **Q13** | Launch (checkout stays closed in production without them) | Name payers see as the Pix recipient (for a pessoa física account usually your legal name — confirm with a small Pix), plus the terms / privacy / no-refund texts from your lawyer. The site shows clearly-marked provisional pages until then. |
 | **Q21b** | Phase 5 | RedHosting's answers to the checklist in 08 §1 (KVM? data-center city? IPv4? snapshots?) before you buy. |
 
 ## C. Defaults now in force (you didn't object) — still easy to change
@@ -60,7 +67,7 @@
 | Q14 | Orders kept 5 years (confirm with accountant); reviews deleted on account erasure |
 | Q15 | Whole stars 1–5; editable with "editado"; spoiler toggle; auto-hide at 3 reports from accounts ≥ 7 days old; "watched" set automatically on COMPLETED + manually by moderators |
 | Q16 | Sponsor names public by default, per-order "patrocinar anonimamente" checkbox |
-| Q17 | Passkey second factor **required for STREAMER**, optional for moderators |
+| Q17 | Second factor **required for STREAMER and moderators**: authenticator app (TOTP, 6 recovery codes) or passkey, checked every 96 h per browser (changed 2026-10-31, [phase-4 §6.2](../phase-4/README.md)) |
 | Q18 | Media kit: Twitch + YouTube via official APIs, other platforms as manual values; contact form → Admin inbox + e-mail alert |
 | Q19 | Goals: count, revenue (shown as % only), minutes watched |
 | Q20 | Overlay widgets: Agora assistindo · Próximos da fila (top 5) · Meta · Novo patrocínio |

@@ -36,6 +36,17 @@
     width: 72%;
     z-index: -2;
     background: radial-gradient(120% 90% at 70% 40%, var(--color-surface-3), var(--color-ink) 75%);
+    /* the image's left side dissolves into the page (no hard edge or "void bar" on any width,
+       whatever the uploaded backdrop has on its left); eased stops avoid a visible start line */
+    mask-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgb(0 0 0 / 0.08) 8%,
+      rgb(0 0 0 / 0.28) 18%,
+      rgb(0 0 0 / 0.58) 30%,
+      rgb(0 0 0 / 0.85) 42%,
+      #000 55%
+    );
   }
   .wf-hero__art img,
   .wf-hero__art picture {
@@ -181,6 +192,14 @@
   .wf-rail--ring .wf-rail__track {
     justify-content: center;
     overflow: hidden;
+    /* room for the active poster's glow (--glow reaches ~48 px) inside the clip, without moving
+       the posters: the extra padding is taken back with negative margins (2026-11-01) */
+    padding-block: 64px;
+    margin-block: -42px;
+    pointer-events: none; /* the transparent margin must not cover the text and buttons above */
+  }
+  .wf-rail--ring .wf-rail__track > li {
+    pointer-events: auto;
   }
   .wf-rail--strip {
     display: none;
@@ -323,6 +342,7 @@
       width: 100%;
       height: var(--art-h);
       inset: 0 0 auto 0;
+      mask-image: none; /* phones: full-width art, faded at the bottom by the shade */
     }
     .wf-hero__art img {
       object-position: 62% 30%;

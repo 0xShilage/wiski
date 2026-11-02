@@ -11,7 +11,7 @@ const DISPLAY_FALLBACK = ['º', 'ª', '…'];
 test('every pt-BR character exists in each font (display faces: only º ª … fall back)', async ({
   page,
 }) => {
-  await page.goto('/termos', { waitUntil: 'networkidle' });
+  await page.goto('/privacidade', { waitUntil: 'networkidle' });
   const missing = await page.evaluate(async (chars) => {
     const families: Record<string, string> = {};
     for (const cls of ['font-sans', 'font-display', 'font-brand']) {

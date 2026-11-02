@@ -46,7 +46,7 @@ model User {
   emailVerified     Boolean
   username          String?       @unique // lowercase canonical [a-z0-9_]{3,20}; null until onboarding (CHECK)
   usernameChangedAt DateTime?     @db.Timestamptz(3)
-  avatarKey         String        @default("mascote-4-lavender") // must exist in code registry (Zod enum)
+  avatarKey         String        @default("perfil-01") // must exist in code registry (Zod enum, src/lib/avatars.ts)
   role              Role          @default(USER)
   isVip             Boolean       @default(false) // perk set by STREAMER in Admin → 10 % discount (not a role)
   vipSince          DateTime?     @db.Timestamptz(3)
@@ -55,9 +55,17 @@ model User {
   createdAt         DateTime      @default(now()) @db.Timestamptz(3)
   updatedAt         DateTime      @updatedAt @db.Timestamptz(3)
   deletedAt         DateTime?     @db.Timestamptz(3)
+  /// Authenticator app (TOTP, RFC 6238): AES-256-GCM-encrypted secret, set only once enabled (CHECK).
+  totpSecretEnc     Bytes?
+  totpEnabledAt     DateTime?     @db.Timestamptz(3)
+  /// last accepted 30-s time step — a code is never accepted twice (compare-and-set)
+  totpLastStep      BigInt?
+  /// bumped when a second factor is removed or the role changes: every "remembered device" stops counting
+  mfaEpoch          Int           @default(0)
 
   sessions           Session[]
   passkeys           Passkey[]
+  recoveryCodes      MfaRecoveryCode[]
   usernameHolds      UsernameHold[]
   orders             Order[]
   legalAcceptances   LegalAcceptance[]
@@ -71,8 +79,24 @@ model User {
   catalogRevisions   CatalogRevision[]   @relation("RevisionEditor")
   mediaUploads       MediaAsset[]        @relation("MediaUploader")
   campaignsOpened    Campaign[]          @relation("CampaignOpener")
+  suggestions        Suggestion[]        @relation("SuggestionAuthor")
+  suggestionsDecided Suggestion[]        @relation("SuggestionReviewer")
+  seasonReleases     SeasonRelease[]     @relation("ReleaseEditor")
 
   @@index([role])
+}
+
+/// Single-use backup codes for the authenticator app (6 per set). Only an HMAC of each code is stored.
+model MfaRecoveryCode {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  userId    String    @db.Uuid
+  codeHash  Bytes
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  usedAt    DateTime? @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, codeHash])
 }
 
 /// Server-side session. Cookie `__Host-wf_session` carries a 256-bit random token; only its SHA-256 is stored.
@@ -218,6 +242,9 @@ model CatalogItem {
   seasonCount      Int? // SERIES: default goal = R$ 100,00 × seasonCount
   episodeCount     Int?
   trailerYoutubeId String? // [A-Za-z0-9_-]{11} (CHECK); never a URL
+  /// MOVIE: draw the title over the poster in the carousel ("Adicionar texto?"); off for posters
+  /// that already have the title in the artwork
+  posterTitle      Boolean    @default(true)
   posterId         String?    @db.Uuid
   backdropId       String?    @db.Uuid
   logoId           String?    @db.Uuid
@@ -241,6 +268,8 @@ model CatalogItem {
   orders           Order[]
   reviews          Review[]
   watchEvents      WatchEvent[]
+  nowPlayingIn     StreamSession[]   @relation("NowPlaying")
+  seasonReleases   SeasonRelease[]
 
   @@index([kind, status, slot])
   @@index([status, watchedAt])
@@ -294,10 +323,11 @@ model MediaAsset {
   createdAt    DateTime  @default(now()) @db.Timestamptz(3)
   unusedSince  DateTime? @db.Timestamptz(3) // GC after 30 days
 
-  uploadedBy User          @relation("MediaUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
-  posterOf   CatalogItem[] @relation("ItemPoster")
-  backdropOf CatalogItem[] @relation("ItemBackdrop")
-  logoOf     CatalogItem[] @relation("ItemLogo")
+  uploadedBy      User            @relation("MediaUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
+  posterOf        CatalogItem[]   @relation("ItemPoster")
+  backdropOf      CatalogItem[]   @relation("ItemBackdrop")
+  logoOf          CatalogItem[]   @relation("ItemLogo")
+  posterOfRelease SeasonRelease[] @relation("ReleasePoster")
 
   @@index([unusedSince])
 }
@@ -326,15 +356,20 @@ model Campaign {
   openedAt       DateTime       @db.Timestamptz(3)
   openedById     String         @db.Uuid
   fundedAt       DateTime?      @db.Timestamptz(3)
+  /// Phase 4: the live session a funded campaign starts in (series may run over several lives)
+  sessionId      String?        @db.Uuid
+  scheduledAt    DateTime?      @db.Timestamptz(3)
   version        Int            @default(0)
   createdAt      DateTime       @default(now()) @db.Timestamptz(3)
   updatedAt      DateTime       @updatedAt @db.Timestamptz(3)
 
-  item     CatalogItem @relation(fields: [itemId], references: [id], onDelete: Restrict)
-  openedBy User        @relation("CampaignOpener", fields: [openedById], references: [id], onDelete: Restrict)
+  item     CatalogItem    @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  openedBy User           @relation("CampaignOpener", fields: [openedById], references: [id], onDelete: Restrict)
+  session  StreamSession? @relation(fields: [sessionId], references: [id], onDelete: Restrict)
   orders   Order[]
 
   @@index([status, deadlineAt])
+  @@index([sessionId])
 }
 
 /// Proof an item was watched on stream → unlocks reviews for that item.
@@ -410,7 +445,8 @@ enum ReservationStatus {
 model VoucherRedemption {
   id            String            @id @default(uuid(7)) @db.Uuid
   voucherId     String            @db.Uuid
-  userId        String            @db.Uuid
+  userId        String?           @db.Uuid // null = guest order (vouchers work for guests, 04 §4)
+  buyerKey      String // = Order.buyerKey; maxPerUser is counted per buyer
   orderId       String            @unique @db.Uuid
   status        ReservationStatus @default(RESERVED)
   discountCents Int
@@ -418,10 +454,10 @@ model VoucherRedemption {
   updatedAt     DateTime          @updatedAt @db.Timestamptz(3)
 
   voucher Voucher @relation(fields: [voucherId], references: [id], onDelete: Restrict)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  user    User?   @relation(fields: [userId], references: [id], onDelete: Restrict)
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  @@index([voucherId, userId, status])
+  @@index([voucherId, buyerKey, status])
 }
 
 /// Fixed queue-jump tiers (e.g. "prioridade" +80 %, "topo" +160 %; defined in PriceRuleSet.config).
@@ -461,17 +497,26 @@ enum StreamSessionStatus {
 model StreamSession {
   id              String              @id @default(uuid(7)) @db.Uuid
   startsAt        DateTime            @db.Timestamptz(3)
-  endsAt          DateTime?           @db.Timestamptz(3)
+  endsAt          DateTime?           @db.Timestamptz(3) // set when the live ends (DONE)
   capacityMinutes Int
-  bookedMinutes   Int                 @default(0) // conditional updateMany guards capacity
+  bookedMinutes   Int                 @default(0) // movie runtimes scheduled here; conditional updateMany guards capacity
   status          StreamSessionStatus @default(PLANNED)
-  publicNote      String?
+  publicNote      String? // ≤ 140, sanitised, shown on the public schedule
+  startedAt       DateTime?           @db.Timestamptz(3) // went LIVE
+  cancelledAt     DateTime?           @db.Timestamptz(3)
+  /// Phase 4: what is on screen right now ("Agora assistindo"); only while LIVE (CHECK)
+  nowItemId       String?             @db.Uuid
+  version         Int                 @default(0)
   createdAt       DateTime            @default(now()) @db.Timestamptz(3)
   updatedAt       DateTime            @updatedAt @db.Timestamptz(3)
 
   orders      Order[]
+  campaigns   Campaign[]
   watchEvents WatchEvent[]
+  nowItem     CatalogItem? @relation("NowPlaying", fields: [nowItemId], references: [id], onDelete: Restrict)
 
+  /// At most one live session at a time.
+  @@unique([status], map: "session_one_live", where: raw("(status = 'LIVE'::\"StreamSessionStatus\")"))
   @@index([startsAt])
 }
 
@@ -511,6 +556,11 @@ model Order {
   itemId            String         @db.Uuid
   userId            String?        @db.Uuid // null = guest checkout (login not required)
   contactEmail      String // payer.email for MP; receipt + order link. Users: Google e-mail; guests: typed
+  /// Who is buying, for caps and limits (05 §5): "u:<userId>" or "e:<sha256 hex of contactEmail>".
+  buyerKey          String
+  /// Keyed HMAC of the client IP while PENDING_PAYMENT only (≤ 2 pending orders per IP); cleared
+  /// on every transition out of PENDING_PAYMENT (CHECK), so it is never kept with paid orders.
+  ipKey             String?
   accessTokenHash   Bytes          @unique // SHA-256 of the order access token (guest link / claim)
   claimedAt         DateTime?      @db.Timestamptz(3) // guest order later attached to an account
   // MOVIE only
@@ -554,6 +604,8 @@ model Order {
   watchEvent        WatchEvent?
 
   @@unique([contactEmail, clientRequestId])
+  /// At most one unpaid order per buyer (05 §9: "max 1 pending order per buyer").
+  @@unique([buyerKey], map: "order_one_pending_per_buyer", where: raw("(status = 'PENDING_PAYMENT'::\"OrderStatus\")"))
   /// One sponsor per movie: at most one order that holds or bought the movie (11 §9).
   /// The predicate is written exactly as Postgres normalises it, so the drift check stays empty.
   @@unique([itemId], map: "order_one_active_movie", where: raw("((kind = 'MOVIE'::\"OrderKind\") AND (status = ANY (ARRAY['PENDING_PAYMENT'::\"OrderStatus\", 'PAID'::\"OrderStatus\", 'SCHEDULED'::\"OrderStatus\", 'WATCHING'::\"OrderStatus\", 'COMPLETED'::\"OrderStatus\"])))"))
@@ -562,6 +614,7 @@ model Order {
   @@index([campaignId, status])
   @@index([userId, createdAt])
   @@index([contactEmail, status])
+  @@index([ipKey])
 }
 
 // ═══════════════════════════ Payments (Mercado Pago Pix) ═════════════════════
@@ -615,20 +668,26 @@ enum WebhookOutcome {
   FAILED
 }
 
-/// One row per verified delivery. Unique x-request-id = replay/duplicate guard (Redis SETNX in front).
+/// One row per verified delivery. Unique x-request-id = replay/duplicate guard.
 model WebhookEvent {
-  id          String          @id @default(uuid(7)) @db.Uuid
-  provider    PaymentProvider
-  requestId   String          @unique // x-request-id header
-  topic       String // "payment"
-  action      String? // "payment.updated"
-  resourceId  String // data.id (query string)
-  signatureTs DateTime        @db.Timestamptz(3)
-  receivedAt  DateTime        @default(now()) @db.Timestamptz(3)
-  processedAt DateTime?       @db.Timestamptz(3)
-  outcome     WebhookOutcome  @default(RECEIVED)
+  id            String          @id @default(uuid(7)) @db.Uuid
+  provider      PaymentProvider
+  requestId     String          @unique // x-request-id header
+  topic         String // "payment"
+  action        String? // "payment.updated"
+  resourceId    String // data.id (query string)
+  signatureTs   DateTime        @db.Timestamptz(3)
+  receivedAt    DateTime        @default(now()) @db.Timestamptz(3)
+  processedAt   DateTime?       @db.Timestamptz(3)
+  outcome       WebhookOutcome  @default(RECEIVED)
+  // The row is also the worker's job (Phase 2): claimed with a lease, retried with backoff.
+  attempts      Int             @default(0)
+  nextAttemptAt DateTime        @default(now()) @db.Timestamptz(3)
+  lockedUntil   DateTime?       @db.Timestamptz(3)
 
   @@index([resourceId])
+  @@index([outcome, nextAttemptAt])
+  @@index([receivedAt])
 }
 
 enum RefundStatus {
@@ -673,18 +732,27 @@ enum ModerationStatus {
   REMOVED // removed for policy violation
 }
 
+/// Why a review is AUTO_HIDDEN (Phase 3): too many links, or the report threshold (05 §8, Q15).
+enum ReviewHoldReason {
+  LINKS
+  REPORTS
+}
+
 model Review {
-  id               String           @id @default(uuid(7)) @db.Uuid
-  userId           String           @db.Uuid
-  itemId           String           @db.Uuid
+  id               String            @id @default(uuid(7)) @db.Uuid
+  userId           String            @db.Uuid
+  itemId           String            @db.Uuid
   rating           Int // 1..5 (CHECK)
   body             String // sanitised plain text, ≤ 2000 chars (CHECK)
-  containsSpoilers Boolean          @default(false)
-  status           ModerationStatus @default(VISIBLE)
-  likeCount        Int              @default(0) // maintained in the same tx as ReviewLike writes
-  createdAt        DateTime         @default(now()) @db.Timestamptz(3)
-  updatedAt        DateTime         @updatedAt @db.Timestamptz(3)
-  editedAt         DateTime?        @db.Timestamptz(3)
+  containsSpoilers Boolean           @default(false)
+  status           ModerationStatus  @default(VISIBLE)
+  likeCount        Int               @default(0) // maintained by the review_like_count trigger (Phase 3 constraints)
+  heldReason       ReviewHoldReason? // set exactly when status = AUTO_HIDDEN (CHECK)
+  openReportCount  Int               @default(0) // OPEN reports; the increment row-locks the review, serialising the auto-hide count
+  moderatedAt      DateTime?         @db.Timestamptz(3) // last moderator action (HIDE/RESTORE/DISMISS/REMOVE)
+  createdAt        DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime          @updatedAt @db.Timestamptz(3)
+  editedAt         DateTime?         @db.Timestamptz(3)
 
   user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   item    CatalogItem    @relation(fields: [itemId], references: [id], onDelete: Restrict)
@@ -693,7 +761,10 @@ model Review {
 
   @@unique([userId, itemId]) // one review per user per watched item (editable)
   @@index([itemId, status, createdAt])
+  @@index([itemId, status, likeCount])
+  @@index([status, createdAt])
   @@index([userId, createdAt])
+  @@index([openReportCount])
 }
 
 model ReviewLike {
@@ -705,7 +776,7 @@ model ReviewLike {
   review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
 
   @@id([userId, reviewId]) // one like per user per review
-  @@index([reviewId])
+  @@index([reviewId, createdAt])
 }
 
 enum ReportReason {
@@ -742,6 +813,8 @@ model ReviewReport {
 
   @@unique([reviewId, reporterId]) // one report per user per review
   @@index([status, createdAt])
+  @@index([reviewId, status])
+  @@index([reporterId, createdAt])
 }
 
 // ═══════════════════════════ Admin, overlays, media kit ══════════════════════
@@ -825,6 +898,75 @@ model ContactMessage {
 
   @@index([status, createdAt])
   @@index([purgeAfter])
+}
+
+// ═══════════════════════════ Phase 6: links page, suggestions ═══════════════
+
+/// The streamer's "Links" page (a link-in-bio list), in `position` order. https only (CHECK).
+model SocialLink {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  label     String // ≤ 40 chars, sanitised plain text
+  note      String? // ≤ 80 chars, a line under the label ("Lives de terça a sábado")
+  url       String // https://…, ≤ 300 chars, no credentials (CHECK + app)
+  position  Int // 1…30, unique (deferred, so a reorder can permute in one transaction)
+  visible   Boolean  @default(true)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
+
+enum SuggestionStatus {
+  NEW
+  ACCEPTED
+  DISMISSED
+}
+
+/// A title a signed-in viewer would like to see on stream. Seen only by moderators and the streamer.
+model Suggestion {
+  id           String           @id @default(uuid(7)) @db.Uuid
+  userId       String           @db.Uuid
+  kind         ItemKind
+  title        String // ≤ 120 chars, sanitised plain text
+  /// lower-case, accents and punctuation removed: groups the same title across viewers, and one
+  /// open suggestion per viewer per title (partial unique)
+  titleKey     String
+  year         Int?
+  note         String? // ≤ 280 chars, sanitised plain text
+  status       SuggestionStatus @default(NEW)
+  reviewedById String?          @db.Uuid
+  reviewedAt   DateTime?        @db.Timestamptz(3)
+  createdAt    DateTime         @default(now()) @db.Timestamptz(3)
+
+  user       User  @relation("SuggestionAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("SuggestionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@unique([userId, titleKey], map: "suggestion_one_open_per_title", where: raw("(status = 'NEW'::\"SuggestionStatus\")"))
+  @@index([status, createdAt])
+  @@index([titleKey])
+  @@index([userId, createdAt])
+}
+
+/// "Próximas temporadas" on the Cronograma: when the next season of a series comes out. Kept by
+/// moderators (Admin › Estreias). A series in the catalog lends its poster and page link; any
+/// other series is just a name.
+model SeasonRelease {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  itemId      String?  @db.Uuid // a SERIES in the catalog (optional)
+  title       String // ≤ 120 chars, sanitised; the series name
+  seasonLabel String // ≤ 40 chars: "Temporada 3", "Parte 2"
+  releaseDate DateTime @db.Date // calendar day of the release (no time zone); year-only → Dec 31
+  yearOnly    Boolean  @default(false) // only the year is known ("Previsão: 2027")
+  note        String? // ≤ 80 chars: "Netflix", "data a confirmar"
+  posterId    String?  @db.Uuid // own poster (2:3); else the linked series' poster
+  editedById  String   @db.Uuid
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  item     CatalogItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  poster   MediaAsset?  @relation("ReleasePoster", fields: [posterId], references: [id], onDelete: SetNull)
+  editedBy User         @relation("ReleaseEditor", fields: [editedById], references: [id], onDelete: Restrict)
+
+  @@index([releaseDate])
+  @@index([posterId])
 }
 
 model AppSetting {

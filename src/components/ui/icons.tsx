@@ -55,6 +55,12 @@ export const IconLayers = ({ className }: P) => (
     <path d="M3 14l9 5 9-5" />
   </svg>
 );
+export const IconCalendar = ({ className }: P) => (
+  <svg {...base} className={className}>
+    <rect x="3.5" y="5" width="17" height="15" rx="2" />
+    <path d="M3.5 10h17M8 3v4M16 3v4" />
+  </svg>
+);
 export const IconStar = ({ className }: P) => (
   <svg {...base} className={className}>
     <path d="M12 3.5l2.6 5.6 6 .7-4.5 4.1 1.2 6-5.3-3-5.3 3 1.2-6L3.4 9.8l6-.7z" />
@@ -69,5 +75,32 @@ export const IconUser = ({ className }: P) => (
 export const IconPlus = ({ className }: P) => (
   <svg {...base} className={className}>
     <path d="M12 5v14M5 12h14" />
+  </svg>
+);
+/** Phase 6: Links (two chain links), Sugestões (a light bulb), Mais (three dots). */
+export const IconLink = ({ className }: P) => (
+  <svg {...base} className={className}>
+    <path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1.2 1.2" />
+    <path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2" />
+  </svg>
+);
+export const IconBulb = ({ className }: P) => (
+  <svg {...base} className={className}>
+    <path d="M9 18h6M10 21h4" />
+    <path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.4 1.1 2.2v.5h5v-.5c0-.8.4-1.6 1.1-2.2A6 6 0 0 0 12 3z" />
+  </svg>
+);
+export const IconMore = ({ className }: P) => (
+  <svg {...base} className={className} fill="currentColor" stroke="none">
+    <circle cx="5.5" cy="12" r="1.9" />
+    <circle cx="12" cy="12" r="1.9" />
+    <circle cx="18.5" cy="12" r="1.9" />
+  </svg>
+);
+/** Assistidos (2026-11-01): an eye. */
+export const IconEye = ({ className }: P) => (
+  <svg {...base} className={className}>
+    <path d="M2.5 12s3.5-6.5 9.5-6.5S21.5 12 21.5 12s-3.5 6.5-9.5 6.5S2.5 12 2.5 12z" />
+    <circle cx="12" cy="12" r="3" />
   </svg>
 );

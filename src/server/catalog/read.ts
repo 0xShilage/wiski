@@ -63,8 +63,8 @@ function toPublic(row: PublicRow, now: Date): PublicItem {
       ? 'SPONSORED'
       : row.status === 'FUNDED'
         ? 'FUNDED'
-        : row.status === 'WATCHED'
-          ? 'WATCHED'
+        : row.status === 'WATCHED' || row.status === 'ARCHIVED'
+          ? 'WATCHED' // ARCHIVED is only read publicly when it was watched (reviews stay)
           : 'ACTIVE';
   if (state === 'ACTIVE' && row.reservedUntil && row.reservedUntil > now) state = 'RESERVED';
   if (state === 'ACTIVE' && campaign?.state === 'PAUSED') state = 'PAUSED';
@@ -86,10 +86,12 @@ function toPublic(row: PublicRow, now: Date): PublicItem {
     seasonCount: row.seasonCount,
     episodeCount: row.episodeCount,
     trailerYoutubeId: row.trailerYoutubeId,
+    posterTitle: row.posterTitle,
     poster: pictureFrom(row.poster),
     backdrop: pictureFrom(row.backdrop),
     logo: pictureFrom(row.logo),
     state,
+    watchedAt: row.watchedAt?.toISOString() ?? null,
     priceCents: row.kind === 'MOVIE' ? moviePriceCents(row.runtimeMinutes) : null,
     sponsorName: row.status === 'SPONSORED' ? sponsorName(row) : null,
     campaign,
@@ -112,10 +114,18 @@ export async function listPublic(kind: ItemKind, now = new Date()): Promise<Publ
   return rows.map((r) => toPublic(r, now));
 }
 
-/** Detail page: live or already watched (watched titles keep their page for reviews). */
+/** Detail page: live or already watched — also after the slot was replaced (ARCHIVED), so a
+ *  watched title keeps its page and its reviews. */
 export async function getPublic(kind: ItemKind, slug: string, now = new Date()) {
   const row = await db().catalogItem.findFirst({
-    where: { kind, slug, status: { in: [...PUBLIC_STATUSES, 'WATCHED'] } },
+    where: {
+      kind,
+      slug,
+      OR: [
+        { status: { in: [...PUBLIC_STATUSES, 'WATCHED'] } },
+        { status: 'ARCHIVED', watchedAt: { not: null } },
+      ],
+    },
     include: publicInclude,
   });
   return row ? toPublic(row, now) : null;
@@ -125,6 +135,21 @@ export async function getPublic(kind: ItemKind, slug: string, now = new Date()) 
 export async function listWatched(limit = 24, now = new Date()) {
   const rows = await db().catalogItem.findMany({
     where: { status: { in: ['WATCHED', 'ARCHIVED'] }, watchedAt: { not: null } },
+    orderBy: { watchedAt: 'desc' },
+    take: limit,
+    include: publicInclude,
+  });
+  return rows.map((r) => ({ ...toPublic(r, now), watchedAt: r.watchedAt!.toISOString() }));
+}
+
+/** Assistidos (2026-11-01): every title watched on stream, newest first, optionally one kind. */
+export async function watchedTitles(kind?: ItemKind, limit = 120, now = new Date()) {
+  const rows = await db().catalogItem.findMany({
+    where: {
+      status: { in: ['WATCHED', 'ARCHIVED'] },
+      watchedAt: { not: null },
+      ...(kind ? { kind } : {}),
+    },
     orderBy: { watchedAt: 'desc' },
     take: limit,
     include: publicInclude,
@@ -245,6 +270,7 @@ export async function getAdmin(id: string, now = new Date()) {
       posterId: row.posterId,
       backdropId: row.backdropId,
       logoId: row.logoId,
+      posterTitle: row.posterTitle,
       franchiseEntries: row.franchiseEntries.map(({ title, year, runtimeMinutes }) => ({
         title,
         year,

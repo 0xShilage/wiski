@@ -1,0 +1,9 @@
+# Refresh Cloudflare's IP ranges (nginx real-IP list + firewall). scripts/ops/cloudflare-ips.sh
+[Unit]
+Description=Wiskiflix: refresh Cloudflare IP ranges
+Wants=network-online.target
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/wiskiflix/scripts/ops/cloudflare-ips.sh

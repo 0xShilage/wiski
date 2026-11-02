@@ -5,7 +5,7 @@
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AccessLevel } from '@/server/rbac';
 import { makeUser } from '../support/db';
 import { call, req, signedIn } from '../support/http';
@@ -22,10 +22,25 @@ type Row = {
   rawBody?: string;
   contentType?: string;
   params?: Record<string, string>;
+  headers?: Record<string, string>;
+  /** statuses that still count as "allowed" for this row (the webhook authenticates by HMAC, not
+   *  by role — its signature checks live in tests/integration/webhook.test.ts) */
+  alsoAllowed?: number[];
 };
 
 /** A well-formed id that matches nothing. */
 const NO_ID = '00000000-0000-7000-8000-000000000000';
+const NO_CODE = 'WF-000000';
+const LEGAL = { terms: 'x', privacy: 'x', refund: 'x' };
+const SAMPLE_MOVIE_ORDER = {
+  movieId: NO_ID,
+  queueJumpTier: null,
+  expectedTotalCents: 2000,
+  contactEmail: 'matriz@example.com',
+  legal: LEGAL,
+};
+const VERSION0 = { expectedVersion: 0 };
+const SAMPLE_CONTRIBUTION = { amountCents: 500, contactEmail: 'matriz@example.com', legal: LEGAL };
 
 const R = (path: string, method: Method, access: AccessLevel, extra: Partial<Row> = {}): Row => ({
   path,
@@ -44,9 +59,9 @@ export const MATRIX: Row[] = [
   R('/api/auth/logout', 'POST', 'user'),
   R('/api/v1/me', 'GET', 'user'),
   R('/api/v1/me/onboarding', 'POST', 'user', {
-    body: { username: 'matrix_probe', avatarKey: 'mascote-1-ink' },
+    body: { username: 'matrix_probe', avatarKey: 'perfil-01' },
   }),
-  R('/api/v1/me/profile', 'PATCH', 'user', { body: { avatarKey: 'mascote-1-ink' } }),
+  R('/api/v1/me/profile', 'PATCH', 'user', { body: { avatarKey: 'perfil-01' } }),
   R('/api/v1/me/sessions', 'GET', 'user'),
   R('/api/v1/me/sessions', 'DELETE', 'user'),
   R('/api/v1/me/sessions/[id]', 'DELETE', 'user', {
@@ -75,6 +90,12 @@ export const MATRIX: Row[] = [
   R('/api/v1/me/passkeys/authentication/options', 'POST', 'moderator'),
   R('/api/v1/me/passkeys/authentication', 'POST', 'moderator', { body: { response: {} } }),
   R('/api/v1/me/passkeys/[id]', 'DELETE', 'moderator', { params: { id: NO_ID } }),
+  // authenticator app (2026-10-31)
+  R('/api/v1/me/totp/setup', 'POST', 'moderator'),
+  R('/api/v1/me/totp/enable', 'POST', 'moderator', { body: { code: '123456' } }),
+  R('/api/v1/me/totp/verify', 'POST', 'moderator', { body: { code: '123456' } }),
+  R('/api/v1/me/totp/recovery-codes', 'POST', 'moderator'),
+  R('/api/v1/me/totp', 'DELETE', 'moderator'),
   // dashboard (MODERATOR+, passkey)
   R('/api/v1/admin/catalog/items', 'GET', 'moderator', {
     url: '/api/v1/admin/catalog/items?kind=MOVIE',
@@ -125,6 +146,244 @@ export const MATRIX: Row[] = [
     params: { id: NO_ID },
     body: { goalCents: 10000 },
   }),
+
+  // ── Phase 2 (payments) ──
+  R('/api/v1/sponsorships/quote', 'POST', 'public', {
+    body: { movieId: NO_ID, queueJumpTier: null },
+    params: {},
+  }),
+  R('/api/v1/sponsorships', 'POST', 'public', {
+    body: SAMPLE_MOVIE_ORDER,
+    headers: { 'idempotency-key': NO_ID, 'x-turnstile-token': 'tok' },
+  }),
+  R('/api/v1/campaigns/[id]/contributions', 'POST', 'public', {
+    params: { id: NO_ID },
+    body: SAMPLE_CONTRIBUTION,
+    headers: { 'idempotency-key': NO_ID, 'x-turnstile-token': 'tok' },
+  }),
+  R('/api/v1/campaigns/[id]/events', 'GET', 'public', { params: { id: NO_ID } }),
+  R('/api/v1/orders/[code]', 'GET', 'public', {
+    params: { code: NO_CODE },
+    url: `/api/v1/orders/${NO_CODE}`,
+  }),
+  R('/api/v1/orders/[code]/access', 'POST', 'public', {
+    params: { code: NO_CODE },
+    url: `/api/v1/orders/${NO_CODE}/access`,
+    body: { token: 'A'.repeat(43) },
+  }),
+  R('/api/v1/orders/[code]/events', 'GET', 'public', {
+    params: { code: NO_CODE },
+    url: `/api/v1/orders/${NO_CODE}/events`,
+  }),
+  R('/api/v1/orders/[code]/cancel', 'POST', 'public', {
+    params: { code: NO_CODE },
+    url: `/api/v1/orders/${NO_CODE}/cancel`,
+  }),
+  R('/api/v1/orders/[code]/claim', 'POST', 'user', {
+    params: { code: NO_CODE },
+    url: `/api/v1/orders/${NO_CODE}/claim`,
+  }),
+  R('/api/v1/me/orders', 'GET', 'user'),
+  R('/api/v1/legal/current', 'GET', 'public'),
+  R('/api/webhooks/mercadopago', 'POST', 'public', {
+    url: '/api/webhooks/mercadopago?data.id=123&type=payment',
+    body: { type: 'payment', data: { id: '123' } },
+    alsoAllowed: [401],
+  }),
+
+  // ── Phase 3 (reviews, likes, reports, moderation, profiles) ──
+  R('/api/v1/items/[id]/reviews', 'GET', 'public', { params: { id: NO_ID } }),
+  R('/api/v1/items/[id]/reviews', 'POST', 'user', {
+    params: { id: NO_ID },
+    body: { rating: 4, body: 'Matriz', containsSpoilers: false },
+    headers: { 'x-turnstile-token': 'tok' },
+  }),
+  R('/api/v1/reviews', 'GET', 'public'),
+  R('/api/v1/reviews/[id]', 'PATCH', 'user', { params: { id: NO_ID }, body: { rating: 3 } }),
+  R('/api/v1/reviews/[id]', 'DELETE', 'user', { params: { id: NO_ID } }),
+  R('/api/v1/reviews/[id]/like', 'PUT', 'user', { params: { id: NO_ID } }),
+  R('/api/v1/reviews/[id]/like', 'DELETE', 'user', { params: { id: NO_ID } }),
+  R('/api/v1/reviews/[id]/reports', 'POST', 'user', {
+    params: { id: NO_ID },
+    body: { reason: 'SPAM' },
+  }),
+  R('/api/v1/users/[username]', 'GET', 'public', {
+    params: { username: 'ninguem_aqui' },
+    url: '/api/v1/users/ninguem_aqui',
+  }),
+  R('/api/v1/users/[username]/reviews', 'GET', 'public', {
+    params: { username: 'ninguem_aqui' },
+    url: '/api/v1/users/ninguem_aqui/reviews',
+  }),
+  R('/api/v1/admin/moderation/queue', 'GET', 'moderator'),
+  R('/api/v1/admin/moderation/reviews/[id]', 'POST', 'moderator', {
+    params: { id: NO_ID },
+    body: { action: 'HIDE', expectedStatus: 'VISIBLE' },
+  }),
+
+  // ── Phase 4 (live schedule, orders, people, overlays, media kit, contact, audit, settings) ──
+  R('/api/v1/admin/live', 'GET', 'moderator'),
+  R('/api/v1/admin/sessions', 'POST', 'moderator', {
+    body: { startsAt: '2030-01-01T20:00:00.000Z', capacityMinutes: 240 },
+  }),
+  R('/api/v1/admin/sessions/[id]', 'PATCH', 'moderator', {
+    params: { id: NO_ID },
+    body: { expectedVersion: 0, capacityMinutes: 200 },
+  }),
+  R('/api/v1/admin/sessions/[id]/start', 'POST', 'moderator', {
+    params: { id: NO_ID },
+    body: VERSION0,
+  }),
+  R('/api/v1/admin/sessions/[id]/end', 'POST', 'moderator', {
+    params: { id: NO_ID },
+    body: VERSION0,
+  }),
+  R('/api/v1/admin/sessions/[id]/cancel', 'POST', 'streamer', {
+    params: { id: NO_ID },
+    body: VERSION0,
+  }),
+  R('/api/v1/admin/schedule', 'POST', 'moderator', {
+    body: { action: 'remove', target: { kind: 'ORDER', id: NO_ID, expectedVersion: 0 } },
+    params: {},
+  }),
+  R('/api/v1/sessions', 'GET', 'public'),
+  R('/api/v1/orders/[code]/reschedule', 'GET', 'user', {
+    params: { code: NO_CODE },
+    url: `/api/v1/orders/${NO_CODE}/reschedule`,
+  }),
+  R('/api/v1/orders/[code]/reschedule', 'POST', 'user', {
+    params: { code: NO_CODE },
+    url: `/api/v1/orders/${NO_CODE}/reschedule`,
+    body: { sessionId: NO_ID },
+  }),
+  R('/api/v1/admin/orders', 'GET', 'moderator'),
+  R('/api/v1/admin/orders/[id]', 'GET', 'moderator', { params: { id: NO_ID } }),
+  R('/api/v1/admin/orders/[id]/texts', 'POST', 'moderator', {
+    params: { id: NO_ID },
+    body: { expectedVersion: 0, message: 'APPROVED' },
+  }),
+  R('/api/v1/admin/orders/[id]/accept', 'POST', 'streamer', {
+    params: { id: NO_ID },
+    body: VERSION0,
+  }),
+  R('/api/v1/admin/orders/[id]/refund', 'POST', 'streamer', {
+    params: { id: NO_ID },
+    body: { expectedVersion: 0, reason: 'DUPLICATE_PAYMENT' },
+    headers: { 'idempotency-key': NO_ID },
+  }),
+  R('/api/v1/admin/users', 'GET', 'moderator'),
+  R('/api/v1/admin/users/[id]/suspend', 'POST', 'moderator', {
+    params: { id: NO_ID },
+    body: { days: 1 },
+  }),
+  R('/api/v1/admin/users/[id]/unsuspend', 'POST', 'moderator', { params: { id: NO_ID } }),
+  R('/api/v1/admin/users/[id]/role', 'POST', 'streamer', {
+    params: { id: NO_ID },
+    body: { role: 'MODERATOR' },
+  }),
+  R('/api/v1/admin/users/[id]/vip', 'POST', 'streamer', {
+    params: { id: NO_ID },
+    body: { vip: true },
+  }),
+  R('/api/v1/me/export', 'GET', 'user'),
+  R('/api/v1/me/erase', 'POST', 'user', { body: { confirmUsername: 'nao-confere' } }),
+  R('/api/v1/admin/overlay-keys', 'GET', 'streamer'),
+  R('/api/v1/admin/overlay-keys', 'POST', 'streamer', {
+    body: { label: 'Matriz', widgets: ['agora'] },
+  }),
+  R('/api/v1/admin/overlay-keys/[id]', 'DELETE', 'streamer', { params: { id: NO_ID } }),
+  // overlay credentials are the key / the overlay cookie, not a role: 401 without them
+  R('/api/v1/overlay/session', 'POST', 'public', {
+    body: { key: `wfo_${'A'.repeat(43)}` },
+    alsoAllowed: [401],
+  }),
+  R('/api/v1/overlay/stream', 'GET', 'public', {
+    url: '/api/v1/overlay/stream?widget=agora',
+    alsoAllowed: [401],
+  }),
+  R('/api/v1/admin/goals', 'GET', 'streamer'),
+  R('/api/v1/admin/goals', 'POST', 'streamer', {
+    body: {
+      title: 'Matriz',
+      metric: 'SPONSORSHIP_COUNT',
+      target: 10,
+      startsAt: '2030-01-01T00:00:00.000Z',
+    },
+  }),
+  R('/api/v1/admin/goals/[id]', 'PATCH', 'streamer', {
+    params: { id: NO_ID },
+    body: { target: 5 },
+  }),
+  R('/api/v1/admin/goals/[id]', 'DELETE', 'streamer', { params: { id: NO_ID } }),
+  R('/api/v1/admin/stats', 'GET', 'streamer'),
+  R('/api/v1/admin/stats', 'PUT', 'streamer', {
+    body: { platform: 'KICK', metric: 'followers', value: null },
+  }),
+  R('/api/v1/stats', 'GET', 'public'),
+  R('/api/v1/contact', 'POST', 'public', {
+    body: {
+      name: 'Matriz',
+      email: 'matriz@example.com',
+      subject: 'Teste',
+      body: 'Teste',
+      website: '',
+      formToken: 'x'.repeat(40),
+    },
+    headers: { 'x-turnstile-token': 'tok' },
+  }),
+  R('/api/v1/admin/contact', 'GET', 'streamer'),
+  R('/api/v1/admin/contact/[id]', 'PATCH', 'streamer', {
+    params: { id: NO_ID },
+    body: { status: 'READ' },
+  }),
+  R('/api/v1/admin/contact/[id]', 'DELETE', 'streamer', { params: { id: NO_ID } }),
+  R('/api/v1/admin/audit', 'GET', 'streamer'),
+  R('/api/v1/admin/audit/export', 'GET', 'streamer'),
+  R('/api/v1/admin/settings', 'GET', 'streamer'),
+  R('/api/v1/admin/settings', 'PUT', 'streamer', { body: { ordersOpen: true } }),
+  R('/api/v1/admin/vouchers', 'GET', 'streamer'),
+  R('/api/v1/admin/vouchers', 'POST', 'streamer', {
+    body: {
+      code: `MATRIZ-${Date.now().toString(36).toUpperCase()}`.slice(0, 32),
+      kind: 'PERCENT',
+      percentBps: 100,
+      maxPerUser: 1,
+    },
+  }),
+  R('/api/v1/admin/vouchers/[id]', 'PATCH', 'streamer', {
+    params: { id: NO_ID },
+    body: { active: false },
+  }),
+
+  // ── Phase 6 (links page, suggestions) ──
+  R('/api/v1/admin/links', 'GET', 'streamer'),
+  R('/api/v1/admin/links', 'POST', 'streamer', {
+    body: { label: 'Matriz', url: 'https://example.com/matriz' },
+  }),
+  R('/api/v1/admin/links/[id]', 'PATCH', 'streamer', {
+    params: { id: NO_ID },
+    body: { visible: false },
+  }),
+  R('/api/v1/admin/links/[id]', 'DELETE', 'streamer', { params: { id: NO_ID } }),
+  R('/api/v1/admin/links/order', 'PUT', 'streamer', { body: { ids: [] } }),
+  R('/api/v1/suggestions', 'POST', 'user', {
+    body: { kind: 'MOVIE', title: `Matriz ${Date.now()}` },
+  }),
+  R('/api/v1/admin/suggestions', 'GET', 'moderator'),
+  R('/api/v1/admin/suggestions/[id]', 'PATCH', 'moderator', {
+    params: { id: NO_ID },
+    body: { status: 'ACCEPTED', expectedStatus: 'NEW' },
+  }),
+  // "Próximas temporadas" (Admin › Estreias)
+  R('/api/v1/admin/releases', 'GET', 'moderator'),
+  R('/api/v1/admin/releases', 'POST', 'moderator', {
+    body: { title: 'Matriz', seasonLabel: 'Temporada 2', releaseDate: '2030-01-01' },
+  }),
+  R('/api/v1/admin/releases/[id]', 'PATCH', 'moderator', {
+    params: { id: NO_ID },
+    body: { note: 'Netflix' },
+  }),
+  R('/api/v1/admin/releases/[id]', 'DELETE', 'moderator', { params: { id: NO_ID } }),
 ];
 
 const ROLES = ['anonymous', 'USER', 'MODERATOR', 'STREAMER'] as const;
@@ -135,6 +394,15 @@ function expected(role: (typeof ROLES)[number], access: AccessLevel): 'allow' | 
   if (RANK[role] >= NEED[access]) return 'allow';
   return role === 'anonymous' ? 401 : 404;
 }
+
+// Turnstile (checkout routes): Cloudflare's siteverify answers "success" for the probe token.
+beforeEach(() => {
+  vi.stubGlobal('fetch', async (url: string | URL) =>
+    String(url).startsWith('https://challenges.cloudflare.com/')
+      ? Response.json({ success: true })
+      : Response.json({ message: 'unexpected outbound call in the authz matrix' }, { status: 599 }),
+  );
+});
 
 describe('authz matrix', () => {
   for (const row of MATRIX) {
@@ -159,6 +427,7 @@ describe('authz matrix', () => {
             cookies: auth.cookies,
             headers: {
               ...auth.headers,
+              ...row.headers,
               ...(row.contentType ? { 'content-type': row.contentType } : {}),
               ...(row.rawBody !== undefined
                 ? { 'content-length': String(row.rawBody.length) }
@@ -170,7 +439,9 @@ describe('authz matrix', () => {
           row.params,
         );
         if (want === 'allow') {
-          expect([401, 403, 405]).not.toContain(res.status);
+          expect([401, 403, 405].filter((s) => !row.alsoAllowed?.includes(s))).not.toContain(
+            res.status,
+          );
           // A 404 is only acceptable where the resource itself doesn't exist (IDOR-safe lookups).
           if (res.status === 404) expect(row.params).toBeDefined();
         } else {

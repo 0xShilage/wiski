@@ -30,6 +30,8 @@ export const snapshotSchema = z
     posterId: z.uuid().nullable(),
     backdropId: z.uuid().nullable(),
     logoId: z.uuid().nullable(),
+    /** added 2026-10-31; older snapshots lack it and mean "show the title" */
+    posterTitle: z.boolean().default(true),
     franchiseEntries: z
       .array(
         z
@@ -64,6 +66,7 @@ export const CONTENT_FIELDS = [
   'posterId',
   'backdropId',
   'logoId',
+  'posterTitle',
 ] as const satisfies readonly (keyof CatalogSnapshot & keyof CatalogItem)[];
 
 export function snapshotOf(

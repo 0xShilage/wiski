@@ -319,6 +319,20 @@
     grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.6fr) minmax(0, 0.8fr);
     gap: 10px;
   }
+  /* the poster column: drop zone, then "Adicionar texto?" (movies) */
+  .wf-drop-col {
+    display: grid;
+    gap: 8px;
+    align-content: start;
+    min-width: 0;
+  }
+  .wf-drop-col .wf-check {
+    gap: 8px;
+    font-size: 13px;
+  }
+  .wf-drop-col .wf-hint {
+    line-height: 1.35;
+  }
   .wf-drop {
     position: relative;
     display: grid;
@@ -442,6 +456,63 @@
     padding: 24px;
   }
 
+  /* ── second factor: authenticator app ── */
+  .wf-otp {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.3em;
+    font-size: 1.25rem;
+    text-align: center;
+  }
+  .wf-qr-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+  }
+  .wf-qr {
+    width: 196px;
+    height: 196px;
+    border-radius: 8px;
+    flex: none;
+  }
+  .wf-secret {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: rgb(36 26 51 / 0.92);
+    color: #f7f2fb;
+    font-size: 0.95rem;
+    letter-spacing: 0.08em;
+    overflow-wrap: anywhere;
+  }
+  .wf-steps {
+    margin: 0;
+    padding-left: 1.25rem;
+    list-style: decimal;
+    display: grid;
+    gap: 6px;
+  }
+  .wf-recovery__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+  }
+  .wf-recovery__list code {
+    display: block;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: rgb(36 26 51 / 0.92);
+    border: 1px solid rgb(169 157 224 / 0.3);
+    color: #f7f2fb;
+    font-size: 1rem;
+    letter-spacing: 0.06em;
+    text-align: center;
+  }
+
   @media (max-width: 1199px) {
     .wf-admin {
       grid-template-columns: minmax(0, 1fr) minmax(400px, 46%);
@@ -461,7 +532,7 @@
       margin: 0 8px 0 0;
     }
     .wf-admin__group,
-    .wf-admin__nav--ops {
+    .wf-admin__nav--ops span[aria-disabled='true'] {
       display: none;
     }
     .wf-admin__nav {

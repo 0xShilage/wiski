@@ -2,13 +2,17 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Avatar } from '@/components/Avatar';
+import { DataTools } from '@/components/account/DataTools';
 import { LogoutButton } from '@/components/account/LogoutButton';
 import { ProfileForm } from '@/components/account/ProfileForm';
 import { Mascote } from '@/components/brand/Mascote';
 import { button, card, heading } from '@/components/ui/styles';
 import { resolveAvatarKey } from '@/lib/avatars';
 import { formatDate, formatMonthYear } from '@/lib/format';
+import { formatBRL } from '@/lib/catalog/pricing';
+import { ORDER_STATUS_LABEL } from '@/lib/checkout/types';
 import { nextUsernameChange } from '@/server/auth/accounts';
+import { myOrders } from '@/server/checkout/access';
 import { getCurrentSession } from '@/server/auth/current';
 import { isGoogleLoginConfigured } from '@/server/env';
 import { safeReturnTo } from '@/server/security/return-to';
@@ -72,12 +76,8 @@ export default async function PerfilPage({ searchParams }: Props) {
           )}
           <p className="text-xs text-fg-muted">
             Ao entrar, você concorda com os{' '}
-            <a className="underline" href="/termos">
-              Termos de uso
-            </a>{' '}
-            e a{' '}
             <a className="underline" href="/privacidade">
-              Política de privacidade
+              Termos de uso e a Política de privacidade
             </a>
             .
           </p>
@@ -90,6 +90,7 @@ export default async function PerfilPage({ searchParams }: Props) {
   if (!user.username) redirect('/bem-vindo?next=%2Fperfil');
   const nextChange = nextUsernameChange(user);
   const privileged = user.role !== 'USER';
+  const orders = await myOrders(user);
 
   return (
     <div className="wf-page wf-page--narrow space-y-8">
@@ -146,10 +147,43 @@ export default async function PerfilPage({ searchParams }: Props) {
         <h2 id="meus-pedidos" className={`${heading.h3} mb-2`}>
           Meus patrocínios e contribuições
         </h2>
-        <p className="text-fg/90">
-          Quando os pagamentos com Pix abrirem, seus patrocínios de filmes e contribuições para
-          séries e franquias aparecem aqui.
-        </p>
+        {orders.length === 0 ? (
+          <p className="text-fg/90">
+            Seus patrocínios de filmes e contribuições para séries e franquias aparecem aqui.
+            Comprou sem login? Abra o link do pedido e toque em “Vincular à minha conta”.
+          </p>
+        ) : (
+          <ul className="wf-myorders">
+            {orders.map((o) => (
+              <li key={o.code}>
+                <Link href={`/pedido/${o.code}`} className="wf-myorders__main">
+                  <span className="wf-myorders__title">{o.item.title}</span>
+                  <span className="wf-co__muted text-sm">
+                    {o.kind === 'MOVIE' ? 'Patrocínio' : 'Contribuição'} · {o.code} ·{' '}
+                    {formatDate(new Date(o.createdAt))}
+                  </span>
+                </Link>
+                <span className="wf-myorders__side">
+                  <b>{formatBRL(o.totalCents)}</b>
+                  <span className="text-sm">{ORDER_STATUS_LABEL[o.status]}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section aria-labelledby="seus-dados" id="dados" className={card}>
+        <h2 id="seus-dados" className={`${heading.h3} mb-4`}>
+          Seus dados
+        </h2>
+        {user.role === 'STREAMER' ? (
+          <a href="/api/v1/me/export" className="wf-btn wf-btn--ghost" download>
+            Baixar meus dados
+          </a>
+        ) : (
+          <DataTools username={user.username} />
+        )}
       </section>
     </div>
   );

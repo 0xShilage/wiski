@@ -5,6 +5,7 @@ import { Logo } from '@/components/brand/Logo';
 import { IconPlus } from '@/components/ui/icons';
 import { adminFetch } from '@/lib/passkey-client';
 import { ItemEditor } from './ItemEditor';
+import { OpsNav, type OpsCounts } from './OpsNav';
 import { SlotBoard } from './SlotBoard';
 import { type AdminItem, type AdminListItem, KIND_UI, type Kind, LIMIT, tileState } from './types';
 
@@ -22,12 +23,15 @@ export function Dashboard({
   initialCounts,
   initialItem,
   user,
+  ops = { waiting: 0, attention: 0, texts: 0, unread: 0, suggestions: 0 },
 }: {
   initialKind: Kind;
   initialItems: AdminListItem[];
   initialCounts: Counts;
   initialItem: AdminItem | null;
   user: { username: string; role: 'MODERATOR' | 'STREAMER' | 'USER' };
+  /** sidebar badges (moderation, orders, contact) */
+  ops?: OpsCounts;
 }) {
   const [kind, setKind] = useState<Kind>(initialKind);
   const [items, setItems] = useState(initialItems);
@@ -136,19 +140,12 @@ export function Dashboard({
             </a>
           ))}
         </nav>
-        <p className="wf-admin__group">Operação · em breve</p>
-        <nav className="wf-admin__nav wf-admin__nav--ops" aria-label="Operação (em breve)">
-          {['Campanhas', 'Sessões da live', 'Moderação', 'Auditoria'].map((l) => (
-            <span key={l} aria-disabled="true" title="Em breve">
-              {l}
-            </span>
-          ))}
-        </nav>
+        <OpsNav counts={ops} role={user.role} />
         <div className="wf-admin__me">
           <p className="m-0 font-semibold">
             @{user.username} · {ROLE_LABEL[user.role]}
           </p>
-          <p className="wf-admin__ok m-0 mt-1">● Passkey verificada</p>
+          <p className="wf-admin__ok m-0 mt-1">● Verificação em duas etapas ok</p>
           <Link href="/perfil" className="wf-linkbtn text-xs">
             Perfil
           </Link>

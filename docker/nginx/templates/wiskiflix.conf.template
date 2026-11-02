@@ -1,0 +1,141 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Wiskiflix — production nginx site (Phase 5). Rendered by the official nginx image's envsubst
+# step (/etc/nginx/templates → /etc/nginx/conf.d) with only the WF_* variables (see
+# NGINX_ENVSUBST_FILTER in docker/compose.prod.yml); the browser tests render the SAME file
+# (tests/e2e/support/stack.ts), so what is tested is what runs.
+#
+#   WF_SERVER_NAME   wiski.fun                    WF_UPSTREAM   web:3000
+#   WF_LISTEN_HTTPS  443                          WF_LISTEN_HTTP 80
+#   WF_CERT / WF_CERT_KEY  Cloudflare Origin CA certificate (Full (strict))
+#   WF_MEDIA_ROOT    /var/lib/wiski/media         WF_SNIPPETS   /etc/nginx/snippets
+#
+# Visitors only ever reach this through Cloudflare: the firewall allows 443 from Cloudflare's
+# ranges only, and Authenticated Origin Pulls (snippets/origin-pull.conf) make nginx refuse any
+# TLS client that is not Cloudflare.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# The real client IP comes from CF-Connecting-IP, trusted only from Cloudflare's ranges
+# (snippets/cloudflare-real-ip.conf, refreshed by scripts/ops/cloudflare-ips.sh).
+include ${WF_SNIPPETS}/cloudflare-real-ip.conf;
+
+upstream wf_app {
+  server ${WF_UPSTREAM};
+  keepalive 16;
+}
+
+limit_req_zone $binary_remote_addr zone=wf_upload:1m rate=2r/m;
+# Coarse flood guard for dynamic requests, in front of the app's own per-route limits (05 §9).
+# Generous on purpose: many Brazilian mobile viewers share one carrier-grade-NAT address, and a
+# live peak must not trip it. Static files and media are not limited (Cloudflare caches them).
+limit_req_zone $binary_remote_addr zone=wf_general:10m rate=30r/s;
+limit_conn_zone $binary_remote_addr zone=wf_conn:10m;
+
+# Plain HTTP: Cloudflare already upgrades ("Always Use HTTPS"); anything that still arrives here
+# is sent to the canonical origin.
+server {
+  listen ${WF_LISTEN_HTTP} default_server;
+  server_name _;
+  access_log off;
+  location / { return 301 https://${WF_SERVER_NAME}$request_uri; }
+}
+
+# Unknown names over TLS: no certificate is even offered.
+server {
+  listen ${WF_LISTEN_HTTPS} ssl default_server;
+  ssl_reject_handshake on;
+}
+
+# www → apex
+server {
+  listen ${WF_LISTEN_HTTPS} ssl;
+  server_name www.${WF_SERVER_NAME};
+  include ${WF_SNIPPETS}/tls.conf;
+  ssl_certificate ${WF_CERT};
+  ssl_certificate_key ${WF_CERT_KEY};
+  include ${WF_SNIPPETS}/origin-pull.conf;
+  include ${WF_SNIPPETS}/security-headers.conf;
+  return 301 https://${WF_SERVER_NAME}$request_uri;
+}
+
+server {
+  # HTTP/1.1 on the origin leg: Cloudflare speaks HTTP/2 and HTTP/3 to visitors and HTTP/1.1 to
+  # origins by default.
+  listen ${WF_LISTEN_HTTPS} ssl;
+  server_name ${WF_SERVER_NAME};
+  include ${WF_SNIPPETS}/tls.conf;
+  ssl_certificate ${WF_CERT};
+  ssl_certificate_key ${WF_CERT_KEY};
+  include ${WF_SNIPPETS}/origin-pull.conf;
+
+  client_max_body_size 16k;
+  client_body_timeout 10s;
+  client_header_timeout 10s;
+  large_client_header_buffers 4 8k;
+  keepalive_timeout 30s;
+  send_timeout 15s;
+  limit_req_status 429;
+  limit_conn_status 429;
+
+  proxy_http_version 1.1;
+  proxy_set_header Connection "";
+  proxy_set_header Host $host;
+  proxy_set_header X-Real-IP $remote_addr;   # = CF-Connecting-IP after real_ip
+  proxy_set_header X-Request-Id $request_id;
+  proxy_set_header X-Forwarded-Proto https;
+  proxy_set_header X-Forwarded-For "";       # the app reads X-Real-IP only (CLIENT_IP_HEADER)
+  proxy_read_timeout 15s;
+  proxy_connect_timeout 5s;
+
+  # Readiness is for the Docker healthcheck only.
+  location = /api/ready { return 404; }
+
+  # Content-hashed build assets: immutable; compressed here (static files carry no secrets,
+  # unlike HTML pages with a CSRF token — no gzip there, BREACH).
+  location /_next/static/ {
+    include ${WF_SNIPPETS}/security-headers.conf;
+    proxy_hide_header Cache-Control;
+    add_header Cache-Control "public, max-age=31536000, immutable" always;
+    gzip on;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+    gzip_min_length 1024;
+    proxy_pass http://wf_app;
+  }
+  # Brand files and profile pictures keep stable names (not hashed) → long but not immutable.
+  location ~ ^/(?:brand|avatars)/ {
+    include ${WF_SNIPPETS}/security-headers.conf;
+    proxy_hide_header Cache-Control;
+    add_header Cache-Control "public, max-age=604800, stale-while-revalidate=86400" always;
+    proxy_pass http://wf_app;
+  }
+
+  # Processed images, straight from MEDIA_DIR (never proxied).
+  location /media/ {
+    alias ${WF_MEDIA_ROOT}/;
+    include ${WF_SNIPPETS}/security-headers.conf;
+    include ${WF_SNIPPETS}/media.conf;
+  }
+  # The only location with bodies > 16 KB.
+  location = /api/v1/admin/media {
+    include ${WF_SNIPPETS}/security-headers.conf;
+    include ${WF_SNIPPETS}/upload.conf;
+    proxy_pass http://wf_app;
+  }
+
+  # Server-Sent Events: order status, campaign progress, OBS overlays. No buffering; the app
+  # closes each stream after 10 minutes and sends a comment every 20 s (Cloudflare: 100 s idle).
+  location ~ ^/api/v1/(orders/[^/]+/events|campaigns/[^/]+/events|overlay/stream)$ {
+    include ${WF_SNIPPETS}/security-headers.conf;
+    limit_conn wf_conn 100;
+    proxy_buffering off;
+    proxy_cache off;
+    proxy_read_timeout 660s;
+    proxy_pass http://wf_app;
+  }
+
+  location / {
+    include ${WF_SNIPPETS}/security-headers.conf;
+    limit_req zone=wf_general burst=150 nodelay;
+    limit_conn wf_conn 100;
+    proxy_pass http://wf_app;
+  }
+}

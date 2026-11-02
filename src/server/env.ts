@@ -40,6 +40,12 @@ export const envSchema = z
     COOKIE_SEAL_KEY: aesKey,
     COOKIE_SEAL_KEY_PREVIOUS: optional(aesKey),
     IP_HASH_SECRET: secret256,
+    /**
+     * Encrypts the authenticator-app (TOTP) secrets at rest and keys the recovery-code HMAC.
+     * Required in production; development/test derive one from CSRF_SECRET when it is unset.
+     * Changing it means every moderator sets up the authenticator again.
+     */
+    TOTP_ENCRYPTION_KEY: optional(aesKey),
     /** Header carrying the real client IP. nginx sets X-Real-IP from CF-Connecting-IP (05 §9). */
     CLIENT_IP_HEADER: z.enum(['x-real-ip', 'none']).default('x-real-ip'),
 
@@ -63,6 +69,12 @@ export const envSchema = z
     ),
     MP_WEBHOOK_SECRET: optional(z.string().min(16).max(256)),
     MP_WEBHOOK_SECRET_PREVIOUS: optional(z.string().min(16).max(256)),
+    /** DEVELOPMENT ONLY: a Mercado Pago test buyer's e-mail sent as the Pix payer. With test
+     *  credentials MP refuses any real payer e-mail ("Unauthorized use of live credentials"). */
+    MP_TEST_PAYER_EMAIL: optional(z.email().max(254)),
+    /** DEVELOPMENT ONLY ("1"): let `npm run dev` use PRODUCTION Mercado Pago credentials, for a
+     *  real-money Pix test. Real charges; refund them from the dashboard. Refused elsewhere. */
+    MP_ALLOW_LIVE_IN_DEV: optional(z.enum(['1'])),
 
     /** Processed images (11 §5). Production: the Docker volume /var/lib/wiski/media, served by
      *  nginx at /media/. Development/test default: <cwd>/.media (served by the app). */
@@ -108,8 +120,12 @@ export const envSchema = z
 
     // Distinct keys: one leaked secret must not unlock another purpose.
     const keys = [env.CSRF_SECRET, env.COOKIE_SEAL_KEY, env.IP_HASH_SECRET];
+    if (env.TOTP_ENCRYPTION_KEY) keys.push(env.TOTP_ENCRYPTION_KEY);
     if (new Set(keys).size !== keys.length) {
-      issue('CSRF_SECRET', 'CSRF_SECRET, COOKIE_SEAL_KEY and IP_HASH_SECRET must all differ');
+      issue(
+        'CSRF_SECRET',
+        'CSRF_SECRET, COOKIE_SEAL_KEY, IP_HASH_SECRET and TOTP_ENCRYPTION_KEY must all differ',
+      );
     }
 
     for (const [key, value] of Object.entries(env)) {
@@ -129,8 +145,23 @@ export const envSchema = z
       );
     }
 
+    if (env.MP_ALLOW_LIVE_IN_DEV && env.NODE_ENV !== 'development') {
+      issue('MP_ALLOW_LIVE_IN_DEV', 'is only for npm run dev; remove it');
+    }
+    if (env.MP_ALLOW_LIVE_IN_DEV && env.MP_TEST_PAYER_EMAIL) {
+      issue(
+        'MP_TEST_PAYER_EMAIL',
+        'must be empty with MP_ALLOW_LIVE_IN_DEV (real payments, real payer)',
+      );
+    }
+
+    if (prod && env.MP_TEST_PAYER_EMAIL) {
+      issue('MP_TEST_PAYER_EMAIL', 'is for development only (test buyer); remove it in production');
+    }
+
     if (prod) {
       if (!env.GOOGLE_CLIENT_ID) issue('GOOGLE_CLIENT_ID', 'is required in production');
+      if (!env.TOTP_ENCRYPTION_KEY) issue('TOTP_ENCRYPTION_KEY', 'is required in production');
       if (env.GOOGLE_ISSUER !== 'https://accounts.google.com') {
         issue('GOOGLE_ISSUER', 'must be https://accounts.google.com in production');
       }

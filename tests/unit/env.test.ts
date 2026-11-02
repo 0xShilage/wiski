@@ -22,6 +22,8 @@ const production = {
   TURNSTILE_SITE_KEY: '0x4AAAAAAAreal-site-key',
   TURNSTILE_SECRET_KEY: '0x4AAAAAAAreal-secret-key',
   MEDIA_DIR: '/var/lib/wiski/media',
+  // an obviously fake 32-byte key, built at runtime
+  TOTP_ENCRYPTION_KEY: Buffer.alloc(32, 0x42).toString('base64url'),
 };
 
 function problems(source: Record<string, string | undefined>): string[] {
@@ -83,6 +85,16 @@ describe('env validation (refuses to boot on missing/invalid vars)', () => {
     );
   });
 
+  it('requires TOTP_ENCRYPTION_KEY in production (optional elsewhere), distinct and 32 bytes', () => {
+    const { TOTP_ENCRYPTION_KEY: _t, ...rest } = production;
+    expect(problems(rest)).toContainEqual(expect.stringContaining('TOTP_ENCRYPTION_KEY'));
+    expect(problems(valid)).toEqual([]);
+    expect(problems({ ...valid, TOTP_ENCRYPTION_KEY: 'short' })).not.toEqual([]);
+    expect(problems({ ...valid, TOTP_ENCRYPTION_KEY: valid.COOKIE_SEAL_KEY })).toContainEqual(
+      expect.stringContaining('must all differ'),
+    );
+  });
+
   it('rejects .env.example placeholders', () => {
     expect(
       problems({ ...valid, DATABASE_URL: 'postgresql://wf_app:CHANGE_ME@localhost/db' }),
@@ -123,6 +135,37 @@ describe('env validation (refuses to boot on missing/invalid vars)', () => {
       expect.stringContaining('absolute'),
     );
     expect(parseEnv({ ...valid, TMDB_API_KEY: 'k'.repeat(32) })).not.toHaveProperty('TMDB_API_KEY');
+  });
+
+  it('MP_ALLOW_LIVE_IN_DEV: development only, and never with a test payer', () => {
+    const dev = { ...valid, NODE_ENV: 'development' };
+    expect(problems({ ...dev, MP_ALLOW_LIVE_IN_DEV: '1' })).toEqual([]);
+    expect(problems({ ...dev, MP_ALLOW_LIVE_IN_DEV: 'yes' })).toContainEqual(
+      expect.stringContaining('MP_ALLOW_LIVE_IN_DEV'),
+    );
+    expect(problems({ ...production, MP_ALLOW_LIVE_IN_DEV: '1' })).toContainEqual(
+      expect.stringContaining('MP_ALLOW_LIVE_IN_DEV'),
+    );
+    expect(problems({ ...valid, NODE_ENV: 'test', MP_ALLOW_LIVE_IN_DEV: '1' })).toContainEqual(
+      expect.stringContaining('MP_ALLOW_LIVE_IN_DEV'),
+    );
+    expect(
+      problems({
+        ...dev,
+        MP_ALLOW_LIVE_IN_DEV: '1',
+        MP_TEST_PAYER_EMAIL: 'test_payer@example.com',
+      }),
+    ).toContainEqual(expect.stringContaining('MP_TEST_PAYER_EMAIL'));
+  });
+
+  it('MP_TEST_PAYER_EMAIL: a test buyer e-mail in development, refused in production', () => {
+    expect(problems({ ...valid, MP_TEST_PAYER_EMAIL: 'test_user_123@testuser.com' })).toEqual([]);
+    expect(problems({ ...valid, MP_TEST_PAYER_EMAIL: 'não é e-mail' })).toContainEqual(
+      expect.stringContaining('MP_TEST_PAYER_EMAIL'),
+    );
+    expect(
+      problems({ ...production, MP_TEST_PAYER_EMAIL: 'test_user_123@testuser.com' }),
+    ).toContainEqual(expect.stringContaining('MP_TEST_PAYER_EMAIL'));
   });
 
   it('detects a Mercado Pago token that belongs to another account (test vs production ids)', () => {

@@ -1,0 +1,14 @@
+# Nightly encrypted backup (scripts/ops/backup.sh). Installed by scripts/ops/server-setup.sh.
+[Unit]
+Description=Wiskiflix backup (Postgres + media, age-encrypted, off-site to R2)
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/wiskiflix/scripts/ops/backup.sh
+Nice=10
+IOSchedulingClass=idle
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectHome=true

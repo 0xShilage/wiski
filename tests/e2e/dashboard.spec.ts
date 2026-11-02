@@ -3,7 +3,8 @@
  * with a WebAuthn virtual authenticator, then create → upload poster/backdrop → publish → the
  * movie appears in the public carousel; edit + revert; a second moderator's stale save → conflict.
  */
-import { mkdirSync } from 'node:fs';
+import { randomBytes } from 'node:crypto';
+import { mkdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { type BrowserContext, expect, type Page, test } from '@playwright/test';
 import sharp from 'sharp';
@@ -24,6 +25,17 @@ async function fixture(name: string, w: number, h: number) {
   const file = join(DIR, name);
   await sharp(raw, { raw: { width: w, height: h, channels: 3 } })
     .jpeg({ quality: 80 })
+    .toFile(file);
+  return file;
+}
+
+/** A noisy PNG (does not compress): 2400 × 3600 ≈ 26 MB, far over the 10 MB upload cap. */
+async function hugePng(name: string, w: number, h: number) {
+  mkdirSync(DIR, { recursive: true });
+  const raw = randomBytes(w * h * 3);
+  const file = join(DIR, name);
+  await sharp(raw, { raw: { width: w, height: h, channels: 3 } })
+    .png({ compressionLevel: 1 })
     .toFile(file);
   return file;
 }
@@ -69,8 +81,10 @@ test('passkey: enrol on /perfil/seguranca, then verify to open the dashboard', a
     );
   });
   await page.goto('/admin/catalogo');
-  await expect(page.getByRole('heading', { name: 'Cadastre uma passkey' })).toBeVisible();
-  await page.getByRole('link', { name: 'Cadastrar passkey' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Ative a verificação em duas etapas' }),
+  ).toBeVisible();
+  await page.getByRole('link', { name: 'Ativar agora' }).click();
   await page.getByLabel('Nome (opcional)').fill('Notebook E2E');
   await page.getByRole('button', { name: 'Adicionar passkey' }).click();
   await expect(page.getByText('Passkey cadastrada.')).toBeVisible();
@@ -91,7 +105,7 @@ test('passkey: enrol on /perfil/seguranca, then verify to open the dashboard', a
   }
   expect(await problem.allInnerTexts(), why()).toEqual([]);
   await expect(dashboard).toBeVisible();
-  await expect(page.getByText('Passkey verificada')).toBeVisible();
+  await expect(page.getByText('● Verificação em duas etapas ok')).toBeVisible();
 });
 
 test('create → upload → publish → the movie is in the carousel', async ({ page, context }) => {
@@ -198,4 +212,23 @@ test('slot board: Alt + → swaps two live movies', async ({ page, context }) =>
     'title',
     name,
   );
+});
+
+test('a huge poster (26 MB PNG, 2400×3600) is shrunk in the browser and accepted', async ({
+  page,
+  context,
+}) => {
+  await moderator(context);
+  const poster = await hugePng('huge-poster.png', 2400, 3600);
+  expect(statSync(poster).size).toBeGreaterThan(10 * 1024 * 1024);
+  await page.goto('/admin/catalogo');
+  await page.getByRole('button', { name: 'Novo filme' }).click();
+  const answered = page.waitForResponse((r) => r.url().includes('/api/v1/admin/media?role=POSTER'));
+  await page.locator('input[type=file]').nth(0).setInputFiles(poster);
+  const res = await answered;
+  // the 26 MB original would be refused (413 above 10 MB); the browser's 1200 × 1800 copy is not
+  expect(res.status()).toBe(201);
+  expect(await res.json()).toMatchObject({ width: 960, height: 1440 }); // largest stored size
+  await expect(page.locator('.wf-drop--poster img')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(/maior que 10 MB/)).toHaveCount(0);
 });

@@ -19,6 +19,7 @@ import * as slotsRoute from '@/app/api/v1/admin/catalog/slots/route';
 import * as campaignPublic from '@/app/api/v1/campaigns/[id]/route';
 import * as publicBySlug from '@/app/api/v1/catalog/[kind]/[slug]/route';
 import * as publicList from '@/app/api/v1/catalog/[kind]/route';
+import type { Prisma } from '@/generated/prisma/client';
 import { db } from '@/server/db';
 import { clearCatalog, makeAsset, makeItem } from '../support/catalog';
 import { makeUser } from '../support/db';
@@ -221,6 +222,53 @@ describe('create / save / revert', () => {
     expect(audit[1]!.metadata).toMatchObject({
       fields: expect.arrayContaining(['title', 'synopsis', 'cast']),
     });
+  });
+});
+
+describe('"Adicionar texto?" (title over the poster)', () => {
+  it('defaults on; turning it off is saved, audited by name, public, and reverts like any field', async () => {
+    const m = await completeMovie('Pôster Com Título');
+    expect(m.fields.posterTitle).toBe(true);
+    const off = await patch(m.id, m.version, { posterTitle: false });
+    expect(off.status).toBe(200);
+    expect(((await off.json()) as { item: AdminItem }).item.fields.posterTitle).toBe(false);
+    const save = await db().auditLog.findFirstOrThrow({
+      where: { targetId: m.id, action: 'catalog.save' },
+    });
+    expect(save.metadata).toMatchObject({ fields: ['posterTitle'] });
+
+    await post(publishRoute.POST, '/x', m.id, { expectedVersion: m.version + 1 });
+    const list = await call(publicList.GET, req('GET', '/api/v1/catalog/movies'), {
+      kind: 'movies',
+    });
+    const items = ((await list.json()) as { items: { slug: string; posterTitle: boolean }[] })
+      .items;
+    expect(items.find((i) => i.slug === m.slug)?.posterTitle).toBe(false);
+
+    // back to version 1 (text on)
+    const rev = await post(revertRoute.POST, '/x', m.id, {
+      expectedVersion: m.version + 1,
+      toVersion: 1,
+    });
+    expect(rev.status).toBe(200);
+    expect(((await rev.json()) as { item: AdminItem }).item.fields.posterTitle).toBe(true);
+    expect((await patch(m.id, 99, { posterTitle: 'nao' })).status).toBe(422);
+  });
+
+  it('snapshots saved before the field existed still revert (they mean "show the title")', async () => {
+    const m = await completeMovie('Pôster Antigo');
+    const v1 = await db().catalogRevision.findUniqueOrThrow({
+      where: { itemId_version: { itemId: m.id, version: 1 } },
+    });
+    const { posterTitle: _drop, ...old } = v1.snapshot as Record<string, unknown>;
+    await db().catalogRevision.update({
+      where: { id: v1.id },
+      data: { snapshot: old as Prisma.InputJsonObject },
+    });
+    await patch(m.id, 1, { posterTitle: false });
+    const rev = await post(revertRoute.POST, '/x', m.id, { expectedVersion: 2, toVersion: 1 });
+    expect(rev.status).toBe(200);
+    expect(((await rev.json()) as { item: AdminItem }).item.fields.posterTitle).toBe(true);
   });
 });
 

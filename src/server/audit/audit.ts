@@ -14,6 +14,36 @@ import { db } from '../db';
 const username = z.string().regex(USERNAME_PATTERN);
 const itemKind = z.enum(['MOVIE', 'SERIES', 'FRANCHISE']);
 const mediaRole = z.enum(['POSTER', 'BACKDROP', 'LOGO']);
+const orderKind = z.enum(['MOVIE', 'CONTRIBUTION']);
+const paymentStatus = z.enum([
+  'PENDING',
+  'APPROVED',
+  'AUTHORIZED',
+  'IN_PROCESS',
+  'IN_MEDIATION',
+  'REJECTED',
+  'CANCELLED',
+  'REFUNDED',
+  'CHARGED_BACK',
+]);
+const orderStatus = z.enum([
+  'PENDING_PAYMENT',
+  'PAID',
+  'SCHEDULED',
+  'WATCHING',
+  'COMPLETED',
+  'EXPIRED',
+  'CANCELLED',
+  'NEEDS_ATTENTION',
+  'REFUND_PENDING',
+  'REFUNDED',
+]);
+const moderationStatus = z.enum(['VISIBLE', 'AUTO_HIDDEN', 'HIDDEN', 'REMOVED']);
+const textDecision = z.enum(['APPROVED', 'REJECTED']);
+const role = z.enum(['USER', 'MODERATOR', 'STREAMER']);
+const overlayWidget = z.enum(['agora', 'fila', 'meta', 'meta-total', 'patrocinio']);
+const goalMetric = z.enum(['SPONSORSHIP_COUNT', 'SPONSORSHIP_REVENUE_CENTS', 'WATCHED_MINUTES']);
+const platform = z.enum(['TWITCH', 'YOUTUBE', 'KICK', 'TIKTOK', 'INSTAGRAM', 'X']);
 /** Names of edited catalog fields (never their values). */
 const catalogField = z.enum([
   'title',
@@ -29,6 +59,7 @@ const catalogField = z.enum([
   'seasonCount',
   'episodeCount',
   'trailerYoutubeId',
+  'posterTitle',
   'posterId',
   'backdropId',
   'logoId',
@@ -58,6 +89,12 @@ export const AUDIT_ACTIONS = {
     .strict(),
   'passkey.verify': z.object({}).strict(),
   'passkey.delete': z.object({}).strict(),
+  // ── authenticator app (2026-10-31) ──
+  'totp.enable': z.object({}).strict(),
+  'totp.verify': z.object({ method: z.enum(['totp', 'recovery']) }).strict(),
+  'totp.disable': z.object({}).strict(),
+  'totp.recovery.regenerate': z.object({}).strict(),
+  'mfa.remembered': z.object({}).strict(),
   'media.upload': z
     .object({
       role: mediaRole,
@@ -91,6 +128,164 @@ export const AUDIT_ACTIONS = {
     .strict(),
   'campaign.goal': z
     .object({ fromCents: z.int().positive(), toCents: z.int().positive(), funded: z.boolean() })
+    .strict(),
+
+  // ── Phase 2 (payments) — amounts and statuses only; never e-mail, IP, Pix payloads or tokens ──
+  'order.create': z
+    .object({
+      kind: orderKind,
+      totalCents: z.int().positive(),
+      voucher: z.boolean(),
+      queueJumpTier: z.string().max(24).nullable(),
+      guest: z.boolean(),
+    })
+    .strict(),
+  'order.cancel': z.object({ kind: orderKind, by: z.enum(['buyer', 'checkout-failure']) }).strict(),
+  'order.expire': z.object({ kind: orderKind }).strict(),
+  'order.claim': z.object({ kind: orderKind }).strict(),
+  'payment.status': z
+    .object({
+      from: paymentStatus,
+      to: paymentStatus,
+      orderFrom: orderStatus,
+      orderTo: orderStatus,
+      reason: z.enum([
+        'approved',
+        'late-approval',
+        'hold-lost',
+        'verification-failed',
+        'unknown-status',
+        'rejected',
+        'cancelled',
+        'refunded',
+        'charged-back',
+        'in-mediation',
+        'update',
+      ]),
+      funded: z.boolean().optional(),
+    })
+    .strict(),
+
+  // ── Phase 3 (reviews) — statuses and counts only; never review text or report notes ──
+  'review.autohide': z.object({ reports: z.int().positive() }).strict(),
+  'moderation.review': z
+    .object({
+      action: z.enum(['HIDE', 'RESTORE', 'DISMISS', 'REMOVE']),
+      from: moderationStatus,
+      to: moderationStatus,
+      reports: z.int().nonnegative(),
+    })
+    .strict(),
+
+  // ── Phase 4 (operations) — ids, statuses, counts and field names only ──
+  'session.create': z
+    .object({ startsAt: z.iso.datetime(), capacityMinutes: z.int().positive() })
+    .strict(),
+  'session.update': z
+    .object({ fields: z.array(z.enum(['startsAt', 'capacityMinutes', 'publicNote'])).max(3) })
+    .strict(),
+  'session.start': z.object({}).strict(),
+  'session.end': z.object({ returnedToQueue: z.int().nonnegative() }).strict(),
+  'session.cancel': z.object({ returnedToQueue: z.int().nonnegative() }).strict(),
+  'schedule.add': z
+    .object({
+      sessionId: z.uuid(),
+      kind: z.enum(['ORDER', 'CAMPAIGN']),
+      runtimeMinutes: z.int().nonnegative(),
+    })
+    .strict(),
+  'schedule.remove': z
+    .object({ sessionId: z.uuid(), kind: z.enum(['ORDER', 'CAMPAIGN']) })
+    .strict(),
+  'schedule.now': z.object({ sessionId: z.uuid() }).strict(),
+  'schedule.complete': z.object({ sessionId: z.uuid() }).strict(),
+  'order.reschedule': z
+    .object({ from: z.uuid(), to: z.uuid(), count: z.int().min(1).max(2) })
+    .strict(),
+  'order.texts': z
+    .object({ message: textDecision.optional(), displayName: textDecision.optional() })
+    .strict(),
+  'order.accept': z.object({ kind: orderKind, totalCents: z.int().positive() }).strict(),
+  'refund.request': z
+    .object({
+      reason: z.enum(['DUPLICATE_PAYMENT', 'PROCESSING_ERROR', 'LEGAL_REQUIREMENT']),
+      amountCents: z.int().positive(),
+      from: orderStatus,
+    })
+    .strict(),
+  'user.suspend': z
+    .object({ until: z.iso.datetime().nullable(), days: z.int().positive().nullable() })
+    .strict(),
+  'user.unsuspend': z.object({}).strict(),
+  'user.role': z.object({ from: role, to: role }).strict(),
+  'user.vip': z.object({ vip: z.boolean() }).strict(),
+  'user.erase': z
+    .object({ reviews: z.int().nonnegative(), orders: z.int().nonnegative() })
+    .strict(),
+  'user.export': z.object({}).strict(),
+  'overlay.key.create': z.object({ widgets: z.array(overlayWidget).min(1).max(5) }).strict(),
+  'overlay.key.revoke': z.object({}).strict(),
+  'goal.create': z.object({ metric: goalMetric, target: z.int().positive() }).strict(),
+  'goal.update': z
+    .object({
+      fields: z
+        .array(
+          z.enum([
+            'title',
+            'target',
+            'startsAt',
+            'endsAt',
+            'active',
+            'showOnOverlay',
+            'showOnMediaKit',
+          ]),
+        )
+        .max(7),
+    })
+    .strict(),
+  'goal.delete': z.object({}).strict(),
+  'stats.update': z
+    .object({
+      platform: platform,
+      metric: z.string().regex(/^[a-z0-9_]{2,32}$/),
+      manual: z.boolean(),
+    })
+    .strict(),
+  'contact.status': z.object({ to: z.enum(['NEW', 'READ', 'ARCHIVED', 'SPAM']) }).strict(),
+  'contact.delete': z.object({}).strict(),
+  'settings.update': z.object({ key: z.enum(['orders.open']), value: z.boolean() }).strict(),
+  'voucher.create': z
+    .object({ kind: z.enum(['PERCENT', 'FIXED']), maxRedemptions: z.int().positive().nullable() })
+    .strict(),
+  'voucher.update': z
+    .object({ fields: z.array(z.enum(['active', 'endsAt', 'maxRedemptions'])).max(3) })
+    .strict(),
+  'audit.export': z.object({ rows: z.int().nonnegative() }).strict(),
+  // ── Phase 6 ──
+  'link.create': z.object({ visible: z.boolean() }).strict(),
+  'link.update': z
+    .object({ fields: z.array(z.enum(['label', 'note', 'url', 'visible'])).max(4) })
+    .strict(),
+  'link.delete': z.object({}).strict(),
+  'link.reorder': z.object({ count: z.int().min(0).max(30) }).strict(),
+  'release.create': z
+    .object({ linked: z.boolean(), poster: z.boolean(), yearOnly: z.boolean() })
+    .strict(),
+  'release.update': z
+    .object({
+      fields: z
+        .array(
+          z.enum(['itemId', 'title', 'seasonLabel', 'releaseDate', 'yearOnly', 'note', 'posterId']),
+        )
+        .max(7),
+    })
+    .strict(),
+  'release.delete': z.object({}).strict(),
+  'suggestion.status': z
+    .object({
+      from: z.enum(['NEW', 'ACCEPTED', 'DISMISSED']),
+      to: z.enum(['NEW', 'ACCEPTED', 'DISMISSED']),
+    })
     .strict(),
 } as const;
 

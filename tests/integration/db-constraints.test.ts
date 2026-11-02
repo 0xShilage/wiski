@@ -2,6 +2,7 @@
  * Reviewed SQL (prisma/migrations/*_constraints) — the database itself enforces invariants
  * (10 §2 step 7): bad rating, double ACTIVE rule set, UPDATE on AuditLog → error, and more.
  */
+import { testBuyerKey, testPublicCode } from '../support/orders';
 import { describe, expect, it } from 'vitest';
 import { db } from '@/server/db';
 import { makeItem } from '../support/catalog';
@@ -45,7 +46,8 @@ describe('CHECK constraints', () => {
       },
     });
     const base = {
-      publicCode: `WF-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+      publicCode: testPublicCode(),
+      buyerKey: testBuyerKey(),
       contactEmail: 'guest@example.com',
       accessTokenHash: crypto.getRandomValues(new Uint8Array(32)),
       kind: 'MOVIE' as const,
@@ -111,9 +113,8 @@ describe('CHECK constraints', () => {
 describe('"exactly one" partial unique indexes', () => {
   it('allows only one ACTIVE price rule set', async () => {
     const v = Math.floor(Math.random() * 1e6) + 1e6;
-    await db().priceRuleSet.create({
-      data: { version: v, status: 'ACTIVE', config: {}, configHash: new Uint8Array(32) },
-    });
+    // The Phase 2 migration already published rev 3 as the ACTIVE set.
+    expect(await db().priceRuleSet.count({ where: { status: 'ACTIVE' } })).toBe(1);
     await expect(
       db().priceRuleSet.create({
         data: { version: v + 1, status: 'ACTIVE', config: {}, configHash: new Uint8Array(32) },
@@ -139,7 +140,10 @@ describe('"exactly one" partial unique indexes', () => {
           isCurrent,
         },
       });
-    await mk('2026-10-01', true);
+    // another file (checkout tests) may already have published a current TERMS version
+    if (!(await db().legalDocument.findFirst({ where: { type: 'TERMS', isCurrent: true } }))) {
+      await mk('2026-10-01', true);
+    }
     await expect(mk('2026-10-02', true)).rejects.toThrow();
     await mk('2026-10-03', false);
   });

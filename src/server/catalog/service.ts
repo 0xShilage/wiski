@@ -8,6 +8,9 @@ import { audit } from '../audit/audit';
 import { db } from '../db';
 import { PG, pgErrorCode } from '../db-errors';
 import { HttpError, type ProblemField, Problems } from '../http/problem';
+import { completeInTx } from '../live/schedule';
+import { refreshOverlays } from '../overlay/state';
+import { publishOrder } from '../realtime/events';
 import type { ItemFieldsInput } from './input';
 import { type CatalogSnapshot, changedFields, snapshotOf, snapshotSchema } from './snapshot';
 
@@ -60,6 +63,13 @@ async function tx<T>(kind: ItemKind, fn: (t: Tx) => Promise<T>): Promise<T> {
     if (err instanceof HttpError) throw err;
     return mapDbError(err, kind);
   }
+}
+
+/** Runs a catalog change, then refreshes "Meta total" on stream (the boards or a goal moved). */
+export async function refreshTotalAfter<T>(change: Promise<T>): Promise<T> {
+  const result = await change;
+  await refreshOverlays(['meta-total']);
+  return result;
 }
 
 // ── validation helpers ──────────────────────────────────────────────────────────
@@ -213,48 +223,50 @@ export async function saveItem(
   if (current.status === 'ARCHIVED') {
     throw CatalogProblems.invalidState('Títulos arquivados não podem ser editados.');
   }
-  return tx(current.kind, async (t) => {
-    await checkKindFields(t, current.kind, fields);
-    const before = await snapshotFor(t, id);
-    const version = await bumpVersion(t, current, expectedVersion);
-    if (fields.slot !== undefined && before.item.status !== 'DRAFT') {
-      // Live slots move only through the slot board (reorder) — keep them out of content saves.
-      delete fields.slot;
-    }
-    await t.catalogItem.update({ where: { id }, data: itemData(fields) });
-    await replaceEntries(t, id, fields.franchiseEntries);
-    const after = await snapshotFor(t, id);
-    await t.catalogRevision.create({
-      data: { itemId: id, version, snapshot: after.snap, note, editorId: ctx.actor.id },
-    });
-    const fieldsChanged = changedFields(before.snap, after.snap) as never[];
-    if (note.startsWith('revert:')) {
-      await audit(
-        {
-          action: 'catalog.revert',
-          actor: ctx.actor,
-          requestId: ctx.requestId,
-          targetType: 'CatalogItem',
-          targetId: id,
-          metadata: { kind: current.kind, toVersion: Number(note.slice(7)), version },
-        },
-        t,
-      );
-    } else {
-      await audit(
-        {
-          action: 'catalog.save',
-          actor: ctx.actor,
-          requestId: ctx.requestId,
-          targetType: 'CatalogItem',
-          targetId: id,
-          metadata: { kind: current.kind, version, fields: fieldsChanged },
-        },
-        t,
-      );
-    }
-    return t.catalogItem.findUniqueOrThrow({ where: { id } });
-  });
+  return refreshTotalAfter(
+    tx(current.kind, async (t) => {
+      await checkKindFields(t, current.kind, fields);
+      const before = await snapshotFor(t, id);
+      const version = await bumpVersion(t, current, expectedVersion);
+      if (fields.slot !== undefined && before.item.status !== 'DRAFT') {
+        // Live slots move only through the slot board (reorder) — keep them out of content saves.
+        delete fields.slot;
+      }
+      await t.catalogItem.update({ where: { id }, data: itemData(fields) });
+      await replaceEntries(t, id, fields.franchiseEntries);
+      const after = await snapshotFor(t, id);
+      await t.catalogRevision.create({
+        data: { itemId: id, version, snapshot: after.snap, note, editorId: ctx.actor.id },
+      });
+      const fieldsChanged = changedFields(before.snap, after.snap) as never[];
+      if (note.startsWith('revert:')) {
+        await audit(
+          {
+            action: 'catalog.revert',
+            actor: ctx.actor,
+            requestId: ctx.requestId,
+            targetType: 'CatalogItem',
+            targetId: id,
+            metadata: { kind: current.kind, toVersion: Number(note.slice(7)), version },
+          },
+          t,
+        );
+      } else {
+        await audit(
+          {
+            action: 'catalog.save',
+            actor: ctx.actor,
+            requestId: ctx.requestId,
+            targetType: 'CatalogItem',
+            targetId: id,
+            metadata: { kind: current.kind, version, fields: fieldsChanged },
+          },
+          t,
+        );
+      }
+      return t.catalogItem.findUniqueOrThrow({ where: { id } });
+    }),
+  );
 }
 
 /** Revert = apply the snapshot of `toVersion` as a new save (history is never rewritten). */
@@ -359,21 +371,23 @@ export async function publishMovie(
   }
   if (item.status !== 'DRAFT') throw CatalogProblems.invalidState('Este filme já está no ar.');
   if (item.version !== expectedVersion) throw CatalogProblems.versionConflict(item.version);
-  return tx('MOVIE', async (t) => {
-    const finalSlot = await goLive(t, item, slot, now);
-    await audit(
-      {
-        action: 'catalog.publish',
-        actor: ctx.actor,
-        requestId: ctx.requestId,
-        targetType: 'CatalogItem',
-        targetId: id,
-        metadata: { kind: 'MOVIE', slot: finalSlot, version: item.version },
-      },
-      t,
-    );
-    return t.catalogItem.findUniqueOrThrow({ where: { id } });
-  });
+  return refreshTotalAfter(
+    tx('MOVIE', async (t) => {
+      const finalSlot = await goLive(t, item, slot, now);
+      await audit(
+        {
+          action: 'catalog.publish',
+          actor: ctx.actor,
+          requestId: ctx.requestId,
+          targetType: 'CatalogItem',
+          targetId: id,
+          metadata: { kind: 'MOVIE', slot: finalSlot, version: item.version },
+        },
+        t,
+      );
+      return t.catalogItem.findUniqueOrThrow({ where: { id } });
+    }),
+  );
 }
 
 export { goLive as goLiveInTx, freeSlot as freeSlotInTx, tx as catalogTx };
@@ -454,39 +468,41 @@ export async function replaceItem(
       'Esta campanha já recebeu contribuições e não pode ser substituída.',
     );
   }
-  return tx(item.kind, async (t) => {
-    const slot = item.slot as number;
-    const res = await t.catalogItem.updateMany({
-      where: { id, status: item.status, version: item.version },
-      data: { status: 'ARCHIVED', slot: null, archivedAt: now },
-    });
-    if (res.count !== 1) throw CatalogProblems.versionConflict(item.version);
-    if (replacementId) {
-      const draft = await t.catalogItem.findUnique({ where: { id: replacementId } });
-      if (!draft || draft.kind !== item.kind || draft.status !== 'DRAFT') {
-        throw Problems.validation([
-          { path: 'replacementId', message: 'Escolha um rascunho do mesmo tipo.' },
-        ]);
+  return refreshTotalAfter(
+    tx(item.kind, async (t) => {
+      const slot = item.slot as number;
+      const res = await t.catalogItem.updateMany({
+        where: { id, status: item.status, version: item.version },
+        data: { status: 'ARCHIVED', slot: null, archivedAt: now },
+      });
+      if (res.count !== 1) throw CatalogProblems.versionConflict(item.version);
+      if (replacementId) {
+        const draft = await t.catalogItem.findUnique({ where: { id: replacementId } });
+        if (!draft || draft.kind !== item.kind || draft.status !== 'DRAFT') {
+          throw Problems.validation([
+            { path: 'replacementId', message: 'Escolha um rascunho do mesmo tipo.' },
+          ]);
+        }
+        if (item.kind === 'MOVIE') {
+          await goLive(t, draft, slot, now);
+        } else {
+          await t.catalogItem.update({ where: { id: draft.id }, data: { slot } });
+        }
       }
-      if (item.kind === 'MOVIE') {
-        await goLive(t, draft, slot, now);
-      } else {
-        await t.catalogItem.update({ where: { id: draft.id }, data: { slot } });
-      }
-    }
-    await audit(
-      {
-        action: 'catalog.replace',
-        actor: ctx.actor,
-        requestId: ctx.requestId,
-        targetType: 'CatalogItem',
-        targetId: id,
-        metadata: { kind: item.kind, slot, replacementId },
-      },
-      t,
-    );
-    return { slot };
-  });
+      await audit(
+        {
+          action: 'catalog.replace',
+          actor: ctx.actor,
+          requestId: ctx.requestId,
+          targetType: 'CatalogItem',
+          targetId: id,
+          metadata: { kind: item.kind, slot, replacementId },
+        },
+        t,
+      );
+      return { slot };
+    }),
+  );
 }
 
 /** Mark as watched on stream → reviews unlock; the slot stays until a moderator replaces it. */
@@ -501,19 +517,16 @@ export async function markWatched(ctx: Ctx, id: string, now = new Date()) {
   if (item.reservedUntil && item.reservedUntil > now) {
     throw CatalogProblems.invalidState('Há um Pix pendente para este filme.');
   }
-  return tx(item.kind, async (t) => {
-    const res = await t.catalogItem.updateMany({
-      where: { id, status: item.status, version: item.version },
-      data: { status: 'WATCHED', watchedAt: now },
+  let completed: string[] = [];
+  const row = await tx(item.kind, async (t) => {
+    // same path as the live agenda's "Concluído": the movie's order is COMPLETED too (Phase 4)
+    const done = await completeInTx(t, id, null, now).catch((err: unknown) => {
+      if (err instanceof HttpError && err.code === 'SCHEDULE_CHANGED') {
+        throw CatalogProblems.versionConflict(item.version);
+      }
+      throw err;
     });
-    if (res.count !== 1) throw CatalogProblems.versionConflict(item.version);
-    if (item.campaign) {
-      await t.campaign.update({
-        where: { id: item.campaign.id },
-        data: { status: 'WATCHED', version: { increment: 1 } },
-      });
-    }
-    await t.watchEvent.create({ data: { itemId: id, watchedAt: now } });
+    completed = done.orderIds;
     await audit(
       {
         action: 'catalog.watched',
@@ -527,6 +540,19 @@ export async function markWatched(ctx: Ctx, id: string, now = new Date()) {
     );
     return t.catalogItem.findUniqueOrThrow({ where: { id } });
   });
+  for (const orderId of completed) {
+    const o = await db().order.findUnique({ where: { id: orderId }, select: { publicCode: true } });
+    if (o) {
+      await publishOrder(orderId, {
+        type: 'status',
+        code: o.publicCode,
+        status: 'COMPLETED',
+        at: now.toISOString(),
+      });
+    }
+  }
+  await refreshOverlays(['agora', 'fila', 'meta']);
+  return row;
 }
 
 /** Delete a draft that never went live (no orders, no campaign). */

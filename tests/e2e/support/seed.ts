@@ -12,7 +12,7 @@ export const stack = () =>
     appEnv: Record<string, string>;
   };
 
-async function withDb<T>(fn: (c: pg.Client) => Promise<T>): Promise<T> {
+export async function withDb<T>(fn: (c: pg.Client) => Promise<T>): Promise<T> {
   const c = new pg.Client({ connectionString: stack().adminDatabaseUrl });
   await c.connect();
   try {
@@ -45,7 +45,7 @@ export async function seedUser(
         `e2e-${id}`,
         `${id}@example.com`,
         username,
-        opts.avatarKey ?? 'mascote-4-lavender',
+        opts.avatarKey ?? 'perfil-19',
         opts.role ?? 'USER',
       ],
     );
@@ -78,9 +78,12 @@ export async function signIn(context: BrowserContext, token: string) {
 }
 
 /** Users for a PageCase `auth` value. */
-export async function seedFor(auth: 'user' | 'newcomer' | 'moderator' | 'admin' | undefined) {
+export async function seedFor(
+  auth: 'user' | 'newcomer' | 'moderator' | 'admin' | 'streamer' | undefined,
+) {
   if (auth === 'newcomer') return seedUser({ username: null });
   if (auth === 'moderator') return seedUser({ role: 'MODERATOR' });
   if (auth === 'admin') return seedUser({ role: 'MODERATOR', passkeyVerified: true });
-  return seedUser({ avatarKey: 'mascote-2-lilac' });
+  if (auth === 'streamer') return seedUser({ role: 'STREAMER', passkeyVerified: true });
+  return seedUser({ avatarKey: 'perfil-10' });
 }

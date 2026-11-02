@@ -2,14 +2,15 @@
 import { useId, useState } from 'react';
 import { MediaPicture } from '@/components/media/MediaPicture';
 import type { Picture } from '@/lib/media';
+import { prepareUpload, UPLOAD_MAX_BYTES } from '@/lib/media-downscale';
 import { adminFetch } from '@/lib/passkey-client';
 
 const ACCEPT = 'image/jpeg,image/png,image/webp,image/avif';
-const MAX = 10 * 1024 * 1024;
 
 /**
  * Image drop zone (11 §4/§5): click or drop a file → raw upload → the server re-encodes it and
  * answers with the processed variants. Format/size hints are informative; the server decides.
+ * Oversized images are shrunk in the browser first (src/lib/media-downscale.ts).
  */
 export function MediaDrop({
   role,
@@ -36,14 +37,16 @@ export function MediaDrop({
   async function upload(file: File | undefined) {
     if (!file) return;
     setError(null);
-    if (file.size > MAX) {
-      setError('Arquivo maior que 10 MB.');
+    setBusy(true);
+    const blob = await prepareUpload(file, role);
+    if (blob.size > UPLOAD_MAX_BYTES) {
+      setBusy(false);
+      setError('Arquivo maior que 10 MB mesmo depois de reduzido. Exporte em JPEG ou WebP.');
       return;
     }
-    setBusy(true);
     const res = await adminFetch<{ id: string; picture: Picture | null }>(
       `/api/v1/admin/media?role=${role}`,
-      { method: 'POST', blob: file },
+      { method: 'POST', blob },
     );
     setBusy(false);
     if (res.ok) onUploaded(res.data.id, res.data.picture);

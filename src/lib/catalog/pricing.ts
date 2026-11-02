@@ -9,7 +9,7 @@ export const MOVIE_PER_EXTRA_MIN_CENTS = 100; // + R$ 1,00 per extra minute
 export const SEASON_GOAL_CENTS = 10000; // R$ 100,00 per season included
 export const MIN_CONTRIBUTION_CENTS = 500; // R$ 5,00, whole reais
 export const MOVIE_MAX_RUNTIME = 360;
-export const LIVE_LIMIT = { MOVIE: 35, SERIES: 10, FRANCHISE: 10 } as const;
+export const LIVE_LIMIT = { MOVIE: 35, SERIES: 20, FRANCHISE: 10 } as const;
 export const DEFAULT_CAMPAIGN_DAYS = 30;
 
 export function moviePriceCents(runtimeMinutes: number): number {

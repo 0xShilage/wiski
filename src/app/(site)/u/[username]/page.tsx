@@ -2,10 +2,11 @@ import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { Avatar } from '@/components/Avatar';
 import { RabinhoViolet } from '@/components/brand/generated';
+import { ReviewList } from '@/components/reviews/ReviewList';
 import { card, container, heading } from '@/components/ui/styles';
 import { formatMonthYear } from '@/lib/format';
-import { normalizeUsername, USERNAME_PATTERN } from '@/lib/username';
-import { db } from '@/server/db';
+import { getCurrentSession } from '@/server/auth/current';
+import { findProfile, userReviews } from '@/server/reviews/read';
 
 type Props = { params: Promise<{ username: string }> };
 
@@ -17,28 +18,19 @@ function safeDecode(raw: string): string {
   }
 }
 
-async function findProfile(raw: string) {
-  if (raw.length > 64) return null;
-  const username = normalizeUsername(safeDecode(raw));
-  if (!USERNAME_PATTERN.test(username)) return null;
-  // Public fields only — never e-mail, Google id or role details.
-  const user = await db().user.findUnique({
-    where: { username },
-    select: { username: true, avatarKey: true, createdAt: true, status: true },
-  });
-  return user && user.status !== 'DELETED' ? { ...user, canonical: username } : null;
-}
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const profile = await findProfile((await params).username);
+  const profile = await findProfile(safeDecode((await params).username));
   return profile ? { title: `@${profile.username}` } : { title: 'Perfil não encontrado' };
 }
 
-export default async function PerfilPage({ params }: Props) {
+/** Public profile (03 §5.4): username, avatar, joined month and visible reviews — never e-mail. */
+export default async function PerfilPublicoPage({ params }: Props) {
   const raw = (await params).username;
-  const profile = await findProfile(raw);
+  const profile = await findProfile(safeDecode(raw));
   if (!profile) notFound();
-  if (raw !== profile.canonical) permanentRedirect(`/u/${profile.canonical}`);
+  if (raw !== profile.username) permanentRedirect(`/u/${profile.username}`);
+  const ctx = await getCurrentSession();
+  const page = await userReviews(profile.id, undefined, ctx?.user.id);
 
   return (
     <div className={`${container} py-10 md:py-14`}>
@@ -48,7 +40,10 @@ export default async function PerfilPage({ params }: Props) {
         <Avatar avatarKey={profile.avatarKey} size={96} alt={`Avatar de @${profile.username}`} />
         <div>
           <h1 className="text-h1 font-semibold text-lilac">@{profile.username}</h1>
-          <p className="text-fg-muted">Membro desde {formatMonthYear(profile.createdAt)}</p>
+          <p className="text-fg-muted">
+            Membro desde {formatMonthYear(profile.createdAt)} · {profile.reviewCount}{' '}
+            {profile.reviewCount === 1 ? 'avaliação' : 'avaliações'}
+          </p>
         </div>
       </section>
       <section aria-labelledby="avaliacoes" className="mx-auto mt-8 max-w-3xl">
@@ -56,7 +51,17 @@ export default async function PerfilPage({ params }: Props) {
           <RabinhoViolet aria-hidden className="h-8 w-auto" />
           Avaliações
         </h2>
-        <p className={`${card} text-fg-muted`}>Nenhuma avaliação ainda.</p>
+        <ReviewList
+          initial={page}
+          source={{ kind: 'user', username: profile.username }}
+          viewer={{
+            signedIn: Boolean(ctx),
+            loginHref: `/perfil?returnTo=${encodeURIComponent(`/u/${profile.username}`)}`,
+          }}
+          showItem
+          showAuthor={false}
+          empty="Nenhuma avaliação ainda."
+        />
       </section>
     </div>
   );

@@ -21,7 +21,7 @@ Source of truth: `prisma/schema.prisma` + `prisma/migrations/20261002230000_r1_c
 
 - `CatalogItem`: `ci_slug_format`, `ci_text_len`, `ci_year`, `ci_runtime` (movies 1–360 min), `ci_slot_range`, `ci_slot_state` (live ⇒ slot), `ci_status_kind` (SPONSORED only for movies, FUNDED only for campaigns), `ci_series_fields`, `ci_trailer_id`, `ci_reservation`, `ci_lifecycle_times`, `ci_version`.
 - `ci_live_slot_unique`: `EXCLUDE … (kind, slot) WHERE live … DEFERRABLE INITIALLY DEFERRED` — one live item per slot, checked at commit so two slots can be swapped in one transaction.
-- Trigger `catalog_item_guard`: live limits **35 movies / 10 series / 10 franchises**, counted under a per-kind advisory lock; raises SQLSTATE `WF409` (mapped to HTTP 409).
+- Trigger `catalog_item_guard`: live limits **35 movies / 20 series / 10 franchises** (series 10 → 20 in Phase 6), counted under a per-kind advisory lock; raises SQLSTATE `WF409` (mapped to HTTP 409).
 - `fe_values`, `rev_values`, `media_values`; `camp_money`, `camp_remaining`, `camp_funded`, `camp_deadline`; `ord_money_nonneg`, `ord_total_consistent`, `ord_contact_email`, `ord_version`, `ord_movie_fields`, `ord_contribution_fields` (whole reais ≥ R$ 5, no perks); `la_subject` (user or order).
 
 **Money stays integer cents, time stays UTC.** Movie price = R$ 20,00 up to 130 min, then +R$ 1,00 per started minute (11 §2.1); series default goal R$ 100,00 × seasons; franchise goal = Σ its films' movie prices.

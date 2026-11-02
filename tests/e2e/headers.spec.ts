@@ -4,9 +4,12 @@
  * R1: Permissions-Policy for the trailer player, /media/ files (media.conf) and the upload
  * location (upload.conf).
  */
+import { request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
+import tls from 'node:tls';
 import { type APIRequestContext, expect, test } from '@playwright/test';
 import { stack } from './support/seed';
+import { HTTP_PORT } from './support/ports';
 
 const NGINX_OWNED = {
   'strict-transport-security': 'max-age=63072000; includeSubDomains; preload',
@@ -37,6 +40,7 @@ for (const [label, path, kind] of [
   ['404 page', '/nao-existe', 'page'],
   ['API', '/api/health', 'api'],
   ['brand asset', '/brand/logo-wiski-lilac.svg', 'static'],
+  ['profile picture', '/avatars/perfil-01-128.webp', 'static'],
   ['favicon', '/favicon.ico', 'static-app'],
 ] as const) {
   test(`${label} (${path}): every security header exactly once`, async ({ request }) => {
@@ -78,7 +82,57 @@ test('hashed build assets are immutable (cache header once)', async ({ request }
 });
 
 test('/api/ready is not reachable from outside the Docker network', async ({ request }) => {
-  expect((await request.get('/api/ready')).status()).toBe(403);
+  expect((await request.get('/api/ready')).status()).toBe(404);
+});
+
+test('www → apex and plain HTTP → https, keeping the path (production site template)', async () => {
+  const get = (url: string, host: string, tls: boolean) =>
+    new Promise<{ status: number; location: string | undefined }>((resolve, reject) => {
+      const u = new URL(url);
+      const mod = tls ? httpsRequest : httpRequest;
+      const r = mod(
+        {
+          hostname: '127.0.0.1',
+          port: u.port,
+          path: u.pathname + u.search,
+          method: 'GET',
+          headers: { host },
+          servername: host,
+          rejectUnauthorized: false,
+        },
+        (res) => {
+          resolve({ status: res.statusCode ?? 0, location: res.headers.location });
+          res.resume();
+        },
+      );
+      r.on('error', reject);
+      r.end();
+    });
+  const https = new URL(stack().origin);
+  const www = await get(`https://127.0.0.1:${https.port}/filmes?x=1`, 'www.localhost', true);
+  expect(www).toEqual({ status: 301, location: 'https://localhost/filmes?x=1' });
+  const plain = await get(`http://127.0.0.1:${HTTP_PORT}/series`, 'localhost', false);
+  expect(plain).toEqual({ status: 301, location: 'https://localhost/series' });
+});
+
+test('TLS: unknown server names get no certificate; TLS 1.1 is refused', async () => {
+  const port = Number(new URL(stack().origin).port);
+  const handshake = (servername: string, opts: tls.ConnectionOptions = {}) =>
+    new Promise<string>((resolve) => {
+      const s = tls.connect(
+        { host: '127.0.0.1', port, servername, rejectUnauthorized: false, ...opts },
+        () => {
+          resolve(`ok ${s.getProtocol()}`);
+          s.end();
+        },
+      );
+      s.on('error', (e) => resolve(`error ${(e as NodeJS.ErrnoException).code ?? e.message}`));
+    });
+  expect(await handshake('localhost')).toMatch(/^ok TLSv1\.[23]$/);
+  expect(await handshake('evil.example')).toMatch(/^error/);
+  expect(await handshake('localhost', { maxVersion: 'TLSv1.1', minVersion: 'TLSv1' })).toMatch(
+    /^error/,
+  );
 });
 
 test('Permissions-Policy delegates the player features to youtube-nocookie only', async ({

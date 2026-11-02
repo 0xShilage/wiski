@@ -1,13 +1,15 @@
 import type { AuthenticationResponseJSON } from '@simplewebauthn/server';
 import { z } from 'zod';
-import { MFA_MAX_AGE_SEC, verifyAuthentication } from '@/server/auth/passkeys';
+import { NextResponse } from 'next/server';
+import { mfaVerifiedUntil, rememberDevice } from '@/server/auth/mfa';
+import { verifyAuthentication } from '@/server/auth/passkeys';
 import { authenticationResponseSchema } from '@/server/auth/passkey-schemas';
 import { route } from '@/server/http/route';
 import { RL } from '@/server/ratelimit/rules';
 
 const body = z.object({ response: authenticationResponseSchema }).strict();
 
-/** POST /api/v1/me/passkeys/authentication — verify the assertion → Session.mfaAt = now. */
+/** POST /api/v1/me/passkeys/authentication — verify the assertion → Session.mfaAt = now (96 h). */
 export const POST = route(
   { methods: ['POST'], access: 'moderator', mfa: false, rateLimit: RL.passkey, body },
   async ({ user, session, body, audit }) => {
@@ -22,8 +24,8 @@ export const POST = route(
       targetId: passkeyId,
       metadata: {},
     });
-    return {
-      verifiedUntil: new Date(mfaAt.getTime() + MFA_MAX_AGE_SEC * 1000).toISOString(),
-    };
+    const res = NextResponse.json({ verifiedUntil: mfaVerifiedUntil(mfaAt).toISOString() });
+    rememberDevice(res, user, mfaAt);
+    return res;
   },
 );

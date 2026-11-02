@@ -11,6 +11,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:worker": "node scripts/build-worker.mjs",
     "start": "next start",
     "lint": "eslint --max-warnings=0 .",
     "format": "prettier --write .",
@@ -25,6 +26,7 @@
     "brand:logo": "tsx scripts/logo.ts",
     "brand:icons": "tsx scripts/icons.ts",
     "brand:fonts": "tsx scripts/fonts.ts",
+    "avatars": "tsx scripts/avatars.ts",
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
     "db:migrate": "prisma migrate deploy",
@@ -35,7 +37,11 @@
     "postinstall": "prisma generate",
     "test:brand": "playwright test -c playwright.brand.config.ts",
     "setup:dev": "node scripts/setup-dev-env.mjs",
-    "db:seed": "tsx --conditions=react-server scripts/seed-dev.ts"
+    "db:seed": "tsx --conditions=react-server scripts/seed-dev.ts",
+    "worker": "tsx --conditions=react-server scripts/worker-dev.ts",
+    "start:worker": "node --conditions=react-server dist/worker.mjs",
+    "dev:pay": "tsx --conditions=react-server scripts/dev-pay.ts",
+    "smoke:worker": "tsx tests/smoke/worker-smoke.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.1",
@@ -47,6 +53,7 @@
     "openid-client": "6.8.8",
     "pg": "8.23.1",
     "pino": "10.4.0",
+    "qrcode": "1.5.4",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "server-only": "0.0.1",
@@ -62,12 +69,14 @@
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "24.19.1",
     "@types/pg": "8.23.1",
+    "@types/qrcode": "1.5.5",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "embedded-postgres": "17.10.0-beta.17",
     "eslint": "9.39.5",
     "eslint-config-next": "16.4.2",
     "eslint-plugin-regexp": "3.3.1",
+    "fast-check": "4.10.2",
     "globals": "17.13.0",
     "jose": "6.2.12",
     "opentype.js": "2.0.0",
@@ -88,5 +97,12 @@
     "@next/eslint-plugin-next": {
       "fast-glob": "npm:tinyglobby@0.2.17"
     }
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "@embedded-postgres/windows-x64@17.10.0-beta.17": true,
+    "@prisma/engines@7.10.1": true,
+    "prisma@7.10.1": true,
+    "unrs-resolver@1.12.2": true
   }
 }

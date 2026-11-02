@@ -82,24 +82,33 @@ export const Problems = {
     new HttpError(429, 'RATE_LIMITED', 'Muitas tentativas. Aguarde um pouco e tente de novo.', {
       headers: { 'retry-after': String(Math.max(1, Math.ceil(retryAfterSec))) },
     }),
-  stepUpRequired: (stepUpUrl: string) =>
+  /**
+   * `factors` ("totp", "passkey", "totp,passkey"): the account can confirm with its second factor
+   * on the page; empty → only the Google login (`stepUpUrl`).
+   */
+  stepUpRequired: (stepUpUrl: string, factors = '') =>
     new HttpError(
       401,
       'STEP_UP_REQUIRED',
-      'Confirme sua identidade entrando com o Google novamente.',
+      factors
+        ? 'Confirme que é você com o app autenticador (ou a passkey) para continuar.'
+        : 'Confirme sua identidade entrando com o Google novamente.',
       {
-        members: { stepUpUrl },
+        members: factors ? { stepUpUrl, stepUpFactors: factors } : { stepUpUrl },
       },
     ),
-  /** Admin second factor (11 §9): no passkey yet → enrol at /perfil/seguranca. */
-  passkeyEnrollRequired: () =>
-    new HttpError(401, 'PASSKEY_ENROLL_REQUIRED', 'Cadastre uma passkey para usar o painel.', {
-      members: { enrollUrl: '/perfil/seguranca' },
-    }),
-  /** Admin second factor: passkey assertion missing or older than 10 minutes. */
-  passkeyRequired: () =>
-    new HttpError(401, 'PASSKEY_REQUIRED', 'Confirme com sua passkey para continuar.', {
-      members: { verifyUrl: '/api/v1/me/passkeys/authentication/options' },
+  /** Admin second factor (11 §9): no passkey or authenticator yet → set one up. */
+  mfaEnrollRequired: () =>
+    new HttpError(
+      401,
+      'MFA_ENROLL_REQUIRED',
+      'Ative a verificação em duas etapas (app autenticador ou passkey) para usar o painel.',
+      { members: { enrollUrl: '/perfil/seguranca' } },
+    ),
+  /** Admin second factor: not checked on this session, or more than 96 hours ago. */
+  mfaRequired: () =>
+    new HttpError(401, 'MFA_REQUIRED', 'Confirme a verificação em duas etapas para continuar.', {
+      members: { verifyUrl: '/perfil/seguranca' },
     }),
   conflict: (code: string, detail: string) => new HttpError(409, code, detail),
   turnstileFailed: () =>

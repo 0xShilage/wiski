@@ -28,7 +28,11 @@ export type SessionContext = { session: Session; user: User };
 
 export async function createSession(
   user: Pick<User, 'id' | 'role'>,
-  { authTime, uaFamily }: { authTime: Date; uaFamily: string | null },
+  {
+    authTime,
+    uaFamily,
+    mfaAt = null,
+  }: { authTime: Date; uaFamily: string | null; mfaAt?: Date | null },
   now = new Date(),
 ): Promise<{ token: string; session: Session; maxAgeSec: number }> {
   const token = randomToken(32);
@@ -38,6 +42,7 @@ export async function createSession(
       tokenHash: sha256Bytes(token),
       userId: user.id,
       authTime,
+      mfaAt,
       createdAt: now,
       lastSeenAt: now,
       idleExpiresAt: new Date(now.getTime() + Math.min(life.idleMs, life.absoluteMs)),
@@ -71,6 +76,15 @@ export async function loadSession(
     user.status === 'DELETED'
   ) {
     return null;
+  }
+  // A timed suspension that ran out lifts itself on the next request (Phase 4).
+  if (user.status === 'SUSPENDED' && user.suspendedUntil && user.suspendedUntil.getTime() <= t) {
+    await db().user.updateMany({
+      where: { id: user.id, status: 'SUSPENDED', suspendedUntil: user.suspendedUntil },
+      data: { status: 'ACTIVE', suspendedUntil: null },
+    });
+    user.status = 'ACTIVE';
+    user.suspendedUntil = null;
   }
   if (t - session.lastSeenAt.getTime() >= TOUCH_INTERVAL_MS) {
     const idleExpiresAt = new Date(Math.min(t + life.idleMs, session.expiresAt.getTime()));

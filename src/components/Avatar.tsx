@@ -1,4 +1,4 @@
-import { AVATAR_BACKGROUND, avatarColour, resolveAvatarKey } from '@/lib/avatars';
+import { avatarSrc, resolveAvatarKey } from '@/lib/avatars';
 import { cn } from '@/lib/cn';
 import { Img } from './Img';
 
@@ -19,25 +19,24 @@ type Props = {
   className?: string;
 };
 
-/** Preset avatar: mascot SVG (static file, unmodified) centred at 78 % on its contrast background. */
+/** Preset profile picture: a round WebP (128 px up to 64 CSS px, else 256 px) with a plum ring. */
 export function Avatar({ avatarKey, size = 48, alt = '', className }: Props) {
   const key = resolveAvatarKey(avatarKey);
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full ring-2 ring-plum',
-        AVATAR_BACKGROUND[avatarColour(key)],
+        'inline-flex shrink-0 overflow-hidden rounded-full bg-ink ring-2 ring-plum',
         SIZE_CLASS[size],
         className,
       )}
     >
       <Img
-        src={`/brand/${key}.svg`}
+        src={avatarSrc(key, size)}
         alt={alt}
         width={size}
         height={size}
         unoptimized
-        className="size-[78%] object-contain"
+        className="size-full object-cover"
       />
     </span>
   );

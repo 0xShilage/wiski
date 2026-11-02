@@ -12,7 +12,7 @@
 import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { randomBytes, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import type { ArtSpec } from './seed-art';
 
 for (const file of ['.env.local', '.env']) {
@@ -25,11 +25,19 @@ if (process.env.NODE_ENV === 'production') {
 (process.env as Record<string, string | undefined>).NODE_ENV ??= 'development';
 
 const { db, disconnectDb } = await import('../src/server/db');
+const { disconnectRedis } = await import('../src/server/redis');
 const { ingestFile } = await import('../src/server/media/pipeline');
 const { createItem, publishMovie } = await import('../src/server/catalog/service');
 const { openCampaign } = await import('../src/server/catalog/campaigns');
 const { sha256Bytes } = await import('../src/server/security/crypto');
+const { buyerKeyFor, newPublicCode } = await import('../src/server/checkout/buyer');
 const { mediaDir } = await import('../src/server/env');
+const { createSession, schedule } = await import('../src/server/live/schedule');
+const { createGoal } = await import('../src/server/goals/goals');
+const { setStat } = await import('../src/server/mediakit/stats');
+const { createLink } = await import('../src/server/links/links');
+const { submitSuggestion } = await import('../src/server/suggestions/suggestions');
+const { createRelease } = await import('../src/server/releases/releases');
 const { PALETTES, renderArt, renderLogo } = await import('./seed-art');
 
 const RESET = process.argv.includes('--reset');
@@ -310,9 +318,37 @@ const FRANCHISES = [
   },
 ];
 
+/**
+ * Provisional legal texts so the LOCAL checkout opens. Production stays closed until the
+ * lawyer's texts are registered as the current versions (Q13). Runs even on an already-seeded
+ * catalog, so a Phase 1 database gets them without --reset.
+ */
+async function ensureDevLegalTexts(): Promise<number> {
+  let created = 0;
+  for (const type of ['TERMS', 'PRIVACY', 'REFUND'] as const) {
+    if (await db().legalDocument.findFirst({ where: { type, isCurrent: true } })) continue;
+    await db().legalDocument.create({
+      data: {
+        type,
+        version: 'provisorio-dev',
+        sha256: sha256Bytes(`provisional ${type} (development seed)`),
+        publishedAt: new Date(),
+        isCurrent: true,
+      },
+    });
+    created++;
+  }
+  return created;
+}
+
 async function main() {
   const existing = await db().catalogItem.count();
   if (existing && !RESET) {
+    const created = await ensureDevLegalTexts();
+    if (created) {
+      log(`published ${created} provisional legal text(s); catalog left as is (${existing} items)`);
+      process.exit(0);
+    }
     console.error(
       `seed-dev: the catalog already has ${existing} items (use --reset on a development DB).`,
     );
@@ -320,10 +356,24 @@ async function main() {
   }
   if (RESET) {
     await db().$transaction([
+      db().streamSession.updateMany({
+        where: { nowItemId: { not: null } },
+        data: { nowItemId: null },
+      }),
       db().watchEvent.deleteMany({}),
       db().review.deleteMany({}),
+      db().refund.deleteMany({}),
+      db().payment.deleteMany({}),
+      db().legalAcceptance.deleteMany({ where: { orderId: { not: null } } }),
+      db().webhookEvent.deleteMany({}),
       db().order.deleteMany({}),
       db().campaign.deleteMany({}),
+      db().streamSession.deleteMany({}),
+      db().goal.deleteMany({}),
+      db().platformStat.deleteMany({}),
+      db().socialLink.deleteMany({}),
+      db().seasonRelease.deleteMany({}),
+      db().suggestion.deleteMany({}),
       db().catalogRevision.deleteMany({}),
       db().franchiseEntry.deleteMany({}),
       db().catalogItem.deleteMany({}),
@@ -332,9 +382,11 @@ async function main() {
   }
   log(`media → ${mediaDir()}`);
 
-  const mod = await user('mod_ana', 'MODERATOR', 'mascote-2-lavender');
-  const streamer = await user('wiski', 'STREAMER', 'mascote-4-lilac');
-  const sponsor = await user('luana_v', 'USER', 'mascote-1-lilac');
+  await ensureDevLegalTexts();
+
+  const mod = await user('mod_ana', 'MODERATOR', 'perfil-09');
+  const streamer = await user('wiski', 'STREAMER', 'perfil-20');
+  const sponsor = await user('luana_v', 'USER', 'perfil-05');
   const modCtx = { actor: { id: mod.id, role: mod.role }, requestId: 'seed' };
   const streamerCtx = { actor: { id: streamer.id, role: streamer.role }, requestId: 'seed' };
 
@@ -378,23 +430,16 @@ async function main() {
   });
 
   // states: slot 4 sponsored (paid by @luana_v), slot 6 reserved (Pix pending), slot 13 watched
-  const ruleSet = await db().priceRuleSet.upsert({
-    where: { version: 1 },
-    update: {},
-    create: {
-      version: 1,
-      status: 'DRAFT',
-      config: { schemaVersion: 1, note: 'seed placeholder — Phase 2 publishes the real rule set' },
-      configHash: sha256Bytes('seed-ruleset-v1'),
-    },
-  });
+  // the ACTIVE rule set comes from the Phase 2 reviewed migration (rev 3)
+  const ruleSet = await db().priceRuleSet.findFirstOrThrow({ where: { status: 'ACTIVE' } });
   const order = (itemId: string, status: 'PAID' | 'PENDING_PAYMENT', userId: string | null) =>
     db().order.create({
       data: {
-        publicCode: `WF-${randomBytes(3).toString('hex').toUpperCase()}`,
+        publicCode: newPublicCode(),
         kind: 'MOVIE',
         itemId,
         userId,
+        buyerKey: buyerKeyFor(userId, userId ? 'luana_v@seed.invalid' : 'convidado@seed.invalid'),
         contactEmail: userId ? 'luana_v@seed.invalid' : 'convidado@seed.invalid',
         accessTokenHash: sha256Bytes(randomUUID()),
         runtimeMinutes: 89,
@@ -409,7 +454,7 @@ async function main() {
       },
     });
   const sponsored = movieIds[MOVIE_SLOTS.indexOf(4)]!;
-  await order(sponsored, 'PAID', sponsor.id);
+  const sponsoredOrder = await order(sponsored, 'PAID', sponsor.id);
   await db().catalogItem.update({ where: { id: sponsored }, data: { status: 'SPONSORED' } });
   const reserved = movieIds[MOVIE_SLOTS.indexOf(6)]!;
   const pending = await order(reserved, 'PENDING_PAYMENT', null);
@@ -425,6 +470,7 @@ async function main() {
   await db().watchEvent.create({ data: { itemId: watched, watchedAt: new Date() } });
 
   // two titles watched earlier and already replaced (Avaliações → assistidos)
+  const archived: string[] = [];
   for (const [j, title] of ['A Primeira Live', 'Esquilo de Natal'].entries()) {
     const a = art[(j + 2) % art.length]!;
     const done = await createItem(modCtx, {
@@ -444,7 +490,71 @@ async function main() {
       data: { status: 'ARCHIVED', publishedAt: when, watchedAt: when, archivedAt: when },
     });
     await db().watchEvent.create({ data: { itemId: done.id, watchedAt: when } });
+    archived.push(done.id);
   }
+
+  // ── reviews (Phase 3): a few on the watched titles, likes, one open report for the queue ──
+  const fans = [];
+  for (const [n, av] of [
+    ['bia_cine', 'perfil-04'],
+    ['teo_lima', 'perfil-15'],
+    ['duda_ve', 'perfil-10'],
+  ] as const) {
+    const u = await user(n, 'USER', av);
+    // old enough to report (≥ 24 h) and to count towards auto-hide (≥ 7 days)
+    fans.push(
+      await db().user.update({
+        where: { id: u.id },
+        data: { createdAt: new Date(Date.now() - 40 * 86_400_000) },
+      }),
+    );
+  }
+  const REVIEWS: [number, number, number, string, boolean][] = [
+    // [title index (0 = in its slot, 1–2 = archived), author index (0–2 fans, 3 = @luana_v), stars, text, spoiler]
+    [
+      0,
+      3,
+      5,
+      'Patrocinei e não me arrependo: a trilha sonora é linda e o chat foi à loucura no final.',
+      false,
+    ],
+    [0, 0, 4, 'Muito divertido. O segundo ato arrasta um pouco, mas o desfecho compensa.', false],
+    [
+      0,
+      1,
+      3,
+      'Achei ok. Quando o esquilo revela que era o vilão desde o começo, perdeu a graça pra mim.',
+      false,
+    ],
+    [1, 2, 5, 'A live mais divertida até agora. Revi no dia seguinte!', false],
+    [1, 0, 4, 'Clássico de fim de ano, assisti com a família toda.', false],
+    [2, 1, 2, 'Não é o meu estilo de filme, mas a companhia do chat salvou.', false],
+  ];
+  const titles = [watched, ...archived];
+  const authors = [...fans, sponsor];
+  const reviewIds: string[] = [];
+  for (const [t, a, rating, body, containsSpoilers] of REVIEWS) {
+    const r = await db().review.create({
+      data: { itemId: titles[t]!, userId: authors[a]!.id, rating, body, containsSpoilers },
+    });
+    reviewIds.push(r.id);
+  }
+  await db().reviewLike.createMany({
+    data: [
+      { userId: fans[0]!.id, reviewId: reviewIds[0]! },
+      { userId: fans[1]!.id, reviewId: reviewIds[0]! },
+      { userId: fans[2]!.id, reviewId: reviewIds[0]! },
+      { userId: fans[2]!.id, reviewId: reviewIds[1]! },
+    ],
+  });
+  await db().reviewReport.create({
+    data: {
+      reviewId: reviewIds[2]!,
+      reporterId: fans[2]!.id,
+      reason: 'UNMARKED_SPOILER',
+      note: 'Conta o final logo na primeira frase.',
+    },
+  });
 
   // ── series (campaigns opened by the streamer; fictional amounts) ──
   for (const [i, s] of SERIES.entries()) {
@@ -524,6 +634,114 @@ async function main() {
       await db().catalogItem.update({ where: { id: itemId }, data: { status: 'FUNDED' } });
   }
 
+  // ── Phase 4: the next live (tomorrow 20:00 in São Paulo) with the sponsored movie booked, a
+  // goal for the overlay and the media kit, and a few media kit numbers ──
+  const tomorrow = new Date(Date.now() + 86_400_000).toLocaleDateString('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+  });
+  const live = await createSession(streamerCtx, {
+    startsAt: new Date(`${tomorrow}T20:00:00-03:00`),
+    capacityMinutes: 240,
+    publicNote: 'Sessão com pipoca e chat aberto',
+  });
+  await schedule(
+    modCtx,
+    { kind: 'ORDER', id: sponsoredOrder.id, expectedVersion: sponsoredOrder.version },
+    live.id,
+  );
+  await createGoal(streamerCtx, {
+    title: '10 filmes patrocinados no mês',
+    metric: 'SPONSORSHIP_COUNT',
+    target: 10,
+    startsAt: new Date(Date.now() - 7 * 86_400_000),
+    showOnOverlay: true,
+    showOnMediaKit: true,
+  });
+  for (const [platform, metric, value] of [
+    ['TWITCH', 'followers', 18_400],
+    ['TWITCH', 'avg_viewers_30d', 320],
+    ['TWITCH', 'hours_streamed_30d', 64],
+    ['YOUTUBE', 'subscribers', 9_100],
+  ] as const) {
+    await setStat(streamerCtx, platform, metric, value);
+  }
+  // yesterday's live (Cronograma › "Já foi"): the watched movie of slot 13
+  const yesterday = new Date(Date.now() - 86_400_000).toLocaleDateString('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+  });
+  const lastLive = await db().streamSession.create({
+    data: {
+      startsAt: new Date(`${yesterday}T20:00:00-03:00`),
+      startedAt: new Date(`${yesterday}T20:05:00-03:00`),
+      endsAt: new Date(`${yesterday}T22:10:00-03:00`),
+      capacityMinutes: 240,
+      bookedMinutes: 89,
+      status: 'DONE',
+    },
+  });
+  const lastOrder = await order(watched, 'PAID', sponsor.id);
+  await db().order.update({
+    where: { id: lastOrder.id },
+    data: {
+      status: 'COMPLETED',
+      sessionId: lastLive.id,
+      scheduledAt: new Date(`${yesterday}T12:00:00-03:00`),
+      completedAt: new Date(`${yesterday}T21:40:00-03:00`),
+    },
+  });
+  await db().watchEvent.updateMany({
+    where: { itemId: watched },
+    data: { orderId: lastOrder.id, sessionId: lastLive.id },
+  });
+  log('next live scheduled, goal and media kit numbers set');
+
+  // Phase 6: the Links page and a few viewer suggestions (placeholder addresses)
+  for (const l of [
+    { label: 'Twitch', url: 'https://twitch.tv/wiski', note: 'Lives de terça a sábado, 20h' },
+    { label: 'YouTube', url: 'https://youtube.com/@wiski', note: 'Cortes e reacts' },
+    { label: 'Instagram', url: 'https://instagram.com/wiski' },
+    { label: 'Discord da comunidade', url: 'https://discord.gg/wiski' },
+  ]) {
+    await createLink(streamerCtx, l);
+  }
+  await submitSuggestion(sponsor, {
+    kind: 'MOVIE',
+    title: 'O Iluminado',
+    year: 1980,
+    note: 'Perfeito para a live de Halloween!',
+  });
+  await submitSuggestion(sponsor, { kind: 'SERIES', title: 'Dark' });
+  log('links page and suggestions set');
+
+  // "Próximas temporadas": one series from the catalog (poster + link), one that is just a name
+  const firstSeries = await db().catalogItem.findFirst({
+    where: { kind: 'SERIES', status: { in: ['ACTIVE', 'FUNDED'] } },
+    orderBy: { slot: 'asc' },
+  });
+  const inDays = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
+  if (firstSeries) {
+    await createRelease(modCtx, {
+      itemId: firstSeries.id,
+      seasonLabel: 'Temporada 4',
+      releaseDate: inDays(12),
+      note: 'data a confirmar',
+    });
+  }
+  await createRelease(modCtx, {
+    title: 'Bosque Sombrio',
+    seasonLabel: 'Temporada 2',
+    releaseDate: inDays(40),
+    note: 'streaming',
+  });
+  // only the year is known, with its own poster (2026-11-01)
+  await createRelease(modCtx, {
+    title: 'Maré Alta',
+    seasonLabel: 'Temporada 3',
+    releaseYear: new Date().getUTCFullYear() + 1,
+    posterId: art.at(-1)?.posterId ?? null,
+  });
+  log('season releases set');
+
   const counts = await db().catalogItem.groupBy({ by: ['kind', 'status'], _count: { _all: true } });
   log('done', counts.map((c) => `${c.kind}/${c.status}=${c._count._all}`).join(' '));
 }
@@ -533,4 +751,5 @@ try {
 } finally {
   rmSync(tmp, { recursive: true, force: true });
   await disconnectDb();
+  await disconnectRedis(); // the schedule refreshes the overlays (Redis publish)
 }

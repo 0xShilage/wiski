@@ -1,0 +1,25 @@
+# Build context for the image (Dockerfile). Never secrets, never local state.
+.git
+.github
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+DATA*.txt
+node_modules
+.next
+dist
+coverage
+playwright-report
+test-results
+blob-report
+.media
+.tmp
+ASSETS
+Claude outputs
+docs
+tests
+docker
+*.zip
+src/generated

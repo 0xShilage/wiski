@@ -1,7 +1,7 @@
 /**
  * Production-like stack for the browser tests (run by Playwright's webServer):
  *   embedded Postgres 17 + migrations + the dev seed · redis-server · standalone Next.js build (NODE_ENV=production,
- *   production-valid env) · nginx with the real security-header snippet, TLS on https://localhost.
+ *   production-valid env) · nginx with the PRODUCTION site template, TLS on https://localhost.
  * Writes test-results/e2e-stack.json for the specs (DB URL for seeding sessions).
  */
 import { execFileSync, spawn, type ChildProcess } from 'node:child_process';
@@ -19,9 +19,10 @@ import { join } from 'node:path';
 import EmbeddedPostgres from 'embedded-postgres';
 import pg from 'pg';
 import { applyMigrations } from '../../integration/setup/global-setup';
+import { renderSiteTemplate } from '../../support/nginx-template';
+import { HTTP_PORT, HTTPS_PORT } from './ports';
 
 const ROOT = join(import.meta.dirname, '../../..');
-export const HTTPS_PORT = Number(process.env.E2E_HTTPS_PORT ?? 8443);
 const APP_PORT = 3100;
 const PG_PORT = 54331;
 const REDIS_PORT = 63791;
@@ -118,6 +119,8 @@ async function main() {
     REDIS_URL: `redis://127.0.0.1:${REDIS_PORT}`,
     CSRF_SECRET: 'e2e-csrf-secret-e2e-csrf-secret-e2e-csrf-secret',
     COOKIE_SEAL_KEY: 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8',
+    // a fixed, obviously-fake 32-byte key built at runtime (production rules require one)
+    TOTP_ENCRYPTION_KEY: Buffer.alloc(32, 0x5a).toString('base64url'),
     IP_HASH_SECRET: 'e2e-ip-hash-secret-e2e-ip-hash-secret-e2e-ip-h',
     CLIENT_IP_HEADER: 'x-real-ip',
     // Production rules apply: real-looking (never contacted) Google/Turnstile config.
@@ -151,14 +154,29 @@ async function main() {
   });
   children.push(app);
 
+  // The production site template, rendered with test values (see the template's header).
+  const snippets = join(tmp, 'snippets');
+  mkdirSync(snippets);
+  for (const f of ['security-headers.conf', 'media.conf', 'upload.conf', 'tls.conf']) {
+    cpSync(join(ROOT, 'docker/nginx/snippets', f), join(snippets, f));
+  }
+  writeFileSync(join(snippets, 'cloudflare-real-ip.conf'), '# tests: no Cloudflare in front\n');
+  writeFileSync(join(snippets, 'origin-pull.conf'), '# tests: no Authenticated Origin Pulls\n');
+  const site = renderSiteTemplate({
+    WF_SERVER_NAME: 'localhost',
+    WF_UPSTREAM: `127.0.0.1:${APP_PORT}`,
+    WF_LISTEN_HTTPS: `127.0.0.1:${HTTPS_PORT}`,
+    WF_LISTEN_HTTP: `127.0.0.1:${HTTP_PORT}`,
+    WF_CERT: join(tmp, 'cert.pem'),
+    WF_CERT_KEY: join(tmp, 'key.pem'),
+    WF_MEDIA_ROOT: mediaDir,
+    WF_SNIPPETS: snippets,
+  });
+  writeFileSync(join(tmp, 'site.conf'), site);
   const conf = readFileSync(join(ROOT, 'tests/e2e/nginx/nginx.conf.template'), 'utf8')
     .replaceAll('__TMP__', tmp)
-    .replaceAll('__APP_PORT__', String(APP_PORT))
-    .replaceAll('__HTTPS_PORT__', String(HTTPS_PORT))
-    .replaceAll('__SNIPPET__', join(ROOT, 'docker/nginx/snippets/security-headers.conf'))
-    .replaceAll('__MEDIA_SNIPPET__', join(ROOT, 'docker/nginx/snippets/media.conf'))
-    .replaceAll('__UPLOAD_SNIPPET__', join(ROOT, 'docker/nginx/snippets/upload.conf'))
-    .replaceAll('__MEDIA_DIR__', mediaDir);
+    .replaceAll('__MIME__', '/etc/nginx/mime.types')
+    .replaceAll('__SITE__', join(tmp, 'site.conf'));
   writeFileSync(join(tmp, 'nginx.conf'), conf);
   const nginx = spawn('nginx', ['-c', join(tmp, 'nginx.conf'), '-p', tmp, '-g', 'daemon off;'], {
     stdio: 'inherit',

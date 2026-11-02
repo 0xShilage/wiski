@@ -34,10 +34,14 @@ export type PublicItem = {
   seasonCount: number | null;
   episodeCount: number | null;
   trailerYoutubeId: string | null;
+  /** MOVIE: draw the title over the poster in the carousel ("Adicionar texto?") */
+  posterTitle: boolean;
   poster: Picture | null;
   backdrop: Picture | null;
   logo: Picture | null;
   state: PublicState;
+  /** when it was watched on stream (WATCHED items; null otherwise) */
+  watchedAt: string | null;
   /** MOVIE: full sponsorship price */
   priceCents: number | null;
   /** SPONSORED: "@user" | display name | null (anonymous) */

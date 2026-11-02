@@ -50,7 +50,7 @@ ACTIVE ◀──Pix expired/cancelled──┘            │ approved
 | Goal reached | campaign → **Meta atingida**, contributions close, streamer schedules it on stream session(s); then **Assistido** |
 | Refunds | none (same no-refund policy). Because money can wait indefinitely for an extension, the terms must say so plainly — your lawyer should review this crowdfunding wording specifically. |
 | Lowering a goal | STREAMER only, never below what's already been raised + reserved; lowering it to exactly the amount raised completes the campaign |
-| Limits | at most **10 series** and **10 franchises** (O4) live at a time |
+| Limits | at most **20 series** (10 until Phase 6) and **10 franchises** (O4) live at a time |
 
 ### 2.3 Reviews ("Avaliações")
 

@@ -72,7 +72,19 @@ for (const [w, h, margin] of [
     expect(Math.round(m.titleX)).toBe(margin);
     expect(Math.round(m.logoX)).toBe(margin);
     expect(Math.abs(m.activeCentre - m.W / 2)).toBeLessThan(2);
-    expect(m.nav).toEqual(['Filmes', 'Séries', 'Franquias', 'Avaliações', 'Perfil']);
+    // Cronograma (2026-10-31), Sugestões and Links (Phase 6), Assistidos (2026-11-01) are
+    // additions to the Figma header
+    expect(m.nav).toEqual([
+      'Filmes',
+      'Séries',
+      'Franquias',
+      'Cronograma',
+      'Assistidos',
+      'Avaliações',
+      'Sugestões',
+      'Links',
+      'Perfil',
+    ]);
     await sideBySide(page, `r1-filmes-${w}`);
   });
 }
@@ -131,6 +143,6 @@ test('Dashboard 1440', async ({ page, context }) => {
   await signIn(context, mod.token);
   await page.setViewportSize({ width: 1440, height: 1047 });
   await page.goto('/admin/catalogo', { waitUntil: 'networkidle' });
-  await expect(page.getByText('Passkey verificada')).toBeVisible();
+  await expect(page.getByText('● Verificação em duas etapas ok')).toBeVisible();
   await sideBySide(page, 'r1-admin-1440');
 });

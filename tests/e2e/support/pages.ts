@@ -1,9 +1,12 @@
-/** Every page (Phase 1 + R1), as visited by the CSP / a11y / layout specs. */
+/** Every page (Phase 1 + R1 + Phases 3–4 + 6), as visited by the CSP / a11y / layout specs. */
 export type PageCase = {
   name: string;
   path: string | ((username: string) => string);
-  /** user: signed-in viewer; newcomer: no username yet; admin: MODERATOR with a verified passkey */
-  auth?: 'user' | 'newcomer' | 'moderator' | 'admin';
+  /**
+   * user: signed-in viewer; newcomer: no username yet; admin: MODERATOR with a verified passkey;
+   * streamer: STREAMER with a verified passkey
+   */
+  auth?: 'user' | 'newcomer' | 'moderator' | 'admin' | 'streamer';
   status?: number;
   /** pages without the public header/footer (the dashboard) */
   shell?: false;
@@ -17,9 +20,12 @@ export const PAGES: PageCase[] = [
   { name: 'serie-detalhe', path: '/series/cronicas-do-bosque' },
   { name: 'franquia-detalhe', path: '/franquias/saga-rabinho-4-filmes' },
   { name: 'avaliacoes', path: '/avaliacoes' },
+  { name: 'cronograma', path: '/cronograma' },
+  { name: 'filme-assistido', path: '/filmes/a-primeira-live' },
+  { name: 'filme-assistido-logado', path: '/filmes/a-primeira-live', auth: 'user' },
+  { name: 'perfil-publico-avaliacoes', path: '/u/bia_cine' },
   { name: 'perfil-entrar', path: '/perfil' },
   { name: 'perfil-erro', path: '/perfil?erro=expirado' },
-  { name: 'termos', path: '/termos' },
   { name: 'privacidade', path: '/privacidade' },
   { name: 'reembolso', path: '/reembolso' },
   { name: 'media-kit', path: '/media-kit' },
@@ -32,4 +38,29 @@ export const PAGES: PageCase[] = [
   { name: 'seguranca', path: '/perfil/seguranca', auth: 'moderator' },
   { name: 'painel-passkey', path: '/admin/catalogo', auth: 'moderator', shell: false },
   { name: 'painel', path: '/admin/catalogo', auth: 'admin', shell: false },
+  { name: 'moderacao', path: '/admin/moderacao', auth: 'admin', shell: false },
+  // Phase 4: operations
+  { name: 'agenda', path: '/admin/agenda', auth: 'admin', shell: false },
+  { name: 'pedidos', path: '/admin/pedidos', auth: 'admin', shell: false },
+  { name: 'pessoas', path: '/admin/pessoas', auth: 'admin', shell: false },
+  { name: 'agenda-streamer', path: '/admin/agenda', auth: 'streamer', shell: false },
+  { name: 'overlays', path: '/admin/overlays', auth: 'streamer', shell: false },
+  { name: 'metas', path: '/admin/metas', auth: 'streamer', shell: false },
+  { name: 'media-kit-admin', path: '/admin/media-kit', auth: 'streamer', shell: false },
+  { name: 'caixa-contato', path: '/admin/contato', auth: 'streamer', shell: false },
+  { name: 'cupons', path: '/admin/cupons', auth: 'streamer', shell: false },
+  { name: 'auditoria', path: '/admin/auditoria', auth: 'streamer', shell: false },
+  { name: 'configuracoes', path: '/admin/configuracoes', auth: 'streamer', shell: false },
+  { name: 'streamer-bloqueado', path: '/admin/overlays', auth: 'admin', status: 404, shell: false },
+  { name: 'overlay-sem-chave', path: '/overlay/fila', shell: false },
+  // Phase 6: links page, suggestions
+  { name: 'links', path: '/links' },
+  { name: 'sugestoes-entrar', path: '/sugestoes' },
+  { name: 'sugestoes', path: '/sugestoes', auth: 'user' },
+  { name: 'sugestoes-admin', path: '/admin/sugestoes', auth: 'admin', shell: false },
+  { name: 'links-admin', path: '/admin/links', auth: 'streamer', shell: false },
+  // 2026-11-01: Assistidos, season releases
+  { name: 'assistidos', path: '/assistidos' },
+  { name: 'assistidos-series', path: '/assistidos?tipo=series' },
+  { name: 'estreias-admin', path: '/admin/estreias', auth: 'admin', shell: false },
 ];

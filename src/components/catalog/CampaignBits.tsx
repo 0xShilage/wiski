@@ -76,7 +76,7 @@ export function CampaignChips({ c }: { c: PublicCampaign }) {
   );
 }
 
-/** "Contribuir" — opens with Pix in Phase 2; links to the detail page's contribution box. */
+/** "Contribuir" — links to the detail page's contribution form (Pix). */
 export function ContributeCta({ item, kindPath }: { item: PublicItem; kindPath: string }) {
   const open = item.campaign?.state === 'OPEN';
   if (!open) {

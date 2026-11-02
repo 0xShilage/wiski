@@ -5,6 +5,7 @@
 /.next/
 /out/
 /build/
+/dist/
 *.tsbuildinfo
 next-env.d.ts
 
@@ -49,3 +50,6 @@ npm-debug.log*
 # delivery archives and the hand-off folder (never part of the repository)
 /Claude outputs/
 *.zip
+
+# profile picture originals (≈ 23 MB): kept locally, built into public/avatars by `npm run avatars`
+/ASSETS/PROFILE_ICONS/

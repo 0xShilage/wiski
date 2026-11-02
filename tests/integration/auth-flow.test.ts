@@ -6,9 +6,12 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { GET as callback } from '@/app/api/auth/google/callback/route';
 import { GET as start } from '@/app/api/auth/google/start/route';
+import { NextResponse } from 'next/server';
 import { COOKIE } from '@/server/auth/cookies';
+import { rememberDevice } from '@/server/auth/mfa';
 import { resetOidcConfig } from '@/server/auth/oidc';
 import { loadSession } from '@/server/auth/session';
+import { isStepUpFresh } from '@/server/auth/step-up';
 import { db } from '@/server/db';
 import { resetEnvCache } from '@/server/env';
 import { call, ORIGIN, req, setCookies, signedIn } from '../support/http';
@@ -95,10 +98,15 @@ describe('/api/auth/google/start', () => {
     expect(cookie.value).toMatch(/^v1\.[\da-f]{8}\.[\w-]+$/); // sealed, not readable
   });
 
-  it('step-up adds prompt=login and max_age=600', async () => {
+  it('step-up asks Google only for what it supports: the account chooser and auth_time', async () => {
+    // Google ignores prompt=login and max_age (no reauth request); requesting them made the
+    // OIDC library demand an auth_time Google does not send, so every step-up login failed.
     const { params } = await begin('?stepUp=1&returnTo=/admin');
-    expect(params.get('prompt')).toBe('login');
-    expect(params.get('max_age')).toBe('600');
+    expect(params.get('prompt')).toBe('select_account');
+    expect(params.get('max_age')).toBeNull();
+    expect(JSON.parse(params.get('claims')!)).toEqual({
+      id_token: { auth_time: { essential: true } },
+    });
   });
 
   it('rejects unknown query parameters', async () => {
@@ -274,6 +282,50 @@ describe('/api/auth/google/callback', () => {
     expect((await loadSession(fresh))?.user.id).toBe(user.id);
   });
 
+  it('a browser that passed the second factor in the last 96 h starts the next login verified', async () => {
+    const mod = await makeUser({ role: 'MODERATOR' });
+    // 2FA set up on this account (the device cookie only counts while a factor exists)
+    await db().user.update({
+      where: { id: mod.id },
+      data: { totpSecretEnc: new Uint8Array(48), totpEnabledAt: new Date() },
+    });
+    const a = await signedIn(mod, new Date(), { mfaAt: null });
+    const checkedAt = new Date(Date.now() - 50 * 3600_000);
+    const res0 = NextResponse.json({});
+    rememberDevice(res0, await db().user.findUniqueOrThrow({ where: { id: mod.id } }), checkedAt);
+    const device = setCookies(res0)[COOKIE.mfa]!.value;
+
+    const { res } = await finish(
+      await begin(),
+      { sub: mod.googleSub },
+      {
+        cookies: { ...a.cookies, [COOKIE.mfa]: device },
+      },
+    );
+    const ctx = await loadSession(setCookies(res)[COOKIE.session]!.value);
+    expect(ctx!.session.mfaAt?.getTime()).toBe(checkedAt.getTime());
+    expect(
+      await db().auditLog.count({ where: { actorId: mod.id, action: 'mfa.remembered' } }),
+    ).toBe(1);
+
+    // without the cookie (another browser), or after the epoch moved: not verified
+    const other = await finish(await begin(), { sub: mod.googleSub });
+    expect(
+      (await loadSession(setCookies(other.res)[COOKIE.session]!.value))!.session.mfaAt,
+    ).toBeNull();
+    await db().user.update({ where: { id: mod.id }, data: { mfaEpoch: { increment: 1 } } });
+    const bumped = await finish(
+      await begin(),
+      { sub: mod.googleSub },
+      {
+        cookies: { [COOKIE.mfa]: device },
+      },
+    );
+    expect(
+      (await loadSession(setCookies(bumped.res)[COOKIE.session]!.value))!.session.mfaAt,
+    ).toBeNull();
+  });
+
   it('records auth_time for step-up and audits privileged logins only', async () => {
     const streamer = await makeUser({ role: 'STREAMER' });
     const viewer = await makeUser();
@@ -295,14 +347,27 @@ describe('/api/auth/google/callback', () => {
     );
   });
 
-  it('step-up rejects a stale Google login (auth_time older than max_age)', async () => {
-    const streamer = await makeUser({ role: 'STREAMER' });
+  it('step-up login works without auth_time (Google default); the new session counts as fresh', async () => {
+    const viewer = await makeUser();
+    const flow = await begin('?stepUp=1&returnTo=/perfil');
+    const { res } = await finish(flow, { sub: viewer.googleSub, omitAuthTime: true });
+    expect(res.status).toBe(303);
+    expect(location(res).pathname).toBe('/perfil');
+    const token = setCookies(res)[COOKIE.session]!.value;
+    const ctx = await loadSession(token);
+    expect(isStepUpFresh(ctx!.session)).toBe(true);
+  });
+
+  it('a step-up login whose Google auth_time is old signs in but is not a fresh step-up', async () => {
+    const viewer = await makeUser();
     const flow = await begin('?stepUp=1');
     const { res } = await finish(flow, {
-      sub: streamer.googleSub,
+      sub: viewer.googleSub,
       authTime: Math.floor(Date.now() / 1000) - 3600,
     });
-    expect(location(res).searchParams.get('erro')).toBe('falha');
+    expect(res.status).toBe(303);
+    const ctx = await loadSession(setCookies(res)[COOKIE.session]!.value);
+    expect(isStepUpFresh(ctx!.session)).toBe(false);
   });
 
   it('deleted accounts cannot sign in', async () => {

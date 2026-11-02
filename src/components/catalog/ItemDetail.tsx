@@ -1,5 +1,8 @@
 import Link from 'next/link';
+import { ContributionForm } from '@/components/checkout/ContributionForm';
+import { MovieCheckout } from '@/components/checkout/MovieCheckout';
 import { MediaPicture } from '@/components/media/MediaPicture';
+import type { CheckoutProps } from '@/lib/checkout/types';
 import { KIND_LABEL, KIND_PATH } from '@/lib/catalog/kinds';
 import { formatRuntime } from '@/lib/catalog/pricing';
 import type { PublicItem } from '@/lib/catalog/types';
@@ -19,8 +22,10 @@ const dateFmt = new Intl.DateTimeFormat('pt-BR', {
   timeZone: 'America/Sao_Paulo',
 });
 
-/** Shareable detail page for a movie, series or franchise (11 §3). */
-export function ItemDetail({ item, watchedAt }: { item: PublicItem; watchedAt?: string | null }) {
+/** Shareable detail page for a movie, series or franchise (11 §3); checkout lives in the aside. */
+export function ItemDetail({ item, checkout }: { item: PublicItem; checkout?: CheckoutProps }) {
+  const watchedAt = item.watchedAt;
+  const canPay = Boolean(checkout?.open && checkout.legal);
   const kindPath = KIND_PATH[item.kind];
   const back = item.kind === 'MOVIE' ? '/' : `/${kindPath}`;
   return (
@@ -101,24 +106,37 @@ export function ItemDetail({ item, watchedAt }: { item: PublicItem; watchedAt?: 
               <div className="wf-panel">
                 <h2>Assistido na live</h2>
                 <p className="wf-muted">
-                  {watchedAt ? `Em ${dateFmt.format(new Date(watchedAt))}. ` : ''}As avaliações da
-                  comunidade abrem em breve.
+                  {watchedAt ? `Em ${dateFmt.format(new Date(watchedAt))}. ` : ''}Viu com a gente?
+                  Dê sua nota de 1 a 5 e conte o que achou.
                 </p>
-                <Link href="/avaliacoes" className="wf-btn wf-btn--ghost">
-                  Ver avaliações
-                </Link>
+                <a href="#avaliacoes" className="wf-btn wf-btn--neon">
+                  Ver e escrever avaliações
+                </a>
               </div>
             ) : item.kind === 'MOVIE' ? (
               <div className="wf-panel" id="patrocinar">
                 <h2>Patrocinar este filme</h2>
                 <PriceLine item={item} className="wf-muted" />
-                <SponsorCta item={item} />
-                {item.state === 'ACTIVE' ? (
-                  <p className="wf-notice mt-4">
-                    O pagamento com Pix abre em breve. Uma pessoa paga o filme inteiro; ele entra
-                    numa das próximas sessões da live.
-                  </p>
-                ) : null}
+                {item.state === 'ACTIVE' && canPay && checkout ? (
+                  <MovieCheckout movieId={item.id} props={checkout} />
+                ) : (
+                  <>
+                    {item.state === 'ACTIVE' ? (
+                      // checkout closed: on this page the CTA would only link to itself
+                      <span className="wf-btn wf-btn--done" aria-disabled="true">
+                        Patrocine agora
+                      </span>
+                    ) : (
+                      <SponsorCta item={item} />
+                    )}
+                    {item.state === 'ACTIVE' ? (
+                      <p className="wf-notice mt-4">
+                        {checkout?.closedCopy ?? 'O pagamento com Pix abre em breve.'} Uma pessoa
+                        paga o filme inteiro; ele entra numa das próximas sessões da live.
+                      </p>
+                    ) : null}
+                  </>
+                )}
               </div>
             ) : item.campaign ? (
               <div className="wf-panel" id="contribuir">
@@ -126,13 +144,30 @@ export function ItemDetail({ item, watchedAt }: { item: PublicItem; watchedAt?: 
                 <CampaignProgress c={item.campaign} />
                 <CampaignStatus c={item.campaign} />
                 <CampaignChips c={item.campaign} />
-                <ContributeCta item={item} kindPath={kindPath} />
-                {item.campaign.state === 'OPEN' ? (
-                  <p className="wf-notice mt-4">
-                    As contribuições com Pix abrem em breve: qualquer valor a partir de R$ 5, sem
-                    ultrapassar a meta.
-                  </p>
-                ) : null}
+                {item.campaign.state === 'OPEN' && item.state === 'ACTIVE' && canPay && checkout ? (
+                  <ContributionForm
+                    campaignId={item.campaign.id}
+                    remainingCents={item.campaign.remainingCents}
+                    props={checkout}
+                  />
+                ) : (
+                  <>
+                    {item.campaign.state === 'OPEN' ? (
+                      // checkout closed: on this page the CTA would only link to itself
+                      <span className="wf-btn wf-btn--done" aria-disabled="true">
+                        Contribuir
+                      </span>
+                    ) : (
+                      <ContributeCta item={item} kindPath={kindPath} />
+                    )}
+                    {item.campaign.state === 'OPEN' ? (
+                      <p className="wf-notice mt-4">
+                        {checkout?.closedCopy ?? 'As contribuições com Pix abrem em breve.'}{' '}
+                        Qualquer valor a partir de R$ 5, sem ultrapassar a meta.
+                      </p>
+                    ) : null}
+                  </>
+                )}
               </div>
             ) : null}
           </aside>

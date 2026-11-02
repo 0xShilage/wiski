@@ -32,7 +32,7 @@ Phase 1 delivers the scaffold, the brand pipeline, Google sign-in with server-si
 | `GET /api/auth/google/start` · `GET /api/auth/google/callback` | public | OIDC login (also step-up with `?stepUp=1`) |
 | `POST /api/auth/logout` | user | revoke current session |
 | `GET /api/v1/me` | user | profile, role, onboarding state, CSRF token |
-| `POST /api/v1/me/onboarding` · `PATCH /api/v1/me/profile` | user | username + avatar once · avatar; username once per 30 days |
+| `POST /api/v1/me/onboarding` · `PATCH /api/v1/me/profile` | user | username + avatar once · avatar; username once per 30 days (moderators and streamer: 5 days, since Phase 4) |
 | `GET`/`DELETE /api/v1/me/sessions` · `DELETE /api/v1/me/sessions/[id]` | user | list · sign out all other devices · revoke one (foreign id → 404) |
 | `GET /api/v1/usernames/availability?u=` | user | `{available}` only |
 | `GET /api/v1/admin/session` | moderator+ | admin-shell probe: role + step-up freshness (seed for Phase 4) |

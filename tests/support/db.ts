@@ -32,6 +32,7 @@ export async function makeUser(
       username: over.username === undefined ? `user_${tag}`.slice(0, 20) : over.username,
       role: over.role ?? 'USER',
       status: over.status ?? 'ACTIVE',
+      ...(over.status === 'DELETED' ? { deletedAt: new Date() } : {}),
     },
   });
 }

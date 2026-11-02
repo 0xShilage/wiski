@@ -235,3 +235,19 @@ test('a moderator dismisses a report and hides a review from the queue', async (
   await expect(page.getByText('Fila: ocultar')).toHaveCount(0);
   await withDb((c) => c.query('DELETE FROM "Review" WHERE id = ANY($1::uuid[])', [[a.id, b.id]]));
 });
+
+test('Avaliações: the latest reviews sit side by side on desktop, one column on phones', async ({
+  page,
+}, info) => {
+  await page.goto('/avaliacoes');
+  const cards = page.locator('.wf-reviews__list > li');
+  await expect(cards.nth(1)).toBeVisible();
+  const [a, b] = await Promise.all([cards.nth(0).boundingBox(), cards.nth(1).boundingBox()]);
+  if (info.project.name.startsWith('mobile')) {
+    expect(b!.y).toBeGreaterThan(a!.y + a!.height - 1); // stacked
+  } else {
+    expect(Math.abs(b!.y - a!.y)).toBeLessThan(1); // same row
+    expect(b!.x).toBeGreaterThan(a!.x + a!.width - 1);
+    expect(Math.abs(b!.height - a!.height)).toBeLessThan(1); // a row shares its height
+  }
+});

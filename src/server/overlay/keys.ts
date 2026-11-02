@@ -28,6 +28,28 @@ export const OVERLAY_SESSION_MS = 12 * 3_600_000;
 const KEY_FORMAT = /^wfo_[\w-]{43}$/;
 
 export const OVERLAY_MAX_GRANTS = 8;
+
+/**
+ * The overlay cookie's name and Secure flag. OBS's built-in Chromium (an older CEF) drops
+ * `__Host-` cookies on http://localhost — Chrome only lifted that later — so `npm run dev` over
+ * plain http uses a plain, non-Secure name; anything else (tests, production: https only, see
+ * env.ts) keeps `__Host-wf_overlay`. Development only: HttpOnly, SameSite=Strict either way.
+ */
+export function overlayCookieSpec(env: { NODE_ENV: string; APP_ORIGIN: string } = getEnv()): {
+  name: string;
+  secure: boolean;
+} {
+  return env.NODE_ENV === 'development' && env.APP_ORIGIN.startsWith('http://')
+    ? { name: 'wf_overlay_dev', secure: false }
+    : { name: COOKIE.overlay, secure: true };
+}
+
+/** The overlay cookie of a request (whichever name this environment uses). */
+export function overlayCookieOf(req: {
+  cookies: { get(n: string): { value: string } | undefined };
+}) {
+  return req.cookies.get(overlayCookieSpec().name)?.value;
+}
 const grant = z
   .object({ keyId: z.uuid(), widgets: z.array(z.enum(WIDGETS)).min(1).max(WIDGETS.length) })
   .strict();
@@ -145,12 +167,24 @@ export async function exchangeOverlayKey(
     { keyId: k.id, widgets },
     ...readGrants(current).filter((g) => g.keyId !== k.id),
   ].slice(0, OVERLAY_MAX_GRANTS);
-  setHostCookie(
-    res,
-    COOKIE.overlay,
-    seal({ grants } satisfies OverlayCookie, keys(), PURPOSE, OVERLAY_SESSION_MS),
-    { maxAgeSec: OVERLAY_SESSION_MS / 1000, sameSite: 'strict' },
-  );
+  const value = seal({ grants } satisfies OverlayCookie, keys(), PURPOSE, OVERLAY_SESSION_MS);
+  const spec = overlayCookieSpec();
+  if (spec.secure) {
+    setHostCookie(res, COOKIE.overlay, value, {
+      maxAgeSec: OVERLAY_SESSION_MS / 1000,
+      sameSite: 'strict',
+    });
+  } else {
+    res.cookies.set({
+      name: spec.name,
+      value,
+      httpOnly: true,
+      secure: false,
+      sameSite: 'strict',
+      path: '/',
+      maxAge: OVERLAY_SESSION_MS / 1000,
+    });
+  }
   return res;
 }
 
@@ -159,9 +193,7 @@ export async function overlayAccess(
   req: NextRequest,
   widget: Widget,
 ): Promise<OverlayGrant | null> {
-  const candidates = readGrants(req.cookies.get(COOKIE.overlay)?.value).filter((g) =>
-    g.widgets.includes(widget),
-  );
+  const candidates = readGrants(overlayCookieOf(req)).filter((g) => g.widgets.includes(widget));
   if (!candidates.length) return null;
   const active = await db().overlayKey.findMany({
     where: { id: { in: candidates.map((g) => g.keyId) }, revokedAt: null },

@@ -97,12 +97,23 @@
     gap: 16px;
     min-width: 0;
   }
+  /* side by side (2026-11-01): as many ~340 px columns as fit, one column on phones; the cards
+     in a row share their height and keep the like/report row at the bottom */
   .wf-reviews__list {
     list-style: none;
     margin: 0;
     padding: 0;
     display: grid;
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+    align-items: stretch;
+    gap: 16px;
+  }
+  .wf-reviews__list > li {
+    display: flex;
+    min-width: 0;
+  }
+  .wf-reviews__list > li > .wf-review {
+    flex: 1;
   }
   .wf-reviews__more {
     justify-self: start;
@@ -139,7 +150,8 @@
 
   /* card */
   .wf-review {
-    display: grid;
+    display: flex;
+    flex-direction: column;
     gap: 10px;
     padding: 16px 18px;
     border-radius: 14px;
@@ -213,6 +225,7 @@
     justify-content: space-between;
     align-items: center;
     gap: 12px;
+    margin-top: auto;
   }
   .wf-review__like,
   .wf-review__likes {

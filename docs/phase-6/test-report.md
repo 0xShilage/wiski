@@ -88,3 +88,12 @@ Note: the environment's Playwright now looks for Chromium build 1248 while 1243 
 | Unit | ✅ 321 / 321 |
 | Integration | ✅ **958 / 958** (+2). Exchanging an older key after a newer one keeps both grants: "Meta total" and "Fila" open, and "Meta", which neither key lists, does not. Revoking one key closes only its widgets. Up to 8 keys are remembered (the 9th pushes out the oldest), and a tampered cookie counts as empty. |
 | E2E | `operations` 5 / 5; `operations` + `two-factor` + `csp` + `headers` 147 / 148 before one test fix. New: two keys in one browser, the way OBS works (newer, then older, then the newer widget again with no key in the address), plus the "not in this key" and "invalid key" messages. Fix: that test had changed only the `#k=` fragment on the same page, which does not reload it; it now loads the page fresh, as OBS does. |
+
+## Addendum — OBS on npm run dev, poster glow, reviews side by side (2026-11-01, late)
+
+| Suite | Result |
+|---|---|
+| Lint / typecheck | ✅ |
+| Integration | `overlay.test.ts` ✅ 51 / 51 (+1: the cookie name and flag for development over http versus everything else) |
+| Manual reproduction | `next dev` over http against the test stack: the key exchange sets `wf_overlay_dev` (HttpOnly, SameSite=Strict), and `/api/v1/overlay/stream?widget=meta-total` with that cookie answers 200 with the "Meta total" event. The same request with the `__Host-` name is refused, as expected in development. |
+| E2E | `reviews`, `carousel`, `design-match`, `viewports`, `operations` ✅ 56 / 56; `a11y-layout` + `csp` for the affected pages ✅ 16 / 16. New check: on Avaliações at 1280 px, two cards share a row with the same height; at 360 px they stack. Screenshots checked: the active poster's glow at 1920 × 1080 now fades out, and Avaliações shows three cards per row. |

@@ -42,7 +42,7 @@ export default async function AvaliacoesPage() {
           Últimas avaliações
         </h2>
         {latest.reviews.length ? (
-          <div className="mt-6 max-w-3xl">
+          <div className="mt-6">
             <ReviewList
               initial={latest}
               source={{ kind: 'latest' }}

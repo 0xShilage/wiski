@@ -192,6 +192,14 @@
   .wf-rail--ring .wf-rail__track {
     justify-content: center;
     overflow: hidden;
+    /* room for the active poster's glow (--glow reaches ~48 px) inside the clip, without moving
+       the posters: the extra padding is taken back with negative margins (2026-11-01) */
+    padding-block: 64px;
+    margin-block: -42px;
+    pointer-events: none; /* the transparent margin must not cover the text and buttons above */
+  }
+  .wf-rail--ring .wf-rail__track > li {
+    pointer-events: auto;
   }
   .wf-rail--strip {
     display: none;

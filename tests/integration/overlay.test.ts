@@ -20,6 +20,7 @@ import {
 } from '@/server/overlay/events';
 import { announcePaidOrder, overlayChannel, queueSnapshot } from '@/server/overlay/state';
 import { sumTotals } from '@/server/goals/total';
+import { overlayCookieSpec } from '@/server/overlay/keys';
 import { GET as keysRoute, POST as createKeyRoute } from '@/app/api/v1/admin/overlay-keys/route';
 import { DELETE as revokeRoute } from '@/app/api/v1/admin/overlay-keys/[id]/route';
 import { POST as sessionRoute } from '@/app/api/v1/overlay/session/route';
@@ -261,6 +262,19 @@ describe('snapshots', () => {
 });
 
 describe('one OBS, several keys (2026-11-01)', () => {
+  it('npm run dev over http uses a plain cookie name (OBS drops __Host- on http://localhost)', () => {
+    expect(
+      overlayCookieSpec({ NODE_ENV: 'development', APP_ORIGIN: 'http://localhost:3000' }),
+    ).toEqual({ name: 'wf_overlay_dev', secure: false });
+    for (const env of [
+      { NODE_ENV: 'development', APP_ORIGIN: 'https://dev.wiski.fun' },
+      { NODE_ENV: 'test', APP_ORIGIN: 'http://localhost:3000' },
+      { NODE_ENV: 'production', APP_ORIGIN: 'https://wiski.fun' },
+    ]) {
+      expect(overlayCookieSpec(env)).toEqual({ name: '__Host-wf_overlay', secure: true });
+    }
+  });
+
   it('the cookie keeps a grant per key: an older key no longer locks out a newer one', async () => {
     const older = await newKey(['agora', 'fila']);
     const newer = await newKey(['meta-total']);

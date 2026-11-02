@@ -17,15 +17,33 @@ import { WIDGETS, type Widget } from './events';
  * fragment (`/overlay/agora#k=…`), so it never reaches a log or a Referer; the page exchanges it
  * for `__Host-wf_overlay` (sealed, read-only, 12 h, limited to the key's widgets). Every stream
  * re-checks that the key still exists and isn't revoked.
+ *
+ * 2026-11-01: OBS shares one cookie jar between all its browser sources, so the cookie holds a
+ * grant per key (up to OVERLAY_MAX_GRANTS, newest first) instead of only the last key used. Before,
+ * a source opened with an older key replaced the grant of a newer one, and a widget only the newer
+ * key allows ("Meta total") was refused.
  */
 const PURPOSE = 'overlay-cookie';
 export const OVERLAY_SESSION_MS = 12 * 3_600_000;
 const KEY_FORMAT = /^wfo_[\w-]{43}$/;
 
-const cookiePayload = z
+export const OVERLAY_MAX_GRANTS = 8;
+const grant = z
   .object({ keyId: z.uuid(), widgets: z.array(z.enum(WIDGETS)).min(1).max(WIDGETS.length) })
   .strict();
+const cookiePayload = z.object({ grants: z.array(grant).min(1).max(OVERLAY_MAX_GRANTS) }).strict();
+export type OverlayGrant = z.infer<typeof grant>;
 export type OverlayCookie = z.infer<typeof cookiePayload>;
+
+/** The grants in a cookie (the one-key format of before 2026-11-01 too); [] when invalid. */
+function readGrants(raw: string | undefined): OverlayGrant[] {
+  if (!raw) return [];
+  const v = unseal(raw, keys(), PURPOSE);
+  const multi = cookiePayload.safeParse(v);
+  if (multi.success) return multi.data.grants;
+  const single = grant.safeParse(v);
+  return single.success ? [single.data] : [];
+}
 
 function keys() {
   const env = getEnv();
@@ -108,36 +126,49 @@ export async function listOverlayKeys() {
   return rows.map(publicKey);
 }
 
-/** Key → sealed cookie. A wrong, malformed or revoked key is a 401 with no detail. */
-export async function exchangeOverlayKey(raw: string, now = new Date()): Promise<NextResponse> {
+/**
+ * Key → sealed cookie, keeping the grants of the other keys already in it. A wrong, malformed or
+ * revoked key is a 401 with no detail.
+ */
+export async function exchangeOverlayKey(
+  raw: string,
+  current?: string,
+  now = new Date(),
+): Promise<NextResponse> {
   if (!KEY_FORMAT.test(raw)) throw Problems.unauthenticated();
   const k = await db().overlayKey.findUnique({ where: { keyHash: sha256Bytes(raw) } });
   if (!k || k.revokedAt) throw Problems.unauthenticated();
   await db().overlayKey.update({ where: { id: k.id }, data: { lastUsedAt: now } });
   const widgets = k.widgets.filter((w): w is Widget => (WIDGETS as readonly string[]).includes(w));
   const res = NextResponse.json({ widgets });
+  const grants = [
+    { keyId: k.id, widgets },
+    ...readGrants(current).filter((g) => g.keyId !== k.id),
+  ].slice(0, OVERLAY_MAX_GRANTS);
   setHostCookie(
     res,
     COOKIE.overlay,
-    seal({ keyId: k.id, widgets } satisfies OverlayCookie, keys(), PURPOSE, OVERLAY_SESSION_MS),
+    seal({ grants } satisfies OverlayCookie, keys(), PURPOSE, OVERLAY_SESSION_MS),
     { maxAgeSec: OVERLAY_SESSION_MS / 1000, sameSite: 'strict' },
   );
   return res;
 }
 
-/** The overlay cookie, if valid and its key still active. */
+/** The grant that opens this widget: in the cookie, for a key that is still active. */
 export async function overlayAccess(
   req: NextRequest,
   widget: Widget,
-): Promise<OverlayCookie | null> {
-  const raw = req.cookies.get(COOKIE.overlay)?.value;
-  if (!raw) return null;
-  const parsed = cookiePayload.safeParse(unseal(raw, keys(), PURPOSE));
-  if (!parsed.success || !parsed.data.widgets.includes(widget)) return null;
-  const k = await db().overlayKey.findUnique({
-    where: { id: parsed.data.keyId },
-    select: { revokedAt: true, widgets: true },
+): Promise<OverlayGrant | null> {
+  const candidates = readGrants(req.cookies.get(COOKIE.overlay)?.value).filter((g) =>
+    g.widgets.includes(widget),
+  );
+  if (!candidates.length) return null;
+  const active = await db().overlayKey.findMany({
+    where: { id: { in: candidates.map((g) => g.keyId) }, revokedAt: null },
+    select: { id: true, widgets: true },
   });
-  if (!k || k.revokedAt || !k.widgets.includes(widget)) return null;
-  return parsed.data;
+  return (
+    candidates.find((g) => active.some((k) => k.id === g.keyId && k.widgets.includes(widget))) ??
+    null
+  );
 }

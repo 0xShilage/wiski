@@ -46,8 +46,14 @@ async function newKey(widgets: string[] = ['agora', 'fila', 'meta', 'patrocinio'
   return r.json as { key: string; overlay: { id: string; keyPrefix: string } };
 }
 
-async function exchange(key: string) {
-  const res = await call(sessionRoute, req('POST', '/api/v1/overlay/session', { body: { key } }));
+async function exchange(key: string, current?: string) {
+  const res = await call(
+    sessionRoute,
+    req('POST', '/api/v1/overlay/session', {
+      body: { key },
+      ...(current ? { cookies: { '__Host-wf_overlay': current } } : {}),
+    }),
+  );
   return { res, cookies: setCookies(res) };
 }
 
@@ -251,6 +257,45 @@ describe('snapshots', () => {
       title: 'Filme invertido',
       sponsor: `@${fan.user.username}`,
     });
+  });
+});
+
+describe('one OBS, several keys (2026-11-01)', () => {
+  it('the cookie keeps a grant per key: an older key no longer locks out a newer one', async () => {
+    const older = await newKey(['agora', 'fila']);
+    const newer = await newKey(['meta-total']);
+    // OBS loads the newer source first, then the older one, in the same cookie jar
+    const c1 = (await exchange(newer.key)).cookies['__Host-wf_overlay']!.value;
+    const c2 = (await exchange(older.key, c1)).cookies['__Host-wf_overlay']!.value;
+    expect((await firstEvent(c2, 'meta-total')).status).toBe(200);
+    expect((await firstEvent(c2, 'fila')).status).toBe(200);
+    expect((await firstEvent(c2, 'meta')).status).toBe(401); // neither key lists it
+
+    // revoking one key closes only its widgets
+    const streamer = await as('STREAMER');
+    expect(
+      (await hit(revokeRoute, 'DELETE', '', { who: streamer, params: { id: older.overlay.id } }))
+        .res.status,
+    ).toBe(204);
+    expect((await firstEvent(c2, 'fila')).status).toBe(401);
+    expect((await firstEvent(c2, 'meta-total')).status).toBe(200);
+  });
+
+  it('at most eight keys are remembered (newest first); a tampered cookie counts as none', async () => {
+    let cookie: string | undefined;
+    const made: { key: string }[] = [];
+    for (let i = 0; i < 9; i++) {
+      const k = await newKey([i === 0 ? 'patrocinio' : 'fila']);
+      made.push(k);
+      cookie = (await exchange(k.key, cookie)).cookies['__Host-wf_overlay']!.value;
+    }
+    // the first key (the only one with "patrocinio") fell off the end
+    expect((await firstEvent(cookie!, 'patrocinio')).status).toBe(401);
+    expect((await firstEvent(cookie!, 'fila')).status).toBe(200);
+    const tampered = `${cookie!.slice(0, -4)}AAAA`;
+    const fresh = (await exchange(made[0]!.key, tampered)).cookies['__Host-wf_overlay']!.value;
+    expect((await firstEvent(fresh, 'patrocinio')).status).toBe(200);
+    expect((await firstEvent(fresh, 'fila')).status).toBe(401);
   });
 });
 

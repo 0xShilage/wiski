@@ -34,6 +34,18 @@ type Ev =
   | { type: 'ready' };
 
 const KEY = /^#k=(wfo_[\w-]{43})$/;
+
+type Problem = 'bad-key' | 'not-in-key' | 'denied' | 'busy' | 'offline';
+/** What the streamer sees in the OBS preview when a widget can't show (never on a working one). */
+const PROBLEM_TEXT: Record<Problem, (widget: string) => string> = {
+  'bad-key': () => 'Chave inválida ou revogada: crie outra em Admin › Overlays e copie o endereço.',
+  'not-in-key': (w) =>
+    `Esta chave não inclui “${w}”: crie uma chave com esse widget marcado em Admin › Overlays.`,
+  denied: (w) =>
+    `Sem acesso a “${w}”: abra o endereço completo (com #k=…) de uma chave que inclua esse widget.`,
+  busy: () => 'Muitas conexões agora; tentando de novo…',
+  offline: () => 'Sem conexão com o site; tentando de novo…',
+};
 const LABEL = {
   agora: 'Agora assistindo',
   fila: 'Próximos da fila',
@@ -53,34 +65,62 @@ export function OverlayClient({ widget }: { widget: keyof typeof LABEL }) {
   const [flash, setFlash] = useState<{ n: number; title: string; sponsor: string | null } | null>(
     null,
   );
-  const [denied, setDenied] = useState(false);
+  const [problem, setProblem] = useState<Problem | null>(null);
 
   useEffect(() => {
     let es: EventSource | null = null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
     let stopped = false;
-    void (async () => {
-      const m = KEY.exec(window.location.hash);
-      if (m) {
-        await fetch('/api/v1/overlay/session', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ key: m[1] }),
+    let attempt = 0;
+    /** the key in this address does not list this widget (another key in the cookie might) */
+    let keyLacksWidget = false;
+
+    const retry = (ms: number) => {
+      if (!stopped) timer = setTimeout(connect, ms);
+    };
+
+    /** The stream never opened: ask once why (EventSource does not expose the status). */
+    async function diagnose() {
+      const ac = new AbortController();
+      let status = 0;
+      try {
+        const r = await fetch(`/api/v1/overlay/stream?widget=${widget}`, {
           credentials: 'same-origin',
+          signal: ac.signal,
         });
-        history.replaceState(null, '', window.location.pathname);
+        status = r.status;
+      } catch {
+        status = 0; // offline or the site is restarting
+      } finally {
+        ac.abort();
       }
+      attempt += 1;
+      if (status === 401) {
+        setProblem(keyLacksWidget ? 'not-in-key' : 'denied');
+        retry(60_000); // a new key may be added in the dashboard meanwhile
+      } else if (status === 200) {
+        retry(1_000);
+      } else {
+        setProblem(status === 429 ? 'busy' : 'offline');
+        retry(Math.min(30_000, 2_000 * 2 ** Math.min(attempt, 4)));
+      }
+    }
+
+    function connect() {
       if (stopped) return;
+      es?.close();
       es = new EventSource(`/api/v1/overlay/stream?widget=${widget}`);
       let opened = false;
       es.onopen = () => {
         opened = true;
-        setDenied(false);
+        attempt = 0;
+        setProblem(null);
       };
       es.onerror = () => {
-        // never connected: the key is missing, revoked or not for this widget — stop retrying
+        // once open, EventSource reconnects by itself; if it never opened, find out why
         if (!opened) {
           es?.close();
-          setDenied(true);
+          void diagnose();
         }
       };
       es.onmessage = (msg) => {
@@ -94,17 +134,45 @@ export function OverlayClient({ widget }: { widget: keyof typeof LABEL }) {
           setFlash((f) => ({ n: (f?.n ?? 0) + 1, title: data.title, sponsor: data.sponsor }));
         } else setEv(data);
       };
+    }
+
+    void (async () => {
+      const m = KEY.exec(window.location.hash);
+      if (m) {
+        let res: Response | null = null;
+        try {
+          res = await fetch('/api/v1/overlay/session', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ key: m[1] }),
+            credentials: 'same-origin',
+          });
+        } catch {
+          res = null;
+        }
+        if (res?.ok) {
+          history.replaceState(null, '', window.location.pathname);
+          const body = (await res.json().catch(() => null)) as { widgets?: string[] } | null;
+          if (body?.widgets && !body.widgets.includes(widget)) keyLacksWidget = true;
+        } else if (res?.status === 401) {
+          setProblem('bad-key');
+          return;
+        }
+        // offline / rate-limited: keep the key in the address and try the stream anyway
+      }
+      connect();
     })();
     return () => {
       stopped = true;
       es?.close();
+      if (timer) clearTimeout(timer);
     };
   }, [widget]);
 
-  if (denied && !ev) {
+  if (problem && !ev) {
     return (
       <div className="wf-overlay__box">
-        <p className="wf-overlay__sub">Overlay sem acesso: confira a chave no painel.</p>
+        <p className="wf-overlay__sub">{PROBLEM_TEXT[problem](LABEL[widget].replace(/!$/, ''))}</p>
       </div>
     );
   }

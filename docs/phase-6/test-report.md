@@ -80,3 +80,11 @@ Note: the environment's Playwright now looks for Chromium build 1248 while 1243 
 | # | Finding | Fix |
 |---|---|---|
 | F1 | On the "Meta total" overlay, the per-board bars used the browser's default progress style (green on grey), and their lengths varied with the width of the numbers next to them. | Bars use the site's progress style; the numbers have a fixed, right-aligned column. Screenshot at 1920 × 1080 checked. |
+
+## Addendum — several overlay keys in one OBS (2026-11-01, late)
+
+| Suite | Result |
+|---|---|
+| Unit | ✅ 321 / 321 |
+| Integration | ✅ **958 / 958** (+2). Exchanging an older key after a newer one keeps both grants: "Meta total" and "Fila" open, and "Meta", which neither key lists, does not. Revoking one key closes only its widgets. Up to 8 keys are remembered (the 9th pushes out the oldest), and a tampered cookie counts as empty. |
+| E2E | `operations` 5 / 5; `operations` + `two-factor` + `csp` + `headers` 147 / 148 before one test fix. New: two keys in one browser, the way OBS works (newer, then older, then the newer widget again with no key in the address), plus the "not in this key" and "invalid key" messages. Fix: that test had changed only the `#k=` fragment on the same page, which does not reload it; it now loads the page fresh, as OBS does. |

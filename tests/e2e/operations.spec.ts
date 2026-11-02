@@ -46,7 +46,28 @@ test('overlay: the key in the fragment opens the stream and leaves the address b
 
   // a widget the key does not allow
   await page.goto('/overlay/agora');
-  await expect(page.getByText('Overlay sem acesso')).toBeVisible();
+  await expect(page.getByText('Sem acesso a “Agora assistindo”')).toBeVisible();
+});
+
+test('overlay: two keys in one browser (like OBS) both keep working; clear messages otherwise', async ({
+  page,
+}) => {
+  const newer = await overlayKey(['meta-total']);
+  const older = await overlayKey(['fila']);
+  await page.goto(`/overlay/meta-total#k=${newer}`);
+  await expect(page.locator('.wf-overlay__total')).toBeVisible();
+  await page.goto(`/overlay/fila#k=${older}`);
+  await expect(page.getByText('Próximos da fila')).toBeVisible();
+  // the older key did not push the newer one out
+  await page.goto('/overlay/meta-total');
+  await expect(page.locator('.wf-overlay__total')).toBeVisible();
+
+  // a key that does not list the widget, and a key that does not exist
+  await page.goto(`/overlay/agora#k=${older}`);
+  await expect(page.getByText('Esta chave não inclui “Agora assistindo”')).toBeVisible();
+  await page.goto('about:blank'); // a fresh load, as OBS does (a fragment-only change keeps the page)
+  await page.goto(`/overlay/agora#k=wfo_${'A'.repeat(43)}`);
+  await expect(page.getByText('Chave inválida ou revogada')).toBeVisible();
 });
 
 test('overlay "Meta total": one percentage for every board, with a bar per kind', async ({

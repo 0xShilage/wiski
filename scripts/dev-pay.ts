@@ -37,8 +37,20 @@ try {
     where: { publicCode: code },
     include: { payment: true },
   });
-  if (!order?.payment?.providerPaymentId) {
-    console.error(`dev-pay: ${code} not found or has no Pix yet`);
+  if (!order) {
+    console.error(
+      `dev-pay: no order ${code} in this database (${new URL(env.DATABASE_URL).pathname.slice(1)}).` +
+        ' Copy the code from the order page of the site you are running.',
+    );
+    process.exit(1);
+  }
+  if (!order.payment?.providerPaymentId) {
+    console.error(
+      `dev-pay: ${code} exists (status ${order.status}) but Mercado Pago never created its Pix,` +
+        ' so there is nothing to approve. The checkout said "Não foi possível gerar o Pix agora".' +
+        ' Look for "mercadopago error" / "pix creation failed" in the npm run dev terminal: the' +
+        ' code and message there say why (credentials, collector id, Pix key, payer e-mail).',
+    );
     process.exit(1);
   }
   if (order.status !== 'PENDING_PAYMENT') {

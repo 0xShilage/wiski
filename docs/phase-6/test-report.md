@@ -67,3 +67,16 @@ Screenshots of the picker (360 px) and a profile header (1280 px) were checked b
 | F2 | In the two-column contents, a wrapped entry ("Dados de pagamento e limitações de responsabilidade") had its number on the second line. | Entries align to the top. Screenshot checked. |
 
 Note: the environment's Playwright now looks for Chromium build 1248 while 1243 is installed; the runs above used `PW_CHROMIUM_EXECUTABLE` (supported by `playwright.config.ts`) pointing at the installed headless shell.
+
+## Addendum — release posters, year-only releases, "Meta total" (2026-11-01, night)
+
+| Suite | Result |
+|---|---|
+| Lint / typecheck / formatting | ✅ |
+| Unit | ✅ 321 / 321 |
+| Integration | ✅ **956 / 956** (+7). `releases.test.ts`: an own poster wins over the series' poster (also on unlinked releases), and removing it brings the series' poster back. Year-only releases are stored on 31 December, sort after dated ones in the same year, switch to an exact day and back, and read "Estreou" only once the year is over. Refused: a backdrop as poster, date and year together, neither, years outside 2000–2100, and non-integer or text years. Audit records `poster`/`yearOnly` and the changed field names. Database: the year-only CHECK and the poster-role trigger. `overlay.test.ts`: "Meta total" over SSE = R$ 45 of R$ 140 → 32 %, 1 of 3 titles; watched and draft titles left out; no amount in the payload; the key only opens what it lists. All five widgets fit on one key, and a paid order pushes a fresh "Meta total" through Redis. Edge cases: titles with no goal are skipped, over-raised campaigns are capped, an empty board is 0 %. `db-constraints-p4`: five widgets allowed, six refused. |
+| E2E | Full run: **326 passed**, 2 failed (both viewports of the Cronograma check), 50 skipped by design. Cause: the new seeded year-only release made a "the one unlinked row" locator match two rows. Fixed by filtering by name and asserting the seeded "Maré Alta" row ("Previsão: 2027", own poster). Re-run: `community` + `operations` 20 / 20, `operations` + `csp` 103 / 103. New tests: a moderator adds a year-only release with an uploaded poster, and the Cronograma shows "Previsão" and the poster. `/overlay/meta-total` shows the percentage, the title count and three per-board bars, with no "R$". |
+
+| # | Finding | Fix |
+|---|---|---|
+| F1 | On the "Meta total" overlay, the per-board bars used the browser's default progress style (green on grey), and their lengths varied with the width of the numbers next to them. | Bars use the site's progress style; the numbers have a fixed, right-aligned column. Screenshot at 1920 × 1080 checked. |

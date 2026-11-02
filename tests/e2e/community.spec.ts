@@ -216,7 +216,13 @@ test('cronograma: posters next to the titles and "Próximas temporadas" from the
   await expect(panel.locator('a.wf-rel__row').first()).toHaveAttribute('href', /^\/series\//);
   await expect(panel).toContainText('Temporada 4');
   await expect(panel).toContainText('Bosque Sombrio');
-  await expect(panel.locator('div.wf-rel__row')).toContainText('Temporada 2');
+  await expect(
+    panel.locator('div.wf-rel__row').filter({ hasText: 'Bosque Sombrio' }),
+  ).toContainText('Temporada 2');
+  // only the year is known, with its own poster
+  const mare = panel.locator('div.wf-rel__row').filter({ hasText: 'Maré Alta' });
+  await expect(mare).toContainText(`Previsão: ${new Date().getUTCFullYear() + 1}`);
+  await expect(mare.locator('.wf-rel__thumb img')).toHaveAttribute('src', /^\/media\//);
 });
 
 test('estreias: a moderator adds a release and it shows on the Cronograma', async ({

@@ -192,6 +192,7 @@ export function OverlayClient({ widget }: { widget: keyof typeof LABEL }) {
               <li key={k.kind}>
                 <span>{KIND_LABEL[k.kind]}</span>
                 <progress
+                  className="wf-progress"
                   max={100}
                   value={k.percent}
                   aria-label={`${KIND_LABEL[k.kind]}: ${k.percent}%`}

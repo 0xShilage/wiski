@@ -319,7 +319,11 @@ export async function quoteMovie(
       : undefined;
     const breakdown = priceMovie(
       rs.config,
-      { runtimeMinutes: item.runtimeMinutes, queueJumpTierId: input.queueJumpTier },
+      {
+        runtimeMinutes: item.runtimeMinutes,
+        queueJumpTierId: input.queueJumpTier,
+        baseOverrideCents: item.manualPriceCents,
+      },
       {
         perk: perkFor(user),
         voucher: voucher?.ctx ?? null,
@@ -654,7 +658,11 @@ export async function createMovieOrder(
       const voucher = await loadVoucher(t, input.voucherCode, buyerKey);
       const breakdown = priceMovie(
         rs.config,
-        { runtimeMinutes: item.runtimeMinutes, queueJumpTierId: input.queueJumpTier },
+        {
+          runtimeMinutes: item.runtimeMinutes,
+          queueJumpTierId: input.queueJumpTier,
+          baseOverrideCents: item.manualPriceCents,
+        },
         {
           perk: perkFor(buyer.user),
           voucher: voucher?.ctx ?? null,

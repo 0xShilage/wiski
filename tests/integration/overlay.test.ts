@@ -367,7 +367,13 @@ describe('"Meta total" (2026-11-01)', () => {
   });
 
   it('a title without any goal yet is left out; an empty board is 0 %', () => {
-    const base = { runtimeMinutes: 100, seasonCount: null, campaign: null, franchiseEntries: [] };
+    const base = {
+      runtimeMinutes: 100,
+      manualPriceCents: null,
+      seasonCount: null,
+      campaign: null,
+      franchiseEntries: [],
+    };
     expect(sumTotals([])).toMatchObject({ titles: 0, funded: 0, percent: 0 });
     const t = sumTotals([
       { ...base, kind: 'SERIES', status: 'ACTIVE' }, // no seasons, no campaign → no goal
@@ -381,6 +387,15 @@ describe('"Meta total" (2026-11-01)', () => {
     ]);
     expect(t).toMatchObject({ titles: 2, funded: 1, percent: 23 }); // 60 of 260
     expect(totalGoalEvent(t)).toMatchObject({ type: 'goal-total', percent: 23 });
+  });
+
+  it('a movie with a manual price counts that price', () => {
+    const base = { seasonCount: null, campaign: null, franchiseEntries: [] };
+    const t = sumTotals([
+      { ...base, kind: 'MOVIE', status: 'SPONSORED', runtimeMinutes: 100, manualPriceCents: 6_000 },
+      { ...base, kind: 'MOVIE', status: 'ACTIVE', runtimeMinutes: 100, manualPriceCents: null }, // R$ 20
+    ]);
+    expect(t).toMatchObject({ titles: 2, funded: 1, percent: 75 }); // 60 of 80
   });
 });
 

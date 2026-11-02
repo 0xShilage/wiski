@@ -12,7 +12,7 @@ describe('CSP (05 §7)', () => {
   it('production policy is exactly the specified one', () => {
     expect(pageCsp({ nonce: 'N', origin: 'https://wiski.fun', dev: false })).toBe(
       "default-src 'self'; script-src 'self' 'nonce-N' 'strict-dynamic'; style-src 'self' 'nonce-N'; " +
-        "img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-src https://challenges.cloudflare.com https://www.youtube-nocookie.com; " +
+        "img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-src https://challenges.cloudflare.com https://www.youtube-nocookie.com https://player.twitch.tv; " +
         "manifest-src 'self'; media-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; " +
         "frame-ancestors 'none'; upgrade-insecure-requests; report-to csp; report-uri /api/csp-report",
     );

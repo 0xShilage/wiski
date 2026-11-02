@@ -245,6 +245,9 @@ model CatalogItem {
   /// MOVIE: draw the title over the poster in the carousel ("Adicionar texto?"); off for posters
   /// that already have the title in the artwork
   posterTitle      Boolean    @default(true)
+  /// MOVIE (2026-11-02): price set by hand in the dashboard, replacing the runtime formula (the
+  /// base of the price; discounts and queue jumps still apply). null = automatic.
+  manualPriceCents Int?
   posterId         String?    @db.Uuid
   backdropId       String?    @db.Uuid
   logoId           String?    @db.Uuid
@@ -520,6 +523,13 @@ model StreamSession {
   @@index([startsAt])
 }
 
+/// Where an order came from (2026-11-02): the site's Pix checkout, or registered by the streamer
+/// as already paid outside the site ("Já pago": no Payment row, no e-mail to anyone).
+enum OrderSource {
+  CHECKOUT
+  MANUAL
+}
+
 /// Order lifecycle (shared by movie sponsorships and campaign contributions).
 enum OrderStatus {
   PENDING_PAYMENT
@@ -583,6 +593,7 @@ model Order {
   displayNameStatus MessageStatus?
   showSponsorName   Boolean        @default(true) // false = "Anônimo" everywhere
   status            OrderStatus    @default(PENDING_PAYMENT)
+  source            OrderSource    @default(CHECKOUT)
   clientRequestId   String // Idempotency-Key sent by the browser (double-submit guard)
   version           Int            @default(0) // optimistic concurrency for state transitions
   createdAt         DateTime       @default(now()) @db.Timestamptz(3)

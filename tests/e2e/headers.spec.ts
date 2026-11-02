@@ -135,13 +135,18 @@ test('TLS: unknown server names get no certificate; TLS 1.1 is refused', async (
   );
 });
 
-test('Permissions-Policy delegates the player features to youtube-nocookie only', async ({
+test('Permissions-Policy delegates the player features to youtube-nocookie (and Twitch) only', async ({
   request,
 }) => {
   const { counts } = await headerCounts(request, '/');
   const pp = counts.get('permissions-policy')![0]!;
-  for (const feature of ['autoplay', 'encrypted-media', 'fullscreen', 'picture-in-picture']) {
+  for (const feature of ['encrypted-media', 'picture-in-picture']) {
     expect(pp).toContain(`${feature}=(self "https://www.youtube-nocookie.com")`);
+  }
+  for (const feature of ['autoplay', 'fullscreen']) {
+    expect(pp).toContain(
+      `${feature}=(self "https://www.youtube-nocookie.com" "https://player.twitch.tv")`,
+    );
   }
   expect(pp).not.toMatch(/youtube\.com"/);
   expect(pp).not.toContain('*');

@@ -1,5 +1,6 @@
 /**
- * Phase 6 end to end: the progress block on the home page, the Links page from the dev seed,
+ * Phase 6 end to end: the progress block, the available-movies grid and the Twitch block on the
+ * home page, the Links page from the dev seed,
  * a viewer's suggestion reaching the moderation (and the decision coming back), the streamer's
  * link editor, and the phone "Mais" menu.
  */
@@ -31,6 +32,92 @@ test('home: "Nosso progresso" with totals and the per-kind split', async ({ page
   await expect(block.getByRole('article', { name: 'Tempo assistido' })).toContainText(
     /\d (?:h|min)/,
   );
+});
+
+test('home: "Filmes disponíveis" lists every sponsorable movie below the carousel', async ({
+  page,
+}) => {
+  const expected = await withDb(async (c) => {
+    const r = await c.query<{ n: string }>(
+      `SELECT count(*) AS n FROM "CatalogItem" WHERE kind = 'MOVIE' AND status = 'ACTIVE'`,
+    );
+    return Number(r.rows[0]!.n);
+  });
+  await page.goto('/');
+  const grid = page.getByRole('region', { name: 'Filmes disponíveis' });
+  await grid.scrollIntoViewIfNeeded();
+  await expect(grid).toBeVisible();
+  const cards = grid.getByRole('listitem');
+  expect(await cards.count()).toBeGreaterThanOrEqual(expected); // + any "Reservado"
+  await expect(
+    grid.getByText(new RegExp(`^${expected} filmes? esperando patrocínio$`)),
+  ).toBeVisible();
+  const first = cards.first().getByRole('link');
+  await expect(first).toHaveAttribute('href', /^\/filmes\/[\w-]+$/);
+  await expect(first).toContainText(/R\$\s?\d/);
+  // below the carousel, above "Próximos na live" / "Nosso progresso"
+  const order = await page.evaluate(() =>
+    ['.wf-hero', '.wf-movie-grid', '.wf-progress-block'].map(
+      (s) => document.querySelector(s)?.getBoundingClientRect().top ?? -1,
+    ),
+  );
+  expect(order[0]).toBeLessThan(order[1]!);
+  expect(order[1]).toBeLessThan(order[2]!);
+});
+
+test('home: the Twitch block shows only while a live is "Ao vivo", and loads Twitch only on click', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(page.getByRole('region', { name: 'Ao vivo agora' })).toHaveCount(0);
+
+  const id = await withDb(async (c) => {
+    const r = await c.query<{ id: string }>(
+      `INSERT INTO "StreamSession" (id, "startsAt", "capacityMinutes", status, "startedAt", "updatedAt")
+       SELECT gen_random_uuid(), now(), 120, 'LIVE', now(), now()
+       WHERE NOT EXISTS (SELECT 1 FROM "StreamSession" WHERE status = 'LIVE')
+       RETURNING id`,
+    );
+    return r.rows[0]?.id ?? null;
+  });
+  const twitch: string[] = [];
+  await page.route('https://player.twitch.tv/**', (route) => {
+    twitch.push(route.request().url());
+    return route.fulfill({
+      status: 200,
+      contentType: 'text/html',
+      body: '<!doctype html><title>player</title>',
+    });
+  });
+  try {
+    await page.goto('/');
+    const block = page.getByRole('region', { name: 'Ao vivo agora' });
+    await block.scrollIntoViewIfNeeded();
+    await expect(block).toBeVisible();
+    await expect(block.locator('iframe')).toHaveCount(0);
+    expect(twitch).toHaveLength(0);
+    await expect(block.getByRole('link', { name: 'Abrir na Twitch' })).toHaveAttribute(
+      'href',
+      'https://www.twitch.tv/iarawiski',
+    );
+    // below "Nosso progresso"
+    const [progress, live] = await page.evaluate(() =>
+      ['.wf-progress-block', '.wf-twitch'].map(
+        (s) => document.querySelector(s)?.getBoundingClientRect().top ?? -1,
+      ),
+    );
+    expect(progress).toBeLessThan(live!);
+
+    await block.getByRole('button', { name: /Assistir aqui/ }).click();
+    const frame = block.locator('iframe');
+    await expect(frame).toHaveAttribute(
+      'src',
+      /^https:\/\/player\.twitch\.tv\/\?channel=iarawiski&parent=localhost&muted=true&autoplay=true$/,
+    );
+    await expect.poll(() => twitch.length).toBeGreaterThan(0);
+  } finally {
+    if (id) await withDb((c) => c.query(`DELETE FROM "StreamSession" WHERE id = $1`, [id]));
+  }
 });
 
 test('links: the seeded buttons in order, platform names as text, no new tab', async ({ page }) => {

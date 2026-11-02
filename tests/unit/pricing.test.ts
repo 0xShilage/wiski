@@ -210,6 +210,29 @@ describe('worked examples (04 §9)', () => {
   });
 });
 
+describe('manual movie price (2026-11-02)', () => {
+  it('replaces base + extra minutes; discounts and the queue jump still apply on top', () => {
+    const b = priceMovie(
+      cfg,
+      { runtimeMinutes: 172, baseOverrideCents: 6000, queueJumpTierId: 'prioridade' },
+      ctx({ perk: 'VIP' }),
+    );
+    expect(b.lines.map((l) => [l.key, l.cents])).toEqual([
+      ['runtime', null],
+      ['base', 6000],
+      ['subtotal', 6000],
+      ['discount', -600],
+      ['queue-jump', 4800],
+      ['total', 10200],
+    ]);
+    expect([b.baseCents, b.extraCents]).toEqual([6000, 0]);
+  });
+  it('null = the runtime formula', () =>
+    expect(
+      priceMovie(cfg, { runtimeMinutes: 131, baseOverrideCents: null }, ctx()).totalCents,
+    ).toBe(2100));
+});
+
 describe('band edges and runtime limits', () => {
   it.each([
     [129, 2000],

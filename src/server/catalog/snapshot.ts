@@ -32,6 +32,8 @@ export const snapshotSchema = z
     logoId: z.uuid().nullable(),
     /** added 2026-10-31; older snapshots lack it and mean "show the title" */
     posterTitle: z.boolean().default(true),
+    /** added 2026-11-02; older snapshots lack it and mean "price by runtime" */
+    manualPriceCents: z.int().nullable().default(null),
     franchiseEntries: z
       .array(
         z
@@ -67,6 +69,7 @@ export const CONTENT_FIELDS = [
   'backdropId',
   'logoId',
   'posterTitle',
+  'manualPriceCents',
 ] as const satisfies readonly (keyof CatalogSnapshot & keyof CatalogItem)[];
 
 export function snapshotOf(

@@ -60,6 +60,7 @@ const catalogField = z.enum([
   'episodeCount',
   'trailerYoutubeId',
   'posterTitle',
+  'manualPriceCents',
   'posterId',
   'backdropId',
   'logoId',
@@ -206,6 +207,17 @@ export const AUDIT_ACTIONS = {
     .object({ message: textDecision.optional(), displayName: textDecision.optional() })
     .strict(),
   'order.accept': z.object({ kind: orderKind, totalCents: z.int().positive() }).strict(),
+  'order.manual': z
+    .object({
+      kind: orderKind,
+      totalCents: z.int().positive(),
+      named: z.boolean(),
+      message: z.boolean(),
+    })
+    .strict(),
+  'order.manual-undo': z
+    .object({ kind: orderKind, totalCents: z.int().positive(), from: orderStatus })
+    .strict(),
   'refund.request': z
     .object({
       reason: z.enum(['DUPLICATE_PAYMENT', 'PROCESSING_ERROR', 'LEGAL_REQUIREMENT']),

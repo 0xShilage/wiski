@@ -80,8 +80,25 @@ const MEDIA_ROLE: Record<'posterId' | 'backdropId' | 'logoId', MediaRole> = {
   logoId: 'LOGO',
 };
 
-async function checkKindFields(t: Tx, kind: ItemKind, f: ItemFieldsInput): Promise<void> {
+async function checkKindFields(
+  t: Tx,
+  kind: ItemKind,
+  f: ItemFieldsInput,
+  actor: Actor,
+  currentManualPriceCents: number | null = null,
+): Promise<void> {
   const errors: ProblemField[] = [];
+  if (f.manualPriceCents !== undefined && f.manualPriceCents !== null && kind !== 'MOVIE') {
+    errors.push({ path: 'manualPriceCents', message: 'Só para filmes.' });
+  }
+  // A movie's price is a money decision: only the streamer changes it (moderators may resend it).
+  if (
+    f.manualPriceCents !== undefined &&
+    f.manualPriceCents !== currentManualPriceCents &&
+    actor.role !== 'STREAMER'
+  ) {
+    errors.push({ path: 'manualPriceCents', message: 'Só a streamer define o preço manual.' });
+  }
   if (kind !== 'SERIES') {
     for (const k of ['seasonsLabel', 'seasonCount', 'episodeCount'] as const) {
       if (f[k] !== undefined && f[k] !== null) errors.push({ path: k, message: 'Só para séries.' });
@@ -175,7 +192,7 @@ export async function createItem(
 ) {
   const { kind, ...fields } = input;
   return tx(kind, async (t) => {
-    await checkKindFields(t, kind, fields);
+    await checkKindFields(t, kind, fields, ctx.actor);
     const data = itemData(fields);
     const item = await t.catalogItem.create({
       data: {
@@ -225,7 +242,10 @@ export async function saveItem(
   }
   return refreshTotalAfter(
     tx(current.kind, async (t) => {
-      await checkKindFields(t, current.kind, fields);
+      if (note.startsWith('revert:') && ctx.actor.role !== 'STREAMER') {
+        delete fields.manualPriceCents; // a moderator's revert keeps the streamer's current price
+      }
+      await checkKindFields(t, current.kind, fields, ctx.actor, current.manualPriceCents);
       const before = await snapshotFor(t, id);
       const version = await bumpVersion(t, current, expectedVersion);
       if (fields.slot !== undefined && before.item.status !== 'DRAFT') {

@@ -5,6 +5,7 @@ import { formatBRL } from '@/lib/catalog/pricing';
 import { KIND_PATH } from '@/lib/catalog/kinds';
 import { adminFetch } from '@/lib/passkey-client';
 import { fmtDateTime, ORDER_STATUS_PT, type AdminOrderView } from '@/lib/admin/types';
+import { ManualPaymentForm } from './ManualPaymentForm';
 
 type Page = {
   orders: AdminOrderView[];
@@ -99,6 +100,14 @@ export function OrdersBoard({ initial, role }: { initial: Page; role: 'MODERATOR
           {toast.text}
         </p>
       ) : null}
+      {role === 'STREAMER' ? (
+        <ManualPaymentForm
+          onDone={(text, ok) => {
+            setToast({ ok, text });
+            void load(filter);
+          }}
+        />
+      ) : null}
       <div className="wf-seg" role="group" aria-label="Filtrar pedidos">
         {FILTERS.map((f) => (
           <button
@@ -138,6 +147,7 @@ export function OrdersBoard({ initial, role }: { initial: Page; role: 'MODERATOR
               </div>
               <div className="wf-ops-actions">
                 {pill(o.status)}
+                {o.manual ? <span className="wf-pill">Já pago</span> : null}
                 {o.payment ? (
                   <span className="wf-pill">Pix: {o.payment.status.toLowerCase()}</span>
                 ) : null}
@@ -255,6 +265,26 @@ export function OrdersBoard({ initial, role }: { initial: Page; role: 'MODERATOR
                       }}
                     >
                       Aceitar como venda
+                    </button>
+                  ) : null}
+                  {o.manual && ['PAID', 'SCHEDULED'].includes(o.status) ? (
+                    <button
+                      type="button"
+                      className="wf-btn wf-btn--sm wf-btn--ghost"
+                      disabled={busy}
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `Desfazer o registro ${o.code} (${formatBRL(o.totalCents)})? O título volta a ficar disponível.`,
+                          )
+                        ) {
+                          void act('Registro desfeito', `/api/v1/admin/orders/${o.id}/undo`, {
+                            expectedVersion: o.version,
+                          });
+                        }
+                      }}
+                    >
+                      Desfazer registro
                     </button>
                   ) : null}
                   {['PAID', 'SCHEDULED', 'NEEDS_ATTENTION'].includes(o.status) &&

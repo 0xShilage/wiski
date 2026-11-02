@@ -108,3 +108,11 @@ Note: the environment's Playwright now looks for Chromium build 1248 while 1243 
 ## Addendum — Mercado Pago refusals explained in the log (2026-11-02)
 
 When Mercado Pago refuses a request, the server log (`mercadopago error`) now carries MP's error codes (`causes`) and `message`, cut to 200 characters, sanitised, with e-mails and long digit runs masked. Before, it carried the HTTP status only, which wasn't enough to tell an account without a Pix key (code 13253) from a refused payer e-mail or bad credentials. Unit 323 / 323 (+2: what is kept, what is masked, non-JSON bodies). Integration 959 / 959.
+
+## Addendum — manual price, "Já pago", 50 movies, home grid and Twitch (2026-11-02)
+
+| Suite | Result |
+|---|---|
+| Unit | ✅ 327 / 327 (+2: the manual price replaces base + extra minutes, discounts and queue jumps still apply; CSP `frame-src` includes the Twitch player) |
+| Integration | see below — new `manual-orders.test.ts` (9): manual price in quote, checkout charge, public reads and the total goal; streamer-only and range checks; "Já pago" for a movie (SPONSORED, PAID, no Payment, no MP call, audited without the name), idempotency, campaign amounts (any amount, FUNDED when complete, a pending Pix keeps its share), undo for movies and funded campaigns, site orders not undoable, step-up. `db-constraints-phase6` (+2): `ci_manual_price`, `ord_manual`, relaxed contribution rule for MANUAL only. `db-constraints-r1` / `catalog`: the 51st movie is refused. Authz matrix: +3 rows. |
+| E2E | see below — `community` (+2): the available-movies grid below the carousel; the Twitch block only while a session is LIVE, nothing requested from Twitch before the click, the player URL after it. `operations` (+1): "Já pago" in Pedidos and its undo. `headers`: Permissions-Policy delegates autoplay/fullscreen to youtube-nocookie and the Twitch player only. |

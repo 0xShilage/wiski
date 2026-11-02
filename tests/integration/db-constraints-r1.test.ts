@@ -1,6 +1,6 @@
 /**
  * R1 reviewed SQL (prisma/migrations/20261002230100_r1_constraints): every new CHECK, the
- * deferred live-slot exclusion, the 35/20/10 live limit trigger, campaign money invariants and
+ * deferred live-slot exclusion, the 50/20/10 live limit trigger, campaign money invariants and
  * the kind-specific Order checks (12 §2 step 2 "done when").
  */
 import { testBuyerKey, testPublicCode } from '../support/orders';
@@ -53,7 +53,7 @@ describe('CatalogItem CHECKs', () => {
       { trailerYoutubeId: 'https://youtu.be/abcdefghijk' },
       { trailerYoutubeId: 'abc' },
       { seasonCount: 2 }, // series-only field on a movie
-      { slot: 36 },
+      { slot: 51 },
       { slot: 0 },
       { version: -1 },
       { reservedUntil: new Date() }, // without reservedOrderId
@@ -122,11 +122,11 @@ describe('live slots (deferred exclusion)', () => {
   });
 });
 
-describe('live limit trigger (35 movies, 20 series, 10 franchises)', () => {
-  it('refuses the 36th live movie with SQLSTATE WF409, counting WATCHED too', async () => {
-    for (let slot = 1; slot <= 34; slot++) await makeItem({ status: 'ACTIVE', slot });
-    await makeItem({ status: 'WATCHED', slot: 35 });
-    expect(await sqlState(makeItem({ status: 'ACTIVE', slot: 35 }))).toBe('WF409');
+describe('live limit trigger (50 movies, 20 series, 10 franchises)', () => {
+  it('refuses the 51st live movie with SQLSTATE WF409, counting WATCHED too', async () => {
+    for (let slot = 1; slot <= 49; slot++) await makeItem({ status: 'ACTIVE', slot });
+    await makeItem({ status: 'WATCHED', slot: 50 });
+    expect(await sqlState(makeItem({ status: 'ACTIVE', slot: 50 }))).toBe('WF409');
     const draft = await makeItem({ status: 'DRAFT' });
     expect(
       await sqlState(
@@ -145,7 +145,7 @@ describe('live limit trigger (35 movies, 20 series, 10 franchises)', () => {
     await expect(
       db().catalogItem.update({
         where: { id: draft.id },
-        data: { status: 'ACTIVE', slot: 35, publishedAt: new Date() },
+        data: { status: 'ACTIVE', slot: 50, publishedAt: new Date() },
       }),
     ).resolves.toBeTruthy();
   });

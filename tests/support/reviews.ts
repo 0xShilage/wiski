@@ -14,7 +14,7 @@ const DAY = 86_400_000;
 
 /**
  * An item watched on stream → reviews open. ARCHIVED (watched, slot already replaced) needs no
- * slot, so tests don't fight over the 35/10/10 live slots; `liveWatched` covers WATCHED itself.
+ * slot, so tests don't fight over the 50/20/10 live slots; `liveWatched` covers WATCHED itself.
  */
 export async function watchedItem(kind: 'MOVIE' | 'SERIES' | 'FRANCHISE' = 'MOVIE') {
   const item = await makeItem({ kind, status: 'ARCHIVED' });
@@ -25,7 +25,7 @@ export async function watchedItem(kind: 'MOVIE' | 'SERIES' | 'FRANCHISE' = 'MOVI
 
 /** A WATCHED item still in its slot (first free movie slot). */
 export async function liveWatched() {
-  for (let slot = 1; slot <= 35; slot++) {
+  for (let slot = 1; slot <= 50; slot++) {
     const taken = await db().catalogItem.count({
       where: { kind: 'MOVIE', slot, status: { in: ['ACTIVE', 'SPONSORED', 'FUNDED', 'WATCHED'] } },
     });

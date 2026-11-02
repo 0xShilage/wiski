@@ -1,6 +1,6 @@
 /**
  * Catalog services + admin API (11 §4, §8; 12 §2 step 6 "done when"): create/save with versions,
- * concurrent-save conflict, revert restores the exact snapshot, publish completeness, the 35-movie
+ * concurrent-save conflict, revert restores the exact snapshot, publish completeness, the 50-movie
  * limit (409), slot board, Substituir, Assistido, campaigns (streamer + step-up), public reads,
  * and audit rows that carry field NAMES only.
  */
@@ -320,9 +320,9 @@ describe('publish and limits', () => {
     expect(detail.status).toBe(404);
   });
 
-  it('publishing beyond 35 live movies → 409 CATALOG_FULL; a taken slot → 409 SLOT_TAKEN', async () => {
-    for (let slot = 1; slot <= 34; slot++) await makeItem({ status: 'ACTIVE', slot });
-    const a = await completeMovie('Trinta e cinco');
+  it('publishing beyond 50 live movies → 409 CATALOG_FULL; a taken slot → 409 SLOT_TAKEN', async () => {
+    for (let slot = 1; slot <= 49; slot++) await makeItem({ status: 'ACTIVE', slot });
+    const a = await completeMovie('Cinquenta');
     const taken = await post(publishRoute.POST, '/x', a.id, {
       expectedVersion: a.version,
       slot: 3,
@@ -332,7 +332,7 @@ describe('publish and limits', () => {
     expect((await post(publishRoute.POST, '/x', a.id, { expectedVersion: a.version })).status).toBe(
       200,
     );
-    const b = await completeMovie('Trinta e seis');
+    const b = await completeMovie('Cinquenta e um');
     const full = await post(publishRoute.POST, '/x', b.id, { expectedVersion: b.version });
     expect(full.status).toBe(409);
     expect(await full.json()).toMatchObject({ code: 'CATALOG_FULL' });

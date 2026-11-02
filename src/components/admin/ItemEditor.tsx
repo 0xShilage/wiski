@@ -7,6 +7,8 @@ import {
   DEFAULT_CAMPAIGN_DAYS,
   formatBRL,
   franchiseGoalCents,
+  MANUAL_PRICE_MAX_CENTS,
+  MANUAL_PRICE_MIN_CENTS,
   moviePriceCents,
   seriesGoalCents,
 } from '@/lib/catalog/pricing';
@@ -25,6 +27,7 @@ import {
   formFrom,
   KIND_UI,
   type Kind,
+  reaisToCents,
 } from './types';
 
 type Msg = { kind: 'ok' | 'err'; text: string; conflict?: boolean } | null;
@@ -105,9 +108,26 @@ export function ItemEditor({
   const ui = KIND_UI[kind];
 
   const runtime = Number(form.runtimeMinutes);
+  const manualCents = kind === 'MOVIE' ? reaisToCents(form.manualPrice) : null;
+  const manualValid =
+    manualCents === null ||
+    (Number.isInteger(manualCents) &&
+      manualCents >= MANUAL_PRICE_MIN_CENTS &&
+      manualCents <= MANUAL_PRICE_MAX_CENTS);
+  const formulaCents = useMemo(() => {
+    try {
+      return moviePriceCents(runtime);
+    } catch {
+      return null;
+    }
+  }, [runtime]);
   const money = useMemo(() => {
     try {
-      if (kind === 'MOVIE') return { label: 'Preço calculado', cents: moviePriceCents(runtime) };
+      if (kind === 'MOVIE') {
+        if (manualCents !== null && manualValid)
+          return { label: 'Preço manual', cents: manualCents };
+        return { label: 'Preço calculado', cents: moviePriceCents(runtime) };
+      }
       if (kind === 'SERIES')
         return { label: 'Meta pela fórmula', cents: seriesGoalCents(Number(form.seasonCount)) };
       const films = form.films
@@ -117,7 +137,7 @@ export function ItemEditor({
     } catch {
       return null;
     }
-  }, [kind, runtime, form.seasonCount, form.films]);
+  }, [kind, runtime, manualCents, manualValid, form.seasonCount, form.films]);
   const ytId = form.trailer.trim() ? parseYoutubeId(form.trailer) : null;
 
   function fail(p: Problem) {
@@ -144,6 +164,11 @@ export function ItemEditor({
 
   /** Save; returns the fresh item (null on failure). */
   async function save(): Promise<AdminItem | null> {
+    if (!manualValid) {
+      setErrors({ manualPriceCents: 'De R$ 5 a R$ 2.000 (ex.: 60 ou 59,90), ou vazio.' });
+      setMsg({ kind: 'err', text: 'Alguns campos estão inválidos.' });
+      return null;
+    }
     const fields = fieldsFrom(form, kind, isDraft);
     const data = isNew
       ? await call<{ item: AdminItem }>(
@@ -250,6 +275,7 @@ export function ItemEditor({
     state: 'ACTIVE',
     watchedAt: null,
     priceCents: kind === 'MOVIE' && money ? money.cents : null,
+    manualPrice: kind === 'MOVIE' && manualCents !== null && manualValid,
     sponsorName: null,
     campaign: null,
     films: [],
@@ -360,6 +386,30 @@ export function ItemEditor({
           </select>
           {err('ageRating')}
         </label>
+        {kind === 'MOVIE' ? (
+          <label className="wf-field">
+            Preço manual (R$)
+            <input
+              inputMode="decimal"
+              autoComplete="off"
+              maxLength={12}
+              placeholder={
+                formulaCents ? `vazio = ${formatBRL(formulaCents)}` : 'vazio = automático'
+              }
+              value={form.manualPrice}
+              readOnly={role !== 'STREAMER'}
+              onChange={(e) => set('manualPrice', e.target.value)}
+              aria-describedby={`${fid}-mp`}
+              {...inv('manualPriceCents')}
+            />
+            <span className="wf-hint" id={`${fid}-mp`}>
+              {role === 'STREAMER'
+                ? 'Substitui o preço pela duração. Vazio = automático.'
+                : 'Só a streamer define o preço manual.'}
+            </span>
+            {err('manualPriceCents')}
+          </label>
+        ) : null}
         {money ? (
           <p className="full m-0 text-sm" aria-live="polite">
             {money.label}: <b className="text-lavender">{formatBRL(money.cents)}</b>

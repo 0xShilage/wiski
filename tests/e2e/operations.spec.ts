@@ -1,7 +1,7 @@
 /**
  * Phase 4 operations end to end: an OBS overlay opened with a real key (fragment exchanged for
  * the cookie and removed from the address, then live SSE updates), the agenda board moving a
- * booked movie, and the public "Próximos na live" strip from the dev seed.
+ * booked movie, the public "Próximos na live" strip from the dev seed, and "Já pago" in Pedidos.
  */
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
@@ -119,4 +119,58 @@ test('agenda: a moderator starts the live and the overlay follows over SSE', asy
   });
   await ctx.close();
   await overlayCtx.close();
+});
+
+test('pedidos: the streamer registers a movie as "Já pago" (it enters the queue) and undoes it', async ({
+  browser,
+}) => {
+  const st = await seedUser({ role: 'STREAMER', passkeyVerified: true });
+  const ctx = await browser.newContext();
+  await signIn(ctx, st.token);
+  const page = await ctx.newPage();
+  page.on('dialog', (d) => void d.accept());
+  await page.goto('/admin/pedidos');
+  await page.getByRole('button', { name: /Já pago/ }).click();
+  const form = page.getByRole('form', { name: 'Já pago' });
+  const title = form.getByLabel('Título');
+  await expect(title.locator('option').nth(1)).toBeAttached();
+  const value = await title
+    .locator('optgroup[label="Filmes"] option')
+    .first()
+    .getAttribute('value');
+  const name = (await title.locator(`option[value="${value}"]`).textContent())!.replace(
+    /^\d{2} · /,
+    '',
+  );
+  await title.selectOption(value!);
+  await expect(form.getByLabel('Valor recebido (R$)')).toHaveValue(/^\d+(,\d{2})?$/);
+  await form.getByLabel('Nome público (opcional)').fill('Tia Lu');
+  await form.getByRole('button', { name: 'Registrar como pago' }).click();
+  await expect(page.getByText(`Pagamento de “${name}” registrado: entrou na fila.`)).toBeVisible();
+  const card = page.locator('.wf-ops-card', { hasText: name }).filter({ hasText: 'Já pago' });
+  await expect(card.first()).toContainText('Pago fora do site');
+  expect(
+    await withDb(
+      async (c) =>
+        (
+          await c.query<{ status: string }>(`SELECT status FROM "CatalogItem" WHERE id = $1`, [
+            value,
+          ])
+        ).rows[0]!.status,
+    ),
+  ).toBe('SPONSORED');
+
+  await card.first().getByRole('button', { name: 'Desfazer registro' }).click();
+  await expect(page.getByText('Registro desfeito: feito.')).toBeVisible();
+  expect(
+    await withDb(
+      async (c) =>
+        (
+          await c.query<{ status: string }>(`SELECT status FROM "CatalogItem" WHERE id = $1`, [
+            value,
+          ])
+        ).rows[0]!.status,
+    ),
+  ).toBe('ACTIVE');
+  await ctx.close();
 });

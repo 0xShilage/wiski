@@ -25,8 +25,9 @@ export function pageCsp({ nonce, origin, dev }: CspOptions): string {
     `img-src 'self' data:`,
     `font-src 'self'`,
     `connect-src 'self'${dev ? ' ws: wss:' : ''}`,
-    // Turnstile, and the trailer player (created only after "Assistir trailer", 11 §6).
-    `frame-src https://challenges.cloudflare.com https://www.youtube-nocookie.com`,
+    // Turnstile, the trailer player (created only after "Assistir trailer", 11 §6) and the
+    // home page's Twitch player (created only after "Assistir aqui", 2026-11-02).
+    `frame-src https://challenges.cloudflare.com https://www.youtube-nocookie.com https://player.twitch.tv`,
     `manifest-src 'self'`,
     `media-src 'self'`,
     `object-src 'none'`,

@@ -86,9 +86,11 @@ export const itemFieldsInput = z
     logoId: mediaId,
     /** MOVIE: title drawn over the poster in the carousel ("Adicionar texto?") */
     posterTitle: z.boolean(),
+    /** MOVIE: price set by hand (cents, R$ 5–2.000); null = by runtime. Streamer only. */
+    manualPriceCents: z.int().min(500).max(200_000).nullable(),
     franchiseEntries: z.array(franchiseEntryInput).max(30),
     /** Planned slot for a draft (the slot it will take when published). */
-    slot: z.int().min(1).max(35).nullable(),
+    slot: z.int().min(1).max(50).nullable(),
   })
   .partial()
   .strict();
@@ -110,7 +112,7 @@ export const saveItemInput = z
 export const versionInput = z.object({ expectedVersion: z.int().min(0) }).strict();
 
 export const publishInput = z
-  .object({ expectedVersion: z.int().min(0), slot: z.int().min(1).max(35).optional() })
+  .object({ expectedVersion: z.int().min(0), slot: z.int().min(1).max(50).optional() })
   .strict();
 
 export const revertInput = z
@@ -123,9 +125,9 @@ export const slotsInput = z
   .object({
     kind: z.enum(ITEM_KINDS),
     slots: z
-      .array(z.object({ id: z.uuid(), slot: z.int().min(1).max(35) }).strict())
+      .array(z.object({ id: z.uuid(), slot: z.int().min(1).max(50) }).strict())
       .min(1)
-      .max(35),
+      .max(50),
   })
   .strict();
 

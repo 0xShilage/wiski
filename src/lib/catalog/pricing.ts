@@ -9,7 +9,7 @@ export const MOVIE_PER_EXTRA_MIN_CENTS = 100; // + R$ 1,00 per extra minute
 export const SEASON_GOAL_CENTS = 10000; // R$ 100,00 per season included
 export const MIN_CONTRIBUTION_CENTS = 500; // R$ 5,00, whole reais
 export const MOVIE_MAX_RUNTIME = 360;
-export const LIVE_LIMIT = { MOVIE: 35, SERIES: 20, FRANCHISE: 10 } as const;
+export const LIVE_LIMIT = { MOVIE: 50, SERIES: 20, FRANCHISE: 10 } as const;
 export const DEFAULT_CAMPAIGN_DAYS = 30;
 
 export function moviePriceCents(runtimeMinutes: number): number {
@@ -22,6 +22,18 @@ export function moviePriceCents(runtimeMinutes: number): number {
   }
   const extra = Math.max(0, runtimeMinutes - MOVIE_BASE_UP_TO_MIN);
   return MOVIE_BASE_CENTS + extra * MOVIE_PER_EXTRA_MIN_CENTS;
+}
+
+/** R$ 5,00 to R$ 2.000,00 (ci_manual_price). */
+export const MANUAL_PRICE_MIN_CENTS = 500;
+export const MANUAL_PRICE_MAX_CENTS = 200_000;
+
+/** The movie's price before discounts: the manual price when the streamer set one (2026-11-02). */
+export function movieListPriceCents(
+  runtimeMinutes: number,
+  manualPriceCents: number | null,
+): number {
+  return manualPriceCents ?? moviePriceCents(runtimeMinutes);
 }
 
 export function seriesGoalCents(seasonCount: number): number {

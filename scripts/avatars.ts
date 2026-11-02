@@ -1,6 +1,6 @@
 /**
- * Profile pictures (2026-10-31): ASSETS/PROFILE_ICONS/01.png … 40.png (1000 × 1000, round, transparent
- * corners) → public/avatars/perfil-NN-{128,256}.webp. The originals stay out of git (≈ 29 MB);
+ * Profile pictures (2026-10-31): ASSETS/PROFILE_ICONS/01.png … 45.png (1000 × 1000, round, transparent
+ * corners) → public/avatars/perfil-NN-{128,256}.webp. The originals stay out of git (≈ 34 MB);
  * re-run `npm run avatars` after changing one. Metadata is stripped, alpha kept.
  */
 import { existsSync, mkdirSync, readdirSync } from 'node:fs';

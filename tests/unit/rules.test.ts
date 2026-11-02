@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  AVATAR_COLOR_ORDER,
   AVATAR_KEYS,
   avatarLabel,
   avatarSrc,
@@ -38,20 +39,21 @@ describe('usernames', () => {
 });
 
 describe('avatars', () => {
-  it('40 hand-made presets; the default is one of them', () => {
-    expect(AVATAR_KEYS).toHaveLength(40);
+  it('45 hand-made presets; the default is one of them; the picker order holds each once', () => {
+    expect(AVATAR_KEYS).toHaveLength(45);
     expect(AVATAR_KEYS[0]).toBe('perfil-01');
-    expect(AVATAR_KEYS.at(-1)).toBe('perfil-40');
+    expect(AVATAR_KEYS.at(-1)).toBe('perfil-45');
     expect(AVATAR_KEYS).toContain(DEFAULT_AVATAR);
     expect(avatarLabel('perfil-07')).toBe('Avatar 7');
     expect(avatarSrc('perfil-07', 48)).toBe('/avatars/perfil-07-128.webp');
     expect(avatarSrc('perfil-07', 96)).toBe('/avatars/perfil-07-256.webp');
+    expect([...AVATAR_COLOR_ORDER].sort()).toEqual([...AVATAR_KEYS]);
   });
   it('unknown and retired keys from the DB fall back to the default', () => {
     expect(resolveAvatarKey('../../x')).toBe(DEFAULT_AVATAR);
     expect(resolveAvatarKey(null)).toBe(DEFAULT_AVATAR);
     expect(resolveAvatarKey('mascote-2-plum')).toBe(DEFAULT_AVATAR);
-    expect(resolveAvatarKey('perfil-41')).toBe(DEFAULT_AVATAR);
+    expect(resolveAvatarKey('perfil-46')).toBe(DEFAULT_AVATAR);
     expect(resolveAvatarKey('perfil-12')).toBe('perfil-12');
   });
 });

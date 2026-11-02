@@ -1,18 +1,18 @@
 'use client';
 
 import { Img } from '@/components/Img';
-import { AVATAR_KEYS, type AvatarKey, avatarLabel, avatarSrc } from '@/lib/avatars';
+import { AVATAR_COLOR_ORDER, type AvatarKey, avatarLabel, avatarSrc } from '@/lib/avatars';
 import { cn } from '@/lib/cn';
 
 type Props = { value: AvatarKey; onChange: (key: AvatarKey) => void; name?: string };
 
-/** The 40 preset profile pictures as an accessible radio group (arrow keys move between options). */
+/** The 45 preset profile pictures, ordered by colour, as an accessible radio group (arrow keys move). */
 export function AvatarPicker({ value, onChange, name = 'avatar' }: Props) {
   return (
     <fieldset>
       <legend className="mb-3 text-sm font-semibold text-lilac">Escolha seu avatar</legend>
-      <div className="grid grid-cols-5 gap-3 sm:grid-cols-8">
-        {AVATAR_KEYS.map((key) => {
+      <div className="grid grid-cols-5 gap-3 sm:grid-cols-9">
+        {AVATAR_COLOR_ORDER.map((key) => {
           const checked = key === value;
           return (
             <label

@@ -18,7 +18,16 @@ test('onboarding → perfil → perfil público', async ({ page, context }) => {
   await expect(page.getByText('Esse nome é reservado.')).toBeVisible();
   await page.getByLabel('Nome de usuário').fill(name);
   await expect(page.getByText('Disponível!')).toBeVisible();
-  await page.getByLabel('Avatar 10', { exact: true }).check({ force: true });
+  // the picker is ordered by colour: white backgrounds first, black last (2026-11-02)
+  const options = page.getByRole('radio', { name: /^Avatar \d+$/ });
+  await expect(options).toHaveCount(45);
+  await expect(options.first()).toHaveAccessibleName('Avatar 9');
+  await expect(options.last()).toHaveAccessibleName('Avatar 39');
+  // keyboard, like a keyboard user (a forced click can land on the phone's fixed tab bar)
+  const pick = page.getByLabel('Avatar 44', { exact: true });
+  await pick.focus();
+  await page.keyboard.press('Space');
+  await expect(pick).toBeChecked();
   await page.getByRole('button', { name: 'Criar meu perfil' }).click();
 
   await expect(page).toHaveURL(/\/perfil$/);

@@ -97,3 +97,10 @@ Note: the environment's Playwright now looks for Chromium build 1248 while 1243 
 | Integration | `overlay.test.ts` ✅ 51 / 51 (+1: the cookie name and flag for development over http versus everything else) |
 | Manual reproduction | `next dev` over http against the test stack: the key exchange sets `wf_overlay_dev` (HttpOnly, SameSite=Strict), and `/api/v1/overlay/stream?widget=meta-total` with that cookie answers 200 with the "Meta total" event. The same request with the `__Host-` name is refused, as expected in development. |
 | E2E | `reviews`, `carousel`, `design-match`, `viewports`, `operations` ✅ 56 / 56; `a11y-layout` + `csp` for the affected pages ✅ 16 / 16. New check: on Avaliações at 1280 px, two cards share a row with the same height; at 360 px they stack. Screenshots checked: the active poster's glow at 1920 × 1080 now fades out, and Avaliações shows three cards per row. |
+
+## Addendum — 45 profile pictures by colour (2026-11-02)
+
+| Suite | Result |
+|---|---|
+| Unit | ✅ 321 / 321 (45 keys; the colour order is a permutation of the keys; every built WebP checked) |
+| E2E | `account-flow` ✅ 8 / 8; the picture-related `a11y-layout`, `csp` and `headers` checks pass. The onboarding test now checks 45 options, colour order (Avatar 9 first, Avatar 39 last) and picks the new Avatar 44 with the keyboard: on the 360 px run, a forced click on that option landed on the fixed tab bar. |

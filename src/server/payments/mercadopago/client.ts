@@ -221,6 +221,8 @@ export type CreatePix = {
   description: string;
   externalReference: string;
   payerEmail: string;
+  /** development only (MP_TEST_PAYER_EMAIL): MP's test payer name, "APRO" = approve */
+  payerFirstName?: string | undefined;
   expiresAt: Date;
   idempotencyKey: string;
 };
@@ -239,7 +241,7 @@ export function createPixPayment(p: CreatePix): Promise<MpPayment> {
       payment_method_id: 'pix',
       external_reference: p.externalReference,
       date_of_expiration: mpDate(p.expiresAt),
-      payer: { email: p.payerEmail },
+      payer: { email: p.payerEmail, ...(p.payerFirstName ? { first_name: p.payerFirstName } : {}) },
     },
     p.idempotencyKey,
   );

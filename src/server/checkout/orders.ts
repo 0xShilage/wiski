@@ -534,6 +534,7 @@ async function issuePix(
       externalReference: order.id,
       // with MP test credentials the payer must be a test buyer (development only, env.ts)
       payerEmail: getEnv().MP_TEST_PAYER_EMAIL ?? order.contactEmail,
+      payerFirstName: getEnv().MP_TEST_PAYER_EMAIL ? 'APRO' : undefined,
       expiresAt: payment.expiresAt,
       idempotencyKey: payment.idempotencyKey,
     });

@@ -51,3 +51,19 @@ Screenshots of the picker (360 px) and a profile header (1280 px) were checked b
 | Unit | ✅ 313 / 313 (nine tabs; phone "Mais" holds four) |
 | Integration | ✅ **947 / 947**. New `releases.test.ts` (6) covers: add/edit/delete with audit; linked series lend name, poster and link; a movie as the series and bad input are refused; viewers get 404; the 7-day window; drafts lend no poster or link; the database CHECKs and the series-only trigger; Assistidos order and kind filter; posters on Cronograma titles. Plus 4 authz rows × 4 roles. |
 | E2E | Full run: 321 passed. Two failures, both fixed: the Assistidos grid clashed with the Avaliações class `.wf-watched` (renamed `.wf-seen`), and with it the filter's target size. After the fix: `community`, `a11y-layout` and `csp` specs 212 / 212, the phone filter on one row with no horizontal scroll, and the header with nine tabs from 761 to 1280 px (`viewports.spec`). |
+
+## Addendum — Links icons, one legal text, 40 profile pictures (2026-11-01, evening)
+
+| Suite | Result |
+|---|---|
+| Lint / typecheck / formatting | ✅ |
+| Unit | ✅ **321 / 321** (+8). New `legal-text.test.ts`: the markup parser (headings, loose lists merged, bold, links, blanks) never turns text into markup (`http:`/`javascript:` links, unknown or prototype placeholders like `{constructor}` and raw tags stay text). The published text has sections 1–17 in order with unique anchors, nothing left over from the .docx, and https links to the Google, Mercado Pago and Cloudflare policies. `community.test.ts`: Amazon (storefronts and short links, not `amazon.evil.example`), Steam store, Kick, Cinefy, and every requested platform has a glyph. `rules.test.ts`: 40 avatar keys. Every built WebP (80) is checked for size, shape and alpha. |
+| Integration | ✅ **949 / 949** |
+| E2E | Full run: **329 passed**, 1 failed, 50 skipped by design. The failure: at 360 px `/privacidade` was wider than the screen, because long policy URLs did not wrap (F1). After the fix, the legal, layout/accessibility, CSP and Links checks were re-run on a fresh build: 20 / 20. New `legal.spec.ts`: `/termos` → 308 → `/privacidade`; 17 sections and contents links that jump to their anchor; the provisional notice and "[a definir]" blanks; the footer's single "Termos e privacidade" link and the LGPD link landing on section 1. `community.spec.ts`: new intro text, a decorative icon (one path, `aria-hidden`) on every seeded link, accessible name unchanged. |
+
+| # | Finding | Fix |
+|---|---|---|
+| F1 | `/privacidade` overflowed at 360 px: the Mercado Pago and Google policy URLs are single long words. | Links in the text wrap anywhere, and the article's children may shrink (`min-width: 0`). |
+| F2 | In the two-column contents, a wrapped entry ("Dados de pagamento e limitações de responsabilidade") had its number on the second line. | Entries align to the top. Screenshot checked. |
+
+Note: the environment's Playwright now looks for Chromium build 1248 while 1243 is installed; the runs above used `PW_CHROMIUM_EXECUTABLE` (supported by `playwright.config.ts`) pointing at the installed headless shell.

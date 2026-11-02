@@ -98,7 +98,10 @@ export const eraseInput = z.object({ confirmUsername: z.string().min(1).max(40) 
 
 // ── overlays ──
 export const overlayKeyInput = z
-  .object({ label: z.string().min(1).max(120), widgets: z.array(z.enum(WIDGETS)).min(1).max(WIDGETS.length) })
+  .object({
+    label: z.string().min(1).max(120),
+    widgets: z.array(z.enum(WIDGETS)).min(1).max(WIDGETS.length),
+  })
   .strict();
 export const overlaySessionInput = z.object({ key: z.string().min(10).max(80) }).strict();
 export const overlayStreamQuery = z.object({ widget: z.enum(WIDGETS) }).strict();

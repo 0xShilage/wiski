@@ -2,7 +2,9 @@
 import { useId, useState } from 'react';
 import { fmtDateTime } from '@/lib/admin/types';
 import { LINK_LABEL_MAX, LINK_NOTE_MAX } from '@/lib/links';
+import type { Picture } from '@/lib/media';
 import { adminFetch } from '@/lib/passkey-client';
+import { MediaDrop } from './MediaDrop';
 
 /** Phase 6 dashboard panels: the Links page (streamer) and viewer suggestions (moderation). */
 
@@ -419,7 +421,10 @@ export type AdminReleaseRow = {
   title: string;
   seasonLabel: string;
   releaseDate: string;
+  yearOnly: boolean;
   note: string | null;
+  posterId: string | null;
+  poster: Picture | null;
   editor: string | null;
   updatedAt: string;
 };
@@ -428,15 +433,24 @@ type ReleaseForm = {
   itemId: string;
   title: string;
   seasonLabel: string;
+  /** only the year is known */
+  yearOnly: boolean;
   releaseDate: string;
+  releaseYear: string;
   note: string;
+  posterId: string | null;
+  poster: Picture | null;
 };
 const EMPTY_RELEASE: ReleaseForm = {
   itemId: '',
   title: '',
   seasonLabel: '',
+  yearOnly: false,
   releaseDate: '',
+  releaseYear: '',
   note: '',
+  posterId: null,
+  poster: null,
 };
 const dayFmt = new Intl.DateTimeFormat('pt-BR', {
   day: '2-digit',
@@ -498,18 +512,46 @@ function ReleaseFields({
           onChange={(e) => onChange({ ...form, seasonLabel: e.target.value })}
         />
       </label>
-      <label className="wf-field" htmlFor={`${id}-d`}>
-        <span>Data de estreia</span>
+      {form.yearOnly ? (
+        <label className="wf-field" htmlFor={`${id}-y`}>
+          <span>Ano previsto</span>
+          <input
+            id={`${id}-y`}
+            type="number"
+            inputMode="numeric"
+            className="wf-input"
+            min={2000}
+            max={2100}
+            step={1}
+            placeholder={String(new Date().getFullYear() + 1)}
+            value={form.releaseYear}
+            required
+            onChange={(e) => onChange({ ...form, releaseYear: e.target.value })}
+          />
+        </label>
+      ) : (
+        <label className="wf-field" htmlFor={`${id}-d`}>
+          <span>Data de estreia</span>
+          <input
+            id={`${id}-d`}
+            type="date"
+            className="wf-input"
+            min="2000-01-01"
+            max="2100-12-31"
+            value={form.releaseDate}
+            required
+            onChange={(e) => onChange({ ...form, releaseDate: e.target.value })}
+          />
+        </label>
+      )}
+      <label className="wf-check" htmlFor={`${id}-yo`}>
         <input
-          id={`${id}-d`}
-          type="date"
-          className="wf-input"
-          min="2000-01-01"
-          max="2100-12-31"
-          value={form.releaseDate}
-          required
-          onChange={(e) => onChange({ ...form, releaseDate: e.target.value })}
+          id={`${id}-yo`}
+          type="checkbox"
+          checked={form.yearOnly}
+          onChange={(e) => onChange({ ...form, yearOnly: e.target.checked })}
         />
+        <span>Só sei o ano</span>
       </label>
       <label className="wf-field" htmlFor={`${id}-n`}>
         <span>Observação (opcional)</span>
@@ -522,6 +564,21 @@ function ReleaseFields({
           onChange={(e) => onChange({ ...form, note: e.target.value })}
         />
       </label>
+      <div className="wf-field wf-rel-poster">
+        <span>Pôster (opcional)</span>
+        <MediaDrop
+          role="POSTER"
+          label="Pôster 2:3"
+          hint="mínimo 600×900; sem pôster, usa o da série do catálogo"
+          className="wf-drop--poster"
+          picture={form.poster}
+          onUploaded={(posterId, poster) => onChange({ ...form, posterId, poster })}
+          onClear={() => onChange({ ...form, posterId: null, poster: null })}
+        />
+        <span className="wf-muted text-xs">
+          Sem pôster próprio, a série do catálogo empresta o dela (quando já é pública).
+        </span>
+      </div>
     </>
   );
 }
@@ -530,8 +587,9 @@ const releaseBody = (f: ReleaseForm) => ({
   itemId: f.itemId || null,
   title: f.title.trim() || null,
   seasonLabel: f.seasonLabel,
-  releaseDate: f.releaseDate,
+  ...(f.yearOnly ? { releaseYear: Number(f.releaseYear) } : { releaseDate: f.releaseDate }),
   note: f.note.trim() || null,
+  posterId: f.posterId,
 });
 
 export function ReleasesPanel({
@@ -614,9 +672,12 @@ export function ReleasesPanel({
                   <span className="wf-ops-row__title">
                     {r.title} · {r.seasonLabel}{' '}
                     {r.itemId ? <span className="wf-pill">No catálogo</span> : null}
+                    {r.posterId ? <span className="wf-pill">Pôster próprio</span> : null}
                   </span>
                   <span className="wf-muted text-xs">
-                    Estreia em {dayFmt.format(new Date(`${r.releaseDate}T12:00:00Z`))}
+                    {r.yearOnly
+                      ? `Previsão: ${r.releaseDate.slice(0, 4)}`
+                      : `Estreia em ${dayFmt.format(new Date(`${r.releaseDate}T12:00:00Z`))}`}
                     {r.note ? ` · ${r.note}` : ''} · editado por @{r.editor ?? 'removido'}
                   </span>
                 </div>
@@ -632,8 +693,12 @@ export function ReleasesPanel({
                           itemId: r.itemId ?? '',
                           title: r.title,
                           seasonLabel: r.seasonLabel,
-                          releaseDate: r.releaseDate,
+                          yearOnly: r.yearOnly,
+                          releaseDate: r.yearOnly ? '' : r.releaseDate,
+                          releaseYear: r.yearOnly ? r.releaseDate.slice(0, 4) : '',
                           note: r.note ?? '',
+                          posterId: r.posterId,
+                          poster: r.poster,
                         },
                       })
                     }

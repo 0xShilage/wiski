@@ -65,6 +65,13 @@ async function tx<T>(kind: ItemKind, fn: (t: Tx) => Promise<T>): Promise<T> {
   }
 }
 
+/** Runs a catalog change, then refreshes "Meta total" on stream (the boards or a goal moved). */
+export async function refreshTotalAfter<T>(change: Promise<T>): Promise<T> {
+  const result = await change;
+  await refreshOverlays(['meta-total']);
+  return result;
+}
+
 // ── validation helpers ──────────────────────────────────────────────────────────
 
 const MEDIA_ROLE: Record<'posterId' | 'backdropId' | 'logoId', MediaRole> = {
@@ -216,48 +223,50 @@ export async function saveItem(
   if (current.status === 'ARCHIVED') {
     throw CatalogProblems.invalidState('Títulos arquivados não podem ser editados.');
   }
-  return tx(current.kind, async (t) => {
-    await checkKindFields(t, current.kind, fields);
-    const before = await snapshotFor(t, id);
-    const version = await bumpVersion(t, current, expectedVersion);
-    if (fields.slot !== undefined && before.item.status !== 'DRAFT') {
-      // Live slots move only through the slot board (reorder) — keep them out of content saves.
-      delete fields.slot;
-    }
-    await t.catalogItem.update({ where: { id }, data: itemData(fields) });
-    await replaceEntries(t, id, fields.franchiseEntries);
-    const after = await snapshotFor(t, id);
-    await t.catalogRevision.create({
-      data: { itemId: id, version, snapshot: after.snap, note, editorId: ctx.actor.id },
-    });
-    const fieldsChanged = changedFields(before.snap, after.snap) as never[];
-    if (note.startsWith('revert:')) {
-      await audit(
-        {
-          action: 'catalog.revert',
-          actor: ctx.actor,
-          requestId: ctx.requestId,
-          targetType: 'CatalogItem',
-          targetId: id,
-          metadata: { kind: current.kind, toVersion: Number(note.slice(7)), version },
-        },
-        t,
-      );
-    } else {
-      await audit(
-        {
-          action: 'catalog.save',
-          actor: ctx.actor,
-          requestId: ctx.requestId,
-          targetType: 'CatalogItem',
-          targetId: id,
-          metadata: { kind: current.kind, version, fields: fieldsChanged },
-        },
-        t,
-      );
-    }
-    return t.catalogItem.findUniqueOrThrow({ where: { id } });
-  });
+  return refreshTotalAfter(
+    tx(current.kind, async (t) => {
+      await checkKindFields(t, current.kind, fields);
+      const before = await snapshotFor(t, id);
+      const version = await bumpVersion(t, current, expectedVersion);
+      if (fields.slot !== undefined && before.item.status !== 'DRAFT') {
+        // Live slots move only through the slot board (reorder) — keep them out of content saves.
+        delete fields.slot;
+      }
+      await t.catalogItem.update({ where: { id }, data: itemData(fields) });
+      await replaceEntries(t, id, fields.franchiseEntries);
+      const after = await snapshotFor(t, id);
+      await t.catalogRevision.create({
+        data: { itemId: id, version, snapshot: after.snap, note, editorId: ctx.actor.id },
+      });
+      const fieldsChanged = changedFields(before.snap, after.snap) as never[];
+      if (note.startsWith('revert:')) {
+        await audit(
+          {
+            action: 'catalog.revert',
+            actor: ctx.actor,
+            requestId: ctx.requestId,
+            targetType: 'CatalogItem',
+            targetId: id,
+            metadata: { kind: current.kind, toVersion: Number(note.slice(7)), version },
+          },
+          t,
+        );
+      } else {
+        await audit(
+          {
+            action: 'catalog.save',
+            actor: ctx.actor,
+            requestId: ctx.requestId,
+            targetType: 'CatalogItem',
+            targetId: id,
+            metadata: { kind: current.kind, version, fields: fieldsChanged },
+          },
+          t,
+        );
+      }
+      return t.catalogItem.findUniqueOrThrow({ where: { id } });
+    }),
+  );
 }
 
 /** Revert = apply the snapshot of `toVersion` as a new save (history is never rewritten). */
@@ -362,21 +371,23 @@ export async function publishMovie(
   }
   if (item.status !== 'DRAFT') throw CatalogProblems.invalidState('Este filme já está no ar.');
   if (item.version !== expectedVersion) throw CatalogProblems.versionConflict(item.version);
-  return tx('MOVIE', async (t) => {
-    const finalSlot = await goLive(t, item, slot, now);
-    await audit(
-      {
-        action: 'catalog.publish',
-        actor: ctx.actor,
-        requestId: ctx.requestId,
-        targetType: 'CatalogItem',
-        targetId: id,
-        metadata: { kind: 'MOVIE', slot: finalSlot, version: item.version },
-      },
-      t,
-    );
-    return t.catalogItem.findUniqueOrThrow({ where: { id } });
-  });
+  return refreshTotalAfter(
+    tx('MOVIE', async (t) => {
+      const finalSlot = await goLive(t, item, slot, now);
+      await audit(
+        {
+          action: 'catalog.publish',
+          actor: ctx.actor,
+          requestId: ctx.requestId,
+          targetType: 'CatalogItem',
+          targetId: id,
+          metadata: { kind: 'MOVIE', slot: finalSlot, version: item.version },
+        },
+        t,
+      );
+      return t.catalogItem.findUniqueOrThrow({ where: { id } });
+    }),
+  );
 }
 
 export { goLive as goLiveInTx, freeSlot as freeSlotInTx, tx as catalogTx };
@@ -457,39 +468,41 @@ export async function replaceItem(
       'Esta campanha já recebeu contribuições e não pode ser substituída.',
     );
   }
-  return tx(item.kind, async (t) => {
-    const slot = item.slot as number;
-    const res = await t.catalogItem.updateMany({
-      where: { id, status: item.status, version: item.version },
-      data: { status: 'ARCHIVED', slot: null, archivedAt: now },
-    });
-    if (res.count !== 1) throw CatalogProblems.versionConflict(item.version);
-    if (replacementId) {
-      const draft = await t.catalogItem.findUnique({ where: { id: replacementId } });
-      if (!draft || draft.kind !== item.kind || draft.status !== 'DRAFT') {
-        throw Problems.validation([
-          { path: 'replacementId', message: 'Escolha um rascunho do mesmo tipo.' },
-        ]);
+  return refreshTotalAfter(
+    tx(item.kind, async (t) => {
+      const slot = item.slot as number;
+      const res = await t.catalogItem.updateMany({
+        where: { id, status: item.status, version: item.version },
+        data: { status: 'ARCHIVED', slot: null, archivedAt: now },
+      });
+      if (res.count !== 1) throw CatalogProblems.versionConflict(item.version);
+      if (replacementId) {
+        const draft = await t.catalogItem.findUnique({ where: { id: replacementId } });
+        if (!draft || draft.kind !== item.kind || draft.status !== 'DRAFT') {
+          throw Problems.validation([
+            { path: 'replacementId', message: 'Escolha um rascunho do mesmo tipo.' },
+          ]);
+        }
+        if (item.kind === 'MOVIE') {
+          await goLive(t, draft, slot, now);
+        } else {
+          await t.catalogItem.update({ where: { id: draft.id }, data: { slot } });
+        }
       }
-      if (item.kind === 'MOVIE') {
-        await goLive(t, draft, slot, now);
-      } else {
-        await t.catalogItem.update({ where: { id: draft.id }, data: { slot } });
-      }
-    }
-    await audit(
-      {
-        action: 'catalog.replace',
-        actor: ctx.actor,
-        requestId: ctx.requestId,
-        targetType: 'CatalogItem',
-        targetId: id,
-        metadata: { kind: item.kind, slot, replacementId },
-      },
-      t,
-    );
-    return { slot };
-  });
+      await audit(
+        {
+          action: 'catalog.replace',
+          actor: ctx.actor,
+          requestId: ctx.requestId,
+          targetType: 'CatalogItem',
+          targetId: id,
+          metadata: { kind: item.kind, slot, replacementId },
+        },
+        t,
+      );
+      return { slot };
+    }),
+  );
 }
 
 /** Mark as watched on stream → reviews unlock; the slot stays until a moderator replaces it. */

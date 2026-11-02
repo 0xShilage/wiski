@@ -108,6 +108,16 @@
   .wf-ops-form .full {
     grid-column: 1 / -1;
   }
+  /* Estreias: the optional poster, a small 2:3 drop zone on its own row */
+  .wf-ops-form .wf-rel-poster {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: 6px;
+    justify-items: start;
+  }
+  .wf-rel-poster .wf-drop--poster {
+    width: 132px;
+  }
   .wf-pill {
     display: inline-flex;
     align-items: center;
@@ -324,6 +334,36 @@
   .wf-overlay progress {
     width: min(600px, 80vw);
     height: 16px;
+  }
+  /* "Meta total": the big percentage, then one small bar per board */
+  .wf-overlay__total-pct {
+    font-family: var(--font-display);
+    font-size: 56px;
+    line-height: 1;
+    margin: 0;
+  }
+  .wf-overlay__kinds {
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 6px;
+  }
+  .wf-overlay__kinds li {
+    display: grid;
+    grid-template-columns: 7.5em minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    font-size: 20px;
+  }
+  .wf-overlay__kinds progress {
+    width: 100%;
+    height: 10px;
+  }
+  .wf-overlay__kinds small {
+    font-size: 18px;
+    color: var(--color-lilac);
+    font-variant-numeric: tabular-nums;
   }
   .wf-overlay__flash {
     animation: wf-flash 8s ease forwards;

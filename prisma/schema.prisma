@@ -323,10 +323,11 @@ model MediaAsset {
   createdAt    DateTime  @default(now()) @db.Timestamptz(3)
   unusedSince  DateTime? @db.Timestamptz(3) // GC after 30 days
 
-  uploadedBy User          @relation("MediaUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
-  posterOf   CatalogItem[] @relation("ItemPoster")
-  backdropOf CatalogItem[] @relation("ItemBackdrop")
-  logoOf     CatalogItem[] @relation("ItemLogo")
+  uploadedBy      User            @relation("MediaUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
+  posterOf        CatalogItem[]   @relation("ItemPoster")
+  backdropOf      CatalogItem[]   @relation("ItemBackdrop")
+  logoOf          CatalogItem[]   @relation("ItemLogo")
+  posterOfRelease SeasonRelease[] @relation("ReleasePoster")
 
   @@index([unusedSince])
 }
@@ -952,16 +953,20 @@ model SeasonRelease {
   itemId      String?  @db.Uuid // a SERIES in the catalog (optional)
   title       String // ≤ 120 chars, sanitised; the series name
   seasonLabel String // ≤ 40 chars: "Temporada 3", "Parte 2"
-  releaseDate DateTime @db.Date // calendar day of the release (no time zone)
+  releaseDate DateTime @db.Date // calendar day of the release (no time zone); year-only → Dec 31
+  yearOnly    Boolean  @default(false) // only the year is known ("Previsão: 2027")
   note        String? // ≤ 80 chars: "Netflix", "data a confirmar"
+  posterId    String?  @db.Uuid // own poster (2:3); else the linked series' poster
   editedById  String   @db.Uuid
   createdAt   DateTime @default(now()) @db.Timestamptz(3)
   updatedAt   DateTime @updatedAt @db.Timestamptz(3)
 
   item     CatalogItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  poster   MediaAsset?  @relation("ReleasePoster", fields: [posterId], references: [id], onDelete: SetNull)
   editedBy User         @relation("ReleaseEditor", fields: [editedById], references: [id], onDelete: Restrict)
 
   @@index([releaseDate])
+  @@index([posterId])
 }
 
 model AppSetting {

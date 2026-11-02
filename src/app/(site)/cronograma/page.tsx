@@ -142,9 +142,18 @@ export default async function CronogramaPage() {
                       <span className="wf-rel__title">{r.title}</span>
                       <span className="wf-rel__season">{r.seasonLabel}</span>
                       <span className="wf-rel__meta">
-                        <time dateTime={r.releaseDate}>
-                          {releaseFmt.format(new Date(`${r.releaseDate}T12:00:00Z`))}
-                        </time>
+                        {r.yearOnly ? (
+                          <>
+                            Previsão:{' '}
+                            <time dateTime={r.releaseDate.slice(0, 4)}>
+                              {r.releaseDate.slice(0, 4)}
+                            </time>
+                          </>
+                        ) : (
+                          <time dateTime={r.releaseDate}>
+                            {releaseFmt.format(new Date(`${r.releaseDate}T12:00:00Z`))}
+                          </time>
+                        )}
                         {r.note ? ` · ${r.note}` : ''}
                       </span>
                     </span>

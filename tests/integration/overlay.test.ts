@@ -16,14 +16,17 @@ import {
   overlayEventSchema,
   queueEvent,
   sponsorshipEvent,
+  totalGoalEvent,
 } from '@/server/overlay/events';
 import { announcePaidOrder, overlayChannel, queueSnapshot } from '@/server/overlay/state';
+import { sumTotals } from '@/server/goals/total';
 import { GET as keysRoute, POST as createKeyRoute } from '@/app/api/v1/admin/overlay-keys/route';
 import { DELETE as revokeRoute } from '@/app/api/v1/admin/overlay-keys/[id]/route';
 import { POST as sessionRoute } from '@/app/api/v1/overlay/session/route';
 import { GET as streamRoute } from '@/app/api/v1/overlay/stream/route';
 import { POST as scheduleRoute } from '@/app/api/v1/admin/schedule/route';
-import { clearCatalog } from '../support/catalog';
+import { clearCatalog, makeItem } from '../support/catalog';
+import { openCampaignFor } from '../support/checkout';
 import { call, req, setCookies } from '../support/http';
 import { as, hit, makeSession, paidMovie, resetSlots } from '../support/live';
 import { XSS_CORPUS } from '../support/xss-corpus';
@@ -248,6 +251,77 @@ describe('snapshots', () => {
       title: 'Filme invertido',
       sponsor: `@${fan.user.username}`,
     });
+  });
+});
+
+describe('"Meta total" (2026-11-01)', () => {
+  it('adds every current goal: movies by price, series and franchises by campaign; percentages only', async () => {
+    // a sponsored movie (R$ 20 of R$ 20) and an open one (R$ 0 of R$ 20)
+    await paidMovie({ runtime: 100 });
+    await makeItem({ kind: 'MOVIE', status: 'ACTIVE', slot: 30, runtimeMinutes: 100 });
+    // a series campaign: R$ 25 of R$ 100
+    const { item: series } = await openCampaignFor(10_000);
+    await db().campaign.update({
+      where: { itemId: series.id },
+      data: { raisedCents: 2_500, remainingCents: 7_500 },
+    });
+    // gone from the boards or not public yet: not counted
+    await makeItem({ kind: 'MOVIE', status: 'WATCHED', slot: 31 });
+    await makeItem({ kind: 'MOVIE', status: 'DRAFT' });
+
+    const k = await newKey(['meta-total']);
+    const cookie = (await exchange(k.key)).cookies['__Host-wf_overlay']!.value;
+    const e = (await firstEvent(cookie, 'meta-total')).event!;
+    expect(e).toEqual({
+      type: 'goal-total',
+      percent: 32, // R$ 45 of R$ 140
+      titles: 3,
+      funded: 1,
+      kinds: [
+        { kind: 'MOVIE', titles: 2, funded: 1, percent: 50 },
+        { kind: 'SERIES', titles: 1, funded: 0, percent: 25 },
+        { kind: 'FRANCHISE', titles: 0, funded: 0, percent: 0 },
+      ],
+    });
+    expect(JSON.stringify(e)).not.toMatch(/14000|4500|2500|cents/i);
+    // the key only opens what it lists
+    expect((await firstEvent(cookie, 'meta')).status).toBe(401);
+  });
+
+  it('one key can hold all five widgets; anything that moves "Meta" refreshes "Meta total" too', async () => {
+    const k = await newKey(['agora', 'fila', 'meta', 'meta-total', 'patrocinio']);
+    expect(k.key).toMatch(/^wfo_/);
+    const sub = new Redis(inject('redisUrl'));
+    const got: string[] = [];
+    await sub.subscribe(overlayChannel('meta-total'));
+    sub.on('message', (_c, m) => got.push(m));
+    const { order } = await paidMovie();
+    await announcePaidOrder(order.id); // refreshes "fila" and "meta"
+    for (let i = 0; i < 50 && !got.length; i++) await new Promise((r) => setTimeout(r, 20));
+    await sub.quit();
+    expect(JSON.parse(got[0]!)).toMatchObject({
+      type: 'goal-total',
+      titles: 1,
+      funded: 1,
+      percent: 100,
+    });
+  });
+
+  it('a title without any goal yet is left out; an empty board is 0 %', () => {
+    const base = { runtimeMinutes: 100, seasonCount: null, campaign: null, franchiseEntries: [] };
+    expect(sumTotals([])).toMatchObject({ titles: 0, funded: 0, percent: 0 });
+    const t = sumTotals([
+      { ...base, kind: 'SERIES', status: 'ACTIVE' }, // no seasons, no campaign → no goal
+      { ...base, kind: 'SERIES', status: 'ACTIVE', seasonCount: 2 }, // formula: R$ 200, nothing raised
+      {
+        ...base,
+        kind: 'FRANCHISE',
+        status: 'FUNDED',
+        campaign: { goalCents: 6_000, raisedCents: 9_000 }, // over-raised: capped at the goal
+      },
+    ]);
+    expect(t).toMatchObject({ titles: 2, funded: 1, percent: 23 }); // 60 of 260
+    expect(totalGoalEvent(t)).toMatchObject({ type: 'goal-total', percent: 23 });
   });
 });
 

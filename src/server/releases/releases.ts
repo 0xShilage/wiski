@@ -10,6 +10,9 @@ import { codePointLength, plainText } from '../text/sanitize';
  * "Próximas temporadas" (2026-11-01): when the next season of a series comes out, shown on the
  * Cronograma and kept by moderators in Admin › Estreias. A series from the catalog lends its
  * poster and page; any other series is just a name. Release days are calendar days (DATE).
+ *
+ * 2026-11-01 (evening): a release may carry its own poster (it wins over the linked series'
+ * poster), and may know only the year ("Previsão: 2027"), stored on 31 December of that year.
  */
 type Ctx = { actor: { id: string; role: Role }; requestId: string | null };
 
@@ -35,7 +38,9 @@ export type PublicRelease = {
   id: string;
   title: string;
   seasonLabel: string;
-  releaseDate: string; // YYYY-MM-DD
+  releaseDate: string; // YYYY-MM-DD (31 December when only the year is known)
+  /** only the year is known */
+  yearOnly: boolean;
   note: string | null;
   released: boolean;
   /** the catalog page, when the series is linked and public */
@@ -55,6 +60,7 @@ export async function publicReleases(now = new Date()): Promise<PublicRelease[]>
     take: RELEASE_PUBLIC_MAX,
     include: {
       item: { select: { slug: true, status: true, watchedAt: true, poster: mediaSelect } },
+      poster: mediaSelect,
     },
   });
   return rows.map((r) => {
@@ -67,10 +73,14 @@ export async function publicReleases(now = new Date()): Promise<PublicRelease[]>
       title: r.title,
       seasonLabel: r.seasonLabel,
       releaseDate: isoDay(r.releaseDate),
+      yearOnly: r.yearOnly,
       note: r.note,
-      released: r.releaseDate.getTime() <= today.getTime(),
+      // a year-only release "estreou" once that year is over
+      released: r.yearOnly
+        ? r.releaseDate.getUTCFullYear() < today.getUTCFullYear()
+        : r.releaseDate.getTime() <= today.getTime(),
       href: visible ? `/series/${r.item!.slug}` : null,
-      poster: visible ? pictureFrom(r.item!.poster) : null,
+      poster: pictureFrom(r.poster) ?? (visible ? pictureFrom(r.item!.poster) : null),
     };
   });
 }
@@ -82,7 +92,10 @@ export type AdminRelease = {
   title: string;
   seasonLabel: string;
   releaseDate: string;
+  yearOnly: boolean;
   note: string | null;
+  posterId: string | null;
+  poster: Picture | null;
   editor: string | null;
   updatedAt: string;
 };
@@ -101,6 +114,7 @@ export async function listReleases(now = new Date()): Promise<AdminRelease[]> {
 
 const adminInclude = {
   item: { select: { title: true } },
+  poster: mediaSelect,
   editedBy: { select: { username: true } },
 } as const;
 
@@ -110,7 +124,10 @@ function toAdmin(r: {
   title: string;
   seasonLabel: string;
   releaseDate: Date;
+  yearOnly: boolean;
   note: string | null;
+  posterId: string | null;
+  poster: { width: number; height: number; variants: unknown } | null;
   updatedAt: Date;
   item: { title: string } | null;
   editedBy: { username: string | null };
@@ -122,7 +139,10 @@ function toAdmin(r: {
     title: r.title,
     seasonLabel: r.seasonLabel,
     releaseDate: isoDay(r.releaseDate),
+    yearOnly: r.yearOnly,
     note: r.note,
+    posterId: r.posterId,
+    poster: pictureFrom(r.poster),
     editor: r.editedBy.username,
     updatedAt: r.updatedAt.toISOString(),
   };
@@ -164,26 +184,66 @@ async function seriesTitle(itemId: string): Promise<string> {
 }
 
 const day = (s: string) => new Date(`${s}T00:00:00.000Z`);
+export const RELEASE_YEAR_MIN = 2000;
+export const RELEASE_YEAR_MAX = 2100;
 
 export type ReleaseInput = {
   itemId?: string | null | undefined;
   title?: string | null | undefined;
   seasonLabel?: string | undefined;
+  /** a known day … */
   releaseDate?: string | undefined;
+  /** … or only the year (exactly one of the two) */
+  releaseYear?: number | undefined;
   note?: string | null | undefined;
+  posterId?: string | null | undefined;
 };
+
+/** The day column and the year-only flag from either input; undefined = unchanged. */
+function when(input: ReleaseInput, required: boolean) {
+  if (input.releaseDate !== undefined && input.releaseYear !== undefined) {
+    throw Problems.validation([
+      { path: 'releaseYear', message: 'Use a data completa ou só o ano, não os dois.' },
+    ]);
+  }
+  if (input.releaseYear !== undefined) {
+    return { releaseDate: day(`${input.releaseYear}-12-31`), yearOnly: true };
+  }
+  if (input.releaseDate !== undefined)
+    return { releaseDate: day(input.releaseDate), yearOnly: false };
+  if (required)
+    throw Problems.validation([
+      { path: 'releaseDate', message: 'Informe a data de estreia ou o ano previsto.' },
+    ]);
+  return {};
+}
+
+async function checkPoster(posterId: string | null | undefined) {
+  if (!posterId) return;
+  const asset = await db().mediaAsset.findUnique({
+    where: { id: posterId },
+    select: { role: true },
+  });
+  if (!asset || asset.role !== 'POSTER') {
+    throw Problems.validation([{ path: 'posterId', message: 'Envie um pôster (2:3).' }]);
+  }
+}
 
 export async function createRelease(ctx: Ctx, input: ReleaseInput): Promise<AdminRelease> {
   const itemId = input.itemId ?? null;
   // a linked series names itself unless the moderator typed something else
   const linkedTitle = itemId ? await seriesTitle(itemId) : null;
   const title = text(input.title, 'title', 120, !itemId) ?? linkedTitle!;
+  await checkPoster(input.posterId);
+  const { releaseDate, yearOnly } = when(input, true) as { releaseDate: Date; yearOnly: boolean };
   const data = {
     itemId,
     title,
     seasonLabel: text(input.seasonLabel, 'seasonLabel', 40, true)!,
-    releaseDate: day(input.releaseDate!),
+    releaseDate,
+    yearOnly,
     note: text(input.note, 'note', 80, false),
+    posterId: input.posterId ?? null,
     editedById: ctx.actor.id,
   };
   return db().$transaction(async (t) => {
@@ -195,7 +255,7 @@ export async function createRelease(ctx: Ctx, input: ReleaseInput): Promise<Admi
         requestId: ctx.requestId,
         targetType: 'SeasonRelease',
         targetId: r.id,
-        metadata: { linked: !!itemId },
+        metadata: { linked: !!itemId, poster: !!data.posterId, yearOnly },
       },
       t,
     );
@@ -209,7 +269,9 @@ export async function updateRelease(ctx: Ctx, id: string, input: ReleaseInput): 
     title?: string;
     seasonLabel?: string;
     releaseDate?: Date;
+    yearOnly?: boolean;
     note?: string | null;
+    posterId?: string | null;
   } = {};
   if (input.itemId !== undefined) {
     if (input.itemId) await seriesTitle(input.itemId);
@@ -224,8 +286,12 @@ export async function updateRelease(ctx: Ctx, id: string, input: ReleaseInput): 
   }
   if (input.seasonLabel !== undefined)
     data.seasonLabel = text(input.seasonLabel, 'seasonLabel', 40, true)!;
-  if (input.releaseDate !== undefined) data.releaseDate = day(input.releaseDate);
+  Object.assign(data, when(input, false));
   if (input.note !== undefined) data.note = text(input.note, 'note', 80, false);
+  if (input.posterId !== undefined) {
+    await checkPoster(input.posterId);
+    data.posterId = input.posterId;
+  }
   const fields = Object.keys(data) as (keyof typeof data)[];
   if (!fields.length) throw Problems.validation([{ path: '', message: 'Nada para mudar.' }]);
   await db().$transaction(async (t) => {

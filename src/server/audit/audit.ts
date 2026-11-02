@@ -41,7 +41,7 @@ const orderStatus = z.enum([
 const moderationStatus = z.enum(['VISIBLE', 'AUTO_HIDDEN', 'HIDDEN', 'REMOVED']);
 const textDecision = z.enum(['APPROVED', 'REJECTED']);
 const role = z.enum(['USER', 'MODERATOR', 'STREAMER']);
-const overlayWidget = z.enum(['agora', 'fila', 'meta', 'patrocinio']);
+const overlayWidget = z.enum(['agora', 'fila', 'meta', 'meta-total', 'patrocinio']);
 const goalMetric = z.enum(['SPONSORSHIP_COUNT', 'SPONSORSHIP_REVENUE_CENTS', 'WATCHED_MINUTES']);
 const platform = z.enum(['TWITCH', 'YOUTUBE', 'KICK', 'TIKTOK', 'INSTAGRAM', 'X']);
 /** Names of edited catalog fields (never their values). */
@@ -223,7 +223,7 @@ export const AUDIT_ACTIONS = {
     .object({ reviews: z.int().nonnegative(), orders: z.int().nonnegative() })
     .strict(),
   'user.export': z.object({}).strict(),
-  'overlay.key.create': z.object({ widgets: z.array(overlayWidget).min(1).max(4) }).strict(),
+  'overlay.key.create': z.object({ widgets: z.array(overlayWidget).min(1).max(5) }).strict(),
   'overlay.key.revoke': z.object({}).strict(),
   'goal.create': z.object({ metric: goalMetric, target: z.int().positive() }).strict(),
   'goal.update': z
@@ -268,10 +268,16 @@ export const AUDIT_ACTIONS = {
     .strict(),
   'link.delete': z.object({}).strict(),
   'link.reorder': z.object({ count: z.int().min(0).max(30) }).strict(),
-  'release.create': z.object({ linked: z.boolean() }).strict(),
+  'release.create': z
+    .object({ linked: z.boolean(), poster: z.boolean(), yearOnly: z.boolean() })
+    .strict(),
   'release.update': z
     .object({
-      fields: z.array(z.enum(['itemId', 'title', 'seasonLabel', 'releaseDate', 'note'])).max(5),
+      fields: z
+        .array(
+          z.enum(['itemId', 'title', 'seasonLabel', 'releaseDate', 'yearOnly', 'note', 'posterId']),
+        )
+        .max(7),
     })
     .strict(),
   'release.delete': z.object({}).strict(),

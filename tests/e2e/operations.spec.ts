@@ -49,6 +49,23 @@ test('overlay: the key in the fragment opens the stream and leaves the address b
   await expect(page.getByText('Overlay sem acesso')).toBeVisible();
 });
 
+test('overlay "Meta total": one percentage for every board, with a bar per kind', async ({
+  page,
+}) => {
+  await page.goto(`/overlay/meta-total#k=${await overlayKey(['meta-total'])}`);
+  const box = page.locator('.wf-overlay__total');
+  await expect(box.getByText('Meta total')).toBeVisible();
+  await expect(box.locator('.wf-overlay__total-pct')).toHaveText(/^\d{1,3}%$/);
+  await expect(box.getByText(/^\d{1,4} de \d{1,4} títulos? garantidos?$/)).toBeVisible();
+  // the dev seed has movies, series and franchises on the boards
+  await expect(box.locator('.wf-overlay__kinds li')).toHaveText([
+    /^Filmes/,
+    /^Séries/,
+    /^Franquias/,
+  ]);
+  await expect(box).not.toContainText('R$');
+});
+
 test('agenda: a moderator starts the live and the overlay follows over SSE', async ({
   browser,
 }) => {

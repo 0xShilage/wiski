@@ -98,7 +98,7 @@ export const eraseInput = z.object({ confirmUsername: z.string().min(1).max(40) 
 
 // ── overlays ──
 export const overlayKeyInput = z
-  .object({ label: z.string().min(1).max(120), widgets: z.array(z.enum(WIDGETS)).min(1).max(4) })
+  .object({ label: z.string().min(1).max(120), widgets: z.array(z.enum(WIDGETS)).min(1).max(WIDGETS.length) })
   .strict();
 export const overlaySessionInput = z.object({ key: z.string().min(10).max(80) }).strict();
 export const overlayStreamQuery = z.object({ widget: z.enum(WIDGETS) }).strict();
@@ -225,13 +225,16 @@ export const suggestionStatusInput = z
 
 // ── "Próximas temporadas" (Admin › Estreias) ──
 const calendarDay = z.iso.date();
+const releaseYear = z.int().min(2000).max(2100);
 export const releaseCreateInput = z
   .object({
     itemId: z.uuid().nullable().optional(),
     title: z.string().max(600).nullable().optional(),
     seasonLabel: z.string().max(200),
-    releaseDate: calendarDay,
+    releaseDate: calendarDay.optional(),
+    releaseYear: releaseYear.optional(),
     note: z.string().max(400).nullable().optional(),
+    posterId: z.uuid().nullable().optional(),
   })
   .strict();
 export const releaseUpdateInput = z
@@ -240,6 +243,8 @@ export const releaseUpdateInput = z
     title: z.string().max(600).nullable().optional(),
     seasonLabel: z.string().max(200).optional(),
     releaseDate: calendarDay.optional(),
+    releaseYear: releaseYear.optional(),
     note: z.string().max(400).nullable().optional(),
+    posterId: z.uuid().nullable().optional(),
   })
   .strict();

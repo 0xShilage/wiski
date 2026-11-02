@@ -733,6 +733,13 @@ async function main() {
     releaseDate: inDays(40),
     note: 'streaming',
   });
+  // only the year is known, with its own poster (2026-11-01)
+  await createRelease(modCtx, {
+    title: 'Maré Alta',
+    seasonLabel: 'Temporada 3',
+    releaseYear: new Date().getUTCFullYear() + 1,
+    posterId: art.at(-1)?.posterId ?? null,
+  });
   log('season releases set');
 
   const counts = await db().catalogItem.groupBy({ by: ['kind', 'status'], _count: { _all: true } });

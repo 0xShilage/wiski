@@ -87,7 +87,21 @@ describe('overlays, goals, stats, contact, accounts', () => {
     await rejects(db().overlayKey.create({ data: { ...base, label: '' } }));
     await rejects(db().overlayKey.create({ data: { ...base, keyPrefix: 'ab' } }));
     await rejects(db().overlayKey.create({ data: { ...base, keyHash: randomBytes(16) } }));
+    await rejects(
+      db().overlayKey.create({
+        data: { ...base, widgets: ['agora', 'fila', 'meta', 'meta-total', 'patrocinio', 'agora'] },
+      }),
+    );
     await db().overlayKey.create({ data: base });
+    // 2026-11-01: "Meta total", five widgets on one key
+    await db().overlayKey.create({
+      data: {
+        ...base,
+        keyPrefix: 'ghijkl',
+        keyHash: randomBytes(32),
+        widgets: ['agora', 'fila', 'meta', 'meta-total', 'patrocinio'],
+      },
+    });
   });
 
   it('goals: title, target > 0, end after start', async () => {

@@ -8,12 +8,13 @@ import { codePointLength, plainText } from '../text/sanitize';
  * fixed length, and the whole event is checked against a strict schema before it's published.
  * The overlay page renders them as React text nodes only — no HTML, no URLs, no images.
  */
-export const WIDGETS = ['agora', 'fila', 'meta', 'patrocinio'] as const;
+export const WIDGETS = ['agora', 'fila', 'meta', 'meta-total', 'patrocinio'] as const;
 export type Widget = (typeof WIDGETS)[number];
 export const WIDGET_LABEL: Record<Widget, string> = {
   agora: 'Agora assistindo',
   fila: 'Próximos da fila',
   meta: 'Meta',
+  'meta-total': 'Meta total',
   patrocinio: 'Novo patrocínio',
 };
 
@@ -83,6 +84,28 @@ export const overlayEventSchema = z.discriminatedUnion('type', [
     .strict(),
   z
     .object({
+      /** "Meta total": every current goal together — percentages and title counts only */
+      type: z.literal('goal-total'),
+      percent: z.int().min(0).max(100),
+      titles: z.int().nonnegative(),
+      funded: z.int().nonnegative(),
+      kinds: z
+        .array(
+          z
+            .object({
+              kind,
+              titles: z.int().nonnegative(),
+              funded: z.int().nonnegative(),
+              percent: z.int().min(0).max(100),
+            })
+            .strict(),
+        )
+        .length(3),
+    })
+    .strict()
+    .refine((e) => e.funded <= e.titles, 'funded > titles'),
+  z
+    .object({
       type: z.literal('new-sponsorship'),
       title: safe(LIMITS.title),
       sponsor: safe(LIMITS.sponsor).nullable(),
@@ -96,6 +119,7 @@ export const WIDGET_EVENT: Record<Widget, OverlayEvent['type']> = {
   agora: 'now-playing',
   fila: 'queue',
   meta: 'goal',
+  'meta-total': 'goal-total',
   patrocinio: 'new-sponsorship',
 };
 
@@ -165,6 +189,31 @@ export function goalEvent(
     current: money ? null : g.current,
     target: money ? null : g.target,
     percent: Math.max(0, Math.min(100, Math.floor(g.percent))),
+  });
+}
+
+export function totalGoalEvent(t: {
+  percent: number;
+  titles: number;
+  funded: number;
+  kinds: {
+    kind: 'MOVIE' | 'SERIES' | 'FRANCHISE';
+    titles: number;
+    funded: number;
+    percent: number;
+  }[];
+}): OverlayEvent {
+  return overlayEventSchema.parse({
+    type: 'goal-total',
+    percent: t.percent,
+    titles: t.titles,
+    funded: t.funded,
+    kinds: t.kinds.map((k) => ({
+      kind: k.kind,
+      titles: k.titles,
+      funded: k.funded,
+      percent: k.percent,
+    })),
   });
 }
 

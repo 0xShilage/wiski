@@ -18,6 +18,18 @@ type Ev =
       target: number | null;
       percent: number;
     }
+  | {
+      type: 'goal-total';
+      percent: number;
+      titles: number;
+      funded: number;
+      kinds: {
+        kind: 'MOVIE' | 'SERIES' | 'FRANCHISE';
+        titles: number;
+        funded: number;
+        percent: number;
+      }[];
+    }
   | { type: 'new-sponsorship'; title: string; sponsor: string | null }
   | { type: 'ready' };
 
@@ -26,8 +38,10 @@ const LABEL = {
   agora: 'Agora assistindo',
   fila: 'Próximos da fila',
   meta: 'Meta',
+  'meta-total': 'Meta total',
   patrocinio: 'Novo patrocínio!',
 } as const;
+const KIND_LABEL = { MOVIE: 'Filmes', SERIES: 'Séries', FRANCHISE: 'Franquias' } as const;
 
 /**
  * OBS browser source (01 §3.4): the key in the URL fragment is exchanged once for the overlay
@@ -153,6 +167,41 @@ export function OverlayClient({ widget }: { widget: keyof typeof LABEL }) {
             ? `${ev.current.toLocaleString('pt-BR')} de ${ev.target.toLocaleString('pt-BR')} · ${ev.percent}%`
             : `${ev.percent}%`}
         </p>
+      </div>
+    );
+  }
+  if (ev.type === 'goal-total') {
+    if (!ev.titles) return null;
+    return (
+      <div className="wf-overlay__box wf-overlay__total">
+        <p className="wf-overlay__label">{LABEL['meta-total']}</p>
+        <p className="wf-overlay__total-pct">{ev.percent}%</p>
+        <progress
+          className="wf-progress"
+          max={100}
+          value={ev.percent}
+          aria-label={`${ev.percent}%`}
+        />
+        <p className="wf-overlay__sub">
+          {ev.funded} de {ev.titles} {ev.titles === 1 ? 'título garantido' : 'títulos garantidos'}
+        </p>
+        <ul className="wf-overlay__kinds">
+          {ev.kinds
+            .filter((k) => k.titles > 0)
+            .map((k) => (
+              <li key={k.kind}>
+                <span>{KIND_LABEL[k.kind]}</span>
+                <progress
+                  max={100}
+                  value={k.percent}
+                  aria-label={`${KIND_LABEL[k.kind]}: ${k.percent}%`}
+                />
+                <small>
+                  {k.percent}% · {k.funded}/{k.titles}
+                </small>
+              </li>
+            ))}
+        </ul>
       </div>
     );
   }

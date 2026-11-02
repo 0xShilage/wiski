@@ -3,6 +3,7 @@
  * posters on the Cronograma.
  */
 import { beforeEach, describe, expect, it } from 'vitest';
+import { pictureFrom } from '@/lib/media';
 import { db } from '@/server/db';
 import { pgErrorCode, PG } from '@/server/db-errors';
 import { cronograma } from '@/server/live/public';
@@ -152,6 +153,140 @@ describe('season releases', () => {
       }
       expect(code, JSON.stringify(bad)).toBe(PG.checkViolation);
     }
+  });
+});
+
+describe('release posters and year-only releases (2026-11-01, evening)', () => {
+  it('own poster wins over the series poster; year-only shows after dated ones and edits both ways', async () => {
+    const mod = await as('MODERATOR');
+    const seriesPoster = await makeAsset('POSTER');
+    const own = await makeAsset('POSTER');
+    const series = await makeItem({ kind: 'SERIES', status: 'ACTIVE', slot: 1, title: 'Bosque' });
+    await db().catalogItem.update({
+      where: { id: series.id },
+      data: { posterId: seriesPoster.id },
+    });
+    const year = new Date().getUTCFullYear() + 1;
+
+    const yearOnly = await hit(createRoute, 'POST', '', {
+      who: mod,
+      body: { itemId: series.id, seasonLabel: 'Temporada 5', releaseYear: year, posterId: own.id },
+    });
+    expect(yearOnly.res.status).toBe(201);
+    expect(yearOnly.json).toMatchObject({
+      yearOnly: true,
+      releaseDate: `${year}-12-31`,
+      posterId: own.id,
+    });
+    const dated = await hit(createRoute, 'POST', '', {
+      who: mod,
+      body: { title: 'Datada', seasonLabel: 'T2', releaseDate: `${year}-06-01` },
+    });
+    expect(dated.res.status).toBe(201);
+    // an unlinked release with its own poster shows it too
+    const unlinked = await hit(createRoute, 'POST', '', {
+      who: mod,
+      body: { title: 'Sem catálogo', seasonLabel: 'T1', releaseDate: day(2), posterId: own.id },
+    });
+    expect(unlinked.res.status).toBe(201);
+
+    let pub = await publicReleases();
+    expect(pub.map((r) => r.title)).toEqual(['Sem catálogo', 'Datada', 'Bosque']);
+    const bosque = pub.find((r) => r.title === 'Bosque')!;
+    expect(bosque).toMatchObject({
+      yearOnly: true,
+      released: false,
+      href: `/series/${series.slug}`,
+    });
+    expect(bosque.poster?.webp).toBe(pictureFrom(own)!.webp); // not the series' poster
+    expect(pub.find((r) => r.title === 'Sem catálogo')).toMatchObject({ href: null });
+    expect(pub.find((r) => r.title === 'Sem catálogo')!.poster).not.toBeNull();
+
+    // year-only → exact day, poster removed: the series lends its poster again
+    const id = yearOnly.json.id as string;
+    const patch = (body: Record<string, unknown>) =>
+      hit(patchRoute, 'PATCH', '', { who: mod, params: { id }, body });
+    expect((await patch({ releaseDate: day(20), posterId: null })).res.status).toBe(200);
+    pub = await publicReleases();
+    const back = pub.find((r) => r.title === 'Bosque')!;
+    expect(back).toMatchObject({ yearOnly: false, releaseDate: day(20) });
+    expect(back.poster?.webp).toBe(pictureFrom(seriesPoster)!.webp);
+    expect((await patch({ releaseYear: year })).res.status).toBe(200);
+    expect((await publicReleases()).find((r) => r.title === 'Bosque')).toMatchObject({
+      yearOnly: true,
+      releaseDate: `${year}-12-31`,
+    });
+
+    const audits = await db().auditLog.findMany({
+      where: { action: { startsWith: 'release.' }, actorId: mod.user.id },
+      orderBy: { at: 'asc' },
+      select: { action: true, metadata: true },
+    });
+    expect(audits[0]).toMatchObject({
+      action: 'release.create',
+      metadata: { linked: true, poster: true, yearOnly: true },
+    });
+    expect(audits.find((a) => a.action === 'release.update')?.metadata).toMatchObject({
+      fields: expect.arrayContaining(['releaseDate', 'yearOnly', 'posterId']),
+    });
+  });
+
+  it('a year that is over counts as released; the current year does not', async () => {
+    const mod = await makeUser({ role: 'MODERATOR' });
+    const thisYear = todaySaoPaulo().getUTCFullYear();
+    await db().seasonRelease.create({
+      data: {
+        title: 'Este ano',
+        seasonLabel: 'T1',
+        yearOnly: true,
+        releaseDate: new Date(`${thisYear}-12-31T00:00:00Z`),
+        editedById: mod.id,
+      },
+    });
+    const pub = await publicReleases();
+    expect(pub.find((r) => r.title === 'Este ano')).toMatchObject({ released: false });
+    // 3 Jan of next year: last year's year-only release is still listed (7 days) and "estreou"
+    const jan3 = new Date(`${thisYear + 1}-01-03T15:00:00Z`);
+    expect((await publicReleases(jan3)).find((r) => r.title === 'Este ano')).toMatchObject({
+      released: true,
+    });
+  });
+
+  it('refuses a backdrop as poster, both date and year, neither, and years out of range', async () => {
+    const mod = await as('MODERATOR');
+    const backdrop = await makeAsset('BACKDROP');
+    const post = (body: Record<string, unknown>) =>
+      hit(createRoute, 'POST', '', { who: mod, body: { title: 'X', seasonLabel: 'T1', ...body } });
+    expect((await post({ releaseDate: day(1), posterId: backdrop.id })).res.status).toBe(422);
+    expect((await post({ releaseDate: day(1), releaseYear: 2030 })).res.status).toBe(422);
+    expect((await post({})).res.status).toBe(422);
+    expect((await post({ releaseYear: 1999 })).res.status).toBe(422);
+    expect((await post({ releaseYear: 2101 })).res.status).toBe(422);
+    expect((await post({ releaseYear: 2030.5 })).res.status).toBe(422);
+    expect((await post({ releaseYear: '2030' })).res.status).toBe(422);
+    expect(await db().seasonRelease.count()).toBe(0);
+  });
+
+  it('database: a year-only release sits on 31 December; posters must be POSTER assets', async () => {
+    const mod = await makeUser({ role: 'MODERATOR' });
+    const backdrop = await makeAsset('BACKDROP');
+    const base = { title: 'X', seasonLabel: 'T1', editedById: mod.id };
+    for (const bad of [
+      { yearOnly: true, releaseDate: new Date('2027-06-01T00:00:00Z') },
+      { releaseDate: new Date('2027-06-01T00:00:00Z'), posterId: backdrop.id },
+    ]) {
+      let code: string | null = null;
+      try {
+        await db().seasonRelease.create({ data: { ...base, ...bad } });
+      } catch (e) {
+        code = pgErrorCode(e);
+      }
+      expect(code, JSON.stringify(bad)).toBe(PG.checkViolation);
+    }
+    const ok = await db().seasonRelease.create({
+      data: { ...base, yearOnly: true, releaseDate: new Date('2027-12-31T00:00:00Z') },
+    });
+    expect(ok.yearOnly).toBe(true);
   });
 });
 

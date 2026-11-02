@@ -4,7 +4,7 @@ import { DEFAULT_CAMPAIGN_DAYS, franchiseGoalCents, seriesGoalCents } from '@/li
 import { audit } from '../audit/audit';
 import { db } from '../db';
 import { HttpError, Problems } from '../http/problem';
-import { type Actor, CatalogProblems, catalogTx, goLiveInTx } from './service';
+import { type Actor, CatalogProblems, catalogTx, goLiveInTx, refreshTotalAfter } from './service';
 
 /**
  * Crowdfunding campaigns for series and franchises (11 §2.2). A moderator prepares the item;
@@ -72,42 +72,44 @@ export async function openCampaign(
     ]);
   }
   const deadlineAt = new Date(now.getTime() + (input.days ?? DEFAULT_CAMPAIGN_DAYS) * DAY);
-  return catalogTx(item.kind, async (t) => {
-    const slot = await goLiveInTx(t, item, item.slot, now);
-    const campaign = await t.campaign.create({
-      data: {
-        itemId,
-        goalCents,
-        remainingCents: goalCents,
-        deadlineAt,
-        openedAt: now,
-        openedById: ctx.actor.id,
-      },
-    });
-    await audit(
-      {
-        action: 'catalog.publish',
-        actor: ctx.actor,
-        requestId: ctx.requestId,
-        targetType: 'CatalogItem',
-        targetId: itemId,
-        metadata: { kind: item.kind, slot, version: item.version },
-      },
-      t,
-    );
-    await audit(
-      {
-        action: 'campaign.open',
-        actor: ctx.actor,
-        requestId: ctx.requestId,
-        targetType: 'Campaign',
-        targetId: campaign.id,
-        metadata: { goalCents, formulaGoalCents: formula, deadlineAt: deadlineAt.toISOString() },
-      },
-      t,
-    );
-    return campaign;
-  });
+  return refreshTotalAfter(
+    catalogTx(item.kind, async (t) => {
+      const slot = await goLiveInTx(t, item, item.slot, now);
+      const campaign = await t.campaign.create({
+        data: {
+          itemId,
+          goalCents,
+          remainingCents: goalCents,
+          deadlineAt,
+          openedAt: now,
+          openedById: ctx.actor.id,
+        },
+      });
+      await audit(
+        {
+          action: 'catalog.publish',
+          actor: ctx.actor,
+          requestId: ctx.requestId,
+          targetType: 'CatalogItem',
+          targetId: itemId,
+          metadata: { kind: item.kind, slot, version: item.version },
+        },
+        t,
+      );
+      await audit(
+        {
+          action: 'campaign.open',
+          actor: ctx.actor,
+          requestId: ctx.requestId,
+          targetType: 'Campaign',
+          targetId: campaign.id,
+          metadata: { goalCents, formulaGoalCents: formula, deadlineAt: deadlineAt.toISOString() },
+        },
+        t,
+      );
+      return campaign;
+    }),
+  );
 }
 
 async function campaignOf(itemId: string) {
@@ -162,37 +164,39 @@ export async function lowerGoal(ctx: Ctx, itemId: string, goalCents: number, now
   const floor = c.raisedCents + c.reservedCents;
   if (goalCents < floor) throw CampaignProblems.goalTooLow(floor);
   const funded = goalCents === c.raisedCents && c.reservedCents === 0;
-  return catalogTx(c.item.kind, async (t) => {
-    // Conditional on the money columns too: a contribution landing in between makes this a 409.
-    const res = await t.campaign.updateMany({
-      where: {
-        id: c.id,
-        version: c.version,
-        raisedCents: c.raisedCents,
-        reservedCents: c.reservedCents,
-      },
-      data: {
-        goalCents,
-        remainingCents: goalCents - c.raisedCents - c.reservedCents,
-        version: { increment: 1 },
-        ...(funded ? { status: 'FUNDED', fundedAt: now } : {}),
-      },
-    });
-    if (res.count !== 1) throw CatalogProblems.versionConflict(c.version);
-    if (funded) {
-      await t.catalogItem.update({ where: { id: itemId }, data: { status: 'FUNDED' } });
-    }
-    await audit(
-      {
-        action: 'campaign.goal',
-        actor: ctx.actor,
-        requestId: ctx.requestId,
-        targetType: 'Campaign',
-        targetId: c.id,
-        metadata: { fromCents: c.goalCents, toCents: goalCents, funded },
-      },
-      t,
-    );
-    return t.campaign.findUniqueOrThrow({ where: { id: c.id } });
-  });
+  return refreshTotalAfter(
+    catalogTx(c.item.kind, async (t) => {
+      // Conditional on the money columns too: a contribution landing in between makes this a 409.
+      const res = await t.campaign.updateMany({
+        where: {
+          id: c.id,
+          version: c.version,
+          raisedCents: c.raisedCents,
+          reservedCents: c.reservedCents,
+        },
+        data: {
+          goalCents,
+          remainingCents: goalCents - c.raisedCents - c.reservedCents,
+          version: { increment: 1 },
+          ...(funded ? { status: 'FUNDED', fundedAt: now } : {}),
+        },
+      });
+      if (res.count !== 1) throw CatalogProblems.versionConflict(c.version);
+      if (funded) {
+        await t.catalogItem.update({ where: { id: itemId }, data: { status: 'FUNDED' } });
+      }
+      await audit(
+        {
+          action: 'campaign.goal',
+          actor: ctx.actor,
+          requestId: ctx.requestId,
+          targetType: 'Campaign',
+          targetId: c.id,
+          metadata: { fromCents: c.goalCents, toCents: goalCents, funded },
+        },
+        t,
+      );
+      return t.campaign.findUniqueOrThrow({ where: { id: c.id } });
+    }),
+  );
 }

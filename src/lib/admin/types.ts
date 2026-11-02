@@ -92,6 +92,7 @@ export const WIDGET_PT = {
   agora: 'Agora assistindo',
   fila: 'Próximos da fila',
   meta: 'Meta',
+  'meta-total': 'Meta total',
   patrocinio: 'Novo patrocínio',
 } as const;
 

@@ -1,6 +1,7 @@
 import 'server-only';
 import { db } from '../db';
 import { overlayGoal } from '../goals/goals';
+import { totalGoal } from '../goals/total';
 import { logger } from '../log';
 import { redis } from '../redis';
 import { publicMessage, publicSponsor, sponsorSelect } from '../live/sponsor';
@@ -9,6 +10,7 @@ import {
   nowPlayingEvent,
   queueEvent,
   sponsorshipEvent,
+  totalGoalEvent,
   type OverlayEvent,
   type Widget,
 } from './events';
@@ -120,10 +122,15 @@ export async function goalSnapshot(): Promise<OverlayEvent> {
   return goalEvent(await overlayGoal());
 }
 
+export async function totalGoalSnapshot(): Promise<OverlayEvent> {
+  return totalGoalEvent(await totalGoal());
+}
+
 export async function snapshot(w: Widget): Promise<OverlayEvent | null> {
   if (w === 'agora') return nowPlayingSnapshot();
   if (w === 'fila') return queueSnapshot();
   if (w === 'meta') return goalSnapshot();
+  if (w === 'meta-total') return totalGoalSnapshot();
   return null; // "Novo patrocínio" only shows live events
 }
 
@@ -135,9 +142,14 @@ async function publish(w: Widget, e: OverlayEvent) {
   }
 }
 
-/** After a commit that changes what a widget shows. Best effort: overlays also resync on reconnect. */
+/**
+ * After a commit that changes what a widget shows. Best effort: overlays also resync on reconnect.
+ * Anything that moves a goal ("meta") can move "Meta total" too, so it is refreshed with it.
+ */
 export async function refreshOverlays(widgets: Widget[]): Promise<void> {
-  for (const w of new Set(widgets)) {
+  const all = new Set(widgets);
+  if (all.has('meta')) all.add('meta-total');
+  for (const w of all) {
     try {
       const e = await snapshot(w);
       if (e) await publish(w, e);

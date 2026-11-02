@@ -3,10 +3,14 @@
  * a viewer's suggestion reaching the moderation (and the decision coming back), the streamer's
  * link editor, and the phone "Mais" menu.
  */
+import { mkdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
+import sharp from 'sharp';
 import { seedUser, signIn, withDb } from './support/seed';
 
 test.describe.configure({ mode: 'serial' });
+const DIR = join(process.cwd(), 'test-results', 'fixtures');
 
 test('home: "Nosso progresso" with totals and the per-kind split', async ({ page }) => {
   await page.goto('/');
@@ -242,6 +246,54 @@ test('estreias: a moderator adds a release and it shows on the Cronograma', asyn
   const panel = pub.getByRole('complementary', { name: 'Próximas temporadas' });
   await expect(panel).toContainText(name);
   await expect(panel).toContainText('Temporada 9');
+
+  await withDb((c) => c.query(`DELETE FROM "SeasonRelease" WHERE title = $1`, [name]));
+  await ctx.close();
+});
+
+test('estreias: only the year and an own poster; the Cronograma shows "Previsão" and the poster', async ({
+  browser,
+}, info) => {
+  test.skip(info.project.name !== 'desktop-1280', 'the dashboard is a desktop tool');
+  mkdirSync(DIR, { recursive: true });
+  const poster = join(DIR, 'release-poster.jpg');
+  const raw = Buffer.alloc(700 * 1050 * 3);
+  for (let i = 0; i < raw.length; i++) raw[i] = (i * 17 + (i >> 8)) & 0xff;
+  await sharp(raw, { raw: { width: 700, height: 1050, channels: 3 } })
+    .jpeg({ quality: 80 })
+    .toFile(poster);
+
+  const mod = await seedUser({ role: 'MODERATOR', passkeyVerified: true });
+  const ctx = await browser.newContext();
+  await signIn(ctx, mod.token);
+  const page = await ctx.newPage();
+  await page.goto('/admin/estreias');
+  const form = page
+    .locator('form')
+    .filter({ has: page.getByRole('heading', { name: 'Nova estreia' }) });
+  const name = `Ano E2E ${Date.now().toString(36)}`;
+  const year = String(new Date().getFullYear() + 2);
+  await form.getByLabel('Nome da série').fill(name);
+  await form.getByLabel('Temporada').fill('Temporada 2');
+  await form.getByLabel('Só sei o ano').check();
+  await expect(form.getByLabel('Data de estreia')).toHaveCount(0);
+  await form.getByLabel('Ano previsto').fill(year);
+  await form.locator('input[type=file]').setInputFiles(poster);
+  await expect(form.locator('.wf-drop--poster img')).toBeVisible({ timeout: 30_000 });
+  await form.getByRole('button', { name: 'Adicionar' }).click();
+  await expect(page.getByRole('status')).toContainText('Estreia adicionada');
+  const card = page.locator('.wf-ops-card').filter({ hasText: name });
+  await expect(card).toContainText(`Previsão: ${year}`);
+  await expect(card).toContainText('Pôster próprio');
+
+  const pub = await ctx.newPage();
+  await pub.goto('/cronograma');
+  const row = pub
+    .getByRole('complementary', { name: 'Próximas temporadas' })
+    .locator('.wf-rel__row')
+    .filter({ hasText: name });
+  await expect(row).toContainText(`Previsão: ${year}`);
+  await expect(row.locator('.wf-rel__thumb img')).toHaveAttribute('src', /^\/media\//);
 
   await withDb((c) => c.query(`DELETE FROM "SeasonRelease" WHERE title = $1`, [name]));
   await ctx.close();

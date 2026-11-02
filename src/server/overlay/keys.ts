@@ -23,7 +23,7 @@ export const OVERLAY_SESSION_MS = 12 * 3_600_000;
 const KEY_FORMAT = /^wfo_[\w-]{43}$/;
 
 const cookiePayload = z
-  .object({ keyId: z.uuid(), widgets: z.array(z.enum(WIDGETS)).min(1).max(4) })
+  .object({ keyId: z.uuid(), widgets: z.array(z.enum(WIDGETS)).min(1).max(WIDGETS.length) })
   .strict();
 export type OverlayCookie = z.infer<typeof cookiePayload>;
 

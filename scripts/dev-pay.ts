@@ -33,6 +33,13 @@ const { disconnectRedis } = await import('../src/server/redis');
 
 try {
   const env = getEnv();
+  if (env.MP_ALLOW_LIVE_IN_DEV) {
+    console.error(
+      'dev-pay: MP_ALLOW_LIVE_IN_DEV is on — payments are real now. Pay the Pix from your bank app;' +
+        ' the worker confirms it within ~2 minutes.',
+    );
+    process.exit(1);
+  }
   const order = await db().order.findUnique({
     where: { publicCode: code },
     include: { payment: true },

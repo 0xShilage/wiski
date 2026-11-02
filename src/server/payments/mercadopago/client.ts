@@ -232,6 +232,9 @@ export type CreatePix = {
  * come from the signed panel configuration (01 §3.2).
  */
 export function createPixPayment(p: CreatePix): Promise<MpPayment> {
+  if (getEnv().MP_ALLOW_LIVE_IN_DEV) {
+    logger.warn({ alert: 'payments' }, 'MP_ALLOW_LIVE_IN_DEV: creating a REAL Pix (development)');
+  }
   return call(
     'POST',
     '/v1/payments',

@@ -72,6 +72,9 @@ export const envSchema = z
     /** DEVELOPMENT ONLY: a Mercado Pago test buyer's e-mail sent as the Pix payer. With test
      *  credentials MP refuses any real payer e-mail ("Unauthorized use of live credentials"). */
     MP_TEST_PAYER_EMAIL: optional(z.email().max(254)),
+    /** DEVELOPMENT ONLY ("1"): let `npm run dev` use PRODUCTION Mercado Pago credentials, for a
+     *  real-money Pix test. Real charges; refund them from the dashboard. Refused elsewhere. */
+    MP_ALLOW_LIVE_IN_DEV: optional(z.enum(['1'])),
 
     /** Processed images (11 §5). Production: the Docker volume /var/lib/wiski/media, served by
      *  nginx at /media/. Development/test default: <cwd>/.media (served by the app). */
@@ -139,6 +142,16 @@ export const envSchema = z
       issue(
         'MP_COLLECTOR_ID',
         'does not match the account of MP_ACCESS_TOKEN (test vs production ids?)',
+      );
+    }
+
+    if (env.MP_ALLOW_LIVE_IN_DEV && env.NODE_ENV !== 'development') {
+      issue('MP_ALLOW_LIVE_IN_DEV', 'is only for npm run dev; remove it');
+    }
+    if (env.MP_ALLOW_LIVE_IN_DEV && env.MP_TEST_PAYER_EMAIL) {
+      issue(
+        'MP_TEST_PAYER_EMAIL',
+        'must be empty with MP_ALLOW_LIVE_IN_DEV (real payments, real payer)',
       );
     }
 

@@ -137,6 +137,27 @@ describe('env validation (refuses to boot on missing/invalid vars)', () => {
     expect(parseEnv({ ...valid, TMDB_API_KEY: 'k'.repeat(32) })).not.toHaveProperty('TMDB_API_KEY');
   });
 
+  it('MP_ALLOW_LIVE_IN_DEV: development only, and never with a test payer', () => {
+    const dev = { ...valid, NODE_ENV: 'development' };
+    expect(problems({ ...dev, MP_ALLOW_LIVE_IN_DEV: '1' })).toEqual([]);
+    expect(problems({ ...dev, MP_ALLOW_LIVE_IN_DEV: 'yes' })).toContainEqual(
+      expect.stringContaining('MP_ALLOW_LIVE_IN_DEV'),
+    );
+    expect(problems({ ...production, MP_ALLOW_LIVE_IN_DEV: '1' })).toContainEqual(
+      expect.stringContaining('MP_ALLOW_LIVE_IN_DEV'),
+    );
+    expect(problems({ ...valid, NODE_ENV: 'test', MP_ALLOW_LIVE_IN_DEV: '1' })).toContainEqual(
+      expect.stringContaining('MP_ALLOW_LIVE_IN_DEV'),
+    );
+    expect(
+      problems({
+        ...dev,
+        MP_ALLOW_LIVE_IN_DEV: '1',
+        MP_TEST_PAYER_EMAIL: 'test_payer@example.com',
+      }),
+    ).toContainEqual(expect.stringContaining('MP_TEST_PAYER_EMAIL'));
+  });
+
   it('MP_TEST_PAYER_EMAIL: a test buyer e-mail in development, refused in production', () => {
     expect(problems({ ...valid, MP_TEST_PAYER_EMAIL: 'test_user_123@testuser.com' })).toEqual([]);
     expect(problems({ ...valid, MP_TEST_PAYER_EMAIL: 'não é e-mail' })).toContainEqual(

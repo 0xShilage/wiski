@@ -65,7 +65,9 @@ const PENDING_LIKE: readonly PaymentStatus[] = ['PENDING', 'AUTHORIZED', 'IN_PRO
 type Row = Payment & { order: Order };
 
 function expectedLiveMode(): boolean {
-  return getEnv().NODE_ENV === 'production';
+  const env = getEnv();
+  // development may opt in to real payments for a one-off test (MP_ALLOW_LIVE_IN_DEV, env.ts)
+  return env.NODE_ENV === 'production' || env.MP_ALLOW_LIVE_IN_DEV === '1';
 }
 
 /** 05 §6.8: every field we rely on must match what we created. Returns the first bad field. */

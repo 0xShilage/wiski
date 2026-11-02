@@ -20,6 +20,13 @@ import { announce, EXPIRY_GRACE_MS, syncPayment, type SyncOutcome } from './sync
 const LEASE_MS = 60_000;
 const MAX_ATTEMPTS = 8;
 const STALE_MS = 2 * 60_000;
+/**
+ * How often pending payments are re-read from Mercado Pago. Production: 2 min (webhooks are the
+ * fast path there). Development has no webhooks (MP can't reach localhost), so 20 s (2026-11-02).
+ */
+export function reconcileEveryMs(nodeEnv: string = process.env.NODE_ENV ?? 'development'): number {
+  return nodeEnv === 'development' ? 20_000 : 2 * 60_000;
+}
 /** Orders whose Pix was never created (crash/timeout at checkout) are released after this. */
 const ORPHAN_MS = 5 * 60_000;
 
@@ -113,7 +120,14 @@ export async function reconcilePending(now = new Date(), limit = 50): Promise<nu
       providerPaymentId: { not: null },
       status: { in: ['PENDING', 'AUTHORIZED', 'IN_PROCESS', 'IN_MEDIATION'] },
       createdAt: { gt: new Date(now.getTime() - 48 * 3_600_000) },
-      OR: [{ lastSyncedAt: null }, { lastSyncedAt: { lt: new Date(now.getTime() - STALE_MS) } }],
+      OR: [
+        { lastSyncedAt: null },
+        {
+          lastSyncedAt: {
+            lt: new Date(now.getTime() - Math.min(STALE_MS, reconcileEveryMs())),
+          },
+        },
+      ],
     },
     orderBy: { lastSyncedAt: { sort: 'asc', nulls: 'first' } },
     take: limit,

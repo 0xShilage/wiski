@@ -16,6 +16,7 @@ import {
   processWebhookEvents,
   purgeWebhookEvents,
   reconcilePending,
+  reconcileEveryMs,
 } from '@/server/payments/jobs';
 import { syncPayment } from '@/server/payments/sync';
 import { clearCatalog } from '../support/catalog';
@@ -454,5 +455,13 @@ describe('expiry (05 §6.11)', () => {
       remainingCents: 10_000,
       raisedCents: 0,
     });
+  });
+});
+
+describe('reconciliation interval (2026-11-02)', () => {
+  it('20 s in development (no webhooks reach localhost), 2 min elsewhere', () => {
+    expect(reconcileEveryMs('development')).toBe(20_000);
+    expect(reconcileEveryMs('production')).toBe(120_000);
+    expect(reconcileEveryMs('test')).toBe(120_000);
   });
 });

@@ -57,7 +57,7 @@ Everything from R1 §2 still applies. What's new:
 
    **Payer e-mail (2026-11-02):** with test credentials Mercado Pago accepts only a *test buyer* as the payer; any real e-mail (yours, from Google) is refused with 401 "Unauthorized use of live credentials". Create a buyer under *Suas integrações › Contas de teste* and add its e-mail (`test_user_…@testuser.com`) as `MP_TEST_PAYER_EMAIL=` in `.env.local`. The site sends it to Mercado Pago instead of the buyer's e-mail. Development only: the app refuses to start with it in production.
 
-   **Real-money test from your computer (2026-11-02):** `MP_ALLOW_LIVE_IN_DEV=1` with the **production** token and collector id (and `MP_TEST_PAYER_EMAIL` empty) lets `npm run dev` create real Pix charges: pay one from a bank app, the worker confirms it within ~2 minutes (no webhook needed), then refund it in the dashboard. `npm run dev:pay` refuses to run while it is on. Remove the switch and the production token afterwards.
+   **Real-money test from your computer (2026-11-02):** `MP_ALLOW_LIVE_IN_DEV=1` with the **production** token and collector id (and `MP_TEST_PAYER_EMAIL` empty) lets `npm run dev` create real Pix charges: pay one from a bank app, the worker confirms it within ~20 seconds in development (no webhook needed), then refund it in the dashboard. `npm run dev:pay` refuses to run while it is on. Remove the switch and the production token afterwards.
 
    Without both values checkout shows "Os pagamentos com Pix ainda não estão ativos neste ambiente." and nothing calls Mercado Pago.
 

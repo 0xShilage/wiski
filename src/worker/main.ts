@@ -11,6 +11,7 @@ import {
   expireOrders,
   processWebhookEvents,
   purgeWebhookEvents,
+  reconcileEveryMs,
   reconcilePending,
   sweepRecent,
 } from '@/server/payments/jobs';
@@ -52,7 +53,7 @@ const sweepDue = dailyAt(4, 0);
 const jobs: Job[] = [
   { name: 'webhook.events', everyMs: 2_000, run: () => processWebhookEvents() },
   { name: 'orders.expire', everyMs: 60_000, run: () => expireOrders() },
-  { name: 'payment.reconcile', everyMs: 120_000, run: () => reconcilePending() },
+  { name: 'payment.reconcile', everyMs: reconcileEveryMs(), run: () => reconcilePending() },
   {
     name: 'daily',
     everyMs: 60_000,

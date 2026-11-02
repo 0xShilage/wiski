@@ -36,7 +36,7 @@ try {
   if (env.MP_ALLOW_LIVE_IN_DEV) {
     console.error(
       'dev-pay: MP_ALLOW_LIVE_IN_DEV is on — payments are real now. Pay the Pix from your bank app;' +
-        ' the worker confirms it within ~2 minutes.',
+        ' the worker confirms it within ~20 seconds.',
     );
     process.exit(1);
   }

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { PaymentStatus } from '@/generated/prisma/enums';
 import { getEnv } from '../../env';
 import { logger } from '../../log';
+import { plainText } from '../../text/sanitize';
 
 /**
  * Mercado Pago Payments API client (09 §B, 01 §3.2–3.3). Server-side only; the access token never
@@ -143,9 +144,14 @@ async function request<T>(
     throw new MpError(timeout ? 'timeout' : 'network');
   }
   if (!res.ok) {
-    // Body may echo request data; log only the status.
+    let detail: { code: string | null; message: string | null } = { code: null, message: null };
+    try {
+      detail = mpErrorDetail(await res.json());
+    } catch {
+      // not JSON: the status is all we log
+    }
     logger.warn(
-      { mp: { method, path: path.replace(/\d+/g, ':id'), status: res.status } },
+      { mp: { method, path: path.replace(/\d+/g, ':id'), status: res.status, ...detail } },
       'mercadopago error',
     );
     throw new MpError('http', res.status);
@@ -159,6 +165,46 @@ async function request<T>(
   const parsed = schema.safeParse(json);
   if (!parsed.success) throw new MpError('invalid-response', res.status);
   return parsed.data;
+}
+
+const errorBody = z.object({
+  message: z.string().optional(),
+  error: z.string().optional(),
+  cause: z
+    .array(
+      z.object({
+        code: z.union([z.string(), z.number()]).optional(),
+        description: z.string().optional(),
+      }),
+    )
+    .optional(),
+});
+
+/**
+ * What Mercado Pago said about a refused request, safe to log (2026-11-02): its error codes and
+ * message, cut to 200 characters with e-mail addresses and long digit runs (ids, documents)
+ * masked, because the body can echo request data. E.g. code 13253 = "Collector user without key
+ * enabled for QR render" (the account has no Pix key).
+ */
+export function mpErrorDetail(body: unknown): { code: string | null; message: string | null } {
+  const parsed = errorBody.safeParse(body);
+  if (!parsed.success) return { code: null, message: null };
+  const b = parsed.data;
+  const clean = (s: string) =>
+    plainText(s.slice(0, 400))
+      .replace(/[\w.+-]{1,64}@[\w-]{1,63}(?:\.[\w-]{1,63}){0,8}/g, '<email>')
+      .replace(/\d{7,}/g, '<n>')
+      .slice(0, 200);
+  const codes = (b.cause ?? [])
+    .map((c) => (c.code === undefined ? '' : String(c.code)))
+    .filter((c) => /^[\w-]{1,20}$/.test(c));
+  const texts = [b.message, b.error, ...(b.cause ?? []).map((c) => c.description)].filter(
+    (t): t is string => !!t,
+  );
+  return {
+    code: codes.length ? codes.slice(0, 5).join(',') : null,
+    message: texts.length ? clean([...new Set(texts)].join(' | ')) : null,
+  };
 }
 
 export type CreatePix = {

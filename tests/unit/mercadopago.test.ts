@@ -5,6 +5,7 @@ import {
   centsToAmount,
   mapStatus,
   mpDate,
+  mpErrorDetail,
   type MpPayment,
   pixPayload,
 } from '@/server/payments/mercadopago/client';
@@ -173,5 +174,35 @@ describe('buyer keys and public codes', () => {
   });
   it('public codes use Crockford base32', () => {
     for (let i = 0; i < 500; i++) expect(newPublicCode()).toMatch(PUBLIC_CODE);
+  });
+});
+
+describe('Mercado Pago error details in the log (2026-11-02)', () => {
+  it('keeps the codes and the message, masks e-mails and long numbers', () => {
+    expect(
+      mpErrorDetail({
+        message: 'Collector user without key enabled for QR render',
+        error: 'bad_request',
+        status: 400,
+        cause: [{ code: 13253, description: 'Collector user without key enabled for QR render' }],
+      }),
+    ).toEqual({
+      code: '13253',
+      message: 'Collector user without key enabled for QR render | bad_request',
+    });
+    const d = mpErrorDetail({
+      message: 'Payer email forbidden: comprador@example.com, user 123456789',
+      cause: [{ code: 'x"; drop', description: 'linha\u0007 nova\u202e' }],
+    });
+    expect(d.code).toBeNull(); // only plain codes are kept
+    expect(d.message).toContain('<email>');
+    expect(d.message).toContain('<n>');
+    expect(d.message).not.toMatch(/example\.com|123456789/);
+    expect([...d.message!].some((c) => c.charCodeAt(0) < 32 || c === '\u202e')).toBe(false);
+  });
+  it('anything else logs nothing extra', () => {
+    expect(mpErrorDetail('not json')).toEqual({ code: null, message: null });
+    expect(mpErrorDetail({ message: 42 })).toEqual({ code: null, message: null });
+    expect(mpErrorDetail({ message: 'x'.repeat(5000) }).message).toHaveLength(200);
   });
 });

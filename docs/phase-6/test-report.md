@@ -104,3 +104,7 @@ Note: the environment's Playwright now looks for Chromium build 1248 while 1243 
 |---|---|
 | Unit | ✅ 321 / 321 (45 keys; the colour order is a permutation of the keys; every built WebP checked) |
 | E2E | `account-flow` ✅ 8 / 8; the picture-related `a11y-layout`, `csp` and `headers` checks pass. The onboarding test now checks 45 options, colour order (Avatar 9 first, Avatar 39 last) and picks the new Avatar 44 with the keyboard: on the 360 px run, a forced click on that option landed on the fixed tab bar. |
+
+## Addendum — Mercado Pago refusals explained in the log (2026-11-02)
+
+When Mercado Pago refuses a request, the server log (`mercadopago error`) now carries MP's error `code`s and `message`, cut to 200 characters, sanitised, with e-mails and long digit runs masked. Before, it carried the HTTP status only, which wasn't enough to tell an account without a Pix key (code 13253) from a refused payer e-mail or bad credentials. Unit 323 / 323 (+2: what is kept, what is masked, non-JSON bodies). Integration 959 / 959.

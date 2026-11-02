@@ -165,7 +165,7 @@ services:
 
   redis:
     <<: *hardening
-    image: redis:7.4-alpine
+    image: redis:8.10-alpine
     # the image's `redis` user (the entrypoint only drops root for a bare `redis-server` command)
     user: '999:1000'
     # noeviction: the job queue must never lose keys; every cache key has a TTL (08 §1).

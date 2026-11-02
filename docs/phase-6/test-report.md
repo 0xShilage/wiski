@@ -107,4 +107,4 @@ Note: the environment's Playwright now looks for Chromium build 1248 while 1243 
 
 ## Addendum — Mercado Pago refusals explained in the log (2026-11-02)
 
-When Mercado Pago refuses a request, the server log (`mercadopago error`) now carries MP's error `code`s and `message`, cut to 200 characters, sanitised, with e-mails and long digit runs masked. Before, it carried the HTTP status only, which wasn't enough to tell an account without a Pix key (code 13253) from a refused payer e-mail or bad credentials. Unit 323 / 323 (+2: what is kept, what is masked, non-JSON bodies). Integration 959 / 959.
+When Mercado Pago refuses a request, the server log (`mercadopago error`) now carries MP's error codes (`causes`) and `message`, cut to 200 characters, sanitised, with e-mails and long digit runs masked. Before, it carried the HTTP status only, which wasn't enough to tell an account without a Pix key (code 13253) from a refused payer e-mail or bad credentials. Unit 323 / 323 (+2: what is kept, what is masked, non-JSON bodies). Integration 959 / 959.

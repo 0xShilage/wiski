@@ -151,7 +151,16 @@ async function request<T>(
       // not JSON: the status is all we log
     }
     logger.warn(
-      { mp: { method, path: path.replace(/\d+/g, ':id'), status: res.status, ...detail } },
+      {
+        mp: {
+          method,
+          path: path.replace(/\d+/g, ':id'),
+          status: res.status,
+          // not "code": the logger redacts any field with that name (OAuth codes)
+          causes: detail.code,
+          message: detail.message,
+        },
+      },
       'mercadopago error',
     );
     throw new MpError('http', res.status);

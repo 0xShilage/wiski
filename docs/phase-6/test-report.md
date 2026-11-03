@@ -114,7 +114,7 @@ When Mercado Pago refuses a request, the server log (`mercadopago error`) now ca
 | Suite | Result |
 |---|---|
 | Unit | ✅ 327 / 327 (+2: the manual price replaces base + extra minutes, discounts and queue jumps still apply; CSP `frame-src` includes the Twitch player) |
-| Integration | ✅ 993 / 993 — new `manual-orders.test.ts` (9): manual price in quote, checkout charge, public reads and the total goal; streamer-only and range checks; "Já pago" for a movie (SPONSORED, PAID, no Payment, no MP call, audited without the name), idempotency, campaign amounts (any amount, FUNDED when complete, a pending Pix keeps its share), undo for movies and funded campaigns, site orders not undoable, step-up. `db-constraints-phase6` (+2): `ci_manual_price`, `ord_manual`, relaxed contribution rule for MANUAL only. `db-constraints-r1` / `catalog`: the 51st movie is refused. Authz matrix: +3 rows. |
+| Integration | ✅ 984 / 984 — new `manual-orders.test.ts` (9): manual price in quote, checkout charge, public reads and the total goal; streamer-only and range checks; "Já pago" for a movie (SPONSORED, PAID, no Payment, no MP call, audited without the name), idempotency, campaign amounts (any amount, FUNDED when complete, a pending Pix keeps its share), undo for movies and funded campaigns, site orders not undoable, step-up. `db-constraints-phase6` (+2): `ci_manual_price`, `ord_manual`, relaxed contribution rule for MANUAL only. `db-constraints-r1` / `catalog`: the 51st movie is refused. Authz matrix: +3 rows. |
 | E2E | ✅ after rebuilding (the first full run, 320 passed, used a stale build: "34/35" in the sidebar): the affected specs (community, operations, headers, csp, a11y-layout, carousel, viewports, design-match, dashboard) 0 failures, `community` 19 / 19 — `community` (+2): the available-movies grid below the carousel; the Twitch block only while a session is LIVE (the count excludes the seeded movie with a Pix in progress, shown as "Reservado"), nothing requested from Twitch before the click, the player URL after it. `operations` (+1): "Já pago" in Pedidos and its undo. `headers`: Permissions-Policy delegates autoplay/fullscreen to youtube-nocookie and the Twitch player only. |
 
 ## Addendum — "Já pago" in the editor, ring-style goal overlays (2026-11-02, night)
@@ -122,3 +122,10 @@ When Mercado Pago refuses a request, the server log (`mercadopago error`) now ca
 | Suite | Result |
 |---|---|
 | E2E | ✅ dashboard + operations + csp: 111 passed, 0 failed — `dashboard` (+1): the streamer registers a live movie as paid from the editor, the tile turns "Patrocinado", no second "Já pago", undone in Pedidos. `operations`: the "Meta" and "Meta total" overlays render with the new rings (same text checks: percentage, "X de Y títulos garantidos", one entry per board, no "R$"). `csp`: no violations. |
+
+## Addendum — deploy helpers (2026-11-02, night)
+
+| Suite | Result |
+|---|---|
+| Integration | ✅ 987 / 987 (+3 `legal-publish.test.ts`: the three types registered with the text hash and seen by checkout, idempotent re-run, an older current version replaced, the same version with another text refused and rolled back) |
+| Ops | `shellcheck -S warning scripts/ops/compose.sh` clean; `npm run build:worker` builds the `--publish-legal` entry |

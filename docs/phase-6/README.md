@@ -138,3 +138,8 @@ Migrations `20261108120000_manual_price_orders` (generated) and `20261108120100_
   - **CSP**: everything is SVG presentation attributes plus CSS in `ops.css`, so it stays CSP-clean (no inline styles, no `<style>`).
   - **Motion**: off under `prefers-reduced-motion`.
   - **Money**: revenue goals still show only the percentage.
+
+### 9.2 Deploy helpers (2026-11-02, night)
+
+- `worker --publish-legal` (`src/server/legal/publish.ts`): registers the one legal text (`src/content/legal/privacy.ts`, version `LEGAL_UPDATED`, SHA-256 of the exact text) as the current TERMS, PRIVACY and REFUND document, which opens checkout in production. Idempotent; the same version with a different text is refused (bump `LEGAL_UPDATED`); audited as `legal.publish`.
+- `scripts/ops/compose.sh`: `docker compose` for the running release (reads the image digests from `releases/current.env`), for logs, `psql` and one-off commands. The phase-5 deploy guide uses it.

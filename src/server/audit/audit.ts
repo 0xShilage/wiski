@@ -215,6 +215,9 @@ export const AUDIT_ACTIONS = {
       message: z.boolean(),
     })
     .strict(),
+  'legal.publish': z
+    .object({ version: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), types: z.int().min(1).max(3) })
+    .strict(),
   'order.manual-undo': z
     .object({ kind: orderKind, totalCents: z.int().positive(), from: orderStatus })
     .strict(),

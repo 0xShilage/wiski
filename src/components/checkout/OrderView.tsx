@@ -406,7 +406,12 @@ export function OrderView({ code, signedIn }: { code: string; signedIn: boolean 
         </p>
         {o.message ? (
           <p className="wf-co__muted mt-2 text-sm">
-            Mensagem: “{o.message}”{o.messageStatus === 'PENDING' ? ' (aguardando moderação)' : ''}
+            Mensagem: “{o.message}”
+            {o.messageStatus === 'PENDING'
+              ? ' (aguardando moderação)'
+              : o.messageStatus === 'REJECTED'
+                ? ' (ocultada pela moderação)'
+                : ''}
           </p>
         ) : null}
         {link ? (

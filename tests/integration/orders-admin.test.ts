@@ -77,13 +77,15 @@ describe('list and detail', () => {
 });
 
 describe('sponsor message and guest name (Q10, Q16)', () => {
-  it('stay private until approved; approval is audited; a second decision is 409', async () => {
+  it('the name stays private until approved; the message shows at once (2026-11-03); audited', async () => {
     const { order } = await paidMovieOrder({
       displayName: 'Lu Convidada',
       message: 'Bora assistir!',
     });
-    expect(order).toMatchObject({ displayNameStatus: 'PENDING', messageStatus: 'PENDING' });
+    expect(order).toMatchObject({ displayNameStatus: 'PENDING', messageStatus: 'APPROVED' });
     const mod = await as('MODERATOR');
+    const before = await hit(getRoute, 'GET', '', { who: mod, params: { id: order.id } });
+    expect(before.json.order).toMatchObject({ publicName: null, shownMessage: 'Bora assistir!' });
     const r = await hit(textsRoute, 'POST', '', {
       who: mod,
       params: { id: order.id },
@@ -94,17 +96,43 @@ describe('sponsor message and guest name (Q10, Q16)', () => {
       shownMessage: null,
       messageStatus: 'REJECTED',
     });
-    const again = await hit(textsRoute, 'POST', '', {
+    const name = await hit(textsRoute, 'POST', '', {
+      who: mod,
+      params: { id: order.id },
+      body: { expectedVersion: order.version, displayName: 'REJECTED' },
+    });
+    expect([name.res.status, name.json.code]).toEqual([409, 'NOTHING_TO_REVIEW']);
+    const same = await hit(textsRoute, 'POST', '', {
+      who: mod,
+      params: { id: order.id },
+      body: { expectedVersion: order.version, message: 'REJECTED' },
+    });
+    expect([same.res.status, same.json.code]).toEqual([409, 'NOTHING_TO_REVIEW']);
+    const back = await hit(textsRoute, 'POST', '', {
       who: mod,
       params: { id: order.id },
       body: { expectedVersion: order.version, message: 'APPROVED' },
     });
-    expect([again.res.status, again.json.code]).toEqual([409, 'NOTHING_TO_REVIEW']);
-    const log = await db().auditLog.findFirstOrThrow({
+    expect(back.json.order).toMatchObject({ shownMessage: 'Bora assistir!' });
+    const logs = await db().auditLog.findMany({
       where: { action: 'order.texts', targetId: order.id },
+      orderBy: { id: 'asc' },
     });
-    expect(log.metadata).toEqual({ displayName: 'APPROVED', message: 'REJECTED' });
-    expect(JSON.stringify(log.metadata)).not.toContain('Lu Convidada');
+    expect(logs.map((l) => l.metadata)).toEqual([
+      { displayName: 'APPROVED', message: 'REJECTED' },
+      { message: 'APPROVED' },
+    ]);
+    expect(JSON.stringify(logs.map((l) => l.metadata))).not.toContain('Lu Convidada');
+  });
+
+  it('no message: nothing to show or hide', async () => {
+    const { order } = await paidMovieOrder();
+    const r = await hit(textsRoute, 'POST', '', {
+      who: await as('MODERATOR'),
+      params: { id: order.id },
+      body: { expectedVersion: order.version, message: 'REJECTED' },
+    });
+    expect(r.json.code).toBe('NOTHING_TO_REVIEW');
   });
 
   it('a stale version is 409', async () => {
@@ -112,7 +140,7 @@ describe('sponsor message and guest name (Q10, Q16)', () => {
     const r = await hit(textsRoute, 'POST', '', {
       who: await as('MODERATOR'),
       params: { id: order.id },
-      body: { expectedVersion: order.version + 3, message: 'APPROVED' },
+      body: { expectedVersion: order.version + 3, message: 'REJECTED' },
     });
     expect(r.json.code).toBe('ORDER_CHANGED');
   });

@@ -206,40 +206,42 @@ export function OrdersBoard({ initial, role }: { initial: Page; role: 'MODERATOR
                     {o.messageStatus === 'PENDING'
                       ? 'aguardando'
                       : o.messageStatus === 'APPROVED'
-                        ? 'aprovada'
-                        : 'recusada'}
+                        ? 'visível'
+                        : 'oculta'}
                     )
                   </span>
-                  {o.messageStatus === 'PENDING' ? (
-                    <span className="wf-ops-actions">
+                  <span className="wf-ops-actions">
+                    {o.messageStatus !== 'APPROVED' ? (
                       <button
                         type="button"
                         className="wf-btn wf-btn--sm wf-btn--neon"
                         disabled={busy}
                         onClick={() =>
-                          void act('Mensagem aprovada', `/api/v1/admin/orders/${o.id}/texts`, {
+                          void act('Mensagem visível', `/api/v1/admin/orders/${o.id}/texts`, {
                             expectedVersion: o.version,
                             message: 'APPROVED',
                           })
                         }
                       >
-                        Aprovar mensagem
+                        {o.messageStatus === 'PENDING' ? 'Aprovar mensagem' : 'Mostrar de novo'}
                       </button>
+                    ) : null}
+                    {o.messageStatus !== 'REJECTED' ? (
                       <button
                         type="button"
                         className="wf-btn wf-btn--sm wf-btn--ghost"
                         disabled={busy}
                         onClick={() =>
-                          void act('Mensagem recusada', `/api/v1/admin/orders/${o.id}/texts`, {
+                          void act('Mensagem ocultada', `/api/v1/admin/orders/${o.id}/texts`, {
                             expectedVersion: o.version,
                             message: 'REJECTED',
                           })
                         }
                       >
-                        Recusar
+                        Ocultar mensagem
                       </button>
-                    </span>
-                  ) : null}
+                    ) : null}
+                  </span>
                 </div>
               ) : null}
 

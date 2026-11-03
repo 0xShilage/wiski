@@ -157,3 +157,11 @@ Migrations `20261108120000_manual_price_orders` (generated) and `20261108120100_
 | Registration | `src/server/legal/publish.ts` | `worker --publish-legal` registers TERMS + PRIVACY with `LEGAL_UPDATED` and the privacy text's SHA-256, and REFUND with `REFUND_UPDATED` and the refund text's SHA-256. Audit `legal.publish` metadata: `{ version, refundVersion, types }`. A changed text needs its own date bumped. |
 | Checkout wording | `src/components/checkout/BuyerFields.tsx` | The refund link reads "Termo de reembolso", and "(reembolso só nos casos previstos no termo)" replaces "(pagamentos não são reembolsáveis)", which the new terms contradict. |
 
+### 9.4 Sponsor messages without prior approval (2026-11-03)
+
+| What | Where | Notes |
+|---|---|---|
+| Shown at once | `src/server/checkout/orders.ts` | A new order's message is created **APPROVED**, so it shows on the "Agora" overlay when the movie plays without a moderator approving it first. It is still the same sanitised text (140 characters, text nodes only, `overlayEventSchema`). The guest **display name** is unchanged: it still waits for approval (Q10). |
+| Hide / show again | `reviewTexts` in `src/server/checkout/admin.ts`, Admin › Pedidos | Moderators can hide a message at any time ("Ocultar mensagem" → REJECTED) and show it again ("Mostrar de novo"), as a compare-and-set on the status they saw; the overlays refresh and each change is audited (`order.texts`, the decision only, never the text). Orders created before this change keep "Aprovar mensagem". The buyer's order page says "(ocultada pela moderação)". |
+| Checkout copy | `src/components/checkout/BuyerFields.tsx` | "Aparece na live quando o filme passar. A moderação pode ocultar mensagens ofensivas." |
+

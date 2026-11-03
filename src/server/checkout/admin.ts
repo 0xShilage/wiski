@@ -150,7 +150,12 @@ export async function getOrder(role: Role, id: string) {
   return view(o, role);
 }
 
-/** Approve or reject the sponsor message and/or the guest display name (moderators). */
+/**
+ * Moderators: approve or reject the guest display name (PENDING only), and show or hide the sponsor
+ * message. Since 2026-11-03 a message is shown as soon as the order is created (APPROVED), so a
+ * moderator can hide it (REJECTED) and show it again at any time; the change is a compare-and-set
+ * on the status the moderator saw.
+ */
 export async function reviewTexts(
   ctx: Ctx,
   id: string,
@@ -166,7 +171,8 @@ export async function reviewTexts(
     if (o.version !== input.expectedVersion) throw AdminOrderProblems.changed();
     const data: Prisma.OrderUpdateManyMutationInput = {};
     if (input.message) {
-      if (o.messageStatus !== 'PENDING') throw AdminOrderProblems.nothing();
+      if (!o.sponsorMessage || !o.messageStatus || o.messageStatus === input.message)
+        throw AdminOrderProblems.nothing();
       data.messageStatus = input.message;
     }
     if (input.displayName) {
@@ -179,7 +185,7 @@ export async function reviewTexts(
       where: {
         id,
         version: o.version,
-        ...(input.message ? { messageStatus: 'PENDING' } : {}),
+        ...(input.message && o.messageStatus ? { messageStatus: o.messageStatus } : {}),
         ...(input.displayName ? { displayNameStatus: 'PENDING' } : {}),
       },
       data,

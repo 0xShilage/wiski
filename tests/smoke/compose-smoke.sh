@@ -19,7 +19,14 @@ export WF_COMPOSE_EXTRA="-f $ROOT/docker/compose.ci.yml"
 C=(docker compose -f "$ROOT/docker/compose.prod.yml" -f "$ROOT/docker/compose.ci.yml")
 step() { printf '\n── %s\n' "$*"; }
 cleanup() {
+  local status=$?
   "${C[@]}" --profile ops logs --no-color > "$ROOT/test-results/compose-smoke.log" 2>&1 || true
+  if [ "$status" -ne 0 ]; then
+    # the artifact is not always reachable: put what failed in the job log too (throw-away values)
+    echo "── smoke test failed: containers and their last log lines"
+    "${C[@]}" ps -a || true
+    "${C[@]}" logs --no-color --tail 60 nginx web worker || true
+  fi
   "${C[@]}" --profile ops down -v --remove-orphans >/dev/null 2>&1 || true
   rm -rf "$WF_ETC"
 }

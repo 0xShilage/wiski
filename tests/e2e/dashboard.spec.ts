@@ -232,3 +232,30 @@ test('a huge poster (26 MB PNG, 2400×3600) is shrunk in the browser and accepte
   await expect(page.locator('.wf-drop--poster img')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText(/maior que 10 MB/)).toHaveCount(0);
 });
+
+test('"Já pago" from the movie editor: the movie becomes sponsored; undone in Pedidos', async ({
+  page,
+  context,
+}) => {
+  const st = await seedUser({ role: 'STREAMER', passkeyVerified: true });
+  await signIn(context, st.token);
+  page.on('dialog', (d) => void d.accept());
+  await page.goto('/admin/catalogo');
+  await page.getByRole('button', { name: new RegExp(`Ativo: ${TITLE}`) }).click();
+  await page.getByRole('button', { name: 'Já pago' }).click();
+  const panel = page.getByRole('group', { name: 'Registrar pagamento fora do site' });
+  await expect(panel.getByLabel('Valor recebido (R$)')).toHaveValue(/^\d+(,\d{2})?$/);
+  await panel.getByLabel('Nome público (opcional)').fill('Tia Lu');
+  await panel.getByRole('button', { name: 'Registrar como pago' }).click();
+  await expect(page.getByText('Pagamento registrado: o título entrou na fila.')).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: new RegExp(`Patrocinado: ${TITLE}`) }),
+  ).toBeVisible();
+  // a sponsored movie offers no second "Já pago"
+  await expect(page.getByRole('button', { name: 'Já pago' })).toHaveCount(0);
+
+  await page.goto('/admin/pedidos');
+  const card = page.locator('.wf-ops-card', { hasText: TITLE }).filter({ hasText: 'Já pago' });
+  await card.first().getByRole('button', { name: 'Desfazer registro' }).click();
+  await expect(page.getByText('Registro desfeito: feito.')).toBeVisible();
+});

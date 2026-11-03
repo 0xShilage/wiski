@@ -1,7 +1,8 @@
 /**
- * "Política de Privacidade e Proteção de Dados" (2026-11-01): the single legal text that replaces
- * the separate Termos de uso and Política de privacidade pages, converted from the streamer's
- * ASSETS/TERMS_PRIVACY.docx without changing a word. Rendered by `src/lib/legal-text.ts`:
+ * "Política de Privacidade e Proteção de Dados" (2026-11-01; the lawyer's final version received
+ * 2026-11-03): the legal text that replaces the separate Termos de uso and Política de privacidade
+ * pages, converted from the streamer's ASSETS/TERMS_PRIVACY.docx without changing a word. The
+ * refund terms are a document of their own (refund.ts). Rendered by `src/lib/legal-text.ts`:
  *
  *   ## / ###   section headings ("1. …", "3.1. …")  ·  "- " list items  ·  **bold**  ·  <https://…>
  *   {site} {domain} {controller} {email} {dpo}  →  LEGAL_CONTROLLER below
@@ -15,15 +16,11 @@ export const LEGAL_UPDATED = '2026-11-01';
  * The document's blanks. `null` = not filled in yet: the page shows "[a definir]" there and a
  * notice that the text is provisional, until every value is set.
  */
-export const LEGAL_CONTROLLER: Record<
-  'site' | 'domain' | 'controller' | 'email' | 'dpo',
-  string | null
-> = {
+export const LEGAL_CONTROLLER: Record<'site' | 'domain' | 'controller' | 'email', string | null> = {
   site: 'Wiski',
   domain: 'wiski.fun',
-  controller: null, // "[NOME DA RESPONSÁVEL OU RAZÃO SOCIAL]"
-  email: null, // "[E-MAIL DE CONTATO]"
-  dpo: null, // "[NOME OU IDENTIFICAÇÃO]" (responsável pelo tratamento)
+  controller: 'Strategol Security',
+  email: 'strategol-security@pm.me',
 };
 
 export const LEGAL_TEXT = String.raw`
@@ -42,8 +39,6 @@ A CONTROLADORA é responsável pelas decisões referentes ao tratamento dos dado
 Para assuntos relacionados à privacidade, proteção de dados pessoais ou exercício dos direitos previstos na LGPD, o usuário poderá entrar em contato pelo seguinte canal:
 
 - E-mail: {email}
-
-- Responsável pelo tratamento: {dpo}
 
 ## 2. FINALIDADE DA PLATAFORMA
 
@@ -149,7 +144,7 @@ Durante o processo de contribuição, poderão ser tratados:
 
 - Informações necessárias à identificação, confirmação e conciliação do pagamento.
 
-Os dados completos de cartões de crédito, códigos de segurança, credenciais bancárias e demais informações financeiras são processados pelo Mercado Pago, conforme a modalidade de pagamento utilizada e suas próprias políticas.
+Os dados completos de cartões de crédito, códigos de segurança, credenciais bancárias e demais informações financeiras são processadas pelo Mercado Pago, conforme a modalidade de pagamento utilizada e suas próprias políticas.
 
 A plataforma não pretende armazenar diretamente os dados completos dos instrumentos de pagamento utilizados pelos usuários.
 

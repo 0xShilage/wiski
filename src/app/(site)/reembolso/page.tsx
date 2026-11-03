@@ -1,15 +1,13 @@
 import type { Metadata } from 'next';
-import { LegalPlaceholder } from '@/components/layout/LegalPlaceholder';
+import { LegalDocument } from '@/components/layout/LegalDocument';
 
-export const metadata: Metadata = { title: 'Política de reembolso' };
+export const metadata: Metadata = {
+  title: 'Reembolso',
+  description:
+    'Termo de Reembolso, Estorno e Restituição de Contribuições Financeiras do Wiski: quando e como um patrocínio pode ser devolvido.',
+};
 
+/** /reembolso: the refund terms (2026-11-03), accepted at checkout. */
 export default function ReembolsoPage() {
-  return (
-    <LegalPlaceholder title="Política de reembolso">
-      <p>
-        A política de reembolso dos patrocínios será publicada aqui antes de os pagamentos serem
-        abertos.
-      </p>
-    </LegalPlaceholder>
-  );
+  return <LegalDocument doc="refund" />;
 }

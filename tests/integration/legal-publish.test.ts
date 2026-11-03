@@ -1,10 +1,11 @@
 /**
- * Production legal registration (2026-11-02): `worker --publish-legal` makes the site's one legal
- * text the current TERMS, PRIVACY and REFUND version (checkout opens), idempotently; the same
- * version with a different text is refused.
+ * Production legal registration (2026-11-02): `worker --publish-legal` makes the privacy text the
+ * current TERMS and PRIVACY version and (2026-11-03) the refund terms the REFUND version, so
+ * checkout opens; idempotent; the same version with a different text is refused.
  */
 import { beforeEach, describe, expect, it } from 'vitest';
 import { LEGAL_TEXT, LEGAL_UPDATED } from '@/content/legal/privacy';
+import { REFUND_TEXT, REFUND_UPDATED } from '@/content/legal/refund';
 import { currentLegal } from '@/server/checkout/status';
 import { db } from '@/server/db';
 import { LegalVersionConflict, publishLegal } from '@/server/legal/publish';
@@ -18,17 +19,20 @@ beforeEach(async () => {
 describe('publishLegal', () => {
   it('registers the three types with the text hash; checkout sees them; a re-run is a no-op', async () => {
     expect(await currentLegal()).toBeNull();
-    expect(await publishLegal()).toEqual({ version: LEGAL_UPDATED, published: 3 });
+    const result = { version: LEGAL_UPDATED, refundVersion: REFUND_UPDATED };
+    expect(await publishLegal()).toEqual({ ...result, published: 3 });
     const legal = await currentLegal();
     expect(legal).toMatchObject({
       TERMS: { version: LEGAL_UPDATED },
       PRIVACY: { version: LEGAL_UPDATED },
-      REFUND: { version: LEGAL_UPDATED },
+      REFUND: { version: REFUND_UPDATED },
     });
     const docs = await db().legalDocument.findMany({ where: { isCurrent: true } });
     for (const d of docs)
-      expect(Buffer.from(d.sha256)).toEqual(Buffer.from(sha256Bytes(LEGAL_TEXT)));
-    expect(await publishLegal()).toEqual({ version: LEGAL_UPDATED, published: 0 });
+      expect(Buffer.from(d.sha256)).toEqual(
+        Buffer.from(sha256Bytes(d.type === 'REFUND' ? REFUND_TEXT : LEGAL_TEXT)),
+      );
+    expect(await publishLegal()).toEqual({ ...result, published: 0 });
     expect(await db().legalDocument.count()).toBe(3);
     expect(
       await db().auditLog.count({ where: { action: 'legal.publish' } }),
@@ -49,7 +53,9 @@ describe('publishLegal', () => {
     }
     await publishLegal();
     expect(
-      await db().legalDocument.count({ where: { isCurrent: true, version: LEGAL_UPDATED } }),
+      await db().legalDocument.count({
+        where: { isCurrent: true, version: { in: [LEGAL_UPDATED, REFUND_UPDATED] } },
+      }),
     ).toBe(3);
     expect(await db().legalDocument.count({ where: { isCurrent: false } })).toBe(3);
   });

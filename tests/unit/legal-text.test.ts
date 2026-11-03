@@ -1,6 +1,7 @@
-/** The single legal text (2026-11-01): the markup parser and the published content. */
+/** The legal texts (2026-11-01, refund terms 2026-11-03): the markup parser and the published content. */
 import { describe, expect, it } from 'vitest';
 import { LEGAL_CONTROLLER, LEGAL_TEXT, LEGAL_UPDATED } from '@/content/legal/privacy';
+import { REFUND_TEXT, REFUND_UPDATED } from '@/content/legal/refund';
 import { type Block, type Inline, parseInline, parseLegal, sectionId } from '@/lib/legal-text';
 
 const flat = (parts: Inline[]): string =>
@@ -93,5 +94,32 @@ describe('published text', () => {
   it('a real date', () => {
     expect(LEGAL_UPDATED).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(Number.isNaN(Date.parse(LEGAL_UPDATED))).toBe(false);
+  });
+});
+
+describe('final texts (2026-11-03)', () => {
+  it('every blank of the privacy text is filled in: no "a definir" left', () => {
+    for (const m of LEGAL_TEXT.matchAll(/\{([a-z]+)\}/g)) {
+      expect(LEGAL_CONTROLLER[m[1] as keyof typeof LEGAL_CONTROLLER], m[1]).toBeTruthy();
+    }
+    expect(LEGAL_CONTROLLER.email).toMatch(/^[\w.-]+@[a-z\d-]+(?:\.[a-z\d-]+)+$/);
+  });
+
+  it('refund terms: sections 1–17, the three refund cases, the contact channel, no markup left', () => {
+    const blocks = parseLegal(REFUND_TEXT, LEGAL_CONTROLLER);
+    expect(blocks.filter((b) => b.kind === 'h2').map((b) => b.id)).toEqual(
+      Array.from({ length: 17 }, (_, i) => `secao-${i + 1}`),
+    );
+    const text = blocks
+      .map((b) =>
+        b.kind === 'p' ? flat(b.inlines) : b.kind === 'ul' ? b.items.map(flat).join(' ') : b.text,
+      )
+      .join('\n');
+    expect(text).not.toMatch(/\*\*|\\|•|#{2}/u);
+    for (const c of ['PAGAMENTO DUPLICADO', 'ERRO COMPROVADO NO PROCESSAMENTO DA TRANSAÇÃO'])
+      expect(text).toContain(c);
+    expect(text).toContain('Canal de atendimento: {email}');
+    for (const m of REFUND_TEXT.matchAll(/\{([a-z]+)\}/g)) expect(m[1]).toBe('email');
+    expect(REFUND_UPDATED).toBe('2026-11-03');
   });
 });

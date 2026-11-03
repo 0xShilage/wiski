@@ -143,9 +143,9 @@ export function BuyerFields({
           </a>{' '}
           e a{' '}
           <a href="/reembolso" target="_blank" rel="noopener">
-            Política de reembolso
+            Termo de reembolso
           </a>{' '}
-          (pagamentos não são reembolsáveis).
+          (reembolso só nos casos previstos no termo).
         </span>
       </label>
     </div>

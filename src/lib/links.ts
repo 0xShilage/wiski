@@ -7,6 +7,9 @@ export const LINK_MAX = 30;
 export const LINK_LABEL_MAX = 40;
 export const LINK_NOTE_MAX = 80;
 export const LINK_URL_MAX = 300;
+/** The picture at the top of /links (scripts/links-photo.ts): 256 px, shown at 120 CSS px. */
+export const LINKS_PHOTO_PX = 256;
+export const LINKS_PHOTO_SRC = `/brand/links-iara-${LINKS_PHOTO_PX}.webp`;
 
 const PLATFORMS: [RegExp, string][] = [
   [/(^|\.)twitch\.tv$/, 'Twitch'],

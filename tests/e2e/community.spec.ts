@@ -64,6 +64,10 @@ test('home: "Filmes disponíveis" lists every sponsorable movie below the carous
   );
   expect(order[0]).toBeLessThan(order[1]!);
   expect(order[1]).toBeLessThan(order[2]!);
+  // 2026-11-03: the grid ends with 23 px of room before the next section
+  expect(
+    await page.locator('.wf-movie-grid').evaluate((el) => getComputedStyle(el).paddingBottom),
+  ).toBe('23px');
 });
 
 test('home: the Twitch block shows only while a live is "Ao vivo", and loads Twitch only on click', async ({
@@ -125,6 +129,10 @@ test('links: the seeded buttons in order, platform names as text, no new tab', a
   await page.goto('/links');
   await expect(page.getByRole('heading', { level: 1, name: 'Links' })).toBeVisible();
   await expect(page.getByText('Onde encontrar a Iara fora daqui.')).toBeVisible();
+  // Iara's photo at the top (2026-11-03), loaded from the static brand files
+  const photo = page.getByRole('img', { name: 'Foto da Iara' });
+  await expect(photo).toHaveAttribute('src', '/brand/links-iara-256.webp');
+  expect(await photo.evaluate((i: HTMLImageElement) => i.complete && i.naturalWidth)).toBe(256);
   const links = page.locator('.wf-links__btn');
   await expect(links).toHaveCount(4);
   // every seeded link is a known platform → its glyph, decorative (hidden from screen readers)

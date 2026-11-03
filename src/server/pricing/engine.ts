@@ -71,6 +71,11 @@ export type MovieInput = {
   runtimeMinutes: number | null;
   addOnIds?: readonly string[];
   queueJumpTierId?: string | null;
+  /**
+   * The movie's price set by hand in the dashboard (2026-11-02): replaces the runtime formula
+   * (base band + extra minutes). Add-ons, discounts and queue jumps still apply on top of it.
+   */
+  baseOverrideCents?: number | null;
 };
 
 export type PriceContext = {
@@ -156,15 +161,16 @@ export function priceMovie(config: PricingConfig, input: MovieInput, ctx: PriceC
     { key: 'runtime', label: `Duração: ${formatRuntime(R)}`, cents: null },
   ];
 
-  // 1. base — first band with R ≤ upToMinutes, else the last band
+  // 1. base — the manual price, or the first band with R ≤ upToMinutes, else the last band
   const { bands, perMinuteOverCents } = rule.pricing;
   const last = bands[bands.length - 1]!;
   const band = bands.find((b) => R <= b.upToMinutes) ?? last;
-  const B = assertCents(band.baseCents);
+  const manual = input.baseOverrideCents ?? null;
+  const B = assertCents(manual ?? band.baseCents);
   lines.push({ key: 'base', label: 'Filme', cents: B });
 
-  // 2. extra minutes above the last band
-  const extraMinutes = Math.max(0, R - last.upToMinutes);
+  // 2. extra minutes above the last band (none with a manual price)
+  const extraMinutes = manual === null ? Math.max(0, R - last.upToMinutes) : 0;
   const X = assertCents(extraMinutes * perMinuteOverCents);
   if (X > 0) {
     lines.push({

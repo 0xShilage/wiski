@@ -44,6 +44,8 @@ export type PublicItem = {
   watchedAt: string | null;
   /** MOVIE: full sponsorship price */
   priceCents: number | null;
+  /** MOVIE: the streamer set this price by hand (no per-minute rule to explain) */
+  manualPrice: boolean;
   /** SPONSORED: "@user" | display name | null (anonymous) */
   sponsorName: string | null;
   campaign: PublicCampaign | null;

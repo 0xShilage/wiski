@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { GoalRing, type GoalIcon } from './GoalRing';
 
 type Ev =
   | {
@@ -54,6 +55,17 @@ const LABEL = {
   patrocinio: 'Novo patrocínio!',
 } as const;
 const KIND_LABEL = { MOVIE: 'Filmes', SERIES: 'Séries', FRANCHISE: 'Franquias' } as const;
+const KIND_ICON: Record<keyof typeof KIND_LABEL, GoalIcon> = {
+  MOVIE: 'film',
+  SERIES: 'tv',
+  FRANCHISE: 'stack',
+};
+const METRIC_ICON: Record<string, GoalIcon> = {
+  SPONSORSHIP_COUNT: 'heart',
+  SPONSORSHIP_REVENUE_CENTS: 'sparkle',
+  WATCHED_MINUTES: 'clock',
+};
+const num = (n: number) => n.toLocaleString('pt-BR');
 
 /**
  * OBS browser source (01 §3.4): the key in the URL fragment is exchanged once for the overlay
@@ -220,57 +232,52 @@ export function OverlayClient({ widget }: { widget: keyof typeof LABEL }) {
   }
   if (ev.type === 'goal') {
     if (!ev.title) return null;
+    const unit = ev.metric === 'WATCHED_MINUTES' ? ' min' : '';
     return (
-      <div className="wf-overlay__box">
-        <p className="wf-overlay__label">{LABEL.meta}</p>
-        <p className="wf-overlay__sub">{ev.title}</p>
-        <progress
-          className="wf-progress"
-          max={100}
-          value={ev.percent}
-          aria-label={`${ev.percent}%`}
+      <div className="wf-goal">
+        <GoalRing
+          percent={ev.percent}
+          icon={METRIC_ICON[ev.metric ?? ''] ?? 'sparkle'}
+          burst={ev.percent}
         />
-        <p className="wf-overlay__sub">
-          {ev.current !== null && ev.target !== null
-            ? `${ev.current.toLocaleString('pt-BR')} de ${ev.target.toLocaleString('pt-BR')} · ${ev.percent}%`
-            : `${ev.percent}%`}
-        </p>
+        <div className="wf-goal__text">
+          <p className="wf-goal__label">{LABEL.meta}</p>
+          <p className="wf-goal__title">{ev.title}</p>
+          <p className="wf-goal__value">
+            {ev.current !== null && ev.target !== null
+              ? `${num(ev.current)} / ${num(ev.target)}${unit} · ${ev.percent}%`
+              : `${ev.percent}%`}
+          </p>
+          {ev.percent >= 100 ? <p className="wf-goal__done">Meta batida!</p> : null}
+        </div>
       </div>
     );
   }
   if (ev.type === 'goal-total') {
     if (!ev.titles) return null;
     return (
-      <div className="wf-overlay__box wf-overlay__total">
-        <p className="wf-overlay__label">{LABEL['meta-total']}</p>
-        <p className="wf-overlay__total-pct">{ev.percent}%</p>
-        <progress
-          className="wf-progress"
-          max={100}
-          value={ev.percent}
-          aria-label={`${ev.percent}%`}
-        />
-        <p className="wf-overlay__sub">
-          {ev.funded} de {ev.titles} {ev.titles === 1 ? 'título garantido' : 'títulos garantidos'}
-        </p>
-        <ul className="wf-overlay__kinds">
-          {ev.kinds
-            .filter((k) => k.titles > 0)
-            .map((k) => (
-              <li key={k.kind}>
-                <span>{KIND_LABEL[k.kind]}</span>
-                <progress
-                  className="wf-progress"
-                  max={100}
-                  value={k.percent}
-                  aria-label={`${KIND_LABEL[k.kind]}: ${k.percent}%`}
-                />
-                <small>
-                  {k.percent}% · {k.funded}/{k.titles}
-                </small>
-              </li>
-            ))}
-        </ul>
+      <div className="wf-goal wf-overlay__total">
+        <GoalRing percent={ev.percent} icon="sparkle" burst={ev.percent} />
+        <div className="wf-goal__text">
+          <p className="wf-goal__label">{LABEL['meta-total']}</p>
+          <p className="wf-goal__pct wf-overlay__total-pct">{ev.percent}%</p>
+          <p className="wf-goal__value">
+            {ev.funded} de {ev.titles} {ev.titles === 1 ? 'título garantido' : 'títulos garantidos'}
+          </p>
+          <ul className="wf-goal__kinds wf-overlay__kinds">
+            {ev.kinds
+              .filter((k) => k.titles > 0)
+              .map((k) => (
+                <li key={k.kind}>
+                  <span>{KIND_LABEL[k.kind]}</span>
+                  <GoalRing percent={k.percent} icon={KIND_ICON[k.kind]} size="sm" />
+                  <small>
+                    {k.percent}% · {k.funded}/{k.titles}
+                  </small>
+                </li>
+              ))}
+          </ul>
+        </div>
       </div>
     );
   }

@@ -1,5 +1,5 @@
 import 'server-only';
-import { franchiseGoalCents, moviePriceCents, seriesGoalCents } from '@/lib/catalog/pricing';
+import { franchiseGoalCents, movieListPriceCents, seriesGoalCents } from '@/lib/catalog/pricing';
 import { PUBLIC_STATUSES } from '@/lib/catalog/kinds';
 import { db } from '../db';
 
@@ -24,6 +24,7 @@ type Row = {
   kind: Kind;
   status: string;
   runtimeMinutes: number;
+  manualPriceCents: number | null;
   seasonCount: number | null;
   campaign: { goalCents: number; raisedCents: number } | null;
   franchiseEntries: { runtimeMinutes: number }[];
@@ -33,7 +34,7 @@ type Row = {
 export function titleGoal(r: Row): { target: number; current: number; funded: boolean } | null {
   try {
     if (r.kind === 'MOVIE') {
-      const target = moviePriceCents(r.runtimeMinutes);
+      const target = movieListPriceCents(r.runtimeMinutes, r.manualPriceCents);
       const funded = r.status === 'SPONSORED';
       return { target, current: funded ? target : 0, funded };
     }
@@ -99,6 +100,7 @@ export async function totalGoal(): Promise<TotalGoal> {
       kind: true,
       status: true,
       runtimeMinutes: true,
+      manualPriceCents: true,
       seasonCount: true,
       campaign: { select: { goalCents: true, raisedCents: true } },
       franchiseEntries: { select: { runtimeMinutes: true } },

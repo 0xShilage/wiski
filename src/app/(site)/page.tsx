@@ -1,11 +1,14 @@
 import type { Metadata } from 'next';
 import { Mascote } from '@/components/brand/Mascote';
 import { HeroCarousel } from '@/components/catalog/HeroCarousel';
+import { MovieGrid } from '@/components/catalog/MovieGrid';
 import { ProgressBlock } from '@/components/live/ProgressBlock';
+import { TwitchLive } from '@/components/live/TwitchLive';
 import { UpNext } from '@/components/live/UpNext';
 import { watchProgress } from '@/server/catalog/progress';
 import { listPublic } from '@/server/catalog/read';
-import { publicSchedule } from '@/server/live/public';
+import { getEnv } from '@/server/env';
+import { liveNow, publicSchedule } from '@/server/live/public';
 
 export const metadata: Metadata = {
   title: { absolute: 'Wiski — Filmes' },
@@ -14,14 +17,16 @@ export const metadata: Metadata = {
 };
 
 /**
- * `/` = Filmes (O9): the hero carousel with the live movies in slot order, the next lives, and the
- * progress block (Phase 6) at the bottom.
+ * `/` = Filmes (O9): the hero carousel with the live movies in slot order, every available movie
+ * at once (2026-11-02), the next lives, the progress block (Phase 6) and — while a live is "Ao
+ * vivo" in Cronograma — the Twitch player (click to load).
  */
 export default async function FilmesPage() {
-  const [movies, sessions, progress] = await Promise.all([
+  const [movies, sessions, progress, live] = await Promise.all([
     listPublic('MOVIE'),
     publicSchedule(),
     watchProgress(),
+    liveNow(),
   ]);
   return (
     <>
@@ -46,8 +51,10 @@ export default async function FilmesPage() {
           </div>
         </section>
       )}
+      <MovieGrid items={movies} />
       <UpNext sessions={sessions} />
       <ProgressBlock progress={progress} />
+      {live ? <TwitchLive parent={new URL(getEnv().APP_ORIGIN).hostname} /> : null}
     </>
   );
 }

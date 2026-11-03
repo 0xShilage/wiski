@@ -11,7 +11,7 @@ import Link from 'next/link';
 
 type MovieState = Pick<
   PublicItem,
-  'slug' | 'state' | 'priceCents' | 'runtimeMinutes' | 'sponsorName'
+  'slug' | 'state' | 'priceCents' | 'runtimeMinutes' | 'sponsorName' | 'manualPrice'
 >;
 
 /** "Patrocine agora" with its sold / reserved states (design §2, O8); the checkout form is on the detail page. */
@@ -54,6 +54,13 @@ export function priceLine(item: MovieState): { lead: string; amount: string | nu
     };
   }
   const extra = Math.max(0, item.runtimeMinutes - MOVIE_BASE_UP_TO_MIN);
+  if (item.manualPrice) {
+    return {
+      lead: 'Patrocínio: ',
+      amount: formatBRL(item.priceCents ?? 0),
+      rest: ' · pago por uma pessoa',
+    };
+  }
   return {
     lead: 'Patrocínio: ',
     amount: formatBRL(item.priceCents ?? 0),

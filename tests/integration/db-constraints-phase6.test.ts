@@ -1,10 +1,14 @@
 /**
  * Phase 6 reviewed SQL (prisma/migrations/*_phase6_constraints): the Links page and suggestions,
- * hit directly through the app role. The 20-series limit is in db-constraints-r1.test.ts.
+ * hit directly through the app role. The 50/20/10 live limits are in db-constraints-r1.test.ts.
+ * Also 20261108120100_manual_price_orders_constraints: manual movie prices and "Já pago" orders.
  */
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '@/server/db';
 import { pgErrorCode, PG } from '@/server/db-errors';
+import { randomBytes, randomUUID } from 'node:crypto';
+import { newPublicCode } from '@/server/checkout/buyer';
+import { makeItem } from '../support/catalog';
 import { makeUser } from '../support/db';
 
 async function rejects(p: Promise<unknown>, sqlstate: string = PG.checkViolation) {
@@ -108,5 +112,58 @@ describe('Suggestion', () => {
         data: { userId: other.id, kind: 'MOVIE', title: 'DUNA', titleKey: 'duna' },
       }),
     ).resolves.toBeTruthy();
+  });
+});
+
+describe('manual price and "Já pago" orders (2026-11-02)', () => {
+  it('manualPriceCents: movies only, R$ 5–2.000', async () => {
+    const movie = await makeItem({ kind: 'MOVIE' });
+    const series = await makeItem({ kind: 'SERIES' });
+    const price = (id: string, manualPriceCents: number) =>
+      db().catalogItem.update({ where: { id }, data: { manualPriceCents } });
+    await rejects(price(series.id, 6000));
+    await rejects(price(movie.id, 499));
+    await rejects(price(movie.id, 200_001));
+    await expect(price(movie.id, 6000)).resolves.toBeTruthy();
+  });
+
+  it('a MANUAL order is born paid, never pending, never with an IP key; any positive contribution', async () => {
+    const series = await makeItem({ kind: 'SERIES' });
+    const opener = await makeUser({ role: 'STREAMER' });
+    const now = new Date();
+    const campaign = await db().campaign.create({
+      data: {
+        itemId: series.id,
+        goalCents: 10_000,
+        remainingCents: 10_000,
+        openedAt: now,
+        deadlineAt: new Date(now.getTime() + 86_400_000),
+        openedById: opener.id,
+      },
+    });
+    const order = (over: Record<string, unknown>) =>
+      db().order.create({
+        data: {
+          publicCode: newPublicCode(),
+          kind: 'CONTRIBUTION',
+          source: 'MANUAL',
+          itemId: series.id,
+          campaignId: campaign.id,
+          contactEmail: 'iara@example.com',
+          buyerKey: `e:${'a'.repeat(64)}`,
+          accessTokenHash: new Uint8Array(randomBytes(32)),
+          breakdown: [],
+          subtotalCents: 1_234,
+          totalCents: 1_234,
+          status: 'PAID',
+          paidAt: now,
+          clientRequestId: randomUUID(),
+          ...over,
+        },
+      });
+    await rejects(order({ status: 'PENDING_PAYMENT', paidAt: null }));
+    await rejects(order({ ipKey: 'abcdefghijklmnop', status: 'PENDING_PAYMENT', paidAt: null }));
+    await expect(order({})).resolves.toBeTruthy(); // R$ 12,34: allowed for MANUAL only
+    await rejects(order({ source: 'CHECKOUT' }));
   });
 });

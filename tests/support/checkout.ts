@@ -11,13 +11,13 @@ let slot = 0;
 
 /** A live movie in the next free slot (catalog cleared by the caller between files). */
 export async function liveMovie(runtimeMinutes = 115) {
-  slot = (slot % 35) + 1;
-  for (let i = 0; i < 35; i++) {
+  slot = (slot % 50) + 1;
+  for (let i = 0; i < 50; i++) {
     const taken = await db().catalogItem.findFirst({
       where: { kind: 'MOVIE', slot, status: { in: ['ACTIVE', 'SPONSORED', 'FUNDED', 'WATCHED'] } },
     });
     if (!taken) break;
-    slot = (slot % 35) + 1;
+    slot = (slot % 50) + 1;
   }
   return makeItem({ kind: 'MOVIE', status: 'ACTIVE', slot, runtimeMinutes });
 }

@@ -1,6 +1,8 @@
 import 'server-only';
 import { z } from 'zod';
 import { contactEmailSchema } from '../checkout/buyer';
+import { MANUAL_MAX_CENTS } from '../checkout/admin';
+import { codePointLength, plainText } from '../text/sanitize';
 import { METRICS } from '../mediakit/stats';
 import { WIDGETS } from '../overlay/events';
 
@@ -28,6 +30,26 @@ export const sessionUpdateInput = z
   .strict();
 
 export const versionInput = z.object({ expectedVersion: version }).strict();
+
+// ── "Já pago" ──
+const oneLine = (min: number, max: number, message: string) =>
+  z
+    .string()
+    .max(max * 4)
+    .transform((s) => plainText(s))
+    .refine((s) => codePointLength(s) >= min && codePointLength(s) <= max, { message });
+
+export const manualPaymentInput = z
+  .object({
+    itemId: z.uuid(),
+    /** omitted = the movie's price / what is left to raise */
+    amountCents: z.int().min(1).max(MANUAL_MAX_CENTS).optional(),
+    sponsorName: oneLine(2, 24, 'Use de 2 a 24 caracteres.').optional(),
+    message: oneLine(1, 140, 'Use até 140 caracteres.').optional(),
+    /** a fresh UUID per form submit: a double click registers once */
+    idempotencyKey: z.uuid(),
+  })
+  .strict();
 
 const target = z
   .object({ kind: z.enum(['ORDER', 'CAMPAIGN']), id: z.uuid(), expectedVersion: version })

@@ -7,6 +7,8 @@ import {
   DEFAULT_CAMPAIGN_DAYS,
   formatBRL,
   franchiseGoalCents,
+  MANUAL_PRICE_MAX_CENTS,
+  MANUAL_PRICE_MIN_CENTS,
   moviePriceCents,
   seriesGoalCents,
 } from '@/lib/catalog/pricing';
@@ -23,8 +25,10 @@ import {
   fieldsFrom,
   type Form,
   formFrom,
+  centsToReais,
   KIND_UI,
   type Kind,
+  reaisToCents,
 } from './types';
 
 type Msg = { kind: 'ok' | 'err'; text: string; conflict?: boolean } | null;
@@ -73,6 +77,8 @@ export function ItemEditor({
   const [goal, setGoal] = useState('');
   const [days, setDays] = useState(String(DEFAULT_CAMPAIGN_DAYS));
   const [replaceWith, setReplaceWith] = useState('');
+  /** "Já pago" (2026-11-02): amount and public name typed in the "No ar" panel; null = closed */
+  const [paid, setPaid] = useState<{ amount: string; name: string } | null>(null);
   const preview = useRef<HTMLDialogElement>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [loadedVersion, setLoadedVersion] = useState(item?.version ?? 0);
@@ -105,9 +111,26 @@ export function ItemEditor({
   const ui = KIND_UI[kind];
 
   const runtime = Number(form.runtimeMinutes);
+  const manualCents = kind === 'MOVIE' ? reaisToCents(form.manualPrice) : null;
+  const manualValid =
+    manualCents === null ||
+    (Number.isInteger(manualCents) &&
+      manualCents >= MANUAL_PRICE_MIN_CENTS &&
+      manualCents <= MANUAL_PRICE_MAX_CENTS);
+  const formulaCents = useMemo(() => {
+    try {
+      return moviePriceCents(runtime);
+    } catch {
+      return null;
+    }
+  }, [runtime]);
   const money = useMemo(() => {
     try {
-      if (kind === 'MOVIE') return { label: 'Preço calculado', cents: moviePriceCents(runtime) };
+      if (kind === 'MOVIE') {
+        if (manualCents !== null && manualValid)
+          return { label: 'Preço manual', cents: manualCents };
+        return { label: 'Preço calculado', cents: moviePriceCents(runtime) };
+      }
       if (kind === 'SERIES')
         return { label: 'Meta pela fórmula', cents: seriesGoalCents(Number(form.seasonCount)) };
       const films = form.films
@@ -117,7 +140,7 @@ export function ItemEditor({
     } catch {
       return null;
     }
-  }, [kind, runtime, form.seasonCount, form.films]);
+  }, [kind, runtime, manualCents, manualValid, form.seasonCount, form.films]);
   const ytId = form.trailer.trim() ? parseYoutubeId(form.trailer) : null;
 
   function fail(p: Problem) {
@@ -144,6 +167,11 @@ export function ItemEditor({
 
   /** Save; returns the fresh item (null on failure). */
   async function save(): Promise<AdminItem | null> {
+    if (!manualValid) {
+      setErrors({ manualPriceCents: 'De R$ 5 a R$ 2.000 (ex.: 60 ou 59,90), ou vazio.' });
+      setMsg({ kind: 'err', text: 'Alguns campos estão inválidos.' });
+      return null;
+    }
     const fields = fieldsFrom(form, kind, isDraft);
     const data = isNew
       ? await call<{ item: AdminItem }>(
@@ -222,6 +250,57 @@ export function ItemEditor({
     return !!data;
   }
 
+  /** What a "Já pago" can still add: the whole movie, or what the campaign has free. */
+  const paidRoom =
+    !item || role !== 'STREAMER'
+      ? null
+      : kind === 'MOVIE'
+        ? status === 'ACTIVE' && !item.reserved
+          ? (item.priceCents ?? null)
+          : null
+        : item.campaign &&
+            (item.campaign.state === 'OPEN' || item.campaign.state === 'PAUSED') &&
+            status === 'ACTIVE'
+          ? Math.max(
+              0,
+              item.campaign.goalCents - item.campaign.raisedCents - item.campaign.reservedCents,
+            ) || null
+          : null;
+
+  async function registerPaid() {
+    if (!item || !paid || paidRoom === null) return;
+    const cents = reaisToCents(paid.amount);
+    const max = kind === 'MOVIE' ? 1_000_000 : paidRoom;
+    if (cents === null || !Number.isInteger(cents) || cents < 1 || cents > max) {
+      setErrors({ paidAmount: `Informe de R$ 0,01 até ${formatBRL(max)}.` });
+      return;
+    }
+    const what = kind === 'MOVIE' ? 'patrocínio do filme' : 'contribuição';
+    if (
+      !window.confirm(
+        `Registrar ${formatBRL(cents)} de ${what} “${item.fields.title}” como já pago? O título entra na fila.`,
+      )
+    )
+      return;
+    const done = await call(
+      '/api/v1/admin/orders/manual',
+      {
+        method: 'POST',
+        body: {
+          itemId: item.id,
+          amountCents: cents,
+          ...(paid.name.trim() ? { sponsorName: paid.name } : {}),
+          idempotencyKey: crypto.randomUUID(),
+        },
+      },
+      'Pagamento registrado: o título entrou na fila.',
+    );
+    if (!done) return;
+    setPaid(null);
+    const fresh = await adminFetch<{ item: AdminItem }>(`/api/v1/admin/catalog/items/${item.id}`);
+    onChanged(fresh.ok ? fresh.data.item : null);
+  }
+
   const previewItem: PublicItem = {
     id: item?.id ?? 'preview',
     kind,
@@ -250,6 +329,7 @@ export function ItemEditor({
     state: 'ACTIVE',
     watchedAt: null,
     priceCents: kind === 'MOVIE' && money ? money.cents : null,
+    manualPrice: kind === 'MOVIE' && manualCents !== null && manualValid,
     sponsorName: null,
     campaign: null,
     films: [],
@@ -360,6 +440,30 @@ export function ItemEditor({
           </select>
           {err('ageRating')}
         </label>
+        {kind === 'MOVIE' ? (
+          <label className="wf-field">
+            Preço manual (R$)
+            <input
+              inputMode="decimal"
+              autoComplete="off"
+              maxLength={12}
+              placeholder={
+                formulaCents ? `vazio = ${formatBRL(formulaCents)}` : 'vazio = automático'
+              }
+              value={form.manualPrice}
+              readOnly={role !== 'STREAMER'}
+              onChange={(e) => set('manualPrice', e.target.value)}
+              aria-describedby={`${fid}-mp`}
+              {...inv('manualPriceCents')}
+            />
+            <span className="wf-hint" id={`${fid}-mp`}>
+              {role === 'STREAMER'
+                ? 'Substitui o preço pela duração. Vazio = automático.'
+                : 'Só a streamer define o preço manual.'}
+            </span>
+            {err('manualPriceCents')}
+          </label>
+        ) : null}
         {money ? (
           <p className="full m-0 text-sm" aria-live="polite">
             {money.label}: <b className="text-lavender">{formatBRL(money.cents)}</b>
@@ -789,7 +893,75 @@ export function ItemEditor({
             >
               Substituir
             </button>
+            {paidRoom !== null && !paid ? (
+              <button
+                type="button"
+                className="wf-btn wf-btn--ghost wf-btn--sm"
+                disabled={busy}
+                onClick={() => {
+                  setErrors({});
+                  setPaid({ amount: centsToReais(paidRoom), name: '' });
+                }}
+              >
+                Já pago
+              </button>
+            ) : null}
           </div>
+          {paid && paidRoom !== null ? (
+            <div
+              className="wf-form mt-3"
+              role="group"
+              aria-label="Registrar pagamento fora do site"
+            >
+              <p className="full wf-hint m-0">
+                Pago fora do site (Pix direto, combinado na live): o título entra na fila sem Pix,
+                e-mail ou alerta.
+                {kind === 'MOVIE' ? '' : ` Faltam ${formatBRL(paidRoom)} na campanha.`}
+              </p>
+              <label className="wf-field">
+                Valor recebido (R$)
+                <input
+                  className="wf-input"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  maxLength={12}
+                  value={paid.amount}
+                  onChange={(e) => setPaid({ ...paid, amount: e.target.value })}
+                  {...inv('paidAmount')}
+                />
+                {err('paidAmount')}
+              </label>
+              <label className="wf-field">
+                Nome público (opcional)
+                <input
+                  className="wf-input"
+                  autoComplete="off"
+                  maxLength={24}
+                  placeholder="vazio = Anônimo"
+                  value={paid.name}
+                  onChange={(e) => setPaid({ ...paid, name: e.target.value })}
+                />
+              </label>
+              <div className="full wf-actions mt-0">
+                <button
+                  type="button"
+                  className="wf-btn wf-btn--neon wf-btn--sm"
+                  disabled={busy}
+                  onClick={() => void registerPaid()}
+                >
+                  Registrar como pago
+                </button>
+                <button
+                  type="button"
+                  className="wf-btn wf-btn--ghost wf-btn--sm"
+                  disabled={busy}
+                  onClick={() => setPaid(null)}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          ) : null}
           {item.campaign ? (
             <div className="mt-4 grid gap-2 text-sm">
               <p className="m-0">

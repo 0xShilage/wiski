@@ -23,7 +23,7 @@
 4. **SSL/TLS › Origin Server › Authenticated Origin Pulls**: **On** (zone level). nginx refuses any TLS client without Cloudflare's certificate from then on, so do this before the first deploy.
 5. **SSL/TLS › Edge Certificates**: Minimum TLS **1.2**, TLS 1.3 **on**, Always Use HTTPS **on**, Automatic HTTPS Rewrites **on**. **HSTS: off here** — nginx sends it (one owner per header).
 6. **Rules › Settings › Managed Transforms**: "Add security headers" **off**. **Speed › Optimization**: Rocket Loader **off**, Email Obfuscation **off** (both rewrite pages and break the CSP).
-7. **Security › WAF**: managed rules on; one skip rule for `/api/webhooks/mercadopago` (Mercado Pago's servers must reach it; the app checks the HMAC). Rate-limit rules (free plan allows one): `/api/v1/checkout*`, `/api/v1/contact`, `/api/auth/*`, 20 requests / 10 s per IP → block 1 min.
+7. **Security › WAF**: managed rules on; one skip rule for `/api/webhooks/mercadopago` (Mercado Pago's servers must reach it; the app checks the HMAC). Rate-limit rules (free plan allows one): `/api/v1/sponsorships*`, `/api/v1/campaigns/*`, `/api/v1/contact`, `/api/auth/*`, 20 requests / 10 s per IP → block 1 min.
 8. **Caching › Configuration**: browser cache TTL "Respect existing headers". Pages are `private, no-store` and are never cached; `/_next/static/` and `/media/` are immutable and cache well.
 
 ## 2. Server preparation (once)
@@ -82,8 +82,9 @@ Everything else (`DATABASE_URL`, `REDIS_URL`, `CSRF_SECRET`, `COOKIE_SEAL_KEY`, 
 4. Run the real scans (exit criteria):
    - <https://developer.mozilla.org/en-US/observatory> → **A+**;
    - <https://www.ssllabs.com/ssltest/> on `wiski.fun` → **A+** (this grades Cloudflare's edge; HSTS comes from nginx).
-5. Make yourself the streamer: `sudo docker compose -f docker/compose.prod.yml exec postgres psql -U postgres -d wiskiflix`, then `UPDATE "User" SET role = 'STREAMER' WHERE email = '…';`. After that, set up the authenticator in **Perfil › Segurança**.
-6. **First restore drill on the server** (§6). Do it now, before launch, not when you need it.
+5. Make yourself the streamer: log in once with Google, then `sudo scripts/ops/compose.sh exec postgres psql -U postgres -d wiskiflix`, then `UPDATE "User" SET role = 'STREAMER' WHERE email = '…';`. After that, set up the authenticator in **Perfil › Segurança**. (`compose.sh` = `docker compose` with the running release's image digests, which the production compose file needs for every command.)
+6. **Open checkout** (Q13): register the legal text as the current version — `sudo scripts/ops/compose.sh exec worker node --conditions=react-server dist/worker.mjs --publish-legal`. Idempotent; a changed text needs a new `LEGAL_UPDATED` in `src/content/legal/privacy.ts` and a release first.
+7. **First restore drill on the server** (§6). Do it now, before launch, not when you need it.
 
 ## 5. Releases
 
@@ -95,7 +96,7 @@ node scripts/ops/check-site.mjs https://wiski.fun   # from your computer
 
 - **Rollback** (code only): `sudo scripts/ops/rollback.sh` puts the previous release back.
 - **Migrations are forward-only and expand/contract.** A release adds columns/tables first and stops using old ones; it removes them only in a later release. So the previous release always runs on the current schema.
-- **Logs**: `sudo docker compose -f docker/compose.prod.yml logs -f --since 10m web worker nginx`.
+- **Logs**: `sudo scripts/ops/compose.sh logs -f --since 10m web worker nginx`.
 - **Disk**: images older than 10 days are pruned by each deploy.
 
 ## 6. Backups and restores

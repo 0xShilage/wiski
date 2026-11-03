@@ -15,8 +15,8 @@ export function resetSlots() {
 }
 
 async function freeMovieSlot(): Promise<number> {
-  for (let i = 0; i < 35; i++) {
-    slot = (slot % 35) + 1;
+  for (let i = 0; i < 50; i++) {
+    slot = (slot % 50) + 1;
     const taken = await db().catalogItem.count({
       where: { kind: 'MOVIE', slot, status: { in: ['ACTIVE', 'SPONSORED', 'FUNDED', 'WATCHED'] } },
     });

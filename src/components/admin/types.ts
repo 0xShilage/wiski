@@ -25,6 +25,8 @@ export type Form = {
   backdropId: string | null;
   logoId: string | null;
   posterTitle: boolean;
+  /** MOVIE: "60" or "59,90" (R$); empty = price by runtime */
+  manualPrice: string;
   slot: string;
   films: { title: string; year: string; runtimeMinutes: string }[];
 };
@@ -47,6 +49,7 @@ export const emptyForm = (slot: number | null = null): Form => ({
   backdropId: null,
   logoId: null,
   posterTitle: true,
+  manualPrice: '',
   slot: slot ? String(slot) : '',
   films: [],
 });
@@ -71,6 +74,7 @@ export function formFrom(item: AdminItem): Form {
     backdropId: f.backdropId,
     logoId: f.logoId,
     posterTitle: f.posterTitle,
+    manualPrice: f.manualPriceCents === null ? '' : centsToReais(f.manualPriceCents),
     slot: item.slot ? String(item.slot) : '',
     films: f.franchiseEntries.map((e) => ({
       title: e.title,
@@ -78,6 +82,22 @@ export function formFrom(item: AdminItem): Form {
       runtimeMinutes: String(e.runtimeMinutes),
     })),
   };
+}
+
+/** 6000 → "60"; 5990 → "59,90" (what the editor's price field shows). */
+export function centsToReais(cents: number): string {
+  const r = Math.floor(cents / 100);
+  const c = cents % 100;
+  return c ? `${r},${String(c).padStart(2, '0')}` : String(r);
+}
+
+/** "60", "59,90", "R$ 59.9" → cents; "" → null; anything else → NaN (the editor refuses it). */
+export function reaisToCents(s: string): number | null {
+  const t = s.replace(/^\s*R\$\s*/i, '').trim();
+  if (!t) return null;
+  const m = /^(\d{1,5})(?:[.,](\d{1,2}))?$/.exec(t);
+  if (!m) return Number.NaN;
+  return Number(m[1]) * 100 + Number((m[2] ?? '').padEnd(2, '0'));
 }
 
 const int = (s: string): number | null => (/^\d{1,6}$/.test(s.trim()) ? Number(s.trim()) : null);
@@ -103,7 +123,10 @@ export function fieldsFrom(form: Form, kind: Kind, draft: boolean): Record<strin
     backdropId: form.backdropId,
     logoId: form.logoId,
   };
-  if (kind === 'MOVIE') out.posterTitle = form.posterTitle;
+  if (kind === 'MOVIE') {
+    out.posterTitle = form.posterTitle;
+    out.manualPriceCents = reaisToCents(form.manualPrice);
+  }
   if (kind !== 'FRANCHISE') {
     const r = int(form.runtimeMinutes);
     if (r) out.runtimeMinutes = r;

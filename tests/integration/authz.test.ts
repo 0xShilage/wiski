@@ -266,6 +266,14 @@ export const MATRIX: Row[] = [
     params: { id: NO_ID },
     body: VERSION0,
   }),
+  R('/api/v1/admin/orders/[id]/undo', 'POST', 'streamer', {
+    params: { id: NO_ID },
+    body: VERSION0,
+  }),
+  R('/api/v1/admin/orders/manual', 'GET', 'streamer'),
+  R('/api/v1/admin/orders/manual', 'POST', 'streamer', {
+    body: { itemId: NO_ID, idempotencyKey: NO_ID },
+  }),
   R('/api/v1/admin/orders/[id]/refund', 'POST', 'streamer', {
     params: { id: NO_ID },
     body: { expectedVersion: 0, reason: 'DUPLICATE_PAYMENT' },

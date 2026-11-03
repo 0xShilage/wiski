@@ -3,7 +3,7 @@ import type { Prisma } from '@/generated/prisma/client';
 import type { ItemKind } from '@/generated/prisma/enums';
 import type { PublicItem, PublicState } from '@/lib/catalog/types';
 import { LIVE_STATUSES, PUBLIC_STATUSES } from '@/lib/catalog/kinds';
-import { moviePriceCents } from '@/lib/catalog/pricing';
+import { moviePriceCents, movieListPriceCents } from '@/lib/catalog/pricing';
 import { pictureFrom } from '@/lib/media';
 import { db } from '../db';
 import { campaignState, formulaGoal } from './campaigns';
@@ -92,7 +92,9 @@ function toPublic(row: PublicRow, now: Date): PublicItem {
     logo: pictureFrom(row.logo),
     state,
     watchedAt: row.watchedAt?.toISOString() ?? null,
-    priceCents: row.kind === 'MOVIE' ? moviePriceCents(row.runtimeMinutes) : null,
+    priceCents:
+      row.kind === 'MOVIE' ? movieListPriceCents(row.runtimeMinutes, row.manualPriceCents) : null,
+    manualPrice: row.kind === 'MOVIE' && row.manualPriceCents !== null,
     sponsorName: row.status === 'SPONSORED' ? sponsorName(row) : null,
     campaign,
     films: row.franchiseEntries.map(({ position, title, year, runtimeMinutes }) => ({
@@ -271,6 +273,7 @@ export async function getAdmin(id: string, now = new Date()) {
       backdropId: row.backdropId,
       logoId: row.logoId,
       posterTitle: row.posterTitle,
+      manualPriceCents: row.manualPriceCents,
       franchiseEntries: row.franchiseEntries.map(({ title, year, runtimeMinutes }) => ({
         title,
         year,
@@ -283,9 +286,13 @@ export async function getAdmin(id: string, now = new Date()) {
       logo: pictureFrom(row.logo),
     },
     priceCents:
-      row.kind === 'MOVIE' && row.runtimeMinutes <= 360
-        ? moviePriceCents(row.runtimeMinutes)
-        : null,
+      row.kind !== 'MOVIE'
+        ? null
+        : row.manualPriceCents !== null
+          ? row.manualPriceCents
+          : row.runtimeMinutes >= 1 && row.runtimeMinutes <= 360
+            ? moviePriceCents(row.runtimeMinutes)
+            : null,
     formulaGoalCents: await formulaGoal(row),
     missing: row.status === 'DRAFT' ? missingForPublish(row, entries) : [],
     campaign: row.campaign

@@ -130,3 +130,9 @@ export async function cronograma(now = new Date()): Promise<CronogramaDay[]> {
   }
   return [...days.values()];
 }
+
+/** Is a live session marked "Ao vivo" in Cronograma right now? (home page Twitch block) */
+export async function liveNow(): Promise<boolean> {
+  const s = await db().streamSession.findFirst({ where: { status: 'LIVE' }, select: { id: true } });
+  return s !== null;
+}

@@ -20,6 +20,7 @@ import { disconnectDb } from '@/server/db';
 import { disconnectRedis } from '@/server/redis';
 import { purgeContact } from '@/server/contact/contact';
 import { purgeSuggestions } from '@/server/suggestions/suggestions';
+import { publishLegal } from '@/server/legal/publish';
 import { runAuditVerify } from './jobs/audit-verify';
 import { WAKE_CHANNEL } from '@/server/payments/wake';
 
@@ -127,7 +128,26 @@ async function verifyOnce() {
   process.exit(ok ? 0 : 1);
 }
 
-void (process.argv.includes('--verify-audit') ? verifyOnce() : main()).catch((err: unknown) => {
+/**
+ * `node --conditions=react-server dist/worker.mjs --publish-legal` (2026-11-02): register the
+ * site's legal text as the current version for checkout (src/server/legal/publish.ts), once.
+ */
+async function publishLegalOnce() {
+  getEnv();
+  const r = await publishLegal();
+  logger.info(r, r.published ? 'legal text published' : 'legal text already current');
+  await disconnectRedis();
+  await disconnectDb();
+  process.exit(0);
+}
+
+void (
+  process.argv.includes('--verify-audit')
+    ? verifyOnce()
+    : process.argv.includes('--publish-legal')
+      ? publishLegalOnce()
+      : main()
+).catch((err: unknown) => {
   logger.fatal({ err: err instanceof Error ? err.message : 'unknown' }, 'worker crashed');
   process.exit(1);
 });

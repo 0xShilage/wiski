@@ -36,6 +36,8 @@ export type AdminOrderView = {
   code: string;
   kind: 'MOVIE' | 'CONTRIBUTION';
   status: string;
+  /** "Já pago": registered by the streamer, no Pix on the site */
+  manual: boolean;
   version: number;
   totalCents: number;
   createdAt: string;
@@ -120,3 +122,13 @@ export function toLocalInput(iso: string): string {
 export function fromLocalInput(v: string): string {
   return new Date(`${v}:00.000-03:00`).toISOString();
 }
+
+/** "Já pago" (2026-11-02): titles that can be registered as paid outside the site. */
+export type ManualCandidateView = {
+  itemId: string;
+  kind: Kind;
+  title: string;
+  slot: number | null;
+  defaultCents: number;
+  maxCents: number;
+};

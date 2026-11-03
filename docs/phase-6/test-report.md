@@ -148,3 +148,9 @@ When Mercado Pago refuses a request, the server log (`mercadopago error`) now ca
 | Integration | ✅ 988 / 988 — `orders-admin.test.ts`: a new order's message is shown at once while the guest name stays private until approved; a moderator hides the message and shows it again (each change audited with the decision only, never the text); the same decision twice, or a decision on an order without a message, is 409 `NOTHING_TO_REVIEW`; a stale version is 409 |
 | E2E | ✅ checkout + operations + a11y-layout + csp on a fresh production build, 360 + 1280 px: 198 passed, 0 failed |
 
+## Addendum — faster payment confirmation (2026-11-03)
+
+| Suite | Result |
+|---|---|
+| Integration | ✅ `webhook.test.ts` 45 / 45 — reconciliation runs every 15 s; a payable Pix is re-read after 15 s (not after 10 s) and turns PAID; a 40-minute-old open payment is not re-read after 30 s, only after 2 min; "finds an approval whose webhook never came" unchanged |
+

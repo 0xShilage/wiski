@@ -165,3 +165,7 @@ Migrations `20261108120000_manual_price_orders` (generated) and `20261108120100_
 | Hide / show again | `reviewTexts` in `src/server/checkout/admin.ts`, Admin › Pedidos | Moderators can hide a message at any time ("Ocultar mensagem" → REJECTED) and show it again ("Mostrar de novo"), as a compare-and-set on the status they saw; the overlays refresh and each change is audited (`order.texts`, the decision only, never the text). Orders created before this change keep "Aprovar mensagem". The buyer's order page says "(ocultada pela moderação)". |
 | Checkout copy | `src/components/checkout/BuyerFields.tsx` | "Aparece na live quando o filme passar. A moderação pode ocultar mensagens ofensivas." |
 
+### 9.5 Faster payment confirmation (2026-11-03)
+
+`payment.reconcile` (`src/server/payments/jobs.ts`, `src/worker/main.ts`) now runs every **15 s** in every environment (it was 2 min in production, 20 s in development). A Pix that can still be paid (younger than its 31-minute expiry plus the 4-minute grace) is re-read from Mercado Pago when it was not synced in the last 15 s, so "Pago" reaches the order page within about 15 s even when Mercado Pago's webhook is late or missing. Open payments that are older, or in process / in mediation, keep the 2-minute pace. Cost: one `GET /v1/payments/{id}` per open order every 15 s, at most 50 per round. The webhook stays the fast path, and the order page still updates over SSE as soon as the worker syncs.
+

@@ -1081,6 +1081,24 @@ html:has(.wf-overlay) .skip-link {
   .wf-seen__filter {
     max-width: 100%;
   }
+  /* search by name (2026-11-03) */
+  .wf-seen__search {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    max-width: 520px;
+  }
+  .wf-seen__search .wf-input {
+    flex: 1 1 220px;
+    width: auto;
+    min-width: 0;
+  }
+  .wf-seen__count {
+    margin: 0;
+    color: var(--color-lilac);
+    font-weight: 600;
+  }
   @media (max-width: 420px) {
     .wf-seen__filter {
       gap: 2px;

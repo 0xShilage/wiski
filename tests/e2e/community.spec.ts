@@ -300,6 +300,41 @@ test('assistidos: watched titles with posters, filter by kind, cards open the ti
   await expect(page).toHaveURL(new RegExp(`${href}$`));
 });
 
+test('assistidos: search by name, accents and case ignored, kind filter kept', async ({ page }) => {
+  await page.goto('/assistidos');
+  const cards = page.locator('.wf-seen__card');
+  const title = (await cards.first().locator('.wf-seen__title').textContent())!.trim();
+  // the longest word of the first title, upper case and without accents
+  const word = title
+    .split(/\s+/)
+    .sort((a, b) => b.length - a.length)[0]!
+    .normalize('NFD')
+    .replace(/\p{M}+/gu, '')
+    .toUpperCase();
+  const search = page.getByRole('search');
+  await search.getByLabel('Buscar nos assistidos').fill(word);
+  await search.getByRole('button', { name: 'Buscar' }).click();
+  await expect(page).toHaveURL(new RegExp(`[?&]q=${encodeURIComponent(word)}`));
+  await expect(page.locator('.wf-seen__count')).toContainText(`para “${word}”`);
+  await expect(cards.filter({ hasText: title }).first()).toBeVisible();
+  // the kind filter keeps the search
+  const filter = page.getByRole('navigation', { name: 'Filtrar por tipo' });
+  await expect(filter.getByRole('link', { name: 'Filmes' })).toHaveAttribute(
+    'href',
+    new RegExp(`tipo=filmes&q=${encodeURIComponent(word)}`),
+  );
+  // nothing found → a message and a way back
+  await search.getByLabel('Buscar nos assistidos').fill('zzqx nada');
+  await search.getByRole('button', { name: 'Buscar' }).click();
+  await expect(page.locator('.wf-seen__count')).toHaveText(
+    'Nenhum título assistido encontrado para “zzqx nada”.',
+  );
+  await expect(cards).toHaveCount(0);
+  await search.getByRole('link', { name: 'Limpar' }).click();
+  await expect(page).toHaveURL(/\/assistidos$/);
+  await expect(cards.first()).toBeVisible();
+});
+
 test('cronograma: posters next to the titles and "Próximas temporadas" from the dashboard', async ({
   page,
 }) => {

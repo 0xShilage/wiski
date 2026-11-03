@@ -311,6 +311,15 @@ describe('Assistidos and Cronograma posters', () => {
     ]);
     expect((await watchedTitles('MOVIE')).map((t) => t.title)).toEqual(['Antigo', 'Arquivado']);
     expect((await watchedTitles('FRANCHISE')).length).toBe(0);
+    // search by name (2026-11-03): case and accents ignored, every word, kind filter kept
+    expect((await watchedTitles(undefined, 'SÉRIE')).map((t) => t.title)).toEqual(['Série vista']);
+    expect((await watchedTitles(undefined, 'serie vista')).map((t) => t.title)).toEqual([
+      'Série vista',
+    ]);
+    expect((await watchedTitles('MOVIE', 'arq')).map((t) => t.title)).toEqual(['Arquivado']);
+    expect((await watchedTitles('MOVIE', 'série')).length).toBe(0);
+    expect((await watchedTitles(undefined, 'nunca')).length).toBe(0); // never watched
+    expect((await watchedTitles(undefined, '   ')).length).toBe(3); // blank = no search
   });
 
   it('every title on the Cronograma carries its poster', async () => {

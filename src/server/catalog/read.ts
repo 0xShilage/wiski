@@ -5,6 +5,7 @@ import type { PublicItem, PublicState } from '@/lib/catalog/types';
 import { LIVE_STATUSES, PUBLIC_STATUSES } from '@/lib/catalog/kinds';
 import { moviePriceCents, movieListPriceCents } from '@/lib/catalog/pricing';
 import { pictureFrom } from '@/lib/media';
+import { matchesSearch, searchTerms } from '@/lib/search';
 import { db } from '../db';
 import { campaignState, formulaGoal } from './campaigns';
 import { missingForPublish } from './service';
@@ -145,7 +146,20 @@ export async function listWatched(limit = 24, now = new Date()) {
 }
 
 /** Assistidos (2026-11-01): every title watched on stream, newest first, optionally one kind. */
-export async function watchedTitles(kind?: ItemKind, limit = 120, now = new Date()) {
+/**
+ * Everything already watched, newest first (/assistidos). With a search (2026-11-03), the title
+ * and original title must contain every word, ignoring case and accents; the whole history is
+ * searched (up to WATCHED_SEARCH_CAP rows) and the first `limit` matches returned.
+ */
+const WATCHED_SEARCH_CAP = 2000;
+
+export async function watchedTitles(
+  kind?: ItemKind,
+  query?: string | null,
+  limit = 120,
+  now = new Date(),
+) {
+  const terms = searchTerms(query);
   const rows = await db().catalogItem.findMany({
     where: {
       status: { in: ['WATCHED', 'ARCHIVED'] },
@@ -153,10 +167,13 @@ export async function watchedTitles(kind?: ItemKind, limit = 120, now = new Date
       ...(kind ? { kind } : {}),
     },
     orderBy: { watchedAt: 'desc' },
-    take: limit,
+    take: terms.length ? WATCHED_SEARCH_CAP : limit,
     include: publicInclude,
   });
-  return rows.map((r) => ({ ...toPublic(r, now), watchedAt: r.watchedAt!.toISOString() }));
+  return rows
+    .filter((r) => matchesSearch([r.title, r.originalTitle], terms))
+    .slice(0, limit)
+    .map((r) => ({ ...toPublic(r, now), watchedAt: r.watchedAt!.toISOString() }));
 }
 
 export async function getPublicCampaign(id: string, now = new Date()) {

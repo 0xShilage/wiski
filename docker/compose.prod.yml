@@ -133,7 +133,7 @@ services:
 
   postgres:
     <<: *hardening
-    image: postgres:17-bookworm
+    image: postgres:18-bookworm
     # the entrypoint needs these to set up and own the data directory, then drops to `postgres`
     cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETUID, SETGID]
     environment:

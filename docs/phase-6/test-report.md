@@ -121,4 +121,4 @@ When Mercado Pago refuses a request, the server log (`mercadopago error`) now ca
 
 | Suite | Result |
 |---|---|
-| E2E | see the run below — `dashboard` (+1): the streamer registers a live movie as paid from the editor, the tile turns "Patrocinado", no second "Já pago", undone in Pedidos. `operations`: the "Meta" and "Meta total" overlays render with the new rings (same text checks: percentage, "X de Y títulos garantidos", one entry per board, no "R$"). `csp`: no violations. |
+| E2E | ✅ dashboard + operations + csp: 111 passed, 0 failed — `dashboard` (+1): the streamer registers a live movie as paid from the editor, the tile turns "Patrocinado", no second "Já pago", undone in Pedidos. `operations`: the "Meta" and "Meta total" overlays render with the new rings (same text checks: percentage, "X de Y títulos garantidos", one entry per board, no "R$"). `csp`: no violations. |

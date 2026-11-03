@@ -259,3 +259,50 @@ test('"Já pago" from the movie editor: the movie becomes sponsored; undone in P
   await card.first().getByRole('button', { name: 'Desfazer registro' }).click();
   await expect(page.getByText('Registro desfeito: feito.')).toBeVisible();
 });
+
+test('"Já pago" on a draft series: the campaign opens with the goal met; undone in Pedidos', async ({
+  page,
+  context,
+}) => {
+  const series = `Série E2E ${Date.now().toString(36)}`;
+  const st = await seedUser({ role: 'STREAMER', passkeyVerified: true });
+  await signIn(context, st.token);
+  page.on('dialog', (d) => void d.accept());
+  const poster = await fixture('poster.jpg', 700, 1050);
+  const backdrop = await fixture('backdrop.jpg', 1920, 1080);
+  await page.goto('/admin/catalogo?tipo=series');
+  await page.getByRole('button', { name: 'Nova série' }).click();
+  await page.getByLabel('Título', { exact: true }).fill(series);
+  await page.getByLabel('Ano', { exact: true }).fill('2022');
+  await page.getByLabel('Duração total (minutos)').fill('900');
+  await page.getByLabel('Classificação indicativa').selectOption('A12');
+  await page.getByLabel('Gêneros (separados por vírgula)').fill('Drama');
+  await page.getByLabel('Sinopse').fill('Uma série de teste que já chega paga.');
+  await page.getByLabel('Temporadas incluídas').fill('Temporadas 1–2');
+  await page.getByLabel('Nº de temporadas (meta)').fill('2');
+  await page.locator('input[type=file]').nth(0).setInputFiles(poster);
+  await expect(page.locator('.wf-drop--poster img')).toBeVisible({ timeout: 30_000 });
+  await page.locator('input[type=file]').nth(1).setInputFiles(backdrop);
+  await expect(page.locator('.wf-drop--backdrop img')).toBeVisible({ timeout: 30_000 });
+  await page.getByRole('button', { name: 'Salvar rascunho' }).click();
+  await expect(page.getByText('Rascunho criado.')).toBeVisible();
+
+  // the draft's "Abrir campanha" panel offers "Já pago", prefilled with the formula goal
+  await page.getByRole('button', { name: 'Já pago' }).click();
+  const panel = page.getByRole('group', { name: 'Registrar pagamento fora do site' });
+  await expect(panel).toContainText('A campanha abre agora com meta de');
+  await expect(panel.getByLabel('Valor recebido (R$)')).toHaveValue(/^\d+(,\d{2})?$/);
+  await panel.getByLabel('Nome público (opcional)').fill('Tio Beto');
+  await panel.getByRole('button', { name: 'Abrir e registrar como pago' }).click();
+  await expect(page.getByText('Pagamento registrado: o título entrou na fila.')).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: new RegExp(`Meta atingida: ${series}`) }),
+  ).toBeVisible();
+  // a funded campaign offers no second "Já pago"
+  await expect(page.getByRole('button', { name: 'Já pago' })).toHaveCount(0);
+
+  await page.goto('/admin/pedidos');
+  const card = page.locator('.wf-ops-card', { hasText: series }).filter({ hasText: 'Já pago' });
+  await card.first().getByRole('button', { name: 'Desfazer registro' }).click();
+  await expect(page.getByText('Registro desfeito: feito.')).toBeVisible();
+});

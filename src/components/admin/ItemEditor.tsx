@@ -215,10 +215,12 @@ export function ItemEditor({
     if (data) onChanged(data.item);
   }
 
-  async function openCampaign() {
+  /** The goal typed in "Abrir campanha" (R$), or undefined for the formula. */
+  const typedGoalCents = goal.trim() ? Math.round(Number(goal.replace(',', '.')) * 100) : undefined;
+
+  async function openCampaign(notify = true): Promise<AdminItem | null> {
     const current = dirty || isNew ? await save() : item;
-    if (!current) return;
-    const goalCents = goal.trim() ? Math.round(Number(goal.replace(',', '.')) * 100) : undefined;
+    if (!current) return null;
     const data = await call<{ item: AdminItem }>(
       `/api/v1/admin/campaigns/${current.id}/open`,
       {
@@ -226,12 +228,13 @@ export function ItemEditor({
         body: {
           expectedVersion: current.version,
           days: Number(days),
-          ...(goalCents ? { goalCents } : {}),
+          ...(typedGoalCents ? { goalCents: typedGoalCents } : {}),
         },
       },
       'Campanha aberta.',
     );
-    if (data) onChanged(data.item);
+    if (data && notify) onChanged(data.item);
+    return data?.item ?? null;
   }
 
   async function simple(
@@ -250,7 +253,16 @@ export function ItemEditor({
     return !!data;
   }
 
-  /** What a "Já pago" can still add: the whole movie, or what the campaign has free. */
+  /**
+   * What a "Já pago" can still add: the whole movie, what the campaign has free, or — for a series
+   * or franchise still in draft (2026-11-03) — the goal its campaign would open with (typed, else
+   * the formula): "Já pago" then opens the campaign and registers the payment.
+   */
+  const draftCampaign = isDraft && kind !== 'MOVIE';
+  const draftGoalCents =
+    typedGoalCents && Number.isInteger(typedGoalCents) && typedGoalCents > 0
+      ? typedGoalCents
+      : (money?.cents ?? null);
   const paidRoom =
     !item || role !== 'STREAMER'
       ? null
@@ -258,14 +270,16 @@ export function ItemEditor({
         ? status === 'ACTIVE' && !item.reserved
           ? (item.priceCents ?? null)
           : null
-        : item.campaign &&
-            (item.campaign.state === 'OPEN' || item.campaign.state === 'PAUSED') &&
-            status === 'ACTIVE'
-          ? Math.max(
-              0,
-              item.campaign.goalCents - item.campaign.raisedCents - item.campaign.reservedCents,
-            ) || null
-          : null;
+        : draftCampaign
+          ? draftGoalCents
+          : item.campaign &&
+              (item.campaign.state === 'OPEN' || item.campaign.state === 'PAUSED') &&
+              status === 'ACTIVE'
+            ? Math.max(
+                0,
+                item.campaign.goalCents - item.campaign.raisedCents - item.campaign.reservedCents,
+              ) || null
+            : null;
 
   async function registerPaid() {
     if (!item || !paid || paidRoom === null) return;
@@ -276,18 +290,19 @@ export function ItemEditor({
       return;
     }
     const what = kind === 'MOVIE' ? 'patrocínio do filme' : 'contribuição';
-    if (
-      !window.confirm(
-        `Registrar ${formatBRL(cents)} de ${what} “${item.fields.title}” como já pago? O título entra na fila.`,
-      )
-    )
-      return;
+    const question = draftCampaign
+      ? `Abrir a campanha de “${item.fields.title}” com meta de ${formatBRL(paidRoom)} e registrar ${formatBRL(cents)} como já pago? ${cents === paidRoom ? 'A meta fica batida e o título entra na fila.' : 'O título entra no ar com esse valor arrecadado.'}`
+      : `Registrar ${formatBRL(cents)} de ${what} “${item.fields.title}” como já pago? O título entra na fila.`;
+    if (!window.confirm(question)) return;
+    // a draft series/franchise: its campaign opens first (same goal and deadline as "Abrir campanha")
+    const target = draftCampaign ? await openCampaign(false) : item;
+    if (!target) return;
     const done = await call(
       '/api/v1/admin/orders/manual',
       {
         method: 'POST',
         body: {
-          itemId: item.id,
+          itemId: target.id,
           amountCents: cents,
           ...(paid.name.trim() ? { sponsorName: paid.name } : {}),
           idempotencyKey: crypto.randomUUID(),
@@ -295,10 +310,15 @@ export function ItemEditor({
       },
       'Pagamento registrado: o título entrou na fila.',
     );
-    if (!done) return;
+    if (!done) {
+      // the campaign opened but the payment wasn't registered: show the open campaign (its own
+      // "Já pago" in "No ar" can retry)
+      if (target !== item) onChanged(target);
+      return;
+    }
     setPaid(null);
-    const fresh = await adminFetch<{ item: AdminItem }>(`/api/v1/admin/catalog/items/${item.id}`);
-    onChanged(fresh.ok ? fresh.data.item : null);
+    const fresh = await adminFetch<{ item: AdminItem }>(`/api/v1/admin/catalog/items/${target.id}`);
+    onChanged(fresh.ok ? fresh.data.item : target);
   }
 
   const previewItem: PublicItem = {
@@ -344,6 +364,64 @@ export function ItemEditor({
   const inv = (k: string) =>
     errors[k] ? { 'aria-invalid': true as const, 'aria-describedby': `e-${k}` } : {};
   const missing = item?.missing ?? [];
+
+  /** The "Já pago" form (amount + public name), in "No ar" or, for a draft campaign, "Abrir campanha". */
+  const paidForm =
+    paid && paidRoom !== null ? (
+      <div className="wf-form mt-3" role="group" aria-label="Registrar pagamento fora do site">
+        <p className="full wf-hint m-0">
+          Pago fora do site (Pix direto, combinado na live): o título entra na fila sem Pix, e-mail
+          ou alerta.
+          {kind === 'MOVIE'
+            ? ''
+            : draftCampaign
+              ? ` A campanha abre agora com meta de ${formatBRL(paidRoom)} e prazo de ${days} dias.`
+              : ` Faltam ${formatBRL(paidRoom)} na campanha.`}
+        </p>
+        <label className="wf-field">
+          Valor recebido (R$)
+          <input
+            className="wf-input"
+            inputMode="decimal"
+            autoComplete="off"
+            maxLength={12}
+            value={paid.amount}
+            onChange={(e) => setPaid({ ...paid, amount: e.target.value })}
+            {...inv('paidAmount')}
+          />
+          {err('paidAmount')}
+        </label>
+        <label className="wf-field">
+          Nome público (opcional)
+          <input
+            className="wf-input"
+            autoComplete="off"
+            maxLength={24}
+            placeholder="vazio = Anônimo"
+            value={paid.name}
+            onChange={(e) => setPaid({ ...paid, name: e.target.value })}
+          />
+        </label>
+        <div className="full wf-actions mt-0">
+          <button
+            type="button"
+            className="wf-btn wf-btn--neon wf-btn--sm"
+            disabled={busy}
+            onClick={() => void registerPaid()}
+          >
+            {draftCampaign ? 'Abrir e registrar como pago' : 'Registrar como pago'}
+          </button>
+          <button
+            type="button"
+            className="wf-btn wf-btn--ghost wf-btn--sm"
+            disabled={busy}
+            onClick={() => setPaid(null)}
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    ) : null;
 
   return (
     <div>
@@ -832,7 +910,21 @@ export function ItemEditor({
                 >
                   Abrir campanha
                 </button>
+                {paidRoom !== null && !paid ? (
+                  <button
+                    type="button"
+                    className="wf-btn wf-btn--ghost ml-2"
+                    disabled={busy}
+                    onClick={() => {
+                      setErrors({});
+                      setPaid({ amount: centsToReais(paidRoom), name: '' });
+                    }}
+                  >
+                    Já pago
+                  </button>
+                ) : null}
               </div>
+              {paidForm ? <div className="full">{paidForm}</div> : null}
             </div>
           ) : (
             <p className="wf-hint">Pronto? O streamer abre a campanha (define meta e prazo).</p>
@@ -907,61 +999,7 @@ export function ItemEditor({
               </button>
             ) : null}
           </div>
-          {paid && paidRoom !== null ? (
-            <div
-              className="wf-form mt-3"
-              role="group"
-              aria-label="Registrar pagamento fora do site"
-            >
-              <p className="full wf-hint m-0">
-                Pago fora do site (Pix direto, combinado na live): o título entra na fila sem Pix,
-                e-mail ou alerta.
-                {kind === 'MOVIE' ? '' : ` Faltam ${formatBRL(paidRoom)} na campanha.`}
-              </p>
-              <label className="wf-field">
-                Valor recebido (R$)
-                <input
-                  className="wf-input"
-                  inputMode="decimal"
-                  autoComplete="off"
-                  maxLength={12}
-                  value={paid.amount}
-                  onChange={(e) => setPaid({ ...paid, amount: e.target.value })}
-                  {...inv('paidAmount')}
-                />
-                {err('paidAmount')}
-              </label>
-              <label className="wf-field">
-                Nome público (opcional)
-                <input
-                  className="wf-input"
-                  autoComplete="off"
-                  maxLength={24}
-                  placeholder="vazio = Anônimo"
-                  value={paid.name}
-                  onChange={(e) => setPaid({ ...paid, name: e.target.value })}
-                />
-              </label>
-              <div className="full wf-actions mt-0">
-                <button
-                  type="button"
-                  className="wf-btn wf-btn--neon wf-btn--sm"
-                  disabled={busy}
-                  onClick={() => void registerPaid()}
-                >
-                  Registrar como pago
-                </button>
-                <button
-                  type="button"
-                  className="wf-btn wf-btn--ghost wf-btn--sm"
-                  disabled={busy}
-                  onClick={() => setPaid(null)}
-                >
-                  Cancelar
-                </button>
-              </div>
-            </div>
-          ) : null}
+          {paidForm}
           {item.campaign ? (
             <div className="mt-4 grid gap-2 text-sm">
               <p className="m-0">

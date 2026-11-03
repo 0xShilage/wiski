@@ -173,7 +173,7 @@ test('suggestions: a viewer suggests, a moderator accepts, the viewer sees it', 
   await page.getByLabel('Ano (opcional)').fill('2017');
   await page.getByLabel('Por que esse? (opcional)').fill('Vale a maratona.');
   await page.getByRole('button', { name: 'Enviar sugestão' }).click();
-  await expect(page.locator('.wf-seen__count')).toContainText('Sugestão enviada');
+  await expect(page.getByRole('status')).toContainText('Sugestão enviada');
   const mine = page.getByRole('region', { name: 'Suas sugestões' });
   await expect(mine.getByRole('listitem').filter({ hasText: title })).toContainText('Esperando');
 
@@ -218,11 +218,11 @@ test('links editor: the streamer adds, moves and hides a link', async ({ browser
   await form.getByLabel('Nome do botão').fill('Letterboxd');
   await form.getByLabel('Endereço (https://)').fill('https://letterboxd.com/wiski');
   await form.getByRole('button', { name: 'Adicionar' }).click();
-  await expect(page.locator('.wf-seen__count')).toContainText('Link adicionado');
+  await expect(page.getByRole('status')).toContainText('Link adicionado');
   const list = page.getByRole('list', { name: 'Links, na ordem da página' });
   await expect(list.getByRole('listitem').last()).toContainText('Letterboxd');
   await page.getByRole('button', { name: 'Subir Letterboxd' }).click();
-  await expect(page.locator('.wf-seen__count')).toContainText('Ordem salva');
+  await expect(page.getByRole('status')).toContainText('Ordem salva');
   await expect(list.getByRole('listitem').nth(3)).toContainText('Letterboxd');
   await list
     .getByRole('listitem')
@@ -375,7 +375,7 @@ test('estreias: a moderator adds a release and it shows on the Cronograma', asyn
   await form.getByLabel('Data de estreia').fill(soon);
   await form.getByLabel('Observação (opcional)').fill('Netflix');
   await form.getByRole('button', { name: 'Adicionar' }).click();
-  await expect(page.locator('.wf-seen__count')).toContainText('Estreia adicionada');
+  await expect(page.getByRole('status')).toContainText('Estreia adicionada');
   await expect(page.locator('.wf-ops-card').filter({ hasText: name })).toContainText('Netflix');
 
   const pub = await ctx.newPage();
@@ -418,7 +418,7 @@ test('estreias: only the year and an own poster; the Cronograma shows "Previsão
   await form.locator('input[type=file]').setInputFiles(poster);
   await expect(form.locator('.wf-drop--poster img')).toBeVisible({ timeout: 30_000 });
   await form.getByRole('button', { name: 'Adicionar' }).click();
-  await expect(page.locator('.wf-seen__count')).toContainText('Estreia adicionada');
+  await expect(page.getByRole('status')).toContainText('Estreia adicionada');
   const card = page.locator('.wf-ops-card').filter({ hasText: name });
   await expect(card).toContainText(`Previsão: ${year}`);
   await expect(card).toContainText('Pôster próprio');

@@ -128,4 +128,5 @@ log "restoring media"
 "${COMPOSE[@]}" run --rm --no-deps --user 10001 -v "$work:/restore:ro" --entrypoint sh web \
   -c 'find /var/lib/wiski/media -mindepth 1 -delete && tar -C /var/lib/wiski/media -xf /restore/media.tar'
 "${COMPOSE[@]}" up -d --wait
+"${COMPOSE[@]}" exec -T nginx nginx -s reload   # nginx resolves `web` at start: pick up its new address
 log "done. The old database is kept as wiskiflix_previous until you drop it."

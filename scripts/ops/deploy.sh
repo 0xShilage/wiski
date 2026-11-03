@@ -46,6 +46,10 @@ log "migrations"
 
 log "starting the release"
 "${COMPOSE[@]}" up -d --wait --remove-orphans web worker nginx
+# nginx resolves `web` once, at start: when only web was recreated (new image, new address) the
+# old nginx would answer 502. A reload re-reads the configuration and resolves it again.
+log "reloading nginx"
+"${COMPOSE[@]}" exec -T nginx nginx -s reload
 
 mkdir -p releases
 stamp="$(date -u +%Y%m%dT%H%M%SZ)"

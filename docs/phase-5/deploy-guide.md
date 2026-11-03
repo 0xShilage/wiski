@@ -61,7 +61,7 @@ Everything else (`DATABASE_URL`, `REDIS_URL`, `CSRF_SECRET`, `COOKIE_SEAL_KEY`, 
 
 ## 4. First deploy
 
-1. Push to `main`. When CI is green, the `image` job has:
+1. Push to `main` (or **Actions › ci › Run workflow** on `main`, which builds a release without a new commit). When CI is green, the `image` job has:
    - published both images to GHCR;
    - attached a **`release`** artifact (`release.env`, with both image digests and the commit).
 2. Copy `release.env` to the server and deploy that commit:

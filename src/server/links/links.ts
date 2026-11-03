@@ -101,12 +101,13 @@ function url(raw: string): string {
   return u;
 }
 
-/** Position races (two tabs adding at once) surface as the deferred unique at COMMIT. */
+/** Position races (two tabs adding at once) surface as the deferred exclusion at COMMIT. */
 async function guarded<T>(fn: () => Promise<T>): Promise<T> {
   try {
     return await fn();
   } catch (err) {
-    if (pgErrorCode(err) === PG.uniqueViolation) throw LinkProblems.changed();
+    const code = pgErrorCode(err);
+    if (code === PG.exclusionViolation || code === PG.uniqueViolation) throw LinkProblems.changed();
     if (pgErrorCode(err) === PG.checkViolation) throw LinkProblems.full();
     throw err;
   }

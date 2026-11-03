@@ -169,3 +169,8 @@ Migrations `20261108120000_manual_price_orders` (generated) and `20261108120100_
 
 `payment.reconcile` (`src/server/payments/jobs.ts`, `src/worker/main.ts`) now runs every **15 s** in every environment (it was 2 min in production, 20 s in development). A Pix that can still be paid (younger than its 31-minute expiry plus the 4-minute grace) is re-read from Mercado Pago when it was not synced in the last 15 s, so "Pago" reaches the order page within about 15 s even when Mercado Pago's webhook is late or missing. Open payments that are older, or in process / in mediation, keep the 2-minute pace. Cost: one `GET /v1/payments/{id}` per open order every 15 s, at most 50 per round. The webhook stays the fast path, and the order page still updates over SSE as soon as the worker syncs.
 
+### 9.6 Links photo, room above "Nosso progresso" (2026-11-03)
+
+- **Links page picture**: the mascot at the top of `/links` is replaced by Iara's photo, `ASSETS/LINKS_ICON.png` (400 × 400, round, with its own lavender glow). `npm run links-photo` (`scripts/links-photo.ts`) turns it into `public/brand/links-iara-256.webp` (metadata stripped, alpha kept), served from the static `/brand/` location and shown at 120 CSS px through `@/components/Img` with the alt text "Foto da Iara". The circle frame, padding and glow of `.wf-links__avatar` are gone, since the image carries its own.
+- **Home spacing**: `.wf-movie-grid` ends with 23 px of padding (was 8 px), so "Nosso progresso" (or "Próximos na live") starts 15 px further below the last row of "Filmes disponíveis".
+

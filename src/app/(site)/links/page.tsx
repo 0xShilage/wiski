@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
-import { Mascote } from '@/components/brand/Mascote';
+import { Img } from '@/components/Img';
 import { PlatformIcon } from '@/components/links/PlatformIcon';
+import { LINKS_PHOTO_SRC } from '@/lib/links';
 import { publicLinks } from '@/server/links/links';
 
 export const metadata: Metadata = {
@@ -14,8 +15,15 @@ export default async function LinksPage() {
   return (
     <div className="wf-page wf-links">
       <header className="wf-links__head">
-        <div className="wf-links__avatar" aria-hidden="true">
-          <Mascote pose={1} colour="lavender" />
+        <div className="wf-links__avatar">
+          <Img
+            src={LINKS_PHOTO_SRC}
+            alt="Foto da Iara"
+            width={120}
+            height={120}
+            unoptimized
+            className="size-full"
+          />
         </div>
         <h1 className="wf-h1">Links</h1>
         <p className="wf-links__intro">Onde encontrar a Iara fora daqui.</p>

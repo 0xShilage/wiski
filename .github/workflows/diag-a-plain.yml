@@ -1,0 +1,13 @@
+# Temporary: find out why ci.yml fails at startup (2026-11-02). Delete with the branch.
+name: diag-a-plain
+on: pull_request
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+
+    steps:
+      - run: echo "diag-a-plain started"
+

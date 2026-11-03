@@ -1,0 +1,15 @@
+# Temporary: find out why ci.yml fails at startup (2026-11-02). Delete with the branch.
+name: diag-f-packages
+on: pull_request
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - run: echo "diag-f-packages started"
+

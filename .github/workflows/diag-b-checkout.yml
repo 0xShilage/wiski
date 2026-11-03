@@ -1,0 +1,14 @@
+# Temporary: find out why ci.yml fails at startup (2026-11-02). Delete with the branch.
+name: diag-b-checkout
+on: pull_request
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+
+    steps:
+      - run: echo "diag-b-checkout started"
+      - if: ${{ false }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

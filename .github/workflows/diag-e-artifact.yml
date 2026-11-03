@@ -1,0 +1,14 @@
+# Temporary: find out why ci.yml fails at startup (2026-11-02). Delete with the branch.
+name: diag-e-artifact
+on: pull_request
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+
+    steps:
+      - run: echo "diag-e-artifact started"
+      - if: ${{ false }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

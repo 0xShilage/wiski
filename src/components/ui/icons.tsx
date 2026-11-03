@@ -104,3 +104,9 @@ export const IconEye = ({ className }: P) => (
     <circle cx="12" cy="12" r="3" />
   </svg>
 );
+export const IconSearch = ({ className }: P) => (
+  <svg {...base} className={className} strokeWidth={2.2}>
+    <circle cx="10.5" cy="10.5" r="6.5" />
+    <path d="M15.5 15.5L20.5 20.5" />
+  </svg>
+);

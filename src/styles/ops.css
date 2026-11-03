@@ -1081,18 +1081,100 @@ html:has(.wf-overlay) .skip-link {
   .wf-seen__filter {
     max-width: 100%;
   }
-  /* search by name (2026-11-03) */
+  /* search by name (2026-11-03): a light field inside a raised purple pill, magnifier on the right */
   .wf-seen__search {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
-    max-width: 520px;
+    gap: 12px 14px;
+    min-width: 0; /* a grid item: never wider than the page column */
   }
-  .wf-seen__search .wf-input {
-    flex: 1 1 220px;
-    width: auto;
+  .wf-searchbar {
+    flex: 1 1 300px;
+    max-width: 640px;
     min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, var(--color-lavender) 0%, var(--color-violet) 100%);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.35),
+      0 5px 0 var(--color-plum),
+      0 12px 24px rgb(0 0 0 / 0.35);
+  }
+  .wf-searchbar:focus-within {
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.35),
+      0 5px 0 var(--color-plum),
+      0 12px 24px rgb(0 0 0 / 0.35),
+      var(--glow-sm);
+  }
+  .wf-searchbar__input {
+    -webkit-appearance: none;
+    appearance: none;
+    /* width 0 + grow: the field's built-in size (~20 characters) must not set the bar's width */
+    flex: 1 1 0;
+    width: 0;
+    min-width: 0;
+    height: 48px;
+    padding: 0 22px;
+    border: 0;
+    border-radius: 999px;
+    background: #f3eef9;
+    color: var(--color-ink);
+    font: inherit;
+    font-size: 17px;
+    box-shadow: inset 0 2px 5px rgb(27 18 37 / 0.22);
+  }
+  .wf-searchbar__input::placeholder {
+    color: #6c6282;
+    opacity: 1;
+  }
+  .wf-searchbar__input::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .wf-searchbar__input:focus-visible {
+    outline: 2px solid var(--color-plum);
+    outline-offset: -4px;
+  }
+  .wf-searchbar__go {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 48px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: #fff;
+    cursor: pointer;
+    transition: background-color 0.15s;
+  }
+  .wf-searchbar__go svg {
+    width: 30px;
+    height: 30px;
+    filter: drop-shadow(0 1px 1px rgb(27 18 37 / 0.35));
+  }
+  .wf-searchbar__go:hover {
+    background: rgb(255 255 255 / 0.14);
+  }
+  .wf-searchbar__go:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: -2px;
+  }
+  @media (max-width: 420px) {
+    .wf-searchbar__input {
+      height: 44px;
+      padding: 0 16px;
+      font-size: 16px;
+    }
+    .wf-searchbar__go {
+      width: 46px;
+      height: 44px;
+    }
   }
   .wf-seen__count {
     margin: 0;

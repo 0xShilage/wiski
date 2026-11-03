@@ -4,6 +4,7 @@
  * WebhookEvent table), scheduled here with timers; every job is idempotent, so a crash or a second
  * worker is harmless. A Redis message ("wf:jobs") wakes the webhook loop immediately.
  */
+import { closeSync, openSync, utimesSync } from 'node:fs';
 import Redis from 'ioredis';
 import { getEnv } from '@/server/env';
 import { logger } from '@/server/log';
@@ -71,6 +72,24 @@ const jobs: Job[] = [
   },
 ];
 
+/**
+ * Liveness for the container healthcheck (docker/compose.prod.yml): touch HEARTBEAT after every
+ * job round (failed or not), at most every 10 s. Best effort: a read-only or missing /tmp never stops a job.
+ */
+const HEARTBEAT = '/tmp/wf-worker-alive';
+let lastBeat = 0;
+function heartbeat() {
+  const now = Date.now();
+  if (now - lastBeat < 10_000) return;
+  lastBeat = now;
+  try {
+    closeSync(openSync(HEARTBEAT, 'a'));
+    utimesSync(HEARTBEAT, now / 1000, now / 1000);
+  } catch {
+    /* development on a read-only /tmp, or no /tmp: nothing to report to */
+  }
+}
+
 async function tick(job: Job) {
   if (job.running) return;
   job.running = true;
@@ -84,6 +103,7 @@ async function tick(job: Job) {
   } finally {
     job.running = false;
     job.last = Date.now();
+    heartbeat(); // alive even when a job fails (e.g. Mercado Pago down): the loop is what counts
   }
 }
 

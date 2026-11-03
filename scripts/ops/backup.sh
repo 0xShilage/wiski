@@ -29,6 +29,13 @@ MODE="${WF_PG_MODE:-compose}"
 # WF_COMPOSE_EXTRA: more -f files (CI adds its own override)
 # shellcheck disable=SC2206
 COMPOSE=(docker compose -f "$WF_ROOT/docker/compose.prod.yml" ${WF_COMPOSE_EXTRA:-})
+# The compose file needs the image digests for any command. deploy.sh exports them; the nightly
+# timer and a manual run take them from the running release (2026-11-02).
+if [ "$MODE" = compose ] && [ -z "${WF_IMAGE:-}" ] && [ -s "$WF_ROOT/releases/current.env" ]; then
+  # shellcheck disable=SC1090
+  source <(grep -E '^(WF_IMAGE|WF_MIGRATE_IMAGE)=' "$WF_ROOT/releases/current.env")
+  export WF_IMAGE WF_MIGRATE_IMAGE
+fi
 
 log() { printf '%s backup: %s\n' "$(date -u +%FT%TZ)" "$*"; }
 die() { log "ERROR: $*"; exit 1; }
@@ -57,6 +64,15 @@ psql_cmd() {
     "${COMPOSE[@]}" exec -T postgres psql -X -At -v ON_ERROR_STOP=1 -U postgres -d wiskiflix -c "$1"
   fi
 }
+# the dump's table of contents, read by the pg_restore that matches the server that wrote it
+# (in compose mode the one inside the postgres container: the host may have none, or older)
+pg_restore_list() {
+  if [ "$MODE" = local ]; then
+    pg_restore --list "$1"
+  else
+    "${COMPOSE[@]}" exec -T postgres pg_restore --list < "$1"
+  fi
+}
 media_tar() {
   if [ "$MODE" = local ]; then
     tar -C "${WF_MEDIA_DIR:?}" -cf - .
@@ -68,7 +84,7 @@ media_tar() {
 log "dumping database"
 pg_dump_cmd > "$work/db.dump"
 # the dump must be readable by pg_restore before it is trusted
-pg_restore --list "$work/db.dump" > "$work/db.toc" || die "pg_restore cannot read the dump"
+pg_restore_list "$work/db.dump" > "$work/db.toc" || die "pg_restore cannot read the dump"
 tables="$(grep -c ' TABLE DATA ' "$work/db.toc" || true)"
 [ "$tables" -gt 10 ] || die "dump has only $tables tables of data"
 

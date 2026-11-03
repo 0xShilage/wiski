@@ -28,6 +28,13 @@ export WF_ETC
 # WF_COMPOSE_EXTRA: more -f files (CI adds its own override)
 # shellcheck disable=SC2206
 COMPOSE=(docker compose -f "$WF_ROOT/docker/compose.prod.yml" ${WF_COMPOSE_EXTRA:-})
+# The compose file needs the image digests for any command: take them from the running release
+# when the caller did not export them (2026-11-02).
+if [ "$MODE" = compose ] && [ -z "${WF_IMAGE:-}" ] && [ -s "$WF_ROOT/releases/current.env" ]; then
+  # shellcheck disable=SC1090
+  source <(grep -E '^(WF_IMAGE|WF_MIGRATE_IMAGE)=' "$WF_ROOT/releases/current.env")
+  export WF_IMAGE WF_MIGRATE_IMAGE
+fi
 
 log() { printf '%s restore: %s\n' "$(date -u +%FT%TZ)" "$*"; }
 die() { log "ERROR: $*"; exit 1; }
@@ -39,7 +46,12 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 age -d -i "$identity" -o "$work/db.dump" "$src/db.dump.age" || die "cannot decrypt (wrong identity?)"
 age -d -i "$identity" -o "$work/media.tar" "$src/media.tar.age" || die "cannot decrypt media"
-pg_restore --list "$work/db.dump" > /dev/null || die "dump unreadable"
+# read by the pg_restore matching the server (compose: inside the postgres container)
+if [ "$MODE" = local ]; then
+  pg_restore --list "$work/db.dump" > /dev/null || die "dump unreadable"
+else
+  "${COMPOSE[@]}" exec -T postgres pg_restore --list < "$work/db.dump" > /dev/null || die "dump unreadable"
+fi
 tar -tf "$work/media.tar" > /dev/null || die "media archive unreadable"
 
 manifest() { sed -n "s/.*\"$1\":\"\{0,1\}\([0-9A-Z]*\).*/\1/p" "$src/manifest.json"; }

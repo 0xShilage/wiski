@@ -8,7 +8,7 @@ import { mkdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { type BrowserContext, expect, type Page, test } from '@playwright/test';
 import sharp from 'sharp';
-import { seedUser, signIn } from './support/seed';
+import { seedUser, signIn, withDb } from './support/seed';
 
 test.describe.configure({ mode: 'serial' });
 test.beforeEach(({}, info) => {
@@ -87,7 +87,8 @@ test('passkey: enrol on /perfil/seguranca, then verify to open the dashboard', a
   await page.getByRole('link', { name: 'Ativar agora' }).click();
   await page.getByLabel('Nome (opcional)').fill('Notebook E2E');
   await page.getByRole('button', { name: 'Adicionar passkey' }).click();
-  await expect(page.getByText('Passkey cadastrada.')).toBeVisible();
+  // exact: the list's "1 passkey cadastrada." counter may already be on screen too
+  await expect(page.getByText('Passkey cadastrada.', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Remover Notebook E2E' })).toBeVisible();
 
   await page.goto('/admin/catalogo');
@@ -256,6 +257,57 @@ test('"Já pago" from the movie editor: the movie becomes sponsored; undone in P
 
   await page.goto('/admin/pedidos');
   const card = page.locator('.wf-ops-card', { hasText: TITLE }).filter({ hasText: 'Já pago' });
+  await card.first().getByRole('button', { name: 'Desfazer registro' }).click();
+  await expect(page.getByText('Registro desfeito: feito.')).toBeVisible();
+});
+
+test('"Já pago" on a draft series: the campaign opens with the goal met; undone in Pedidos', async ({
+  page,
+  context,
+}) => {
+  const series = `Série E2E ${Date.now().toString(36)}`;
+  const st = await seedUser({ role: 'STREAMER', passkeyVerified: true });
+  await signIn(context, st.token);
+  page.on('dialog', (d) => void d.accept());
+  // a complete draft series (2 seasons), reusing a seeded series' processed images: the upload
+  // tests above already spent nginx's upload allowance (2/min per IP)
+  await withDb((c) =>
+    c.query(
+      `INSERT INTO "CatalogItem" (id, kind, slug, status, title, year, "runtimeMinutes", "ageRating",
+         genres, synopsis, "cast", "seasonsLabel", "seasonCount", "episodeCount", "posterId",
+         "backdropId", "createdById", "updatedAt")
+       SELECT gen_random_uuid(), 'SERIES', $1, 'DRAFT', $2, 2022, 900, "ageRating", genres,
+         'Uma série de teste que já chega paga.', '{}', 'Temporadas 1–2', 2, 16, "posterId",
+         "backdropId", "createdById", now()
+       FROM "CatalogItem" WHERE kind = 'SERIES' AND "posterId" IS NOT NULL
+         AND "backdropId" IS NOT NULL
+       LIMIT 1`,
+      [series.toLowerCase().replace(/[^a-z0-9]+/g, '-'), series],
+    ),
+  );
+  await page.goto('/admin/catalogo?tipo=series');
+  await page
+    .getByRole('region', { name: 'Rascunhos sem vaga' })
+    .getByRole('button', { name: series })
+    .click();
+  await expect(page.getByRole('heading', { name: 'Abrir campanha' })).toBeVisible();
+
+  // the draft's "Abrir campanha" panel offers "Já pago", prefilled with the formula goal
+  await page.getByRole('button', { name: 'Já pago' }).click();
+  const panel = page.getByRole('group', { name: 'Registrar pagamento fora do site' });
+  await expect(panel).toContainText('A campanha abre agora com meta de');
+  await expect(panel.getByLabel('Valor recebido (R$)')).toHaveValue(/^\d+(,\d{2})?$/);
+  await panel.getByLabel('Nome público (opcional)').fill('Tio Beto');
+  await panel.getByRole('button', { name: 'Abrir e registrar como pago' }).click();
+  await expect(page.getByText('Pagamento registrado: o título entrou na fila.')).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: new RegExp(`Meta atingida: ${series}`) }),
+  ).toBeVisible();
+  // a funded campaign offers no second "Já pago"
+  await expect(page.getByRole('button', { name: 'Já pago' })).toHaveCount(0);
+
+  await page.goto('/admin/pedidos');
+  const card = page.locator('.wf-ops-card', { hasText: series }).filter({ hasText: 'Já pago' });
   await card.first().getByRole('button', { name: 'Desfazer registro' }).click();
   await expect(page.getByText('Registro desfeito: feito.')).toBeVisible();
 });

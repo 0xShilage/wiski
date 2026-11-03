@@ -174,3 +174,12 @@ Migrations `20261108120000_manual_price_orders` (generated) and `20261108120100_
 - **Links page picture**: the mascot at the top of `/links` is replaced by Iara's photo, `ASSETS/LINKS_ICON.png` (400 × 400, round, with its own lavender glow). `npm run links-photo` (`scripts/links-photo.ts`) turns it into `public/brand/links-iara-256.webp` (metadata stripped, alpha kept), served from the static `/brand/` location and shown at 120 CSS px through `@/components/Img` with the alt text "Foto da Iara". The circle frame, padding and glow of `.wf-links__avatar` are gone, since the image carries its own.
 - **Home spacing**: `.wf-movie-grid` ends with 23 px of padding (was 8 px), so "Nosso progresso" (or "Próximos na live") starts 15 px further below the last row of "Filmes disponíveis".
 
+### 9.7 "Já pago" on a draft series or franchise (2026-11-03)
+
+Until now "Já pago" for a series or franchise appeared only once its campaign was open ("No ar" panel, or Pedidos). A **draft** series or franchise now has it too, next to "Abrir campanha" (streamer only):
+
+- The amount is prefilled with the goal the campaign would open with: the goal typed in the panel, otherwise the formula (seasons × the season price, or the sum of the franchise's films).
+- "Abrir e registrar como pago" first opens the campaign (the same `POST /api/v1/admin/campaigns/[id]/open`, with the panel's goal and deadline), then registers the payment (the same `POST /api/v1/admin/orders/manual`). Paying the whole goal leaves it **Meta atingida** and in the queue; a smaller amount leaves the campaign open with that amount raised.
+- The two existing endpoints keep their rules: Google step-up, idempotency key, audit, compare-and-set on the campaign's remaining amount, and "Desfazer registro" in Pedidos. If the campaign opens but the payment is refused, the editor shows the now-open campaign, whose own "Já pago" can retry.
+- No server code changed.
+

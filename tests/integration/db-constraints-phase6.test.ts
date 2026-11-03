@@ -55,7 +55,7 @@ describe('SocialLink', () => {
     const b = await link({ position: 2, label: 'YouTube', url: 'https://youtube.com/@wiski' });
     await rejects(
       db().socialLink.update({ where: { id: b.id }, data: { position: 1 } }),
-      PG.uniqueViolation,
+      PG.exclusionViolation,
     );
     await db().$transaction(async (t) => {
       await t.socialLink.update({ where: { id: a.id }, data: { position: 2 } });

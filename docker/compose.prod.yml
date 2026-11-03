@@ -105,7 +105,20 @@ services:
       NODE_ENV: production
       MEDIA_DIR: /var/lib/wiski/media
     command: ['node', '--max-old-space-size=192', '--conditions=react-server', 'dist/worker.mjs']
-    healthcheck: { disable: true }
+    # The worker serves no HTTP: it touches /tmp/wf-worker-alive after every job round (worker
+    # main.ts), so "healthy" = it wrote one in the last 3 minutes. `up --wait` needs a healthcheck.
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "try{process.exit(Date.now()-require('fs').statSync('/tmp/wf-worker-alive').mtimeMs<180000?0:1)}catch{process.exit(1)}",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     tmpfs: ['/tmp:uid=10001,gid=10001,mode=0700,size=16m']
     depends_on:
       postgres: { condition: service_healthy }

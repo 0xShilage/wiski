@@ -33,6 +33,7 @@ type Service = {
   environment?: Record<string, string>;
   secrets?: { source: string }[];
   profiles?: string[];
+  healthcheck?: { test?: string[]; disable?: boolean };
   restart?: string;
 };
 
@@ -115,6 +116,15 @@ describe.skipIf(!hasCompose)('production compose file', () => {
     expect(cfg.networks.data?.internal).toBe(true);
     expect(Object.keys(cfg.services.postgres!.networks!)).toEqual(['data']);
     expect(Object.keys(cfg.services.redis!.networks!)).toEqual(['data']);
+  });
+
+  it('every long-running service has a healthcheck (`up --wait` refuses one without)', () => {
+    for (const [name, s] of longRunning) {
+      expect(s.healthcheck?.disable ?? false, name).toBe(false);
+      expect(s.healthcheck?.test?.length ?? 0, name).toBeGreaterThan(0);
+    }
+    // the worker serves no HTTP: its healthcheck reads the heartbeat file src/worker/main.ts writes
+    expect(cfg.services.worker!.healthcheck!.test!.join(' ')).toContain('/tmp/wf-worker-alive');
   });
 
   it('memory limits fit the 2 GB budget (08 §1) and every long-running service restarts', () => {

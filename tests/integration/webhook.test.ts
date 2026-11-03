@@ -458,10 +458,28 @@ describe('expiry (05 §6.11)', () => {
   });
 });
 
-describe('reconciliation interval (2026-11-02)', () => {
-  it('20 s in development (no webhooks reach localhost), 2 min elsewhere', () => {
-    expect(reconcileEveryMs('development')).toBe(20_000);
-    expect(reconcileEveryMs('production')).toBe(120_000);
-    expect(reconcileEveryMs('test')).toBe(120_000);
+describe('reconciliation pace (2026-11-03)', () => {
+  it('runs every 15 s', () => {
+    expect(reconcileEveryMs()).toBe(15_000);
+  });
+
+  it('re-reads a payable Pix after 15 s; an old open payment only after 2 min', async () => {
+    const { order, pid } = await pendingMovieOrder();
+    const synced = new Date();
+    await db().payment.updateMany({ where: { orderId: order.id }, data: { lastSyncedAt: synced } });
+    const at = (ms: number) => new Date(synced.getTime() + ms);
+    expect(await reconcilePending(at(10_000))).toBe(0);
+    mp.approve(Number(pid));
+    expect(await reconcilePending(at(16_000))).toBe(1);
+    expect((await orderByCode(order.publicCode)).status).toBe('PAID');
+
+    const late = await pendingMovieOrder();
+    const old = new Date(Date.now() - 40 * 60_000);
+    await db().payment.updateMany({
+      where: { orderId: late.order.id },
+      data: { createdAt: old, lastSyncedAt: new Date() },
+    });
+    expect(await reconcilePending(new Date(Date.now() + 30_000))).toBe(0);
+    expect(await reconcilePending(new Date(Date.now() + 3 * 60_000))).toBe(1);
   });
 });

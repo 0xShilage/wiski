@@ -149,7 +149,7 @@ sequenceDiagram
   K->>R: PUBLISH order:{id} / overlay events
 ```
 
-Reconciliation: `payment.reconcile` runs every 2 min for `PENDING` payments not synced in the last 2 min, plus a nightly sweep of the last 48 h. A missed or rejected webhook therefore delays a status change by ≤ 2 min; it can never lose it.
+Reconciliation: `payment.reconcile` runs every 15 s (since 2026-11-03; was 2 min): a Pix that can still be paid is re-read when not synced for 15 s, other open payments when not synced for 2 min, plus a nightly sweep of the last 48 h. A missed or late webhook therefore delays a confirmation by about 15 s; it can never lose it.
 
 ### 3.4 Overlay (OBS)
 

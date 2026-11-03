@@ -11,8 +11,9 @@ import { announce, EXPIRY_GRACE_MS, syncPayment, type SyncOutcome } from './sync
  * Worker jobs (01 §3.3, 05 §6.11), all idempotent and safe to run on more than one process:
  *  • webhook events — the verified WebhookEvent rows are the durable queue; a row is claimed with
  *    a 60 s lease, synced, and marked PROCESSED/IGNORED, or retried with backoff;
- *  • reconciliation — every 2 min, pending payments not synced for 2 min are re-fetched, so a lost
- *    or rejected webhook delays a status change by ≤ 2 min but can never lose it;
+ *  • reconciliation — every 15 s: a Pix that is still payable (younger than its expiry + grace)
+ *    and not synced for 15 s is re-fetched, other open payments every 2 min, so a lost or late
+ *    webhook delays a confirmation by ≤ ~15 s but can never lose it (2026-11-03);
  *  • expiry — unpaid orders past the Pix expiry + grace are cancelled at Mercado Pago and their
  *    movie / campaign amount / voucher / queue slot released;
  *  • nightly sweep — everything touched in the last 48 h is re-synced (refunds, chargebacks).
@@ -21,12 +22,18 @@ const LEASE_MS = 60_000;
 const MAX_ATTEMPTS = 8;
 const STALE_MS = 2 * 60_000;
 /**
- * How often pending payments are re-read from Mercado Pago. Production: 2 min (webhooks are the
- * fast path there). Development has no webhooks (MP can't reach localhost), so 20 s (2026-11-02).
+ * How often pending payments are re-read from Mercado Pago (2026-11-03): every 15 s, everywhere.
+ * Webhooks stay the fast path, but Mercado Pago's can arrive late (or not at all), and a buyer
+ * waits on the order page for "Pago". Only a Pix that can still be paid is re-read at this pace —
+ * one request per open order every 15 s, at most 50 per round; older or other open payments
+ * (in process, in mediation) every 2 min.
  */
-export function reconcileEveryMs(nodeEnv: string = process.env.NODE_ENV ?? 'development'): number {
-  return nodeEnv === 'development' ? 20_000 : 2 * 60_000;
+export const RECONCILE_EVERY_MS = 15_000;
+export function reconcileEveryMs(): number {
+  return RECONCILE_EVERY_MS;
 }
+/** A Pix is payable for 31 min; past that (+ the expiry grace) it is re-read at the slow pace. */
+const FRESH_PIX_MS = 31 * 60_000 + EXPIRY_GRACE_MS;
 /** Orders whose Pix was never created (crash/timeout at checkout) are released after this. */
 const ORPHAN_MS = 5 * 60_000;
 
@@ -113,19 +120,24 @@ async function safeSync(id: string, now: Date, job: string): Promise<SyncOutcome
   }
 }
 
-/** Pending payments not synced in the last 2 min (05 §6.11). */
+/**
+ * Open payments due for a re-read (05 §6.11): a payable Pix not synced for 15 s, any other open
+ * payment of the last 48 h not synced for 2 min. Never-synced rows first, then the oldest.
+ */
 export async function reconcilePending(now = new Date(), limit = 50): Promise<number> {
+  const ago = (ms: number) => new Date(now.getTime() - ms);
   const rows = await db().payment.findMany({
     where: {
       providerPaymentId: { not: null },
       status: { in: ['PENDING', 'AUTHORIZED', 'IN_PROCESS', 'IN_MEDIATION'] },
-      createdAt: { gt: new Date(now.getTime() - 48 * 3_600_000) },
+      createdAt: { gt: ago(48 * 3_600_000) },
       OR: [
         { lastSyncedAt: null },
+        { lastSyncedAt: { lt: ago(STALE_MS) } },
         {
-          lastSyncedAt: {
-            lt: new Date(now.getTime() - Math.min(STALE_MS, reconcileEveryMs())),
-          },
+          status: 'PENDING',
+          createdAt: { gt: ago(FRESH_PIX_MS) },
+          lastSyncedAt: { lt: ago(RECONCILE_EVERY_MS) },
         },
       ],
     },

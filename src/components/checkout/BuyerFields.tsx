@@ -5,7 +5,7 @@ import type { CheckoutProps } from '@/lib/checkout/types';
 /**
  * Buyer part shared by both checkout forms (03 §5.3, Q10, Q16): contact e-mail for guests (the
  * order link and receipt), an optional public name for guests (shown only after moderation), the
- * "anônimo" choice, an optional message for the stream (moderated), and acceptance of the legal
+ * "anônimo" choice, an optional message for the stream (shown at once; moderators can hide it), and acceptance of the legal
  * texts.
  */
 export type BuyerState = {
@@ -118,7 +118,8 @@ export function BuyerFields({
           aria-describedby={`${id}-msg-hint`}
         />
         <span id={`${id}-msg-hint`} className={errors.message ? 'wf-hint wf-hint--err' : 'wf-hint'}>
-          {errors.message ?? 'Só aparece na live depois de aprovada pela moderação.'}
+          {errors.message ??
+            'Aparece na live quando o filme passar. A moderação pode ocultar mensagens ofensivas.'}
         </span>
       </label>
       <label className="wf-check">

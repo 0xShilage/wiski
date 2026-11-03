@@ -471,7 +471,8 @@ async function newOrderRows(
       queueJumpCents: p.amounts.queueJumpCents,
       totalCents: p.amounts.totalCents,
       ...(p.input.message
-        ? { sponsorMessage: p.input.message, messageStatus: 'PENDING' as const }
+        ? // shown without waiting for a moderator (2026-11-03); moderators can hide it in Pedidos
+          { sponsorMessage: p.input.message, messageStatus: 'APPROVED' as const }
         : {}),
       ...(p.input.displayName
         ? { guestDisplayName: p.input.displayName, displayNameStatus: 'PENDING' as const }

@@ -139,3 +139,12 @@ When Mercado Pago refuses a request, the server log (`mercadopago error`) now ca
 | Integration | ✅ 987 / 987 — `legal-publish.test.ts`: TERMS/PRIVACY with the privacy version and hash, REFUND with its own version and hash, checkout sees all three, re-run a no-op |
 | E2E | ✅ legal + checkout + a11y-layout specs on a fresh production build, 360 + 1280 px: 102 passed, 0 failed — `legal` (+1): `/privacidade` has no provisional notice and no blanks, names Strategol Security in section 1, `mailto:` channel; `/reembolso` shows the refund title, "Reembolso · Última atualização 3 de novembro de 2026", 17 contents links, the duplicated-payment case and the channel |
 
+## Addendum — sponsor messages without prior approval (2026-11-03)
+
+| Suite | Result |
+|---|---|
+| Lint / types | ✅ clean |
+| Unit | ✅ 331 / 331 |
+| Integration | ✅ 988 / 988 — `orders-admin.test.ts`: a new order's message is shown at once while the guest name stays private until approved; a moderator hides the message and shows it again (each change audited with the decision only, never the text); the same decision twice, or a decision on an order without a message, is 409 `NOTHING_TO_REVIEW`; a stale version is 409 |
+| E2E | ✅ checkout + operations + a11y-layout + csp on a fresh production build, 360 + 1280 px: 198 passed, 0 failed |
+

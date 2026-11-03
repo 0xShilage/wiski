@@ -183,3 +183,12 @@ Until now "Já pago" for a series or franchise appeared only once its campaign w
 - The two existing endpoints keep their rules: Google step-up, idempotency key, audit, compare-and-set on the campaign's remaining amount, and "Desfazer registro" in Pedidos. If the campaign opens but the payment is refused, the editor shows the now-open campaign, whose own "Já pago" can retry.
 - No server code changed.
 
+### 9.8 Search on "Assistidos" (2026-11-03)
+
+- **Search bar**: `/assistidos` has a search box ("Buscar pelo nome") above the kind filter. It is a plain GET form (`?q=…`, with `tipo` kept), so it works without JavaScript and stays CSP-clean.
+- **Matching**: `src/lib/search.ts`, used by `watchedTitles()` in `src/server/catalog/read.ts`.
+  - Every word must appear in the title or the original title, ignoring case and accents: "cronicas bosque" finds "Crônicas do Bosque".
+  - The whole watched history is searched (up to 2,000 titles), newest first, and up to 120 results are shown.
+  - The query is capped at 60 characters and 8 words.
+- **Page**: the result count ("3 resultados para “…”") is announced as a status. The kind links keep the search. "Limpar" clears it, and an empty result offers to "limpe a busca".
+

@@ -152,7 +152,9 @@ function observatory(home) {
   const hsts = val(h, 'strict-transport-security');
   const maxAge = Number(/max-age=(\d+)/.exec(hsts)?.[1] ?? 0);
   t(
-    maxAge >= 15_768_000 ? 'hsts-implemented-max-age-at-least-six-months' : 'hsts-not-implemented',
+    maxAge >= 15_768_000
+      ? 'hsts-implemented-max-age-at-least-six-months'
+      : `hsts-not-implemented (received: ${hsts || 'none'})`,
     maxAge >= 15_768_000,
     maxAge >= 15_768_000 ? 0 : -20,
   );
@@ -162,7 +164,7 @@ function observatory(home) {
     .filter((s) => /^https?:\/\//.test(s) && !s.startsWith(base.origin));
   t(
     external.length
-      ? 'sri-not-implemented-and-external-scripts-loaded-securely'
+      ? `sri-not-implemented-and-external-scripts-loaded-securely (${external.join(' ')})`
       : 'sri-not-implemented-but-all-scripts-loaded-from-secure-origin',
     !external.length,
     external.length ? -5 : 0,
@@ -259,6 +261,7 @@ try {
     'HSTS: 2 years, includeSubDomains, preload',
     val(home.headers, 'strict-transport-security') ===
       'max-age=63072000; includeSubDomains; preload',
+    val(home.headers, 'strict-transport-security') || 'none',
   );
   pass(
     'pages are never cached by shared caches',

@@ -302,6 +302,9 @@ test('assistidos: watched titles with posters, filter by kind, cards open the ti
 
 test('assistidos: search by name, accents and case ignored, kind filter kept', async ({ page }) => {
   await page.goto('/assistidos');
+  // the search field must not widen the page: on a phone the layout once grew to 444 px, which
+  // scrollWidth can't see (the layout viewport grows with it)
+  expect(await page.evaluate(() => window.innerWidth)).toBe(page.viewportSize()!.width);
   const cards = page.locator('.wf-seen__card');
   const title = (await cards.first().locator('.wf-seen__title').textContent())!.trim();
   // the longest word of the first title, upper case and without accents

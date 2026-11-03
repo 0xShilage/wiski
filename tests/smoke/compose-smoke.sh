@@ -69,6 +69,12 @@ step "deploy order: database and cache → migrations (Prisma CLI image) → app
 step "site check through nginx"
 node "$ROOT/scripts/ops/check-site.mjs" https://localhost --insecure --http-port 80
 
+step "a new web container behind the running nginx (what deploy.sh does on every release)"
+"${C[@]}" up -d --wait --force-recreate --no-deps web
+"${C[@]}" exec -T nginx nginx -s reload
+node "$ROOT/scripts/ops/check-site.mjs" https://localhost --insecure --http-port 80 > /dev/null \
+  || { echo "site down after replacing the web container"; exit 1; }
+
 step "containers: own users, read-only filesystems"
 [ "$("${C[@]}" exec -T web id -u)" = 10001 ] || { echo "web is not uid 10001"; exit 1; }
 [ "$("${C[@]}" exec -T worker id -u)" = 10001 ] || { echo "worker is not uid 10001"; exit 1; }

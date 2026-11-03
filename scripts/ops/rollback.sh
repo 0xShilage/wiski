@@ -17,6 +17,8 @@ export WF_IMAGE WF_MIGRATE_IMAGE
 echo "rolling back to ${WF_IMAGE##*@} (${WF_COMMIT:-?})"
 git checkout --quiet "$WF_COMMIT"
 docker compose -f docker/compose.prod.yml up -d --wait --remove-orphans web worker nginx
+# nginx resolves `web` once, at start: reload it so it reaches the recreated container (else 502)
+docker compose -f docker/compose.prod.yml exec -T nginx nginx -s reload
 cp releases/current.env "releases/rolled-back-$(date -u +%Y%m%dT%H%M%SZ).env"
 cp releases/previous.env releases/current.env
 echo "done — run the site check (scripts/ops/check-site.mjs) and look at the logs"

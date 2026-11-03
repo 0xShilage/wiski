@@ -33,10 +33,15 @@ apply() { # <iptables|ip6tables> <ranges file>
   done < <(grep -v '^#' "$file")
   "$ipt" -A WF-WEB -j DROP
   "$ipt" -N DOCKER-USER 2>/dev/null || true
-  while "$ipt" -D DOCKER-USER -p tcp -m conntrack --ctorigdstport 443 --ctdir ORIGINAL -j WF-WEB 2>/dev/null; do :; done
-  while "$ipt" -D DOCKER-USER -p tcp -m conntrack --ctorigdstport 80 --ctdir ORIGINAL -j WF-WEB 2>/dev/null; do :; done
-  "$ipt" -I DOCKER-USER -p tcp -m conntrack --ctorigdstport 80 --ctdir ORIGINAL -j WF-WEB
-  "$ipt" -I DOCKER-USER -p tcp -m conntrack --ctorigdstport 443 --ctdir ORIGINAL -j WF-WEB
+  # Only connections that came IN to a published port (Docker DNATs those to nginx). DOCKER-USER
+  # sees all forwarded traffic, so without `--ctstate DNAT` the rule also dropped the containers'
+  # own OUTGOING https (Google sign-in, Mercado Pago's API) — fixed 2026-11-03.
+  for port in 443 80; do
+    # remove both the current rule and the pre-2026-11-03 one (without --ctstate DNAT)
+    while "$ipt" -D DOCKER-USER -p tcp -m conntrack --ctorigdstport "$port" --ctdir ORIGINAL -j WF-WEB 2>/dev/null; do :; done
+    while "$ipt" -D DOCKER-USER -p tcp -m conntrack --ctstate DNAT --ctorigdstport "$port" --ctdir ORIGINAL -j WF-WEB 2>/dev/null; do :; done
+    "$ipt" -I DOCKER-USER -p tcp -m conntrack --ctstate DNAT --ctorigdstport "$port" --ctdir ORIGINAL -j WF-WEB
+  done
 }
 apply iptables "$ETC/cloudflare-ips-v4.txt"
 [ -s "$ETC/cloudflare-ips-v6.txt" ] && apply ip6tables "$ETC/cloudflare-ips-v6.txt"

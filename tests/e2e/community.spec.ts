@@ -39,7 +39,8 @@ test('home: "Filmes disponíveis" lists every sponsorable movie below the carous
 }) => {
   const expected = await withDb(async (c) => {
     const r = await c.query<{ n: string }>(
-      `SELECT count(*) AS n FROM "CatalogItem" WHERE kind = 'MOVIE' AND status = 'ACTIVE'`,
+      `SELECT count(*) AS n FROM "CatalogItem" WHERE kind = 'MOVIE' AND status = 'ACTIVE'
+         AND ("reservedUntil" IS NULL OR "reservedUntil" <= now())`, // a Pix in progress = "Reservado"
     );
     return Number(r.rows[0]!.n);
   });

@@ -129,3 +129,13 @@ When Mercado Pago refuses a request, the server log (`mercadopago error`) now ca
 |---|---|
 | Integration | ✅ 987 / 987 (+3 `legal-publish.test.ts`: the three types registered with the text hash and seen by checkout, idempotent re-run, an older current version replaced, the same version with another text refused and rolled back) |
 | Ops | `shellcheck -S warning scripts/ops/compose.sh` clean; `npm run build:worker` builds the `--publish-legal` entry |
+
+## Addendum — final legal texts (2026-11-03)
+
+| Suite | Result |
+|---|---|
+| Lint / types | ✅ `eslint src tests`, `tsc --noEmit` clean |
+| Unit | ✅ 331 / 331 — `legal-text.test.ts` (+2): every placeholder the privacy text uses is filled in and the e-mail is an address; the refund terms parse to sections 1–17 with anchors, name the refund cases (duplicated payment, processing error), use the `{email}` channel and leave no markup characters in the text |
+| Integration | ✅ 987 / 987 — `legal-publish.test.ts`: TERMS/PRIVACY with the privacy version and hash, REFUND with its own version and hash, checkout sees all three, re-run a no-op |
+| E2E | ✅ legal + checkout + a11y-layout specs on a fresh production build, 360 + 1280 px: 102 passed, 0 failed — `legal` (+1): `/privacidade` has no provisional notice and no blanks, names Strategol Security in section 1, `mailto:` channel; `/reembolso` shows the refund title, "Reembolso · Última atualização 3 de novembro de 2026", 17 contents links, the duplicated-payment case and the channel |
+

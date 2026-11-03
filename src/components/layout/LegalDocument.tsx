@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { card } from '@/components/ui/styles';
 import { LEGAL_CONTROLLER, LEGAL_TEXT, LEGAL_TITLE, LEGAL_UPDATED } from '@/content/legal/privacy';
+import { REFUND_TEXT, REFUND_TITLE, REFUND_UPDATED } from '@/content/legal/refund';
 import { type Block, type Inline, parseLegal } from '@/lib/legal-text';
 
 const EMAIL = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
@@ -46,24 +47,44 @@ function renderInline(parts: Inline[]): ReactNode[] {
   });
 }
 
+const DOCS = {
+  privacy: {
+    title: LEGAL_TITLE,
+    kind: 'Termos de uso e privacidade',
+    updated: LEGAL_UPDATED,
+    text: LEGAL_TEXT,
+    signed: true, // the signature block is drawn below the text
+  },
+  refund: {
+    title: REFUND_TITLE,
+    kind: 'Reembolso',
+    updated: REFUND_UPDATED,
+    text: REFUND_TEXT,
+    signed: false, // the closing block is part of the text itself
+  },
+} as const;
+
 /**
- * The single legal page (2026-11-01): "Política de Privacidade e Proteção de Dados", which also
- * stands in for the old Termos de uso. Text from src/content/legal/privacy.ts, rendered as text
- * nodes; numbered sections get stable anchors (#secao-1, #secao-6-2…) and a table of contents.
+ * The legal pages: /privacidade ("Política de Privacidade e Proteção de Dados", which also stands
+ * in for the old Termos de uso, 2026-11-01) and /reembolso (the refund terms, 2026-11-03). Text
+ * from src/content/legal, rendered as text nodes; numbered sections get stable anchors (#secao-1,
+ * #secao-6-2…) and a table of contents.
  */
-export function LegalDocument() {
-  const blocks = parseLegal(LEGAL_TEXT, LEGAL_CONTROLLER);
+export function LegalDocument({ doc = 'privacy' }: { doc?: keyof typeof DOCS }) {
+  const d = DOCS[doc];
+  const blocks = parseLegal(d.text, LEGAL_CONTROLLER);
   const sections = blocks.filter((b): b is Extract<Block, { kind: 'h2' }> => b.kind === 'h2');
-  const missing = Object.values(LEGAL_CONTROLLER).some((v) => !v);
-  const updated = updatedLabel(LEGAL_UPDATED);
+  const missing = [...d.text.matchAll(/\{([a-z]+)\}/g)].some(
+    (m) => !LEGAL_CONTROLLER[m[1] as keyof typeof LEGAL_CONTROLLER],
+  );
+  const updated = updatedLabel(d.updated);
   return (
     <div className="wf-page wf-page--narrow">
       <article className={`${card} wf-legal`}>
         <header className="wf-legal__head">
-          <h1 className="wf-h1">{LEGAL_TITLE}</h1>
+          <h1 className="wf-h1">{d.title}</h1>
           <p className="wf-legal__meta">
-            Termos de uso e privacidade · Última atualização:{' '}
-            <time dateTime={LEGAL_UPDATED}>{updated}</time>
+            {d.kind} · Última atualização: <time dateTime={d.updated}>{updated}</time>
           </p>
         </header>
         {missing ? (
@@ -104,17 +125,19 @@ export function LegalDocument() {
             );
           return <p key={i}>{renderInline(b.inlines)}</p>;
         })}
-        <footer className="wf-legal__sign">
-          <p>
-            <strong>
-              {renderInline([{ t: 'blank', key: 'controller', v: LEGAL_CONTROLLER.controller }])}
-            </strong>
-          </p>
-          <p>
-            <strong>{LEGAL_CONTROLLER.site}</strong>
-          </p>
-          <p>Última atualização: {updated}.</p>
-        </footer>
+        {d.signed ? (
+          <footer className="wf-legal__sign">
+            <p>
+              <strong>
+                {renderInline([{ t: 'blank', key: 'controller', v: LEGAL_CONTROLLER.controller }])}
+              </strong>
+            </p>
+            <p>
+              <strong>{LEGAL_CONTROLLER.site}</strong>
+            </p>
+            <p>Última atualização: {updated}.</p>
+          </footer>
+        ) : null}
       </article>
     </div>
   );

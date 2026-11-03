@@ -118,7 +118,8 @@ export function BuyerFields({
           aria-describedby={`${id}-msg-hint`}
         />
         <span id={`${id}-msg-hint`} className={errors.message ? 'wf-hint wf-hint--err' : 'wf-hint'}>
-          {errors.message ?? 'Aparece na live quando o filme passar. A moderação pode ocultar mensagens ofensivas.'}
+          {errors.message ??
+            'Aparece na live quando o filme passar. A moderação pode ocultar mensagens ofensivas.'}
         </span>
       </label>
       <label className="wf-check">

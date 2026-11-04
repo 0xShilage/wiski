@@ -17,6 +17,8 @@ import { CatalogFilterBar, useCatalogFilter } from './CatalogFilterBar';
  * sponsored right now, all at once (the carousel shows a few at a time). A movie someone is paying
  * for (Pix pending) stays listed as "Reservado"; sponsored and watched ones leave the grid.
  * Filters and sort (2026-11-04): busca, gênero, duração, ordem — kept in the address.
+ * The cards don't prefetch: a few dozen title pages per visit would eat into nginx's per-IP
+ * request burst (shared mobile IPs, and the browser tests), and a click still opens them at once.
  */
 export function MovieGrid({
   items,
@@ -52,7 +54,7 @@ export function MovieGrid({
         <ul className="wf-grid wf-grid--movies list-none p-0">
           {shown.map((m) => (
             <li key={m.id} className="flex">
-              <Link href={`/filmes/${m.slug}`} className="wf-scard w-full">
+              <Link href={`/filmes/${m.slug}`} className="wf-scard w-full" prefetch={false}>
                 <div className="wf-scard__poster">
                   <MediaPicture
                     picture={m.poster}

@@ -40,6 +40,7 @@ const MORE = NAV_ITEMS.filter((i) => i.mobile === 'more');
  * Phones (≤ 760 px): a fixed bottom bar — Filmes · Séries · Franquias · Cronograma · Perfil ·
  * Mais (Phase 6). "Mais" opens a native popover (light dismiss and Esc for free) with Assistidos,
  * Avaliações, Sugestões, Roleta and Links. Hidden on larger screens, where the header shows every tab.
+ * No prefetch, like the header tabs (NavLinks).
  */
 export function TabBar() {
   const path = usePathname() ?? '/';
@@ -57,7 +58,12 @@ export function TabBar() {
   const tab = (item: (typeof NAV_ITEMS)[number]) => {
     const Icon = ICON[item.href];
     return (
-      <Link key={item.href} href={item.href} aria-current={item.match(path) ? 'page' : undefined}>
+      <Link
+        key={item.href}
+        href={item.href}
+        prefetch={false}
+        aria-current={item.match(path) ? 'page' : undefined}
+      >
         <Icon />
         <span>{item.label}</span>
       </Link>
@@ -86,6 +92,7 @@ export function TabBar() {
               <li key={item.href}>
                 <Link
                   href={item.href}
+                  prefetch={false}
                   aria-current={item.match(path) ? 'page' : undefined}
                   onClick={close}
                 >

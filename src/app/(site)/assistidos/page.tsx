@@ -114,7 +114,11 @@ export default async function AssistidosPage({ searchParams }: Props) {
         <ul className="wf-seen__grid">
           {items.map((it) => (
             <li key={it.id}>
-              <Link href={`/${KIND_PATH[it.kind]}/${it.slug}`} className="wf-seen__card">
+              <Link
+                href={`/${KIND_PATH[it.kind]}/${it.slug}`}
+                className="wf-seen__card"
+                prefetch={false}
+              >
                 <span className="wf-seen__poster" aria-hidden="true">
                   {it.poster ? (
                     <MediaPicture

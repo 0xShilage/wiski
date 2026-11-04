@@ -39,7 +39,7 @@ export function AdminShell({
         <p className="wf-admin__group">Catálogo</p>
         <nav className="wf-admin__nav" aria-label="Catálogo">
           {CATALOG.map(([tipo, label, kind, limit]) => (
-            <Link key={tipo} href={`/admin/catalogo?tipo=${tipo}`}>
+            <Link key={tipo} href={`/admin/catalogo?tipo=${tipo}`} prefetch={false}>
               {label}
               <small>
                 {catalog[kind]}/{limit}

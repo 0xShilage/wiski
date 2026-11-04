@@ -63,7 +63,12 @@ export function OpsNav({
   const item = (s: (typeof OPS)[number]) => {
     const n = s.badge?.(counts) ?? 0;
     return (
-      <Link key={s.id} href={`/admin/${s.id}`} aria-current={active === s.id ? 'page' : undefined}>
+      <Link
+        key={s.id}
+        href={`/admin/${s.id}`}
+        prefetch={false}
+        aria-current={active === s.id ? 'page' : undefined}
+      >
         {s.label}
         {n ? (
           <small>

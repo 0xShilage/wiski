@@ -40,7 +40,7 @@ function Board({
                 <span className="sr-only">º lugar</span>
               </span>
               <Avatar avatarKey={r.avatarKey} size={40} alt="" />
-              <Link href={`/u/${r.username}`} className="wf-rank__name">
+              <Link href={`/u/${r.username}`} className="wf-rank__name" prefetch={false}>
                 @{r.username}
               </Link>
               <span className="wf-rank__value">

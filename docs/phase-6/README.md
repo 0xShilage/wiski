@@ -231,3 +231,31 @@ A countdown that every contribution extends. The site keeps the timer (one sourc
 - Events that happen while the worker is disconnected from StreamElements aren't replayed (Astro has no backlog). The dashboard shows the outage; add the time by hand.
 - StreamElements doesn't publish every activity field for Astro, so the parser reads them defensively; the worker logs the field names (never the values) of the first activities so the parsing can be checked after the first live.
 
+
+## 11. Roleta, the daily wheel of fortune (2026-11-04)
+
+A new public tab, **Roleta** (`/roleta`; on phones under "Mais"), and **Admin › Roleta** for moderators and the streamer.
+
+### 11.1 Rules
+
+- A signed-in viewer with a username has **5 spins per period**. A period starts every day at **17:00 BRT**; unused spins don't carry over (`src/lib/roleta.ts`: `roletaPeriod`, `nextRoletaReset`). Suspended accounts can't spin; signed-out visitors see the wheel, the odds and a sign-in link.
+- The **server draws every spin** with `crypto.randomInt` over 15 000 values (the least common multiple of the odds), so the odds are exact: **Cupom de 30 %** 1 in 150, **Filme grátis** 1 in 500, **Dois filmes grátis** 1 in 1 000, **VIP na Twitch** 1 in 2 500, **Nada** the rest (98,99 %). The page only animates the wheel to the slice the server named. The wheel has nine equal slices (four prizes, five "Nada"); the page shows the real odds in a table and says the slices are the same size only for the look.
+- The limit holds under parallel requests: each spin takes the next `n` (1 … 5) of its period, `(userId, period, n)` is unique and `n` is CHECKed to 1 … 5.
+
+### 11.2 Prizes
+
+- **Cupom de 30 %**: a personal voucher is created in the same transaction (`ROLETA-XXXXXXXX`, 30 % on one movie, one use, valid 30 days). The winner sees the code under "Seus prêmios" right away; it also appears in Admin › Cupons.
+- **Filme grátis / Dois filmes grátis / VIP na Twitch**: given by hand. The winner types their Twitch login on the prize; Admin › Roleta lists it under "Para entregar". Staff create the "Já pago" order(s) for the movie(s) the viewer picks, or `/vip <login>` in the Twitch chat, then **Marcar como entregue** (compare-and-set on the status they saw; "Desfazer entrega" puts it back).
+- The streamer can **cancel** a prize (duplicate accounts, abuse); a cancelled coupon's voucher is switched off. Nothing comes back from "Cancelado".
+- Admin › Roleta never lists "Nada" spins. It shows today's spins and prizes, and (streamer) the switch **"Roleta aberta para o público"** (`AppSetting roleta.open`, default on, audited).
+
+### 11.3 Data, audit and LGPD
+
+- `RoletaSpin` (migrations `20261111120000_roleta`, `20261111120100_roleta_constraints`): the reviewed CHECKs tie each prize to its slice, give every prize (and only prizes) a delivery state, link coupons (and only coupons) to their voucher, and accept only valid Twitch logins on hand-delivered prizes.
+- Audited: `roleta.win` (the prize only, never the coupon code), `roleta.status` (prize, from, to), `settings.update` for the switch. "Nada" spins aren't audited and the worker deletes them after 30 days; prizes stay.
+- The data export lists the viewer's spins (with coupon codes); erasing the account deletes them and switches off their coupons.
+
+### 11.4 Notes
+
+- One account per person is the only anti-farming rule (prizes from duplicate accounts can be cancelled). If farming shows up, a minimum account age or a phone check are the next steps.
+- Prize draws open to the public can fall under Brazil's rules on promotional distribution of prizes (Lei 5.768/1971); check with the lawyer before announcing the Roleta widely.

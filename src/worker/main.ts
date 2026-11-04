@@ -21,6 +21,7 @@ import { disconnectDb } from '@/server/db';
 import { disconnectRedis } from '@/server/redis';
 import { purgeContact } from '@/server/contact/contact';
 import { purgeSuggestions } from '@/server/suggestions/suggestions';
+import { purgeRoletaNada } from '@/server/roleta/roleta';
 import { publishLegal } from '@/server/legal/publish';
 import { syncSiteCredits } from '@/server/subathon/credits';
 import { startStreamElements } from '@/server/subathon/streamelements';
@@ -80,6 +81,7 @@ const jobs: Job[] = [
         await purgeWebhookEvents(now);
         await purgeContact(now); // LGPD: contact messages after 12 months (Phase 4)
         await purgeSuggestions(now); // LGPD: decided suggestions after 12 months (Phase 6)
+        await purgeRoletaNada(now); // Roleta: "Nada" spins after 30 days (prizes stay)
       }
     },
   },

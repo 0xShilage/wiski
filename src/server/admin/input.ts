@@ -307,3 +307,13 @@ export const subathonAdjustInput = z
     idempotencyKey: z.uuid(),
   })
   .strict();
+
+// ── Roleta (2026-11-04) ──
+const roletaStatus = z.enum(['PENDING', 'DELIVERED', 'CANCELLED']);
+export const roletaSpinInput = z.object({}).strict();
+export const roletaTwitchInput = z.object({ twitchLogin: z.string().max(64) }).strict();
+export const roletaQuery = z.object({ status: roletaStatus.optional(), before }).strict();
+export const roletaStatusInput = z
+  .object({ status: roletaStatus, expectedStatus: roletaStatus })
+  .strict();
+export const roletaOpenInput = z.object({ open: z.boolean() }).strict();

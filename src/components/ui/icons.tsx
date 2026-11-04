@@ -90,6 +90,13 @@ export const IconBulb = ({ className }: P) => (
     <path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.4 1.1 2.2v.5h5v-.5c0-.8.4-1.6 1.1-2.2A6 6 0 0 0 12 3z" />
   </svg>
 );
+export const IconWheel = ({ className }: P) => (
+  <svg {...base} className={className}>
+    <circle cx="12" cy="13" r="8" />
+    <path d="M12 5v16M4 13h16M6.3 7.3l11.4 11.4M17.7 7.3L6.3 18.7" />
+    <path d="M10 2.5h4L12 5z" fill="currentColor" />
+  </svg>
+);
 export const IconMore = ({ className }: P) => (
   <svg {...base} className={className} fill="currentColor" stroke="none">
     <circle cx="5.5" cy="12" r="1.9" />

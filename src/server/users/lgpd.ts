@@ -31,7 +31,7 @@ export const LgpdProblems = {
 };
 
 export async function exportMyData(user: User, requestId: string | null) {
-  const [sessions, orders, reviews, likes, reports, legal, passkeys, suggestions] =
+  const [sessions, orders, reviews, likes, reports, legal, passkeys, suggestions, roleta] =
     await Promise.all([
       db().session.findMany({
         where: { userId: user.id },
@@ -88,6 +88,18 @@ export async function exportMyData(user: User, requestId: string | null) {
         select: { kind: true, title: true, year: true, note: true, status: true, createdAt: true },
         orderBy: { createdAt: 'desc' },
       }),
+      db().roletaSpin.findMany({
+        where: { userId: user.id },
+        select: {
+          prize: true,
+          status: true,
+          twitchLogin: true,
+          createdAt: true,
+          deliveredAt: true,
+          voucher: { select: { code: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
     ]);
   await audit({
     action: 'user.export',
@@ -116,6 +128,7 @@ export async function exportMyData(user: User, requestId: string | null) {
     legalAcceptances: legal.map((l) => ({ ...l.document, acceptedAt: l.acceptedAt })),
     passkeys,
     suggestions,
+    roleta: roleta.map(({ voucher, ...r }) => ({ ...r, couponCode: voucher?.code ?? null })),
     // never the secret or the codes — only whether it is on
     authenticatorApp: {
       enabledAt: user.totpEnabledAt?.toISOString() ?? null,
@@ -146,6 +159,18 @@ export async function eraseMyAccount(
     await t.reviewReport.deleteMany({ where: { reporterId: user.id } });
     await t.passkey.deleteMany({ where: { userId: user.id } });
     await t.suggestion.deleteMany({ where: { userId: user.id } });
+    // Roleta: the spins go; a coupon nobody can see any more is switched off
+    const won = await t.roletaSpin.findMany({
+      where: { userId: user.id, voucherId: { not: null } },
+      select: { voucherId: true },
+    });
+    if (won.length) {
+      await t.voucher.updateMany({
+        where: { id: { in: won.map((w) => w.voucherId!) } },
+        data: { active: false },
+      });
+    }
+    await t.roletaSpin.deleteMany({ where: { userId: user.id } });
     await t.mfaRecoveryCode.deleteMany({ where: { userId: user.id } });
     await t.session.updateMany({
       where: { userId: user.id, revokedAt: null },

@@ -82,6 +82,8 @@ model User {
   suggestions        Suggestion[]        @relation("SuggestionAuthor")
   suggestionsDecided Suggestion[]        @relation("SuggestionReviewer")
   seasonReleases     SeasonRelease[]     @relation("ReleaseEditor")
+  roletaSpins        RoletaSpin[]        @relation("RoletaSpinner")
+  roletaDelivered    RoletaSpin[]        @relation("RoletaDeliverer")
 
   @@index([role])
 }
@@ -437,6 +439,7 @@ model Voucher {
   updatedAt        DateTime    @updatedAt @db.Timestamptz(3)
 
   redemptions VoucherRedemption[]
+  roletaSpin  RoletaSpin?
 }
 
 enum ReservationStatus {
@@ -1073,4 +1076,50 @@ model SubathonEntry {
   @@unique([subathonId, externalId])
   @@index([subathonId, createdAt])
   @@index([orderId])
+}
+
+// ── Roleta (wheel of fortune, 2026-11-04, docs/phase-6/README.md §11) ───────────────────────────
+
+enum RoletaPrize {
+  NADA
+  FILME // one free movie (delivered by hand: a "Já pago" order)
+  DOIS_FILMES // two free movies
+  VIP_TWITCH // VIP in the Twitch channel (given by the streamer)
+  CUPOM_30 // a personal 30 % coupon (a Voucher, created at once)
+}
+
+enum RoletaPrizeStatus {
+  PENDING // won, not delivered yet
+  DELIVERED // delivered (coupons: at once)
+  CANCELLED // withdrawn by the streamer (a coupon's voucher is switched off)
+}
+
+/// One spin of the Roleta. A viewer has 5 spins per period; a period starts at 17:00 BRT and
+/// `period` is the BRT calendar day it started on. n is 1…5 and (userId, period, n) is unique, so
+/// parallel requests can't spin a 6th time. Unused spins don't carry over. "Nada" spins are
+/// purged after 30 days; prizes stay.
+model RoletaSpin {
+  id            String             @id @default(uuid(7)) @db.Uuid
+  userId        String             @db.Uuid
+  period        DateTime           @db.Date
+  n             Int
+  prize         RoletaPrize
+  /// the wheel slice the wheel stopped on (0…8; each prize has its own slice, "Nada" has five)
+  slot          Int
+  status        RoletaPrizeStatus? // null exactly for NADA
+  voucherId     String?            @unique @db.Uuid // CUPOM_30
+  /// the winner's Twitch login (movies and VIP), so the streamer knows who to give it to
+  twitchLogin   String?
+  deliveredAt   DateTime?          @db.Timestamptz(3)
+  deliveredById String?            @db.Uuid
+  createdAt     DateTime           @default(now()) @db.Timestamptz(3)
+
+  user        User     @relation("RoletaSpinner", fields: [userId], references: [id], onDelete: Cascade)
+  voucher     Voucher? @relation(fields: [voucherId], references: [id], onDelete: Restrict)
+  deliveredBy User?    @relation("RoletaDeliverer", fields: [deliveredById], references: [id], onDelete: SetNull)
+
+  @@unique([userId, period, n])
+  @@index([status, createdAt])
+  @@index([prize, createdAt])
+  @@index([deliveredById])
 }

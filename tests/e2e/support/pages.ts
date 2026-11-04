@@ -66,4 +66,8 @@ export const PAGES: PageCase[] = [
   // 2026-11-03: subathon timer
   { name: 'subathon-admin', path: '/admin/subathon', auth: 'streamer', shell: false },
   { name: 'subathon-bloqueado', path: '/admin/subathon', auth: 'admin', status: 404, shell: false },
+  // 2026-11-04: Roleta
+  { name: 'roleta-entrar', path: '/roleta' },
+  { name: 'roleta', path: '/roleta', auth: 'user' },
+  { name: 'roleta-admin', path: '/admin/roleta', auth: 'admin', shell: false },
 ];

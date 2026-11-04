@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { formatClock, formatDelta } from '@/lib/subathon';
+import { formatClock, formatDelta } from '@/lib/subathon-time';
 
 export type SubathonEv = {
   type: 'subathon';

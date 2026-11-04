@@ -63,4 +63,7 @@ export const PAGES: PageCase[] = [
   { name: 'assistidos', path: '/assistidos' },
   { name: 'assistidos-series', path: '/assistidos?tipo=series' },
   { name: 'estreias-admin', path: '/admin/estreias', auth: 'admin', shell: false },
+  // 2026-11-03: subathon timer
+  { name: 'subathon-admin', path: '/admin/subathon', auth: 'streamer', shell: false },
+  { name: 'subathon-bloqueado', path: '/admin/subathon', auth: 'admin', status: 404, shell: false },
 ];

@@ -663,7 +663,8 @@
   .wf-subathon__pops {
     position: absolute;
     left: 50%;
-    top: calc(100% + 12px);
+    /* above the clock: overlay pages sit at the bottom of the OBS source (.wf-overlay) */
+    bottom: calc(100% + 12px);
     transform: translateX(-50%);
     list-style: none;
     margin: 0;

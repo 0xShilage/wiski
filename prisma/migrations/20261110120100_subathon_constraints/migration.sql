@@ -11,6 +11,7 @@
 --  4. Ledger: the seconds an entry asked for and what it applied have the same sign; a REFUND
 --     never adds time, an ORDER/TIP/stream event never removes it (0 is allowed: a tiny value
 --     can round to 0 s and must still be recorded once); values in cents are ≥ 0.
+--  5. Overlay keys may include the "subathon" widget (ok_values replaced, same rules otherwise).
 -- ─────────────────────────────────────────────────────────────────────────────
 
 ALTER TABLE "Subathon" ADD CONSTRAINT subathon_open_slot CHECK (
@@ -35,3 +36,12 @@ ALTER TABLE "SubathonEntry" ADD CONSTRAINT subathon_entry_sign CHECK (
   abs("appliedSeconds") <= abs(seconds) AND
   char_length("externalId") BETWEEN 1 AND 120 AND
   ("label" IS NULL OR char_length("label") <= 80));
+
+-- 5. Overlay keys may carry the new "subathon" widget (the allow-list of widget names, and up to
+--    6 widgets per key).
+ALTER TABLE "OverlayKey" DROP CONSTRAINT ok_values;
+ALTER TABLE "OverlayKey" ADD CONSTRAINT ok_values CHECK (
+  char_length(label) BETWEEN 1 AND 40 AND "keyPrefix" ~ '^[A-Za-z0-9_-]{6}$' AND
+  cardinality(widgets) BETWEEN 1 AND 6 AND
+  widgets <@ ARRAY['agora', 'fila', 'meta', 'meta-total', 'patrocinio', 'subathon']::text[] AND
+  octet_length("keyHash") = 32);

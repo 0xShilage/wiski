@@ -10,7 +10,7 @@ import {
   formatDelta,
   secondsFor,
   type SubathonRates,
-} from '@/lib/subathon';
+} from '@/lib/subathon-time';
 import type { SubathonAdminView } from '@/server/subathon/admin';
 
 /**

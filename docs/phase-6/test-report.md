@@ -154,3 +154,18 @@ When Mercado Pago refuses a request, the server log (`mercadopago error`) now ca
 |---|---|
 | Integration | ✅ `webhook.test.ts` 45 / 45 — reconciliation runs every 15 s; a payable Pix is re-read after 15 s (not after 10 s) and turns PAID; a 40-minute-old open payment is not re-read after 30 s, only after 2 min; "finds an approval whose webhook never came" unchanged |
 
+## Addendum — subathon timer (2026-11-03)
+
+| Suite | Result |
+|---|---|
+| Lint / types / format | ✅ clean (`--max-warnings=0`) |
+| Unit | ✅ 353 / 353 — new `subathon.test.ts` (18): R$ → seconds (R$ 1 = 60 s), BRL/USD/EUR tips, rates schema; clock and delta text; time left from `endsAt`; Astro frame → activity; tips, bits, subs by tier, Prime, resubs, gift subs (single, community purchase in both shapes, recipients); switched-off sources, follows/raids and dashboard test alerts don't count; label limits; the gift ledger counts each gift once in either order and after its window; the channel id from the JWT |
+| Integration | ✅ 1024 / 1024 before the last two additions; `subathon.test.ts` 16 / 16: one open subathon (second refused), start → pause → resume → end with the time kept, stale version / wrong state 409, a timer at zero ends at that moment and takes no more time, settings audited by field name; ledger (READY vs RUNNING, idempotent per source, cap, zero floor, manual adjust audited, nothing without an open subathon); site orders credited once and refunds debited exactly once, orders before the subathon and switched-off site payments ignored; StreamElements tip + bits + sub, a re-delivered activity ignored, a 5-sub community gift counted as 5 with recipients before and after the purchase; overlay keys with the new widget; reviewed CHECKs. Authz matrix: the five new endpoints, streamer only |
+| E2E | New `subathon.spec.ts`: the streamer creates a subathon (rule preview "Sub Tier 1: R$ 10,00 → +10:00"), the OBS widget opened with a real key shows "Começa em breve", counts down after "Iniciar timer", "+5 min" in the dashboard pops "+5:00 · Tempo adicionado pela streamer" on the widget over SSE and lands in the log, "Pausado", "Encerrar" → "Fim do subathon!" and 00:00:00. `/admin/subathon` added to the CSP / accessibility / layout page list (and a moderator gets 404) |
+
+### Found and fixed during the run
+
+- **Overlay keys couldn't include the new widget**: the database allow-list of widget names (`OverlayKey.ok_values`) didn't have `subathon`, so creating an OBS key for the timer would have failed in production. The subathon constraints migration replaces the CHECK (now 6 widgets).
+- **zod in the OBS page**: the widget imported the shared module that also defines the request schemas, so zod reached the overlay bundle and probed for `eval` (a CSP violation on every overlay page). The clock and pricing helpers moved to a zod-free `src/lib/subathon-time.ts`.
+- **Widget pops**: each pop's removal timer was cancelled by the next update (pops could stay); one timer per pop now. The StreamElements connector subscribes on open (not on a `welcome` frame) and sends the channel `room` from the token.
+

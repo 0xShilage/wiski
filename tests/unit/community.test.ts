@@ -80,7 +80,7 @@ describe('labels', () => {
 });
 
 describe('navigation', () => {
-  it('desktop: nine tabs; phones: five in the bar + "Mais" with the other four', () => {
+  it('desktop: ten tabs; phones: five in the bar + "Mais" with the other five', () => {
     expect(NAV_ITEMS.map((i) => i.label)).toEqual([
       'Filmes',
       'Séries',
@@ -89,6 +89,7 @@ describe('navigation', () => {
       'Assistidos',
       'Avaliações',
       'Sugestões',
+      'Roleta',
       'Links',
       'Perfil',
     ]);

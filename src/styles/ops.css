@@ -1532,3 +1532,258 @@ html:has(.wf-overlay) .skip-link {
     margin: 12px 0 0;
   }
 }
+
+/* ── Roleta (2026-11-04): the daily wheel of fortune ── */
+@layer components {
+  .wf-roleta-page {
+    max-width: calc(920px + 2 * var(--pad));
+    display: grid;
+    gap: 22px;
+  }
+  .wf-roleta-page__intro {
+    margin: 0;
+    color: var(--fg-78);
+    max-width: 62ch;
+  }
+  .wf-roleta {
+    display: grid;
+    gap: 26px;
+  }
+  .wf-roleta__stage {
+    display: grid;
+    grid-template-columns: minmax(0, 440px) minmax(0, 1fr);
+    align-items: center;
+    gap: 28px 40px;
+  }
+  @media (max-width: 760px) {
+    .wf-roleta__stage {
+      grid-template-columns: minmax(0, 1fr);
+      justify-items: center;
+    }
+  }
+  .wf-roleta__wheel {
+    width: min(440px, 100%);
+    height: auto;
+    overflow: visible;
+  }
+  .wf-roleta__rim {
+    fill: #1f1530;
+    stroke: var(--color-lavender);
+    stroke-width: 2.5;
+    filter: drop-shadow(0 0 6px rgb(169 157 224 / 0.85))
+      drop-shadow(0 0 16px rgb(115 107 178 / 0.55));
+  }
+  .wf-roleta__slice {
+    stroke: rgb(27 18 37 / 0.9);
+    stroke-width: 1.2;
+  }
+  .wf-roleta__label {
+    fill: var(--color-lilac);
+    font-family: var(--font-sans);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .wf-roleta__label.is-prize {
+    fill: #1f1530;
+    font-weight: 700;
+  }
+  .wf-roleta__peg {
+    fill: #fff;
+    filter: drop-shadow(0 0 2px #f3d9ff);
+  }
+  .wf-roleta__hub {
+    stroke: rgb(201 168 255 / 0.55);
+    stroke-width: 1.5;
+  }
+  .wf-roleta__hub-icon {
+    fill: #f3d9ff;
+    filter: drop-shadow(0 0 4px rgb(242 167 221 / 0.95));
+  }
+  .wf-roleta__pointer {
+    fill: #f2a7dd;
+    stroke: #fff;
+    stroke-width: 1.5;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 0 5px rgb(242 167 221 / 0.9));
+  }
+  .wf-roleta__panel {
+    display: grid;
+    gap: 14px;
+    justify-items: start;
+    padding: 20px 22px;
+    border-radius: 16px;
+    background: rgb(36 26 51 / 0.92);
+    border: 1px solid rgb(169 157 224 / 0.3);
+    width: 100%;
+  }
+  .wf-roleta__panel > p {
+    margin: 0;
+  }
+  .wf-roleta__left {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .wf-roleta__left strong {
+    font-family: var(--font-display);
+    font-size: 56px;
+    line-height: 1;
+    color: #f7f2fb;
+    text-shadow: var(--glow-sm);
+  }
+  .wf-roleta__left span {
+    color: var(--color-lilac);
+  }
+  .wf-roleta__spin {
+    min-width: 180px;
+    min-height: 52px;
+    font-size: 18px;
+  }
+  .wf-roleta__fine {
+    font-size: 13px;
+    color: var(--fg-70);
+  }
+  .wf-roleta__result {
+    width: 100%;
+  }
+  .wf-roleta__result .wf-toast {
+    margin: 0;
+  }
+  .wf-roleta__mine {
+    display: grid;
+    gap: 12px;
+  }
+  .wf-roleta__mine ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+  }
+  .wf-roleta__prize {
+    display: grid;
+    gap: 10px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgb(36 26 51 / 0.8);
+    border: 1px solid rgb(169 157 224 / 0.25);
+  }
+  .wf-roleta__prize-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 12px;
+  }
+  .wf-roleta__prize-head strong {
+    color: #f7f2fb;
+  }
+  .wf-roleta__prize-head small {
+    color: var(--fg-70);
+  }
+  .wf-roleta__status {
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid rgb(169 157 224 / 0.45);
+    color: #ecdcff;
+  }
+  .wf-roleta__status.is-delivered {
+    background: linear-gradient(90deg, #c9a8ff, #f2a7dd);
+    border-color: transparent;
+    color: #1f1530;
+  }
+  .wf-roleta__status.is-cancelled {
+    opacity: 0.7;
+  }
+  .wf-roleta__coupon {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+  }
+  .wf-roleta__coupon code {
+    padding: 6px 12px;
+    border-radius: 10px;
+    background: #1f1530;
+    border: 1px dashed var(--color-lavender);
+    font-size: 16px;
+    letter-spacing: 0.06em;
+    color: #f7f2fb;
+    user-select: all;
+  }
+  .wf-roleta__coupon p {
+    flex-basis: 100%;
+    margin: 0;
+    font-size: 13px;
+    color: var(--fg-78);
+  }
+  .wf-roleta__claim {
+    display: grid;
+    grid-template-columns: minmax(0, 320px) auto;
+    align-items: end;
+    gap: 8px 10px;
+  }
+  .wf-roleta__claim > button {
+    justify-self: start;
+  }
+  .wf-roleta__claim .wf-hint,
+  .wf-roleta__claim .wf-toast {
+    grid-column: 1 / -1;
+    margin: 0;
+  }
+  @media (max-width: 480px) {
+    .wf-roleta__claim {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .wf-roleta-page__rules {
+    display: grid;
+    gap: 12px;
+  }
+  .wf-roleta-page__odds {
+    border-collapse: collapse;
+    width: min(420px, 100%);
+  }
+  .wf-roleta-page__odds th,
+  .wf-roleta-page__odds td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid rgb(169 157 224 / 0.2);
+  }
+  .wf-roleta-page__odds thead th {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-lavender);
+  }
+  .wf-roleta-page__odds tbody th {
+    font-weight: 600;
+    color: #f7f2fb;
+  }
+  .wf-roleta-page__odds td {
+    font-variant-numeric: tabular-nums;
+    color: var(--color-lilac);
+  }
+  .wf-roleta-page__fine {
+    margin: 0;
+    padding-left: 18px;
+    display: grid;
+    gap: 6px;
+    font-size: 14px;
+    color: var(--fg-78);
+    max-width: 70ch;
+  }
+  .wf-roleta-admin__top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 20px;
+    margin-bottom: 12px;
+  }
+  .wf-roleta-admin__top p {
+    margin: 0;
+  }
+}

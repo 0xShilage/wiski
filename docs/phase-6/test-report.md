@@ -176,3 +176,12 @@ When Mercado Pago refuses a request, the server log (`mercadopago error`) now ca
 | Integration | ✅ `subathon.test.ts` 19 / 19 (+3): `!pausar` / `!retomar` / `!tempo` answer one line of plain text and change the timer through the same compare-and-set, audited with `via: "command"` and no actor; only the key's hash is stored; a wrong, malformed, replaced or revoked key is 401 and changes nothing; an unknown action or an extra query parameter is 422. Authz matrix: the key endpoints are streamer only, the command endpoint answers 401 without a valid key for every role |
 | E2E | ✅ `subathon.spec.ts`: "Criar comandos" shows the three StreamElements responses; a GET of the `!pausar` URL through nginx (as `customapi` does) answers `text/plain` "⏸️ Timer pausado: faltam …", the OBS widget shows "Pausado", a wrong key is 401, the dashboard catches up within its refresh |
 
+
+## Addendum — Roleta (2026-11-04)
+
+| Suite | Result |
+|---|---|
+| Lint / types / format | ✅ clean (`--max-warnings=0`); no schema drift beyond the two known exclusion constraints |
+| Unit | ✅ 360 / 360 — new `roleta.test.ts`: every one of the 15 000 draw values maps to a prize with exactly 1/150, 1/500, 1/1 000, 1/2 500 (and 14 849 "Nada"); out-of-range draws refused; nine slices, each prize on its own; periods start at 17:00 BRT (16:59 is still the day before), the next renewal, "hoje"/"amanhã" text. Navigation: ten tabs, Roleta under "Mais" |
+| Integration | ✅ 1075 / 1075 (full run); `roleta.test.ts` 11 / 11: five spins through the API then 409; renewal at 17:00 without stacking; nine parallel spins → exactly five, numbered 1…5; onboarding / suspended / closed refusals and the audited switch; coupon voucher (30 %, one use, 30 days, code never in the audit); Twitch login validation and ownership; Admin list without "Nada", counts; compare-and-set, streamer-only cancel that switches the voucher off, no way back from cancelled; 30-day purge of "Nada"; LGPD export and erase; reviewed CHECKs. Authz matrix: six new endpoints |
+| E2E | ✅ `roleta.spec.ts`, `community.spec.ts`, `design-match.spec.ts`, `viewports.spec.ts` (ten tabs on one line from 761 px), `a11y-layout.spec.ts` and `csp.spec.ts` with `/roleta` (signed out and in) and `/admin/roleta`: a viewer spins five times until "Sem giros hoje"; a won movie gets the viewer's Twitch login, a moderator marks it delivered, the viewer sees "Entregue" |

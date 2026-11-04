@@ -28,7 +28,7 @@
   .wf-nav {
     display: flex;
     align-items: flex-start;
-    /* eight tabs (Phase 6): 761 px still fits them next to the logo */
+    /* ten tabs (2026-11-04): 761 px still fits them next to the logo */
     gap: clamp(12px, 2.2vw, 48px);
   }
   .wf-nav a {
@@ -62,7 +62,7 @@
       0 0 14px rgb(115 107 178 / 0.7);
   }
 
-  /* 761–1080 px: nine tabs next to the logo (2026-11-01) need smaller labels, tighter gaps and a
+  /* 761–1080 px: ten tabs next to the logo (2026-11-04) need smaller labels, tighter gaps and a
      narrower side padding in the header only */
   @media (min-width: 761px) and (max-width: 1080px) {
     .wf-header__inner {

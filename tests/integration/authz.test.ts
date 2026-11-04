@@ -430,6 +430,19 @@ export const MATRIX: Row[] = [
     params: { id: NO_ID },
     body: { status: 'ACCEPTED', expectedStatus: 'NEW' },
   }),
+  // Roleta (2026-11-04): viewers spin and claim their own prizes; staff see what was won
+  R('/api/v1/roleta', 'GET', 'user'),
+  R('/api/v1/roleta/spin', 'POST', 'user', { body: {} }),
+  R('/api/v1/roleta/prizes/[id]', 'PATCH', 'user', {
+    params: { id: NO_ID },
+    body: { twitchLogin: 'matriz_probe' },
+  }),
+  R('/api/v1/admin/roleta', 'GET', 'moderator'),
+  R('/api/v1/admin/roleta/[id]', 'PATCH', 'moderator', {
+    params: { id: NO_ID },
+    body: { status: 'DELIVERED', expectedStatus: 'PENDING' },
+  }),
+  R('/api/v1/admin/roleta/open', 'PUT', 'streamer', { body: { open: true } }),
   // "Próximas temporadas" (Admin › Estreias)
   R('/api/v1/admin/releases', 'GET', 'moderator'),
   R('/api/v1/admin/releases', 'POST', 'moderator', {

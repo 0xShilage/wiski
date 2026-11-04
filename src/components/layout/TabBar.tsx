@@ -13,6 +13,7 @@ import {
   IconStar,
   IconTv,
   IconUser,
+  IconWheel,
 } from '@/components/ui/icons';
 import { NAV_ITEMS } from './nav-items';
 
@@ -27,6 +28,7 @@ const ICON: Record<
   '/assistidos': IconEye,
   '/avaliacoes': IconStar,
   '/sugestoes': IconBulb,
+  '/roleta': IconWheel,
   '/links': IconLink,
   '/perfil': IconUser,
 };
@@ -37,7 +39,7 @@ const MORE = NAV_ITEMS.filter((i) => i.mobile === 'more');
 /**
  * Phones (≤ 760 px): a fixed bottom bar — Filmes · Séries · Franquias · Cronograma · Perfil ·
  * Mais (Phase 6). "Mais" opens a native popover (light dismiss and Esc for free) with Assistidos,
- * Avaliações, Sugestões and Links. Hidden on larger screens, where the header shows every tab.
+ * Avaliações, Sugestões, Roleta and Links. Hidden on larger screens, where the header shows every tab.
  */
 export function TabBar() {
   const path = usePathname() ?? '/';

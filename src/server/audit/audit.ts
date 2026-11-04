@@ -43,6 +43,8 @@ const textDecision = z.enum(['APPROVED', 'REJECTED']);
 const role = z.enum(['USER', 'MODERATOR', 'STREAMER']);
 const overlayWidget = z.enum(['agora', 'fila', 'meta', 'meta-total', 'patrocinio', 'subathon']);
 const goalMetric = z.enum(['SPONSORSHIP_COUNT', 'SPONSORSHIP_REVENUE_CENTS', 'WATCHED_MINUTES']);
+const roletaPrize = z.enum(['FILME', 'DOIS_FILMES', 'VIP_TWITCH', 'CUPOM_30']);
+const roletaPrizeStatus = z.enum(['PENDING', 'DELIVERED', 'CANCELLED']);
 const platform = z.enum(['TWITCH', 'YOUTUBE', 'KICK', 'TIKTOK', 'INSTAGRAM', 'X']);
 /** Names of edited catalog fields (never their values). */
 const catalogField = z.enum([
@@ -299,7 +301,9 @@ export const AUDIT_ACTIONS = {
     .strict(),
   'contact.status': z.object({ to: z.enum(['NEW', 'READ', 'ARCHIVED', 'SPAM']) }).strict(),
   'contact.delete': z.object({}).strict(),
-  'settings.update': z.object({ key: z.enum(['orders.open']), value: z.boolean() }).strict(),
+  'settings.update': z
+    .object({ key: z.enum(['orders.open', 'roleta.open']), value: z.boolean() })
+    .strict(),
   'voucher.create': z
     .object({ kind: z.enum(['PERCENT', 'FIXED']), maxRedemptions: z.int().positive().nullable() })
     .strict(),
@@ -332,6 +336,11 @@ export const AUDIT_ACTIONS = {
       from: z.enum(['NEW', 'ACCEPTED', 'DISMISSED']),
       to: z.enum(['NEW', 'ACCEPTED', 'DISMISSED']),
     })
+    .strict(),
+  // ── Roleta (2026-11-04): what was won, never the coupon code ──
+  'roleta.win': z.object({ prize: roletaPrize }).strict(),
+  'roleta.status': z
+    .object({ prize: roletaPrize, from: roletaPrizeStatus, to: roletaPrizeStatus })
     .strict(),
 } as const;
 

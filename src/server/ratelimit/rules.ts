@@ -142,6 +142,17 @@ export const RL = {
     perIp: { limit: 20, windowMs: 24 * HOUR },
     perUser: { limit: 5, windowMs: 24 * HOUR },
   },
+  /** Roleta (2026-11-04): 5 spins a day are counted by the database; this only stops hammering. */
+  roletaSpin: {
+    name: 'roleta-spin',
+    perIp: { limit: 60, windowMs: MIN },
+    perUser: { limit: 20, windowMs: MIN },
+  },
+  roletaClaim: {
+    name: 'roleta-claim',
+    perIp: { limit: 30, windowMs: HOUR },
+    perUser: { limit: 10, windowMs: HOUR },
+  },
   dataExport: {
     name: 'data-export',
     perIp: { limit: 10, windowMs: HOUR },

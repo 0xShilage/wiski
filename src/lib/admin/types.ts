@@ -96,6 +96,7 @@ export const WIDGET_PT = {
   meta: 'Meta',
   'meta-total': 'Meta total',
   patrocinio: 'Novo patrocínio',
+  subathon: 'Subathon (timer)',
 } as const;
 
 export const METRIC_PT = {

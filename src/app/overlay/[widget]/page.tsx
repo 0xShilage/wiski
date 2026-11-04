@@ -4,7 +4,7 @@ import { OverlayClient } from '@/components/overlay/OverlayClient';
 
 export const metadata: Metadata = { title: 'Overlay', robots: { index: false, follow: false } };
 
-const WIDGETS = ['agora', 'fila', 'meta', 'meta-total', 'patrocinio'] as const;
+const WIDGETS = ['agora', 'fila', 'meta', 'meta-total', 'patrocinio', 'subathon'] as const;
 type Props = { params: Promise<{ widget: string }> };
 
 /** /overlay/[widget] — an OBS browser source (transparent page, key in the URL fragment). */

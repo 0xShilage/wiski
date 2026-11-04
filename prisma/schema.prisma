@@ -1006,3 +1006,71 @@ model AuditLog {
   @@index([actorId, at])
   @@index([action, at])
 }
+
+// ── Subathon timer (2026-11-03, docs/phase-6/README.md §10) ──────────────────────────────────────
+
+enum SubathonStatus {
+  READY // created, not started: contributions already add time
+  RUNNING // counting down: endsAt is the moment it reaches zero
+  PAUSED // stopped by the streamer: remainingSeconds holds the time left
+  ENDED // finished (reached zero or ended by the streamer); nothing is added any more
+}
+
+enum SubathonEntryKind {
+  ORDER // a paid site order (movie sponsorship, contribution, "Já pago")
+  REFUND // a refunded / charged-back / undone site order: its time taken back
+  TIP // StreamElements tip
+  BITS // Twitch cheer
+  SUB // new Twitch subscription
+  RESUB // renewal shared in chat
+  PRIME // Prime Gaming subscription
+  GIFT // gifted subscription(s): one entry per gift event or per community-gift bomb
+  MANUAL // added or removed by the streamer in the dashboard
+}
+
+/// A subathon: a countdown that contributions extend. At most one is open (not ENDED): openSlot
+/// is 1 while open and NULL once ended (unique). Rates are the R$ value of each stream event,
+/// converted with secondsPerReal (base rule R$ 1 = 60 s).
+model Subathon {
+  id               String          @id @default(uuid(7)) @db.Uuid
+  title            String
+  status           SubathonStatus  @default(READY)
+  openSlot         Int?            @unique @default(1)
+  initialSeconds   Int
+  /// time left while READY or PAUSED (and when it ended); while RUNNING, see endsAt
+  remainingSeconds Int
+  endsAt           DateTime?       @db.Timestamptz(3)
+  capSeconds       Int?
+  secondsPerReal   Int             @default(60)
+  /// { bits100Cents, tier1Cents, tier2Cents, tier3Cents, primeCents, count: { site, tips, bits, subs, resubs, prime, gifts } }
+  rates            Json
+  addedSeconds     Int             @default(0)
+  startedAt        DateTime?       @db.Timestamptz(3)
+  endedAt          DateTime?       @db.Timestamptz(3)
+  version          Int             @default(0)
+  createdAt        DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime        @updatedAt @db.Timestamptz(3)
+  entries          SubathonEntry[]
+}
+
+/// One contribution to a subathon's timer (the ledger). externalId makes every source idempotent:
+/// "order:<id>", "refund:<id>", "se:<activityId>", "manual:<idempotency key>".
+model SubathonEntry {
+  id             String            @id @default(uuid(7)) @db.Uuid
+  subathonId     String            @db.Uuid
+  kind           SubathonEntryKind
+  externalId     String
+  valueCents     Int?
+  seconds        Int
+  /// what actually moved the timer (seconds clamped by the cap, or by zero when removing time)
+  appliedSeconds Int
+  /// public text for the overlay and the dashboard log (sanitised plain text)
+  label          String?
+  orderId        String?           @db.Uuid
+  createdAt      DateTime          @default(now()) @db.Timestamptz(3)
+  subathon       Subathon          @relation(fields: [subathonId], references: [id], onDelete: Cascade)
+
+  @@unique([subathonId, externalId])
+  @@index([subathonId, createdAt])
+  @@index([orderId])
+}

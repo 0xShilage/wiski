@@ -192,3 +192,31 @@ Until now "Já pago" for a series or franchise appeared only once its campaign w
   - The query is capped at 60 characters and 8 words.
 - **Page**: the result count ("3 resultados para “…”") is announced as a status. The kind links keep the search. "Limpar" clears it, and an empty result offers to "limpe a busca".
 
+## 10. Subathon timer (2026-11-03)
+
+A countdown that every contribution extends. The site keeps the timer (one source of truth), StreamElements feeds it from the stream, and an OBS widget shows it in the site's look.
+
+### 10.1 What it does
+
+| What | Where | Notes |
+|---|---|---|
+| **Timer** | `src/server/subathon/timer.ts`, tables `Subathon` + `SubathonEntry` (migration `20261110120000_subathon`, reviewed SQL `…_subathon_constraints`) | One subathon open at a time (`openSlot`, unique). States READY → RUNNING ⇄ PAUSED → ENDED. The clock is in one place: `endsAt` while running, `remainingSeconds` otherwise, so the widget counts down by itself and nothing ticks on the server. A worker job ends a running timer that reached zero (end time = the moment it hit zero). Status changes and setting changes are compare-and-sets on the version the streamer saw, and are audited (`subathon.create/update/status/adjust`). |
+| **Value → time** | `src/lib/subathon.ts` | Everything is valued in R$ and converted with one rule: `secondsPerReal` seconds per R$ 1, **60 by default (R$ 1 = 1 minute)**. Stream events get an R$ value set by the streamer: 100 bits (default R$ 5), sub Tier 1/2/3 (R$ 10/20/50), Prime (R$ 10). Tips in US$ or € use two editable rates (US$ 1 = R$ 5,50, € 1 = R$ 6,00 by default); other currencies don't count. Optional cap (hours): time above it isn't added. Each source can be switched off. |
+| **Ledger** | `SubathonEntry`, `applyEntry()` | Every change of time is one ledger row with a unique `externalId` per subathon (`order:<id>`, `refund:<id>`, `se:<activity id>`, `manual:<key>`), written in the same transaction as the clock. A repeated source (a re-delivered StreamElements event, the credit job running twice) is a no-op. The row keeps what was asked and what was applied (limited by the cap above, by zero below). Database CHECKs: one clock, ranges (≤ 90 days, 1–3600 s per R$), signs (a refund never adds time). |
+| **Site payments** | `src/server/subathon/credits.ts`, worker job `subathon` (every 5 s) | Every order paid while a subathon is open — movie sponsorships, contributions, "Já pago" — adds its total. An order that later leaves the paid states (refunded, charged back, "Desfazer registro") takes back exactly the time it added. The job only reads orders; it never changes one. |
+| **StreamElements** | `src/server/subathon/streamelements.ts`, `se-activity.ts` | The worker keeps one WebSocket to StreamElements' Astro gateway (`wss://astro.streamelements.com`), authenticated with the channel's JWT (`STREAMELEMENTS_JWT`, only in `app.env`), subscribed to `channel.activities` (room = the token's channel). **Tips, bits, new subs, resubs, Prime subs and gift subs** add time as they happen; OBS doesn't need to be open. Dashboard test alerts (`isMock`) don't count. Reconnects with StreamElements' reconnect token, or with back-off. Its state (connected / off / error, last event) is shown in Admin › Subathon. The token is never logged or sent to the browser, and the bundle check knows it. |
+| **Gift subs** | `GiftLedger` | A community gift ("sub bomb") arrives as one purchase event with the count plus one event per recipient. Each gift is counted once whichever order they arrive in: a purchase of N after k recipients adds N − k, and the remaining recipients are skipped. |
+| **OBS widget** | `/overlay/subathon`, `src/components/overlay/SubathonTimer.tsx` | A new widget in Admin › Overlays ("Subathon (timer)"), opened with an overlay key like the others. It shows the title, the clock in the display face with the lavender glow, a state ("Começa em breve", "Pausado", "Fim do subathon!") and a "+5:00 · Sub de …" pop for each contribution (above the clock; the widget sits at the bottom-left of the source, like the others). It counts down from `endsAt` with the server's clock, so a wrong clock on the streaming PC doesn't shift it. Text nodes only; the payload is sanitised and checked against `overlayEventSchema`. |
+| **Dashboard** | `/admin/subathon` (streamer only) | Create (name, starting time, R$ rule, cap, event values, what counts), start / pause / resume / end, +5/+10/+30 min or any amount added or removed by hand, the StreamElements status, and the log of everything that entered the timer. |
+
+### 10.2 Setting it up in production
+
+1. **StreamElements token**: StreamElements dashboard → your avatar → **Account** → **Channels** → **Show secrets** → copy the **JWT Token** of the Twitch channel. On the server, add one line to `/etc/wiskiflix/app.env`: `STREAMELEMENTS_JWT=<token>`. Then deploy (or `scripts/ops/compose.sh up -d worker`) so the worker reads it. Admin › Subathon should say **Conectado**. Treat the token like a password: it gives access to the StreamElements account; if it leaks, regenerate it there.
+2. **OBS**: Admin › Overlays → new key with **Subathon (timer)** → copy the address into an OBS browser source (about 640 × 360, transparent).
+3. **Create the subathon** in Admin › Subathon; contributions already add time while it is READY; press **Iniciar timer** when the live starts.
+
+### 10.3 Limits
+
+- Events that happen while the worker is disconnected from StreamElements aren't replayed (Astro has no backlog). The dashboard shows the outage; add the time by hand.
+- StreamElements doesn't publish every activity field for Astro, so the parser reads them defensively; the worker logs the field names (never the values) of the first activities so the parsing can be checked after the first live.
+

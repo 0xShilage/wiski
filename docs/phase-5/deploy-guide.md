@@ -52,7 +52,7 @@ If your home IP changes, edit `/etc/wiskiflix/admin-ips.txt` from the provider's
 |---|---|
 | `/etc/wiskiflix/tls/origin.pem` | the Cloudflare **Origin certificate** (§1.3) |
 | `/etc/wiskiflix/tls/origin.key` | its **private key** (`chmod 600`) |
-| `/etc/wiskiflix/app.env` | replace every `CHANGE_ME`: Google client id + secret, Turnstile site + secret, Mercado Pago production ids, token and webhook secret. Leave out the four `MP_*` lines until checkout opens (the site then shows checkout as closed). |
+| `/etc/wiskiflix/app.env` | replace every `CHANGE_ME`: Google client id + secret, Turnstile site + secret, Mercado Pago production ids, token and webhook secret. Leave out the four `MP_*` lines until checkout opens (the site then shows checkout as closed). Optional (subathon timer, 2026-11-03): `STREAMELEMENTS_JWT=` + the channel's StreamElements JWT (dashboard → avatar → Account → Channels → Show secrets); see `docs/phase-6/README.md` §10.2. |
 | `/etc/wiskiflix/backup-recipient.txt` | your age **public** key: on your computer run `age-keygen -o wiskiflix-backup-key.txt`, keep that file in your password manager, and paste the `age1…` line it prints here |
 | rclone remote | `sudo rclone config` → new remote **`wiskiflix-r2`**, type `s3`, provider `Cloudflare`, the R2 token and account endpoint |
 | GHCR login | `echo <read-only token> \| sudo docker login ghcr.io -u <github user> --password-stdin` (a classic token with `read:packages` only) |

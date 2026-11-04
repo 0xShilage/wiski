@@ -323,6 +323,46 @@ export const MATRIX: Row[] = [
     body: { target: 5 },
   }),
   R('/api/v1/admin/goals/[id]', 'DELETE', 'streamer', { params: { id: NO_ID } }),
+  // subathon timer (2026-11-03): streamer only
+  R('/api/v1/admin/subathon', 'GET', 'streamer'),
+  R('/api/v1/admin/subathon', 'POST', 'streamer', {
+    body: {
+      title: 'Matriz',
+      initialSeconds: 3600,
+      secondsPerReal: 60,
+      capSeconds: null,
+      rates: {
+        bits100Cents: 500,
+        tier1Cents: 1000,
+        tier2Cents: 2000,
+        tier3Cents: 5000,
+        primeCents: 1000,
+        usdCents: 550,
+        eurCents: 600,
+        count: {
+          site: true,
+          tips: true,
+          bits: true,
+          subs: true,
+          resubs: true,
+          prime: true,
+          gifts: true,
+        },
+      },
+    },
+  }),
+  R('/api/v1/admin/subathon/[id]', 'PATCH', 'streamer', {
+    params: { id: NO_ID },
+    body: { expectedVersion: 0, title: 'Matriz' },
+  }),
+  R('/api/v1/admin/subathon/[id]/action', 'POST', 'streamer', {
+    params: { id: NO_ID },
+    body: { action: 'start', expectedVersion: 0 },
+  }),
+  R('/api/v1/admin/subathon/[id]/adjust', 'POST', 'streamer', {
+    params: { id: NO_ID },
+    body: { seconds: 60, idempotencyKey: '00000000-0000-4000-8000-000000000001' },
+  }),
   R('/api/v1/admin/stats', 'GET', 'streamer'),
   R('/api/v1/admin/stats', 'PUT', 'streamer', {
     body: { platform: 'KICK', metric: 'followers', value: null },

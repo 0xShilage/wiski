@@ -89,7 +89,11 @@ describe('overlays, goals, stats, contact, accounts', () => {
     await rejects(db().overlayKey.create({ data: { ...base, keyHash: randomBytes(16) } }));
     await rejects(
       db().overlayKey.create({
-        data: { ...base, widgets: ['agora', 'fila', 'meta', 'meta-total', 'patrocinio', 'agora'] },
+        // 2026-11-03: at most 6 (the subathon widget made it six)
+        data: {
+          ...base,
+          widgets: ['agora', 'fila', 'meta', 'meta-total', 'patrocinio', 'subathon', 'agora'],
+        },
       }),
     );
     await db().overlayKey.create({ data: base });
@@ -100,6 +104,15 @@ describe('overlays, goals, stats, contact, accounts', () => {
         keyPrefix: 'ghijkl',
         keyHash: randomBytes(32),
         widgets: ['agora', 'fila', 'meta', 'meta-total', 'patrocinio'],
+      },
+    });
+    // 2026-11-03: the subathon timer, six widgets on one key
+    await db().overlayKey.create({
+      data: {
+        ...base,
+        keyPrefix: 'mnopqr',
+        keyHash: randomBytes(32),
+        widgets: ['agora', 'fila', 'meta', 'meta-total', 'patrocinio', 'subathon'],
       },
     });
   });

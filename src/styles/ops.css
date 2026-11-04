@@ -108,6 +108,15 @@
   .wf-ops-form .full {
     grid-column: 1 / -1;
   }
+  /* Agenda (2026-11-04): booking a part of a series/franchise, or a custom event, inline */
+  .wf-ops-subform {
+    flex-basis: 100%;
+    margin-top: 6px;
+    padding: 12px;
+    border-radius: 10px;
+    background: rgb(36 26 51 / 0.9);
+    border: 1px solid rgb(169 157 224 / 0.3);
+  }
   /* Estreias: the optional poster, a small 2:3 drop zone on its own row */
   .wf-ops-form .wf-rel-poster {
     grid-column: 1 / -1;
@@ -835,6 +844,13 @@ html:has(.wf-overlay) .skip-link {
     overflow: hidden;
     background: rgb(46 33 65 / 0.9);
     border: 1px solid rgb(169 157 224 / 0.2);
+  }
+  /* a custom event (2026-11-04): no poster, a star on the same tile */
+  .wf-cron__thumb--event {
+    display: grid;
+    place-items: center;
+    color: var(--color-lavender);
+    font-size: 1.4rem;
   }
   .wf-cron__thumb img,
   .wf-rel__thumb img {
@@ -1975,6 +1991,12 @@ html:has(.wf-overlay) .skip-link {
   }
   .wf-queue-card__pos span {
     color: var(--color-lilac);
+  }
+  /* which episodes / film of a series or franchise (2026-11-04) */
+  .wf-queue-card__part {
+    margin: 4px 0 0;
+    font-weight: 600;
+    color: #f7f2fb;
   }
   .wf-queue-card__countdown {
     margin: 10px 0 0;

@@ -1,7 +1,7 @@
 import 'server-only';
 import { type Picture, pictureFrom } from '@/lib/media';
 import { db } from '../db';
-import { sessionsWithEntries } from './schedule';
+import { entryDone, type QueueEntry, sessionsWithEntries } from './schedule';
 
 /**
  * "Próximos na live" (11 §3, O7): the next lives and their titles, for everyone. Only public
@@ -13,15 +13,54 @@ export type PublicSession = {
   live: boolean;
   note: string | null;
   now: string | null;
-  titles: {
-    title: string;
-    kind: 'MOVIE' | 'SERIES' | 'FRANCHISE';
-    slug: string;
-    sponsor: string | null;
-    jumped: boolean;
-    done: boolean;
-  }[];
+  titles: PublicTitle[];
 };
+
+/**
+ * One line of a live: a movie, a series/franchise (whole, or a part of it — `part` says which
+ * episodes or film, 2026-11-04), or a custom event (`kind` EVENT, no title page).
+ */
+export type PublicTitle = {
+  title: string;
+  part: string | null;
+  note: string | null;
+  kind: 'MOVIE' | 'SERIES' | 'FRANCHISE' | 'EVENT';
+  slug: string | null;
+  sponsor: string | null;
+  jumped: boolean;
+  done: boolean;
+  playing: boolean;
+};
+
+function publicTitle(e: QueueEntry, nowItemId: string | null, live: boolean): PublicTitle {
+  const g = e.segment;
+  return {
+    title: e.item?.title ?? g?.label ?? '',
+    part: g?.kind === 'PART' ? g.label : null,
+    note: g?.note ?? null,
+    kind: e.item?.kind ?? 'EVENT',
+    slug: e.item?.slug ?? null,
+    sponsor: e.sponsor,
+    jumped: e.tier !== null,
+    done: entryDone(e),
+    playing:
+      live &&
+      (e.status === 'PLAYING' ||
+        e.status === 'WATCHING' ||
+        (!g && e.kind === 'CAMPAIGN' && e.item?.id === nowItemId)),
+  };
+}
+
+/** What the live shows right now: a playing segment, else the session's title. */
+function nowLabel(s: {
+  playing: QueueEntry | null;
+  nowItem: { title: string } | null;
+}): string | null {
+  const g = s.playing?.segment;
+  if (g)
+    return g.kind === 'PART' && s.playing?.item ? `${s.playing.item.title} · ${g.label}` : g.label;
+  return s.nowItem?.title ?? null;
+}
 
 export async function publicSchedule(now = new Date(), take = 4): Promise<PublicSession[]> {
   const sessions = await sessionsWithEntries({
@@ -34,22 +73,16 @@ export async function publicSchedule(now = new Date(), take = 4): Promise<Public
     startsAt: s.startsAt.toISOString(),
     live: s.status === 'LIVE',
     note: s.publicNote,
-    now: s.nowItem?.title ?? null,
-    titles: s.entries.map((e) => ({
-      title: e.item.title,
-      kind: e.item.kind,
-      slug: e.item.slug,
-      sponsor: e.sponsor,
-      jumped: e.tier !== null,
-      done: e.status === 'COMPLETED' || e.status === 'WATCHED',
-    })),
+    now: s.status === 'LIVE' ? nowLabel(s) : null,
+    titles: s.entries.map((e) => publicTitle(e, s.nowItemId, s.status === 'LIVE')),
   }));
 }
 
 /**
  * Cronograma (2026-10-31): every title already booked on an upcoming live (movies, funded series
  * and franchises), grouped by day in São Paulo, plus what was watched on lives that ended in the
- * last two days. Paid titles without a date are not listed. Same public facts as above.
+ * last two days (parts and events included). Paid titles without a date are not listed. Same
+ * public facts as above.
  */
 export const CRONOGRAMA_PAST_MS = 2 * 86_400_000;
 
@@ -88,14 +121,16 @@ export async function cronograma(now = new Date()): Promise<CronogramaDay[]> {
       .map((s) => ({
         s,
         past: true,
-        entries: s.entries.filter((e) => e.status === 'COMPLETED' || e.status === 'WATCHED'),
+        entries: s.entries.filter(entryDone),
       }))
       .filter((r) => r.entries.length > 0),
     ...upcoming.map((s) => ({ s, past: false, entries: s.entries })),
   ].sort((a, b) => a.s.startsAt.getTime() - b.s.startsAt.getTime());
 
   // posters (2026-11-01): one query for every title on the page
-  const ids = [...new Set(rows.flatMap((r) => r.entries.map((e) => e.item.id)))];
+  const ids = [
+    ...new Set(rows.flatMap((r) => r.entries.flatMap((e) => (e.item ? [e.item.id] : [])))),
+  ];
   const posters = new Map(
     (ids.length
       ? await db().catalogItem.findMany({
@@ -115,16 +150,11 @@ export async function cronograma(now = new Date()): Promise<CronogramaDay[]> {
       startsAt: s.startsAt.toISOString(),
       live: s.status === 'LIVE',
       note: s.publicNote,
-      now: s.nowItem?.title ?? null,
+      now: s.status === 'LIVE' ? nowLabel(s) : null,
       past,
       titles: entries.map((e) => ({
-        title: e.item.title,
-        kind: e.item.kind,
-        slug: e.item.slug,
-        sponsor: e.sponsor,
-        jumped: e.tier !== null,
-        done: e.status === 'COMPLETED' || e.status === 'WATCHED',
-        poster: posters.get(e.item.id) ?? null,
+        ...publicTitle(e, s.nowItemId, s.status === 'LIVE'),
+        poster: e.item ? (posters.get(e.item.id) ?? null) : null,
       })),
     });
   }

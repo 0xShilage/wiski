@@ -3,8 +3,8 @@
  * and the pure estimate; the server side is src/server/live/position.ts.
  */
 export type TitleQueueStatus =
-  /** on screen right now */
-  | { kind: 'playing' }
+  /** on screen right now (`part`: which episodes / film of a series or franchise) */
+  | { kind: 'playing'; part?: string | null }
   /** booked on a live: its place among that live's titles and a rough start time */
   | {
       kind: 'scheduled';
@@ -14,6 +14,8 @@ export type TitleQueueStatus =
       total: number;
       /** start of the live + the runtimes of the titles before it (null when unknown) */
       estimatedAt: string | null;
+      /** a series/franchise watched in parts: the next part booked, e.g. "T1 · E4–E6" */
+      part?: string | null;
     }
   /** paid / funded, waiting for a date */
   | { kind: 'queued'; position: number; total: number; nextLiveAt: string | null };

@@ -160,7 +160,8 @@ export const WIDGET_EVENT: Record<Widget, OverlayEvent['type']> = {
 export function nowPlayingEvent(
   input: {
     title: string;
-    kind: 'MOVIE' | 'SERIES' | 'FRANCHISE';
+    /** null: a custom event on the live (2026-11-04) */
+    kind: 'MOVIE' | 'SERIES' | 'FRANCHISE' | null;
     sponsor: string | null;
     message: string | null;
   } | null,

@@ -26,7 +26,7 @@ export default async function AgendaPage() {
     <AdminShell
       active="agenda"
       title="Agenda da live"
-      lead="Crie as sessões, coloque nelas os filmes pagos e as campanhas com meta atingida, e durante a live marque o que está passando e o que foi assistido — isso abre as avaliações."
+      lead="Crie as sessões e coloque nelas os filmes pagos, alguns episódios de uma série ou um filme de uma franquia com meta atingida, e eventos seus (ex.: Jogando com os Viewers). Durante a live marque o que está passando e o que foi assistido — o fim de um filme, série ou franquia abre as avaliações."
       {...p.shell}
     >
       <AgendaBoard

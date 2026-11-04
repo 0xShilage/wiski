@@ -53,14 +53,54 @@ export const manualPaymentInput = z
   .strict();
 
 const target = z
-  .object({ kind: z.enum(['ORDER', 'CAMPAIGN']), id: z.uuid(), expectedVersion: version })
+  .object({
+    kind: z.enum(['ORDER', 'CAMPAIGN', 'SEGMENT']),
+    id: z.uuid(),
+    expectedVersion: version,
+  })
   .strict();
+
+const minutes = z.int().min(1).max(1440);
+const segmentNote = oneLine(1, 140, 'Use até 140 caracteres.').nullable().optional();
 
 export const scheduleInput = z.discriminatedUnion('action', [
   z.object({ action: z.literal('add'), target, sessionId: z.uuid() }).strict(),
   z.object({ action: z.literal('remove'), target }).strict(),
   z.object({ action: z.literal('now'), target }).strict(),
-  z.object({ action: z.literal('complete'), target }).strict(),
+  z
+    .object({
+      action: z.literal('complete'),
+      target,
+      /** a series/franchise part: this was the last one → the title is watched, reviews open */
+      finish: z.boolean().optional(),
+    })
+    .strict(),
+  // 2026-11-04: a few episodes of a funded series, or one film of a funded franchise
+  z
+    .object({
+      action: z.literal('part'),
+      campaignId: z.uuid(),
+      sessionId: z.uuid(),
+      season: z.int().min(1).max(99).optional(),
+      episodeFrom: z.int().min(1).max(999).optional(),
+      episodeTo: z.int().min(1).max(999).optional(),
+      film: z.int().min(1).max(999).optional(),
+      minutes,
+      note: segmentNote,
+      atStart: z.boolean().optional(),
+    })
+    .strict(),
+  // 2026-11-04: a custom event, e.g. "Jogando com os Viewers"
+  z
+    .object({
+      action: z.literal('event'),
+      sessionId: z.uuid(),
+      title: oneLine(2, 60, 'Use de 2 a 60 caracteres.'),
+      minutes,
+      note: segmentNote,
+      atStart: z.boolean().optional(),
+    })
+    .strict(),
 ]);
 
 export const rescheduleInput = z.object({ sessionId: z.uuid() }).strict();

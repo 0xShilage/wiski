@@ -204,6 +204,19 @@ export const AUDIT_ACTIONS = {
     .strict(),
   'schedule.now': z.object({ sessionId: z.uuid() }).strict(),
   'schedule.complete': z.object({ sessionId: z.uuid() }).strict(),
+  /** live segments (2026-11-04): part of a series/franchise, or a custom event */
+  'segment.add': z
+    .object({
+      sessionId: z.uuid(),
+      kind: z.enum(['PART', 'EVENT']),
+      minutes: z.int().min(1).max(1440),
+    })
+    .strict(),
+  'segment.remove': z
+    .object({ sessionId: z.uuid(), kind: z.enum(['PART', 'EVENT']) })
+    .strict(),
+  'segment.now': z.object({ sessionId: z.uuid() }).strict(),
+  'segment.complete': z.object({ sessionId: z.uuid(), finish: z.boolean() }).strict(),
   'order.reschedule': z
     .object({ from: z.uuid(), to: z.uuid(), count: z.int().min(1).max(2) })
     .strict(),

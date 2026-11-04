@@ -22,7 +22,29 @@ import {
  */
 export { overlayChannel } from './publish';
 
+/** "T1 · E1–E3" of a series reads "Série X · T1 · E1–E3"; an event is its own title. */
+const segmentTitleSelect = {
+  label: true,
+  campaign: { select: { item: { select: { title: true, kind: true } } } },
+} as const;
+function segmentTitle(g: { label: string; campaign: { item: { title: string } } | null }) {
+  return g.campaign ? `${g.campaign.item.title} · ${g.label}` : g.label;
+}
+
 export async function nowPlayingSnapshot(): Promise<OverlayEvent> {
+  // a part of a series/franchise or a custom event on screen (2026-11-04)
+  const segment = await db().liveSegment.findFirst({
+    where: { status: 'PLAYING', session: { status: 'LIVE' } },
+    select: segmentTitleSelect,
+  });
+  if (segment) {
+    return nowPlayingEvent({
+      title: segmentTitle(segment),
+      kind: segment.campaign?.item.kind ?? null,
+      sponsor: null,
+      message: null,
+    });
+  }
   const live = await db().streamSession.findFirst({
     where: { status: 'LIVE', nowItemId: { not: null } },
     select: { nowItem: { select: { id: true, title: true, kind: true } } },
@@ -67,7 +89,7 @@ export async function queueSnapshot(now = new Date()): Promise<OverlayEvent> {
     ...sponsorSelect,
   } as const;
   if (session) {
-    const [orders, campaigns] = await Promise.all([
+    const [orders, campaigns, segments] = await Promise.all([
       db().order.findMany({
         where: { sessionId: session.id, status: 'SCHEDULED' },
         select: orderSel,
@@ -77,6 +99,11 @@ export async function queueSnapshot(now = new Date()): Promise<OverlayEvent> {
         where: { sessionId: session.id, status: 'SCHEDULED' },
         select: { fundedAt: true, item: { select: { title: true } } },
         take: 5,
+      }),
+      db().liveSegment.findMany({
+        where: { sessionId: session.id, status: 'SCHEDULED' },
+        select: { ...segmentTitleSelect, atStart: true, createdAt: true },
+        take: 10,
       }),
     ]);
     for (const o of orders) {
@@ -95,6 +122,15 @@ export async function queueSnapshot(now = new Date()): Promise<OverlayEvent> {
         jumped: false,
         rank: 2,
         at: c.fundedAt?.getTime() ?? 0,
+      });
+    }
+    for (const g of segments) {
+      items.push({
+        title: segmentTitle(g),
+        sponsor: null,
+        jumped: false,
+        rank: g.atStart ? -1 : 2,
+        at: g.createdAt.getTime(),
       });
     }
   }

@@ -19,12 +19,14 @@ const time = new Intl.DateTimeFormat('pt-BR', {
 /**
  * "Na fila" on a title page (2026-11-04): playing now, booked on a live (its place that night and
  * a rough start time, with a countdown), or paid and waiting for a date (its place in the queue).
+ * A series or franchise watched in parts shows the next part booked ("T1 · E4–E6").
  */
 export function QueueCard({ status }: { status: TitleQueueStatus }) {
   if (status.kind === 'playing') {
     return (
       <div className="wf-panel wf-queue-card is-playing" aria-labelledby="fila-titulo">
         <h2 id="fila-titulo">Passando agora na live</h2>
+        {status.part ? <p className="wf-queue-card__part">{status.part}</p> : null}
         <p className="wf-muted">Corre para a Twitch: este título está na tela neste momento.</p>
       </div>
     );
@@ -34,6 +36,11 @@ export function QueueCard({ status }: { status: TitleQueueStatus }) {
     return (
       <div className="wf-panel wf-queue-card" aria-labelledby="fila-titulo">
         <h2 id="fila-titulo">{status.live ? 'Na live de agora' : 'Agendado'}</h2>
+        {status.part ? (
+          <p className="wf-queue-card__part">
+            {status.live ? 'Hoje' : 'Próxima parte'}: {status.part}
+          </p>
+        ) : null}
         <p className="wf-queue-card__pos">
           <strong>{status.position}º</strong>
           <span>

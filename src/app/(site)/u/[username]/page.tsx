@@ -1,11 +1,14 @@
 import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
+import Link from 'next/link';
 import { Avatar } from '@/components/Avatar';
+import { AchievementBadges } from '@/components/community/AchievementBadges';
 import { RabinhoViolet } from '@/components/brand/generated';
 import { ReviewList } from '@/components/reviews/ReviewList';
 import { card, container, heading } from '@/components/ui/styles';
 import { formatMonthYear } from '@/lib/format';
 import { getCurrentSession } from '@/server/auth/current';
+import { achievementsFor } from '@/server/community/achievements';
 import { findProfile, userReviews } from '@/server/reviews/read';
 
 type Props = { params: Promise<{ username: string }> };
@@ -23,14 +26,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return profile ? { title: `@${profile.username}` } : { title: 'Perfil não encontrado' };
 }
 
-/** Public profile (03 §5.4): username, avatar, joined month and visible reviews — never e-mail. */
+/**
+ * Public profile (03 §5.4): username, avatar, joined month, badges (2026-11-04, unless the viewer
+ * turned them off) and visible reviews — never e-mail.
+ */
 export default async function PerfilPublicoPage({ params }: Props) {
   const raw = (await params).username;
   const profile = await findProfile(safeDecode(raw));
   if (!profile) notFound();
   if (raw !== profile.username) permanentRedirect(`/u/${profile.username}`);
   const ctx = await getCurrentSession();
-  const page = await userReviews(profile.id, undefined, ctx?.user.id);
+  const [page, badges] = await Promise.all([
+    userReviews(profile.id, undefined, ctx?.user.id),
+    profile.showAchievements ? achievementsFor(profile) : Promise.resolve([]),
+  ]);
+  const earned = badges.filter((b) => b.earned);
 
   return (
     <div className={`${container} py-10 md:py-14`}>
@@ -46,6 +56,22 @@ export default async function PerfilPublicoPage({ params }: Props) {
           </p>
         </div>
       </section>
+      {earned.length ? (
+        <section aria-labelledby="conquistas" className="mx-auto mt-8 max-w-3xl">
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <h2 id="conquistas" className={heading.h2}>
+              Conquistas
+            </h2>
+            <Link
+              href="/ranking"
+              className="text-sm text-lavender underline-offset-4 hover:underline"
+            >
+              Ver ranking
+            </Link>
+          </div>
+          <AchievementBadges items={earned} labelledBy="conquistas" />
+        </section>
+      ) : null}
       <section aria-labelledby="avaliacoes" className="mx-auto mt-8 max-w-3xl">
         <h2 id="avaliacoes" className={`${heading.h2} mb-4 flex items-center gap-3`}>
           <RabinhoViolet aria-hidden className="h-8 w-auto" />

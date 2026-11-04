@@ -97,6 +97,21 @@ export const IconWheel = ({ className }: P) => (
     <path d="M10 2.5h4L12 5z" fill="currentColor" />
   </svg>
 );
+export const IconHeart = ({ className }: P) => (
+  <svg {...base} className={className}>
+    <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" />
+  </svg>
+);
+export const IconSparkle = ({ className }: P) => (
+  <svg {...base} className={className}>
+    <path d="M12 3c.6 4.6 2.4 6.4 7 7-4.6.6-6.4 2.4-7 7-.6-4.6-2.4-6.4-7-7 4.6-.6 6.4-2.4 7-7z" />
+  </svg>
+);
+export const IconTrophy = ({ className }: P) => (
+  <svg {...base} className={className}>
+    <path d="M8 4h8v5a4 4 0 0 1-8 0V4zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7M10 17h4" />
+  </svg>
+);
 export const IconMore = ({ className }: P) => (
   <svg {...base} className={className} fill="currentColor" stroke="none">
     <circle cx="5.5" cy="12" r="1.9" />

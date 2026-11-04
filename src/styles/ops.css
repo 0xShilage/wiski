@@ -1787,3 +1787,461 @@ html:has(.wf-overlay) .skip-link {
     margin: 0;
   }
 }
+
+/* ── Badges, ranking, queue card, catalog filters, analytics (2026-11-04) ── */
+@layer components {
+  /* segmented control: links too (ranking period, analytics period) */
+  .wf-seg a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 14px;
+    border-radius: 999px;
+    color: var(--color-lilac);
+    font-size: 14px;
+    text-decoration: none;
+  }
+  .wf-seg a.is-on {
+    background: var(--color-lavender);
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+  .wf-seg a:focus-visible {
+    outline: 2px solid var(--color-lavender);
+    outline-offset: 2px;
+  }
+
+  /* badges */
+  .wf-badges {
+    list-style: none;
+    margin: 14px 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(116px, 1fr));
+    gap: 14px 10px;
+  }
+  .wf-badge-item {
+    display: grid;
+    justify-items: center;
+    text-align: center;
+    gap: 6px;
+  }
+  /* locked: only the ring is dimmed, so the text keeps its contrast */
+  .wf-badge-item:not(.is-earned) .wf-badge-item__ring {
+    opacity: 0.5;
+  }
+  .wf-badge-item__ring {
+    display: grid;
+    place-items: center;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 40%, #4b3670, #1f1530);
+    border: 2px solid rgb(169 157 224 / 0.35);
+  }
+  .wf-badge-item.is-earned .wf-badge-item__ring {
+    border: 3px solid transparent;
+    background:
+      radial-gradient(circle at 50% 40%, #4b3670, #1f1530) padding-box,
+      linear-gradient(135deg, #f3d9ff, #c9a8ff 50%, #f2a7dd) border-box;
+    box-shadow: 0 0 14px rgb(201 168 255 / 0.45);
+  }
+  .wf-badge-item__icon {
+    width: 26px;
+    height: 26px;
+    color: var(--color-lilac);
+  }
+  .wf-badge-item.is-earned .wf-badge-item__icon {
+    color: #f3d9ff;
+    filter: drop-shadow(0 0 5px rgb(242 167 221 / 0.85));
+  }
+  .wf-badge-item__label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #f7f2fb;
+  }
+  .wf-badge-item__how {
+    font-size: 11.5px;
+    line-height: 1.35;
+    color: var(--fg-70);
+  }
+  .wf-badges-toggle {
+    margin-top: 18px;
+    display: grid;
+    gap: 8px;
+    justify-items: start;
+  }
+
+  /* ranking */
+  .wf-rank-page {
+    display: grid;
+    gap: 18px;
+  }
+  .wf-rank-page__intro {
+    margin: 0;
+    color: var(--fg-78);
+    max-width: 66ch;
+  }
+  .wf-rank-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+    gap: 16px;
+  }
+  .wf-rank {
+    padding: 18px 18px 12px;
+    border-radius: 16px;
+    background: rgb(36 26 51 / 0.92);
+    border: 1px solid rgb(169 157 224 / 0.28);
+    min-width: 0;
+  }
+  .wf-rank__title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 26px;
+    text-transform: uppercase;
+    color: #f7f2fb;
+  }
+  .wf-rank__lead {
+    margin: 2px 0 12px;
+    font-size: 13px;
+    color: var(--fg-70);
+  }
+  .wf-rank__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+  }
+  .wf-rank__list li {
+    display: grid;
+    grid-template-columns: 28px 40px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-top: 1px solid rgb(169 157 224 / 0.14);
+  }
+  .wf-rank__list li:first-child {
+    border-top: 0;
+  }
+  .wf-rank__pos {
+    font-weight: 700;
+    color: var(--color-lavender);
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .wf-rank__list li.is-top-1 .wf-rank__pos {
+    color: #f3d9ff;
+    text-shadow: var(--glow-sm);
+  }
+  .wf-rank__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #f7f2fb;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .wf-rank__name:hover {
+    text-decoration: underline;
+  }
+  .wf-rank__value {
+    font-size: 13px;
+    color: var(--color-lilac);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  /* "Na fila" card on a title page */
+  .wf-queue-card {
+    margin-bottom: 16px;
+    border-color: var(--color-lavender);
+    box-shadow: var(--glow-sm);
+  }
+  .wf-queue-card.is-playing {
+    border-color: #f2a7dd;
+  }
+  .wf-queue-card__pos {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin: 6px 0;
+  }
+  .wf-queue-card__pos strong {
+    font-family: var(--font-display);
+    font-size: 48px;
+    line-height: 1;
+    color: #f7f2fb;
+    text-shadow: var(--glow-sm);
+  }
+  .wf-queue-card__pos span {
+    color: var(--color-lilac);
+  }
+  .wf-queue-card__countdown {
+    margin: 10px 0 0;
+    padding: 8px 14px;
+    border-radius: 999px;
+    display: inline-flex;
+    gap: 6px;
+    background: rgb(31 21 48 / 0.85);
+    border: 1px solid rgb(201 168 255 / 0.45);
+    color: #ecdcff;
+    font-size: 14px;
+  }
+  .wf-queue-card__countdown strong {
+    font-variant-numeric: tabular-nums;
+  }
+  .wf-queue-card__fine {
+    margin: 10px 0 0;
+    font-size: 12.5px;
+    color: var(--fg-70);
+  }
+  .wf-queue-card__fine a {
+    color: var(--color-lavender);
+  }
+
+  /* catalog filters */
+  .wf-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 12px;
+    margin: 14px 0 18px;
+  }
+  .wf-filters__search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1 1 220px;
+    min-width: 0;
+    max-width: 340px;
+  }
+  .wf-filters__icon {
+    position: absolute;
+    left: 14px;
+    width: 18px;
+    height: 18px;
+    color: var(--color-lavender);
+    pointer-events: none;
+  }
+  .wf-filters__input,
+  .wf-filters__select {
+    min-height: 42px;
+    border-radius: 999px;
+    border: 1px solid rgb(79 61 114 / 0.95);
+    background: rgb(46 33 65 / 0.7);
+    color: var(--color-lilac);
+    font: inherit;
+    font-size: 14px;
+  }
+  .wf-filters__input {
+    width: 100%;
+    min-width: 0;
+    padding: 0 16px 0 40px;
+  }
+  .wf-filters__select {
+    padding: 0 14px;
+    max-width: 100%;
+  }
+  .wf-filters__input:focus-visible,
+  .wf-filters__select:focus-visible {
+    outline: 2px solid var(--color-lavender);
+    outline-offset: 2px;
+  }
+  .wf-filters__field {
+    min-width: 0;
+  }
+  .wf-filters__count {
+    margin: 0;
+    font-size: 13px;
+    color: var(--fg-70);
+  }
+  .wf-filters__empty {
+    margin: 8px 0 24px;
+    color: var(--fg-78);
+  }
+  @media (max-width: 480px) {
+    .wf-filters__search {
+      flex-basis: 100%;
+      max-width: none;
+    }
+    .wf-filters__field {
+      flex: 1 1 calc(50% - 6px);
+    }
+    .wf-filters__select {
+      width: 100%;
+    }
+  }
+  .wf-campaign-grid {
+    margin-top: 28px;
+  }
+
+  /* Admin › Análise */
+  .wf-analytics__periods {
+    margin-bottom: 18px;
+  }
+  .wf-analytics__hero {
+    margin-bottom: 16px;
+  }
+  .wf-analytics__hero-value {
+    margin: 4px 0 2px;
+    font-size: 52px;
+    font-weight: 600;
+    line-height: 1.05;
+    color: #f7f2fb;
+  }
+  .wf-analytics__kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .wf-analytics__kpis--compact {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    margin-bottom: 8px;
+  }
+  .wf-stat {
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgb(36 26 51 / 0.92);
+    border: 1px solid rgb(169 157 224 / 0.22);
+    min-width: 0;
+  }
+  .wf-stat__label {
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--fg-70);
+  }
+  .wf-stat__value {
+    margin: 4px 0 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: #f7f2fb;
+  }
+  .wf-stat__delta {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: var(--fg-78);
+  }
+  .wf-analytics__card {
+    margin-bottom: 16px;
+  }
+  .wf-analytics__card-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #f7f2fb;
+  }
+  .wf-analytics__pair {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+    gap: 16px;
+  }
+  .wf-analytics__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 6px;
+  }
+  .wf-analytics__list li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 14px;
+    color: var(--color-lilac);
+  }
+  .wf-analytics__list b {
+    color: #f7f2fb;
+    font-variant-numeric: tabular-nums;
+  }
+  .wf-analytics__table,
+  .wf-viz__table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+  }
+  .wf-analytics__table th,
+  .wf-analytics__table td,
+  .wf-viz__table th,
+  .wf-viz__table td {
+    padding: 7px 8px;
+    text-align: left;
+    border-bottom: 1px solid rgb(169 157 224 / 0.16);
+    font-variant-numeric: tabular-nums;
+  }
+  .wf-analytics__table thead th,
+  .wf-viz__table thead th {
+    font-size: 11.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-lavender);
+  }
+
+  /* charts: one validated hue (#9d7cf0 on the panel surface), recessive grid and axes */
+  .wf-viz {
+    margin: 10px 0 0;
+  }
+  .wf-viz__svg {
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+  .wf-viz__grid {
+    stroke: rgb(169 157 224 / 0.14);
+    stroke-width: 1;
+  }
+  .wf-viz__axis {
+    stroke: rgb(169 157 224 / 0.35);
+    stroke-width: 1;
+  }
+  .wf-viz__tick {
+    fill: rgb(229 221 237 / 0.7);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+  .wf-viz__label {
+    fill: #f7f2fb;
+    font-size: 13px;
+  }
+  .wf-viz__value {
+    fill: rgb(229 221 237 / 0.85);
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+  }
+  .wf-viz__bar {
+    fill: #9d7cf0;
+  }
+  .wf-viz__bar.is-hover {
+    fill: #b39bf5;
+  }
+  .wf-viz__hit {
+    cursor: default;
+    outline: none;
+  }
+  .wf-viz__hit:focus-visible {
+    stroke: var(--color-lavender);
+    stroke-width: 2;
+  }
+  .wf-viz__tooltip rect {
+    fill: #1f1530;
+    stroke: rgb(201 168 255 / 0.55);
+    stroke-width: 1;
+  }
+  .wf-viz__tooltip-label {
+    fill: rgb(229 221 237 / 0.75);
+    font-size: 11.5px;
+  }
+  .wf-viz__tooltip-value {
+    fill: #f7f2fb;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .wf-viz__table {
+    margin-top: 8px;
+  }
+  .wf-viz__table summary {
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--color-lavender);
+  }
+}

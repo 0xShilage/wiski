@@ -117,6 +117,7 @@ export async function exportMyData(user: User, requestId: string | null) {
       avatarKey: user.avatarKey,
       role: user.role,
       vip: user.isVip,
+      showAchievements: user.showAchievements,
       status: user.status,
       createdAt: user.createdAt.toISOString(),
     },

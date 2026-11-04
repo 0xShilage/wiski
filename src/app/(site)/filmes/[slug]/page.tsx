@@ -4,6 +4,7 @@ import { ItemDetail } from '@/components/catalog/ItemDetail';
 import { ReviewsSection } from '@/components/reviews/ReviewsSection';
 import { getPublic } from '@/server/catalog/read';
 import { checkoutProps } from '@/server/checkout/page-props';
+import { titleQueueStatus } from '@/server/live/position';
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -36,7 +37,15 @@ export default async function Page({ params }: Props) {
   if (!item) notFound();
   return (
     <>
-      <ItemDetail item={item} checkout={await checkoutProps()} />
+      <ItemDetail
+        item={item}
+        checkout={await checkoutProps()}
+        queue={
+          item.state === 'SPONSORED' || item.state === 'FUNDED'
+            ? await titleQueueStatus(item)
+            : null
+        }
+      />
       {item.state === 'WATCHED' ? <ReviewsSection item={item} /> : null}
     </>
   );

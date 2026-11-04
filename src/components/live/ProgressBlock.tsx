@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { PerKind, WatchProgress } from '@/server/catalog/progress';
 
 const num = new Intl.NumberFormat('pt-BR');
@@ -70,7 +71,11 @@ export function ProgressBlock({ progress }: { progress: WatchProgress }) {
       </div>
       <p className="wf-progress-block__foot">
         O tempo soma a duração de cada título assistido na live. Na fila: filmes pagos e séries ou
-        franquias com a meta batida que ainda vão passar.
+        franquias com a meta batida que ainda vão passar.{' '}
+        <Link href="/ranking" className="underline underline-offset-4">
+          Ver o ranking da comunidade
+        </Link>
+        .
       </p>
     </section>
   );

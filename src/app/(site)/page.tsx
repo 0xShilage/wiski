@@ -5,6 +5,7 @@ import { MovieGrid } from '@/components/catalog/MovieGrid';
 import { ProgressBlock } from '@/components/live/ProgressBlock';
 import { TwitchLive } from '@/components/live/TwitchLive';
 import { UpNext } from '@/components/live/UpNext';
+import { parseFilter } from '@/lib/catalog/filter';
 import { watchProgress } from '@/server/catalog/progress';
 import { listPublic } from '@/server/catalog/read';
 import { getEnv } from '@/server/env';
@@ -18,10 +19,13 @@ export const metadata: Metadata = {
 
 /**
  * `/` = Filmes (O9): the hero carousel with the live movies in slot order, every available movie
- * at once (2026-11-02), the next lives, the progress block (Phase 6) and — while a live is "Ao
+ * at once (2026-11-02; filters and sort 2026-11-04), the next lives, the progress block (Phase 6) and — while a live is "Ao
  * vivo" in Cronograma — the Twitch player (click to load).
  */
-export default async function FilmesPage() {
+type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
+
+export default async function FilmesPage({ searchParams }: Props) {
+  const initialFilter = parseFilter(await searchParams, 'movies');
   const [movies, sessions, progress, live] = await Promise.all([
     listPublic('MOVIE'),
     publicSchedule(),
@@ -51,7 +55,7 @@ export default async function FilmesPage() {
           </div>
         </section>
       )}
-      <MovieGrid items={movies} />
+      <MovieGrid items={movies} initialFilter={initialFilter} />
       <UpNext sessions={sessions} />
       <ProgressBlock progress={progress} />
       {live ? <TwitchLive parent={new URL(getEnv().APP_ORIGIN).hostname} /> : null}

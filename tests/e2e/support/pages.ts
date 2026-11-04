@@ -70,4 +70,12 @@ export const PAGES: PageCase[] = [
   { name: 'roleta-entrar', path: '/roleta' },
   { name: 'roleta', path: '/roleta', auth: 'user' },
   { name: 'roleta-admin', path: '/admin/roleta', auth: 'admin', shell: false },
+  // 2026-11-04: ranking, filtered catalog, analytics
+  { name: 'ranking', path: '/ranking' },
+  { name: 'ranking-geral', path: '/ranking?periodo=geral' },
+  { name: 'filmes-filtrados', path: '/?ordem=preco-asc&duracao=90-120' },
+  { name: 'series-filtradas', path: '/series?ordem=meta' },
+  { name: 'analise', path: '/admin/analise', auth: 'streamer', shell: false },
+  { name: 'analise-12-meses', path: '/admin/analise?periodo=365', auth: 'streamer', shell: false },
+  { name: 'analise-bloqueada', path: '/admin/analise', auth: 'admin', status: 404, shell: false },
 ];

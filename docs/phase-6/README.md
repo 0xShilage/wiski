@@ -259,3 +259,29 @@ A new public tab, **Roleta** (`/roleta`; on phones under "Mais"), and **Admin �
 
 - One account per person is the only anti-farming rule (prizes from duplicate accounts can be cancelled). If farming shows up, a minimum account age or a phone check are the next steps.
 - Prize draws open to the public can fall under Brazil's rules on promotional distribution of prizes (Lei 5.768/1971); check with the lawyer before announcing the Roleta widely.
+
+## 12. Badges, ranking, queue card, catalog filters and analytics (2026-11-04)
+
+### 12.1 Privacy rule (badges and ranking)
+
+Only facts already public under the viewer's username count: **movie sponsorships and campaign contributions that show the sponsor's name** (anonymous ones never), **visible reviews** and the **likes** they received. Orders count only while paid (refunded, cancelled or unpaid ones don't). **Amounts never appear.** Each viewer has a switch on /perfil — "Mostrar minhas conquistas no perfil público e no ranking" (`User.showAchievements`, default on, audited as `user.achievements.visibility`, included in the data export). Turned off, the badges stay visible to the viewer on /perfil only and they leave the ranking.
+
+### 12.2 Badges
+
+Thirteen badges in `src/lib/achievements.ts` (pure rules; the server only counts): Primeiro patrocínio / Patrocinador / Mecenas / Lenda da fila (1, 5, 10, 25 named sponsorships), Apoiador / Produtor (1, 5 named contributions), Primeira crítica / Crítico / Crítico de cinema (1, 10, 25 visible reviews), Boa de papo / Voz da galera (10, 50 likes received), Veterano (a year of account) and VIP. The public profile shows the earned ones; /perfil shows all thirteen with what's missing ("3 de 5").
+
+### 12.3 Ranking (`/ranking`)
+
+Three boards: **Patrocinadores** (named movie sponsorships) and **Críticos** (visible reviews), each for "Este mês" (the São Paulo calendar month) or "Desde sempre", and **Mais curtidos** (likes received, all time). Top 10, ties share a place (1, 2, 2, 4). Only active accounts with a username that didn't turn the ranking off; the streamer isn't ranked. Linked from the footer, the home progress block and the profiles (the header already holds ten tabs).
+
+### 12.4 "Na fila" on a title page
+
+A paid movie or funded series/franchise shows where it stands (`src/server/live/position.ts`, read-only): **waiting for a date** — its place in the queue (same order as Admin › Agenda: "Topo da fila", "Prioridade", then by payment) and a countdown to the next planned live; **booked on a live** — its place among that live's titles still to play and a rough start time (the live's start, or now once it's on, plus the runtimes before it), with a countdown; **on screen** — "Passando agora na live". Only facts the public Cronograma already shows.
+
+### 12.5 Catalog filters and sort
+
+"Filmes disponíveis" (home) and the campaign grids of Séries and Franquias get a search (title, original title, direction, cast; accents ignored), a genre, a duration (movies: até 1h30, 1h30–2h, mais de 2h) and an order (movies: price, length, year, A–Z; campaigns: closest to the goal, deadline, year, A–Z). The catalog is small (≤ 50 / 20 / 10), so the browser filters what the page already has; the choice is kept in the address (`?q=&genero=&duracao=&ordem=`), so a filtered list can be shared. Pure rules in `src/lib/catalog/filter.ts`.
+
+### 12.6 Admin › Análise (streamer only)
+
+`/admin/analise` with 7 / 30 / 90 days or 12 months: **revenue** (paid orders that weren't refunded, by payment day in São Paulo; split Pix vs "Já pago"; vs the previous period of the same length), paid orders, average ticket, **Pix paid / started** (checkout orders created in the period that got paid), refunds, new accounts, reviews, suggestions; a **revenue chart** by day, week or month; the **titles that raised the most**; the **Roleta** (spins, players, prizes by type, coupons used); the **latest subathons**. Read-only queries (`src/server/admin/analytics.ts`); no API route (the page renders on the server). Charts are SVG with presentation attributes only (the CSP has no `'unsafe-inline'`): one validated hue (`#9d7cf0` on the panel surface — lightness, chroma and contrast checked), 24 px columns with 4 px rounded tops, hairline grid, a hover/keyboard tooltip drawn inside the SVG, and a table view.

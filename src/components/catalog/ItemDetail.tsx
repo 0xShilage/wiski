@@ -1,11 +1,13 @@
 import Link from 'next/link';
 import { ContributionForm } from '@/components/checkout/ContributionForm';
 import { MovieCheckout } from '@/components/checkout/MovieCheckout';
+import { QueueCard } from '@/components/live/QueueCard';
 import { MediaPicture } from '@/components/media/MediaPicture';
 import type { CheckoutProps } from '@/lib/checkout/types';
 import { KIND_LABEL, KIND_PATH } from '@/lib/catalog/kinds';
 import { formatRuntime } from '@/lib/catalog/pricing';
 import type { PublicItem } from '@/lib/catalog/types';
+import type { TitleQueueStatus } from '@/lib/queue-position';
 import {
   CampaignChips,
   CampaignProgress,
@@ -22,8 +24,19 @@ const dateFmt = new Intl.DateTimeFormat('pt-BR', {
   timeZone: 'America/Sao_Paulo',
 });
 
-/** Shareable detail page for a movie, series or franchise (11 §3); checkout lives in the aside. */
-export function ItemDetail({ item, checkout }: { item: PublicItem; checkout?: CheckoutProps }) {
+/**
+ * Shareable detail page for a movie, series or franchise (11 §3); checkout lives in the aside, and
+ * — for a paid or funded title — where it stands in the queue (2026-11-04).
+ */
+export function ItemDetail({
+  item,
+  checkout,
+  queue,
+}: {
+  item: PublicItem;
+  checkout?: CheckoutProps;
+  queue?: TitleQueueStatus | null;
+}) {
   const watchedAt = item.watchedAt;
   const canPay = Boolean(checkout?.open && checkout.legal);
   const kindPath = KIND_PATH[item.kind];
@@ -102,6 +115,7 @@ export function ItemDetail({ item, checkout }: { item: PublicItem; checkout?: Ch
           </div>
 
           <aside className="wf-detail__aside">
+            {queue ? <QueueCard status={queue} /> : null}
             {item.state === 'WATCHED' ? (
               <div className="wf-panel">
                 <h2>Assistido na live</h2>

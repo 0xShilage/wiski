@@ -80,6 +80,8 @@ export const AUDIT_ACTIONS = {
   'user.onboarding': z.object({ username, avatarKey: avatarKeySchema }).strict(),
   'user.username.change': z.object({ from: username, to: username }).strict(),
   'user.avatar.change': z.object({ avatarKey: avatarKeySchema }).strict(),
+  // badges on the public profile and a place in /ranking (2026-11-04)
+  'user.achievements.visibility': z.object({ show: z.boolean() }).strict(),
 
   // ── R1 ──
   'passkey.register': z

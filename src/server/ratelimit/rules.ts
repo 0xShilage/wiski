@@ -130,6 +130,8 @@ export const RL = {
 
   // ── Phase 4 (05 §9) ──
   overlaySession: { name: 'overlay-session', perIp: { limit: 10, windowMs: MIN } },
+  // subathon chat command (2026-11-04): StreamElements' customapi calls it from its proxy
+  subathonCommand: { name: 'subathon-command', perIp: { limit: 30, windowMs: MIN } },
   overlayStream: { name: 'overlay-stream', perIp: { limit: 60, windowMs: MIN } },
   contact: { name: 'contact', perIp: { limit: 5, windowMs: HOUR } },
   contactDaily: { name: 'contact-day', perIp: { limit: 20, windowMs: 24 * HOUR } },

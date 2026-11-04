@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { adminPage } from '@/components/admin/admin-page';
 import { SubathonPanel } from '@/components/admin/SubathonPanel';
+import { getEnv } from '@/server/env';
 import { subathonAdminView } from '@/server/subathon/admin';
 
 export const metadata: Metadata = { title: 'Subathon' };
@@ -17,7 +18,7 @@ export default async function SubathonAdminPage() {
       lead="Um timer que cresce com cada contribuição: pagamentos do site e doações, bits e subs da live (StreamElements). No OBS, use o widget “Subathon (timer)” de Admin › Overlays."
       {...p.shell}
     >
-      <SubathonPanel initial={await subathonAdminView()} />
+      <SubathonPanel initial={await subathonAdminView()} origin={getEnv().APP_ORIGIN} />
     </AdminShell>
   );
 }

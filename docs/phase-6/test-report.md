@@ -169,3 +169,10 @@ When Mercado Pago refuses a request, the server log (`mercadopago error`) now ca
 - **zod in the OBS page**: the widget imported the shared module that also defines the request schemas, so zod reached the overlay bundle and probed for `eval` (a CSP violation on every overlay page). The clock and pricing helpers moved to a zod-free `src/lib/subathon-time.ts`.
 - **Widget pops**: each pop's removal timer was cancelled by the next update (pops could stay); one timer per pop now. The StreamElements connector subscribes on open (not on a `welcome` frame) and sends the channel `room` from the token.
 
+## Addendum — subathon chat commands (2026-11-04)
+
+| Suite | Result |
+|---|---|
+| Integration | ✅ `subathon.test.ts` 19 / 19 (+3): `!pausar` / `!retomar` / `!tempo` answer one line of plain text and change the timer through the same compare-and-set, audited with `via: "command"` and no actor; only the key's hash is stored; a wrong, malformed, replaced or revoked key is 401 and changes nothing; an unknown action or an extra query parameter is 422. Authz matrix: the key endpoints are streamer only, the command endpoint answers 401 without a valid key for every role |
+| E2E | ✅ `subathon.spec.ts`: "Criar comandos" shows the three StreamElements responses; a GET of the `!pausar` URL through nginx (as `customapi` does) answers `text/plain` "⏸️ Timer pausado: faltam …", the OBS widget shows "Pausado", a wrong key is 401, the dashboard catches up within its refresh |
+

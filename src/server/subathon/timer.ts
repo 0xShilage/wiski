@@ -170,6 +170,7 @@ export async function changeStatus(
   action: SubathonAction,
   expectedVersion: number | null,
   now = new Date(),
+  opts: { via?: 'command' } = {},
 ): Promise<Subathon> {
   const s = await db().subathon.findUnique({ where: { id } });
   if (!s) throw SubathonProblems.none();
@@ -213,7 +214,12 @@ export async function changeStatus(
         requestId: ctx?.requestId ?? null,
         targetType: 'Subathon',
         targetId: id,
-        metadata: { from: s.status, to, remainingSeconds: left },
+        metadata: {
+          from: s.status,
+          to,
+          remainingSeconds: left,
+          ...(opts.via ? { via: opts.via } : {}),
+        },
       },
       t,
     );

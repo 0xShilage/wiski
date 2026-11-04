@@ -215,7 +215,18 @@ A countdown that every contribution extends. The site keeps the timer (one sourc
 2. **OBS**: Admin › Overlays → new key with **Subathon (timer)** → copy the address into an OBS browser source (about 640 × 360, transparent).
 3. **Create the subathon** in Admin › Subathon; contributions already add time while it is READY; press **Iniciar timer** when the live starts.
 
-### 10.3 Limits
+### 10.3 Chat commands (2026-11-04)
+
+`!pausar`, `!retomar` (moderators) and `!tempo` (everyone) in the StreamElements chatbot, built with StreamElements' `customapi` variable: the command's response is `$(customapi https://wiski.fun/api/v1/subathon/command?a=pausar&k=<key>)`, StreamElements fetches it (GET, no headers) and posts the answer in chat ("⏸️ Timer pausado: faltam 03:12:44.").
+
+| What | Where | Notes |
+|---|---|---|
+| Key | Admin › Subathon → "Comandos no chat" → **Criar comandos** (`POST/DELETE /api/v1/admin/subathon/command-key`, streamer) | `wfc_` + 256 bits, shown **once** together with the three ready responses to paste into StreamElements (Chatbot → Commands → Custom commands); only its SHA-256 is stored (AppSetting `subathon.commandKey`). **Trocar chave** replaces it (the old commands stop working), **Desligar** removes it. Audited (`subathon.command-key`). |
+| Endpoint | `GET /api/v1/subathon/command?a=&k=`, `src/server/subathon/command.ts` | `a` = `pausar`/`pause`, `retomar`/`resume`, `tempo`/`status`; strict query; 30 requests/min per IP. The key is compared in constant time; a wrong, revoked or malformed key is 401 (one answer for all). Answers are one line of plain text (StreamElements keeps 400 bytes). Pausing what isn't running, or resuming what isn't paused, answers politely and changes nothing. Changes go through the same `changeStatus` (compare-and-set) and are audited with `via: "command"` and no actor. |
+| Who may use it | the command's **user level** in StreamElements | Moderator for `!pausar` / `!retomar`, Everyone for `!tempo`. The site can't see who typed the command; StreamElements checks that. |
+| Logs | nginx logs `$uri` (no query string), the app logs the path only | the key never lands in a log on our side. |
+
+### 10.4 Limits
 
 - Events that happen while the worker is disconnected from StreamElements aren't replayed (Astro has no backlog). The dashboard shows the outage; add the time by hand.
 - StreamElements doesn't publish every activity field for Astro, so the parser reads them defensively; the worker logs the field names (never the values) of the first activities so the parsing can be checked after the first live.

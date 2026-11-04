@@ -10,13 +10,13 @@ import { ManualPaymentForm } from './ManualPaymentForm';
 type Page = {
   orders: AdminOrderView[];
   next: string | null;
-  counts: { attention: number; texts: number; queue: number };
+  counts: { attention: number; queue: number };
 };
 type Filter = 'attention' | 'texts' | 'paid' | 'all';
 
 const FILTERS: { id: Filter; label: string; qs: string }[] = [
   { id: 'attention', label: 'Precisam de atenção', qs: 'status=NEEDS_ATTENTION' },
-  { id: 'texts', label: 'Textos para aprovar', qs: 'texts=1' },
+  { id: 'texts', label: 'Nomes e mensagens', qs: 'texts=1' },
   { id: 'paid', label: 'Pagos (na fila)', qs: 'status=PAID' },
   { id: 'all', label: 'Todos', qs: '' },
 ];
@@ -38,8 +38,9 @@ function pill(status: string) {
 }
 
 /**
- * Pedidos (Phase 4): who paid for what, the texts waiting for approval (sponsor message, guest
- * name), and — for the streamer — accepting an order that needs attention or the exception refund.
+ * Pedidos (Phase 4): who paid for what, the names and messages that are on screen (both go live
+ * with the order since 2026-11-04 — here they can be hidden and shown again), and — for the
+ * streamer — accepting an order that needs attention or the exception refund.
  */
 export function OrdersBoard({ initial, role }: { initial: Page; role: 'MODERATOR' | 'STREAMER' }) {
   const [filter, setFilter] = useState<Filter>(initial.counts.attention ? 'attention' : 'all');
@@ -122,7 +123,6 @@ export function OrdersBoard({ initial, role }: { initial: Page; role: 'MODERATOR
           >
             {f.label}
             {f.id === 'attention' && page.counts.attention ? ` (${page.counts.attention})` : ''}
-            {f.id === 'texts' && page.counts.texts ? ` (${page.counts.texts})` : ''}
           </button>
         ))}
       </div>
@@ -159,56 +159,48 @@ export function OrdersBoard({ initial, role }: { initial: Page; role: 'MODERATOR
               {o.guestDisplayName ? (
                 <div className="wf-ops-row">
                   <span>
-                    Nome público pedido: <strong>{o.guestDisplayName}</strong> (
-                    {o.displayNameStatus === 'PENDING'
-                      ? 'aguardando'
-                      : o.displayNameStatus === 'APPROVED'
-                        ? 'aprovado'
-                        : 'recusado'}
-                    )
+                    Nome público: <strong>{o.guestDisplayName}</strong> (
+                    {o.displayNameStatus === 'APPROVED' ? 'aparecendo' : 'oculto'})
                   </span>
-                  {o.displayNameStatus === 'PENDING' ? (
-                    <span className="wf-ops-actions">
+                  <span className="wf-ops-actions">
+                    {o.displayNameStatus !== 'APPROVED' ? (
                       <button
                         type="button"
                         className="wf-btn wf-btn--sm wf-btn--neon"
                         disabled={busy}
                         onClick={() =>
-                          void act('Nome aprovado', `/api/v1/admin/orders/${o.id}/texts`, {
+                          void act('Nome liberado', `/api/v1/admin/orders/${o.id}/texts`, {
                             expectedVersion: o.version,
                             displayName: 'APPROVED',
                           })
                         }
                       >
-                        Aprovar nome
+                        Mostrar nome
                       </button>
+                    ) : null}
+                    {o.displayNameStatus !== 'REJECTED' ? (
                       <button
                         type="button"
                         className="wf-btn wf-btn--sm wf-btn--ghost"
                         disabled={busy}
                         onClick={() =>
-                          void act('Nome recusado', `/api/v1/admin/orders/${o.id}/texts`, {
+                          void act('Nome ocultado', `/api/v1/admin/orders/${o.id}/texts`, {
                             expectedVersion: o.version,
                             displayName: 'REJECTED',
                           })
                         }
                       >
-                        Recusar
+                        Ocultar nome
                       </button>
-                    </span>
-                  ) : null}
+                    ) : null}
+                  </span>
                 </div>
               ) : null}
               {o.sponsorMessage ? (
                 <div className="wf-ops-row">
                   <span>
                     Mensagem: “{o.sponsorMessage}” (
-                    {o.messageStatus === 'PENDING'
-                      ? 'aguardando'
-                      : o.messageStatus === 'APPROVED'
-                        ? 'visível'
-                        : 'oculta'}
-                    )
+                    {o.messageStatus === 'APPROVED' ? 'aparecendo' : 'oculta'})
                   </span>
                   <span className="wf-ops-actions">
                     {o.messageStatus !== 'APPROVED' ? (
@@ -223,7 +215,7 @@ export function OrdersBoard({ initial, role }: { initial: Page; role: 'MODERATOR
                           })
                         }
                       >
-                        {o.messageStatus === 'PENDING' ? 'Aprovar mensagem' : 'Mostrar de novo'}
+                        Mostrar de novo
                       </button>
                     ) : null}
                     {o.messageStatus !== 'REJECTED' ? (

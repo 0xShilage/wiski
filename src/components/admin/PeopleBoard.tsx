@@ -6,12 +6,14 @@ import { adminFetch } from '@/lib/passkey-client';
 import { fmtDateTime, type AdminUserView } from '@/lib/admin/types';
 
 type Page = { users: AdminUserView[]; next: string | null };
+type Reset = { cleared: number; ips: number; pendingOrders: number; pendingOnIps: number };
 type Filter = 'all' | 'staff' | 'vip' | 'suspended';
 const ROLE_PT = { USER: 'Pessoa', MODERATOR: 'Moderação', STREAMER: 'Streamer' } as const;
 
 /**
  * Pessoas (Phase 4): find someone by username; suspend (moderators up to 7 days, the streamer
- * longer); the streamer also changes roles and VIP. Every action is audited.
+ * longer); the streamer also changes roles, VIP and — since 2026-11-04 — clears the checkout
+ * counters of someone who hit the hourly order limit ("Liberar pedidos"). Every action is audited.
  */
 export function PeopleBoard({ initial, role }: { initial: Page; role: 'MODERATOR' | 'STREAMER' }) {
   const id = useId();
@@ -39,6 +41,37 @@ export function PeopleBoard({ initial, role }: { initial: Page; role: 'MODERATOR
     setBusy(false);
     setToast(r.ok ? { ok: true, text: `${label}: feito.` } : { ok: false, text: r.problem.detail });
     await load();
+  }
+
+  /** Clear the checkout counters of one account; the unpaid-order caps are only reported. */
+  async function unthrottle(u: AdminUserView) {
+    setBusy(true);
+    setToast(null);
+    const r = await adminFetch<{ reset: Reset }>(`/api/v1/admin/users/${u.id}/unthrottle`, {
+      method: 'POST',
+    });
+    setBusy(false);
+    if (!r.ok) {
+      setToast({ ok: false, text: r.problem.detail });
+      return;
+    }
+    const d = r.data.reset;
+    const stuck = [
+      d.pendingOrders ? `${d.pendingOrders} pedido(s) desta pessoa aguardando pagamento` : '',
+      d.pendingOnIps > d.pendingOrders
+        ? `${d.pendingOnIps} aguardando pagamento na mesma conexão`
+        : '',
+    ].filter(Boolean);
+    setToast({
+      ok: true,
+      text: d.cleared
+        ? `Limites liberados: ${d.cleared} contador(es) zerado(s). Já pode pedir de novo.${
+            stuck.length ? ` Ainda no caminho: ${stuck.join('; ')} — pague ou cancele.` : ''
+          }`
+        : `Esta conta não estava no limite — nada a zerar.${
+            stuck.length ? ` Mas há ${stuck.join('; ')} — pague ou cancele.` : ''
+          }`,
+    });
   }
 
   return (
@@ -113,6 +146,17 @@ export function PeopleBoard({ initial, role }: { initial: Page; role: 'MODERATOR
               </div>
             </div>
             <div className="wf-ops-actions">
+              {role === 'STREAMER' ? (
+                <button
+                  type="button"
+                  className="wf-btn wf-btn--sm wf-btn--ghost"
+                  disabled={busy}
+                  title="Zera os contadores de pedidos por hora e o bloqueio por cupom errado"
+                  onClick={() => void unthrottle(u)}
+                >
+                  Liberar pedidos
+                </button>
+              ) : null}
               {u.isVip ? <span className="wf-pill wf-pill--ok">VIP</span> : null}
               {u.status === 'SUSPENDED' ? (
                 <span className="wf-pill wf-pill--bad">

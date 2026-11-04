@@ -3,13 +3,14 @@ import { RL } from '@/server/ratelimit/rules';
 import { ordersQuery } from '@/server/admin/input';
 import { listOrders, orderCounts } from '@/server/checkout/admin';
 
-/** GET /api/v1/admin/orders?status=&texts=1&code=&before= — orders (e-mails for the streamer only). */
+/** GET /api/v1/admin/orders?status=&texts=1&code=&before= — orders (texts=1: only the ones that
+ *  carry a name or message; e-mails for the streamer only). */
 export const GET = route<'moderator', undefined, typeof ordersQuery>(
   { methods: ['GET'], access: 'moderator', rateLimit: RL.admin, query: ordersQuery },
   async ({ query, user }) => ({
     ...(await listOrders(user.role, {
       ...(query.status ? { status: query.status } : {}),
-      ...(query.texts ? { pendingTexts: true } : {}),
+      ...(query.texts ? { withTexts: true } : {}),
       ...(query.code ? { code: query.code } : {}),
       ...(query.before ? { before: query.before } : {}),
     })),

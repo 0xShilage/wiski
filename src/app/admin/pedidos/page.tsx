@@ -7,7 +7,7 @@ import { listOrders, orderCounts } from '@/server/checkout/admin';
 
 export const metadata: Metadata = { title: 'Pedidos' };
 
-/** /admin/pedidos — orders, text approvals, streamer exceptions (MODERATOR+, passkey). */
+/** /admin/pedidos — orders, hiding a name or message, streamer exceptions (MODERATOR+, passkey). */
 export default async function PedidosPage() {
   const p = await adminPage('/admin/pedidos');
   if ('gate' in p) return p.gate;
@@ -18,7 +18,7 @@ export default async function PedidosPage() {
     <AdminShell
       active="pedidos"
       title="Pedidos"
-      lead="Aprove os nomes e mensagens que aparecem na live. Pedidos que precisam de atenção (Pix pago depois do prazo, valor que não conferiu) ficam com o streamer: aceitar como venda ou reembolsar."
+      lead="Nomes e mensagens aparecem na hora, sem aprovação — aqui você oculta o que não quiser na live e pode mostrar de novo. Pedidos que precisam de atenção (Pix pago depois do prazo, valor que não conferiu) ficam com o streamer: aceitar como venda ou reembolsar."
       {...p.shell}
     >
       <OrdersBoard

@@ -242,6 +242,10 @@ export const AUDIT_ACTIONS = {
   'user.unsuspend': z.object({}).strict(),
   'user.role': z.object({ from: role, to: role }).strict(),
   'user.vip': z.object({ vip: z.boolean() }).strict(),
+  /** checkout counters cleared for one account (2026-11-04) */
+  'user.unthrottle': z
+    .object({ cleared: z.int().nonnegative(), ips: z.int().nonnegative() })
+    .strict(),
   'user.erase': z
     .object({ reviews: z.int().nonnegative(), orders: z.int().nonnegative() })
     .strict(),

@@ -22,7 +22,6 @@ export type OpsSection =
 export type OpsCounts = {
   waiting: number;
   attention: number;
-  texts: number;
   unread: number;
   suggestions: number;
   roleta: number;
@@ -30,7 +29,7 @@ export type OpsCounts = {
 
 const OPS: { id: OpsSection; label: string; badge?: (c: OpsCounts) => number }[] = [
   { id: 'agenda', label: 'Agenda da live' },
-  { id: 'pedidos', label: 'Pedidos', badge: (c) => c.attention + c.texts },
+  { id: 'pedidos', label: 'Pedidos', badge: (c) => c.attention },
   { id: 'moderacao', label: 'Moderação', badge: (c) => c.waiting },
   { id: 'pessoas', label: 'Pessoas' },
   { id: 'sugestoes', label: 'Sugestões', badge: (c) => c.suggestions },

@@ -16,8 +16,8 @@ import { buyerKeyFor, newAccessToken, newPublicCode, normaliseEmail } from './bu
 import { uniqueViolation } from './orders';
 
 /**
- * Orders in the dashboard (03 §5.6): the list, one order, approving the sponsor's message and a
- * guest's display name (Q10, Q16), and the streamer accepting an order that NEEDS_ATTENTION
+ * Orders in the dashboard (03 §5.6): the list, one order, hiding or showing the sponsor's message
+ * and a guest's public name (Q10, Q16), and the streamer accepting an order that NEEDS_ATTENTION
  * (e.g. a Pix paid after its reservation expired) when the movie / campaign room is still there.
  * Contact e-mails are shown to the STREAMER only (support and refunds); moderators see the public
  * name.
@@ -32,7 +32,8 @@ export const AdminOrderProblems = {
       'ORDER_CHANGED',
       'Este pedido mudou enquanto você olhava. Atualize a lista.',
     ),
-  nothing: () => new HttpError(409, 'NOTHING_TO_REVIEW', 'Não há texto aguardando aprovação.'),
+  nothing: () =>
+    new HttpError(409, 'NOTHING_TO_REVIEW', 'Este texto já está assim. Atualize a lista.'),
   notAcceptable: (detail: string) => new HttpError(409, 'CANNOT_ACCEPT', detail),
 };
 
@@ -106,13 +107,14 @@ export type AdminOrder = ReturnType<typeof view>;
 
 export async function listOrders(
   role: Role,
-  q: { status?: OrderStatus; pendingTexts?: boolean; code?: string; before?: string },
+  q: { status?: OrderStatus; withTexts?: boolean; code?: string; before?: string },
 ) {
   const where: Prisma.OrderWhereInput = {
     ...(q.status ? { status: q.status } : { status: { not: 'PENDING_PAYMENT' } }),
     ...(q.code ? { publicCode: q.code } : {}),
-    ...(q.pendingTexts
-      ? { OR: [{ messageStatus: 'PENDING' }, { displayNameStatus: 'PENDING' }] }
+    // every order that carries a text, shown or hidden: nothing waits for approval (2026-11-04)
+    ...(q.withTexts
+      ? { OR: [{ sponsorMessage: { not: null } }, { guestDisplayName: { not: null } }] }
       : {}),
     ...(q.before ? { createdAt: { lt: new Date(q.before) } } : {}),
   };
@@ -131,17 +133,11 @@ export async function listOrders(
 }
 
 export async function orderCounts() {
-  const [attention, texts, queue] = await Promise.all([
+  const [attention, queue] = await Promise.all([
     db().order.count({ where: { status: 'NEEDS_ATTENTION' } }),
-    db().order.count({
-      where: {
-        status: { notIn: ['PENDING_PAYMENT', 'EXPIRED', 'CANCELLED'] },
-        OR: [{ messageStatus: 'PENDING' }, { displayNameStatus: 'PENDING' }],
-      },
-    }),
     db().order.count({ where: { kind: 'MOVIE', status: 'PAID' } }),
   ]);
-  return { attention, texts, queue };
+  return { attention, queue };
 }
 
 export async function getOrder(role: Role, id: string) {
@@ -151,10 +147,10 @@ export async function getOrder(role: Role, id: string) {
 }
 
 /**
- * Moderators: approve or reject the guest display name (PENDING only), and show or hide the sponsor
- * message. Since 2026-11-03 a message is shown as soon as the order is created (APPROVED), so a
- * moderator can hide it (REJECTED) and show it again at any time; the change is a compare-and-set
- * on the status the moderator saw.
+ * Moderators: show or hide the sponsor message and the guest's public name. Both texts are live
+ * from the moment the order is created (message 2026-11-03, name 2026-11-04), so this is only
+ * hiding (REJECTED) and showing again (APPROVED) — never a queue anyone has to work through. The
+ * change is a compare-and-set on the status the moderator saw, so two moderators can't fight.
  */
 export async function reviewTexts(
   ctx: Ctx,
@@ -176,17 +172,20 @@ export async function reviewTexts(
       data.messageStatus = input.message;
     }
     if (input.displayName) {
-      if (o.displayNameStatus !== 'PENDING') throw AdminOrderProblems.nothing();
+      if (!o.guestDisplayName || !o.displayNameStatus || o.displayNameStatus === input.displayName)
+        throw AdminOrderProblems.nothing();
       data.displayNameStatus = input.displayName;
     }
     if (!input.message && !input.displayName) throw AdminOrderProblems.nothing();
-    // the version stays: approving a text doesn't change the order's state machine
+    // the version stays: showing or hiding a text doesn't change the order's state machine
     const res = await t.order.updateMany({
       where: {
         id,
         version: o.version,
         ...(input.message && o.messageStatus ? { messageStatus: o.messageStatus } : {}),
-        ...(input.displayName ? { displayNameStatus: 'PENDING' } : {}),
+        ...(input.displayName && o.displayNameStatus
+          ? { displayNameStatus: o.displayNameStatus }
+          : {}),
       },
       data,
     });

@@ -293,6 +293,7 @@ export const MATRIX: Row[] = [
     params: { id: NO_ID },
     body: { vip: true },
   }),
+  R('/api/v1/admin/users/[id]/unthrottle', 'POST', 'streamer', { params: { id: NO_ID } }),
   R('/api/v1/me/export', 'GET', 'user'),
   R('/api/v1/me/erase', 'POST', 'user', { body: { confirmUsername: 'nao-confere' } }),
   R('/api/v1/admin/overlay-keys', 'GET', 'streamer'),

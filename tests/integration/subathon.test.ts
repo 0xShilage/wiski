@@ -7,7 +7,9 @@ import { randomUUID } from 'node:crypto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { DEFAULT_SUBATHON_RATES, type SubathonRates } from '@/lib/subathon';
 import { db } from '@/server/db';
+import * as commandRoute from '@/app/api/v1/subathon/command/route';
 import { createOverlayKey } from '@/server/overlay/keys';
+import { commandKeyStatus, createCommandKey, revokeCommandKey } from '@/server/subathon/command';
 import { WIDGETS } from '@/server/overlay/events';
 import { syncSiteCredits } from '@/server/subathon/credits';
 import { GiftLedger, type SeActivity } from '@/server/subathon/se-activity';
@@ -22,6 +24,7 @@ import {
 } from '@/server/subathon/timer';
 import { clearCatalog } from '../support/catalog';
 import { makeUser } from '../support/db';
+import { call, req } from '../support/http';
 import { paidMovie, resetSlots } from '../support/live';
 
 const R: SubathonRates = DEFAULT_SUBATHON_RATES;
@@ -238,6 +241,82 @@ describe('StreamElements activities', () => {
     expect(await handleActivity(activity('tip', { amount: 5 }), new GiftLedger(), T0)).toBe(
       'closed',
     );
+  });
+});
+
+describe('chat commands (StreamElements customapi)', () => {
+  const run = (a: string, k: string) =>
+    call(
+      commandRoute.GET,
+      req('GET', `/api/v1/subathon/command?a=${a}&k=${encodeURIComponent(k)}`),
+    );
+
+  beforeEach(async () => {
+    await db().appSetting.deleteMany({ where: { key: 'subathon.commandKey' } });
+  });
+
+  it('!pausar / !retomar / !tempo answer one line of text; the change is audited as from the command', async () => {
+    const key = await createCommandKey(ctx);
+    expect(key).toMatch(/^wfc_[\w-]{43}$/);
+    expect(await commandKeyStatus()).toMatchObject({ prefix: key.slice(4, 10) });
+    // only the hash is stored
+    expect(
+      JSON.stringify(
+        (await db().appSetting.findFirstOrThrow({ where: { key: 'subathon.commandKey' } })).value,
+      ),
+    ).not.toContain(key);
+
+    expect(await (await run('tempo', key)).text()).toBe('Nenhum subathon aberto no momento.');
+    const s = await make({ initialSeconds: 3600 });
+    expect(await (await run('pausar', key)).text()).toBe('O timer ainda não começou.');
+    await changeStatus(ctx, s.id, 'start', s.version);
+    const paused = await run('pausar', key);
+    expect(paused.status).toBe(200);
+    expect(paused.headers.get('content-type')).toMatch(/^text\/plain/);
+    expect(await paused.text()).toMatch(/^⏸️ Timer pausado: faltam 0(0|1):\d{2}:\d{2}\.$/);
+    expect((await fresh(s.id)).status).toBe('PAUSED');
+    expect(await (await run('pause', key)).text()).toBe('O timer já está pausado.');
+    expect(await (await run('tempo', key)).text()).toMatch(/^Subathon pausado: faltam /);
+    expect(await (await run('retomar', key)).text()).toMatch(/^▶️ Timer retomado: faltam /);
+    expect((await fresh(s.id)).status).toBe('RUNNING');
+    const logs = await db().auditLog.findMany({
+      where: { action: 'subathon.status', targetId: s.id },
+      orderBy: { id: 'asc' },
+    });
+    expect(logs.map((l) => (l.metadata as { via?: string }).via ?? null)).toEqual([
+      null,
+      'command',
+      'command',
+    ]);
+    expect(logs[1]!.actorId).toBeNull();
+  });
+
+  it('a wrong, malformed or revoked key is 401 and changes nothing', async () => {
+    const audits = () => db().auditLog.count({ where: { action: 'subathon.command-key' } });
+    const before = await audits();
+    const key = await createCommandKey(ctx);
+    const s = await make();
+    await changeStatus(ctx, s.id, 'start', s.version);
+    expect((await run('pausar', `wfc_${'A'.repeat(43)}`)).status).toBe(401);
+    expect((await run('pausar', 'qualquer')).status).toBe(401);
+    // a new key replaces the old one
+    const second = await createCommandKey(ctx);
+    expect((await run('pausar', key)).status).toBe(401);
+    await revokeCommandKey(ctx);
+    expect((await run('pausar', second)).status).toBe(401);
+    expect(await commandKeyStatus()).toBeNull();
+    expect((await fresh(s.id)).status).toBe('RUNNING');
+    expect((await audits()) - before).toBe(3);
+  });
+
+  it('an unknown action or an extra parameter is refused by the schema', async () => {
+    const key = await createCommandKey(ctx);
+    expect((await run('encerrar', key)).status).toBe(422);
+    const extra = await call(
+      commandRoute.GET,
+      req('GET', `/api/v1/subathon/command?a=tempo&k=${key}&x=1`),
+    );
+    expect(extra.status).toBe(422);
   });
 });
 

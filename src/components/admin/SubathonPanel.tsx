@@ -93,7 +93,7 @@ function formFrom(s: Sub | null): Form {
   };
 }
 
-export function SubathonPanel({ initial }: { initial: View }) {
+export function SubathonPanel({ initial, origin }: { initial: View; origin: string }) {
   const id = useId();
   const [view, setView] = useState(initial);
   const [busy, setBusy] = useState(false);
@@ -103,6 +103,8 @@ export function SubathonPanel({ initial }: { initial: View }) {
   );
   const [editing, setEditing] = useState(false);
   const [adjust, setAdjust] = useState('5');
+  /** the chat commands' key, only right after it was created (it is never shown again) */
+  const [newKey, setNewKey] = useState<string | null>(null);
   /** this browser's clock (0 until the first tick) and the server's offset from it, in ms */
   const [clock, setClock] = useState({ now: 0, offset: 0 });
   const synced = (serverNow: string) =>
@@ -246,6 +248,37 @@ export function SubathonPanel({ initial }: { initial: View }) {
       { method: 'POST', body: { seconds: sign * m * 60, idempotencyKey: crypto.randomUUID() } },
     );
   }
+
+  async function commandKey(method: 'POST' | 'DELETE') {
+    if (
+      method === 'POST' &&
+      view.commandKey &&
+      !window.confirm('Trocar a chave? Os comandos atuais no StreamElements param de funcionar.')
+    )
+      return;
+    if (method === 'DELETE' && !window.confirm('Desligar os comandos do chat?')) return;
+    setBusy(true);
+    setToast(null);
+    const r = await adminFetch<{ key?: string }>('/api/v1/admin/subathon/command-key', { method });
+    setBusy(false);
+    if (!r.ok) return setToast({ ok: false, text: r.problem.detail });
+    setNewKey(method === 'POST' ? (r.data.key ?? null) : null);
+    setToast({
+      ok: true,
+      text:
+        method === 'POST'
+          ? 'Chave criada. Copie os comandos abaixo para o StreamElements agora: ela não aparece de novo.'
+          : 'Comandos do chat desligados.',
+    });
+    await reload();
+  }
+  const commandUrl = (a: string, key: string) =>
+    `$(customapi ${origin}/api/v1/subathon/command?a=${a}&k=${key})`;
+  const COMMANDS = [
+    { name: '!pausar', a: 'pausar', level: 'Moderador' },
+    { name: '!retomar', a: 'retomar', level: 'Moderador' },
+    { name: '!tempo', a: 'tempo', level: 'Todos' },
+  ] as const;
 
   const se = view.streamElements;
   const seText = !se
@@ -512,6 +545,85 @@ export function SubathonPanel({ initial }: { initial: View }) {
           </span>{' '}
           <span className="wf-muted text-sm">{seText}</span>
         </p>
+      </section>
+
+      <section className="wf-ops-card" aria-labelledby={`${id}-cmd`}>
+        <h2 id={`${id}-cmd`}>Comandos no chat</h2>
+        <p className="wf-muted m-0 text-sm">
+          Comandos do chatbot do StreamElements: <strong>!pausar</strong> e{' '}
+          <strong>!retomar</strong> (só moderadores) e <strong>!tempo</strong> (todos). No
+          StreamElements: Chatbot → Commands → Custom commands → criar cada um com a resposta abaixo
+          e o nível de usuário indicado.
+        </p>
+        {newKey ? (
+          <ul className="wf-ops-list mt-3">
+            {COMMANDS.map((c) => (
+              <li key={c.name} className="wf-ops-row">
+                <div className="wf-ops-row__main">
+                  <span className="wf-ops-row__title">
+                    <strong>{c.name}</strong> · nível: {c.level}
+                  </span>
+                  <label className="sr-only" htmlFor={`${id}-cmd-${c.a}`}>
+                    Resposta do comando {c.name}
+                  </label>
+                  <input
+                    id={`${id}-cmd-${c.a}`}
+                    className="wf-input"
+                    readOnly
+                    value={commandUrl(c.a, newKey)}
+                    onFocus={(e) => e.currentTarget.select()}
+                  />
+                </div>
+                <span className="wf-ops-actions">
+                  <button
+                    type="button"
+                    className="wf-btn wf-btn--ghost wf-btn--sm"
+                    onClick={() =>
+                      void navigator.clipboard
+                        .writeText(commandUrl(c.a, newKey))
+                        .then(() => setToast({ ok: true, text: `Resposta de ${c.name} copiada.` }))
+                    }
+                  >
+                    Copiar
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <p className="m-0 mt-3 text-sm">
+          {view.commandKey ? (
+            <>
+              <span className="wf-pill wf-pill--ok">Ligado</span>{' '}
+              <span className="wf-muted">
+                chave wfc_{view.commandKey.prefix}… criada em{' '}
+                {fmtDateTime(view.commandKey.createdAt)}
+              </span>
+            </>
+          ) : (
+            <span className="wf-pill">Desligado</span>
+          )}
+        </p>
+        <div className="wf-ops-actions mt-3">
+          <button
+            type="button"
+            className="wf-btn wf-btn--ghost wf-btn--sm"
+            disabled={busy}
+            onClick={() => void commandKey('POST')}
+          >
+            {view.commandKey ? 'Trocar chave' : 'Criar comandos'}
+          </button>
+          {view.commandKey ? (
+            <button
+              type="button"
+              className="wf-btn wf-btn--ghost wf-btn--sm"
+              disabled={busy}
+              onClick={() => void commandKey('DELETE')}
+            >
+              Desligar
+            </button>
+          ) : null}
+        </div>
       </section>
 
       <section className="wf-ops-card" aria-labelledby={`${id}-cfg`}>

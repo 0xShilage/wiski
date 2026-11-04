@@ -284,8 +284,11 @@ export const AUDIT_ACTIONS = {
       from: z.enum(['READY', 'RUNNING', 'PAUSED', 'ENDED']),
       to: z.enum(['READY', 'RUNNING', 'PAUSED', 'ENDED']),
       remainingSeconds: z.int().min(0),
+      /** 2026-11-04: changed from the chat command (StreamElements), not the dashboard */
+      via: z.literal('command').optional(),
     })
     .strict(),
+  'subathon.command-key': z.object({ change: z.enum(['created', 'revoked']) }).strict(),
   'subathon.adjust': z.object({ seconds: z.int(), appliedSeconds: z.int() }).strict(),
   'stats.update': z
     .object({

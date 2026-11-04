@@ -363,6 +363,14 @@ export const MATRIX: Row[] = [
     params: { id: NO_ID },
     body: { seconds: 60, idempotencyKey: '00000000-0000-4000-8000-000000000001' },
   }),
+  // subathon chat commands (2026-11-04): the key is the streamer's; the command answers with a key
+  R('/api/v1/admin/subathon/command-key', 'POST', 'streamer'),
+  R('/api/v1/admin/subathon/command-key', 'DELETE', 'streamer'),
+  R('/api/v1/subathon/command', 'GET', 'public', {
+    url: `/api/v1/subathon/command?a=tempo&k=wfc_${'A'.repeat(43)}`,
+    // authenticates by its key, not by role (subathon.test.ts): a wrong key is 401 for everyone
+    alsoAllowed: [401],
+  }),
   R('/api/v1/admin/stats', 'GET', 'streamer'),
   R('/api/v1/admin/stats', 'PUT', 'streamer', {
     body: { platform: 'KICK', metric: 'followers', value: null },

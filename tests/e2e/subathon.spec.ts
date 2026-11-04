@@ -1,7 +1,7 @@
 /**
  * Subathon timer (2026-11-03) end to end: the streamer creates and starts it in Admin › Subathon,
  * the OBS widget (real overlay key) counts down on its own, time added in the dashboard pops on
- * the widget over SSE, and ending it shows "Fim do subathon!". StreamElements is off in e2e (no
+ * the widget over SSE, the chat command pauses it, and ending it shows "Fim do subathon!". StreamElements is off in e2e (no
  * token), which the dashboard says.
  */
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
@@ -96,8 +96,26 @@ test('subathon: create, start, add time, the OBS widget counts down and pops; en
       .getByText('Tempo adicionado pela streamer'),
   ).toBeVisible();
 
-  await admin.getByRole('button', { name: 'Pausar' }).click();
+  // chat commands (2026-11-04): the panel makes the StreamElements responses, shown once
+  await admin.getByRole('button', { name: 'Criar comandos' }).click();
+  const pausar = admin.getByLabel('Resposta do comando !pausar');
+  await expect(pausar).toHaveValue(
+    /^\$\(customapi https:\/\/[^ ]+\/api\/v1\/subathon\/command\?a=pausar&k=wfc_[\w-]{43}\)$/,
+  );
+  const commandUrl = /customapi (\S+)\)$/.exec(await pausar.inputValue())![1]!;
+  // what StreamElements' customapi does: a plain GET; the answer is one line of text for chat
+  const res = await admin.request.get(commandUrl);
+  expect(res.status()).toBe(200);
+  expect(res.headers()['content-type']).toMatch(/^text\/plain/);
+  expect(await res.text()).toMatch(/^⏸️ Timer pausado: faltam \d{2}:\d{2}:\d{2}\.$/);
   await expect(widget.getByText('Pausado')).toBeVisible();
+  const wrong = await admin.request.get(commandUrl.replace(/k=wfc_[\w-]{4}/, 'k=wfc_AAAA'));
+  expect(wrong.status()).toBe(401);
+  await expect(admin.getByText('Ligado', { exact: true })).toBeVisible();
+  // the dashboard catches up with the chat's pause within its 5-second refresh
+  await expect(admin.locator('.wf-ops-card.is-live .wf-pill')).toHaveText('Pausado', {
+    timeout: 10_000,
+  });
   await admin.getByRole('button', { name: 'Encerrar' }).click();
   await expect(admin.getByText('Subathon encerrado.')).toBeVisible();
   await expect(widget.getByText('Fim do subathon!')).toBeVisible();

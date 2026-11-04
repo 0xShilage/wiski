@@ -1,6 +1,7 @@
 import 'server-only';
 import { remainingAt, type SubathonRates } from '@/lib/subathon';
 import { db } from '../db';
+import { commandKeyStatus } from './command';
 import { readSeStatus, type SeStatus } from './streamelements';
 import { ratesOf } from './timer';
 
@@ -32,11 +33,13 @@ export type SubathonAdminView = {
     at: string;
   }[];
   streamElements: SeStatus | null;
+  /** the chat commands' key (2026-11-04): its first characters and date, never the key */
+  commandKey: { prefix: string; createdAt: string } | null;
 };
 
 export async function subathonAdminView(now = new Date()): Promise<SubathonAdminView> {
   const s = await db().subathon.findFirst({ orderBy: { createdAt: 'desc' } });
-  const [entries, se] = await Promise.all([
+  const [entries, se, commandKey] = await Promise.all([
     s
       ? db().subathonEntry.findMany({
           where: { subathonId: s.id },
@@ -45,6 +48,7 @@ export async function subathonAdminView(now = new Date()): Promise<SubathonAdmin
         })
       : Promise.resolve([]),
     readSeStatus(),
+    commandKeyStatus(),
   ]);
   return {
     serverNow: now.toISOString(),
@@ -75,5 +79,6 @@ export async function subathonAdminView(now = new Date()): Promise<SubathonAdmin
       at: e.createdAt.toISOString(),
     })),
     streamElements: se,
+    commandKey,
   };
 }

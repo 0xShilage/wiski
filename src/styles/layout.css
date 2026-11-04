@@ -76,6 +76,22 @@
       font-size: clamp(13px, 0.5vw + 9px, 15px);
     }
   }
+  /* 761–900 px: the tenth tab (Roleta, 2026-11-04) needs a little more room */
+  @media (min-width: 761px) and (max-width: 900px) {
+    .wf-header__inner {
+      gap: 12px;
+      padding-inline: 16px;
+    }
+    .wf-nav {
+      gap: clamp(6px, 2.4vw - 12px, 10px);
+    }
+    .wf-nav a {
+      font-size: clamp(12px, 0.5vw + 8.4px, 13px);
+    }
+    .wf-logo svg {
+      height: 28px;
+    }
+  }
 
   /* ── Bottom tab bar (≤ 760 px): the five tabs, icons + labels, active one glows ── */
   .wf-tabbar {

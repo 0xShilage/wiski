@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { hoursMinutes } from '@/components/live/ProgressBlock';
 import { MediaPicture } from '@/components/media/MediaPicture';
+import { IconSearch } from '@/components/ui/icons';
 import { KIND_PATH } from '@/lib/catalog/kinds';
 import { SEARCH_MAX, searchTerms } from '@/lib/search';
 import { watchProgress } from '@/server/catalog/progress';
@@ -64,23 +65,26 @@ export default async function AssistidosPage({ searchParams }: Props) {
       </p>
       <form className="wf-seen__search" role="search" action="/assistidos" method="get">
         {filter.tipo ? <input type="hidden" name="tipo" value={filter.tipo} /> : null}
-        <label className="sr-only" htmlFor="busca-assistidos">
-          Buscar nos assistidos
-        </label>
-        <input
-          id="busca-assistidos"
-          className="wf-input"
-          type="search"
-          name="q"
-          defaultValue={q}
-          placeholder="Buscar pelo nome"
-          maxLength={SEARCH_MAX}
-          autoComplete="off"
-          enterKeyHint="search"
-        />
-        <button type="submit" className="wf-btn wf-btn--neon wf-btn--sm">
-          Buscar
-        </button>
+        <div className="wf-searchbar">
+          <label className="sr-only" htmlFor="busca-assistidos">
+            Buscar nos assistidos
+          </label>
+          <input
+            id="busca-assistidos"
+            className="wf-searchbar__input"
+            type="search"
+            name="q"
+            defaultValue={q}
+            placeholder="Buscar…"
+            maxLength={SEARCH_MAX}
+            autoComplete="off"
+            enterKeyHint="search"
+          />
+          <button type="submit" className="wf-searchbar__go">
+            <IconSearch />
+            <span className="sr-only">Buscar</span>
+          </button>
+        </div>
         {searching ? (
           <Link href={hrefFor(filter.tipo, '')} className="wf-btn wf-btn--ghost wf-btn--sm">
             Limpar

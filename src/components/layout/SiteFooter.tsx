@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { Img } from '@/components/Img';
 
-/** Footer (11 §3): legal pages, media kit, contact and the LGPD privacy channel. */
+/** Footer (11 §3): the ranking (2026-11-04), legal pages, media kit, contact and the LGPD channel. */
 const LINKS = [
+  { href: '/ranking', label: 'Ranking' },
   { href: '/privacidade', label: 'Termos e privacidade' },
   { href: '/reembolso', label: 'Reembolso' },
   { href: '/privacidade#secao-1', label: 'Canal de privacidade (LGPD)' },

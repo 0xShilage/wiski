@@ -216,7 +216,15 @@ export async function findProfile(raw: string) {
   // Public fields only — never e-mail, Google id or role details.
   const user = await db().user.findUnique({
     where: { username },
-    select: { id: true, username: true, avatarKey: true, createdAt: true, status: true },
+    select: {
+      id: true,
+      username: true,
+      avatarKey: true,
+      createdAt: true,
+      status: true,
+      isVip: true,
+      showAchievements: true,
+    },
   });
   if (!user || user.status === 'DELETED' || !user.username) return null;
   const reviewCount = await db().review.count({
@@ -228,6 +236,8 @@ export async function findProfile(raw: string) {
     avatarKey: user.avatarKey,
     createdAt: user.createdAt,
     reviewCount,
+    isVip: user.isVip,
+    showAchievements: user.showAchievements,
   };
 }
 

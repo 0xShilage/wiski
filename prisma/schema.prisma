@@ -49,6 +49,8 @@ model User {
   avatarKey         String        @default("perfil-01") // must exist in code registry (Zod enum, src/lib/avatars.ts)
   role              Role          @default(USER)
   isVip             Boolean       @default(false) // perk set by STREAMER in Admin → 10 % discount (not a role)
+  /// Badges on the public profile and a place in /ranking (2026-11-04); the viewer can turn it off
+  showAchievements  Boolean       @default(true)
   vipSince          DateTime?     @db.Timestamptz(3)
   status            AccountStatus @default(ACTIVE)
   suspendedUntil    DateTime?     @db.Timestamptz(3)

@@ -425,19 +425,35 @@ export async function sessionsWithEntries(opts: {
     },
     orderBy: { startsAt: 'asc' },
     take: opts.take ?? 30,
-    include: {
-      orders: {
-        where: { status: { in: ['SCHEDULED', 'WATCHING', 'COMPLETED'] } },
-        select: orderEntrySelect,
-      },
-      campaigns: { select: campaignEntrySelect },
-      nowItem: { select: { id: true, title: true } },
-    },
+    include: sessionInclude,
   });
-  return sessions.map(({ orders, campaigns, ...s }) => ({
+  return sessions.map(withEntries);
+}
+
+const sessionInclude = {
+  orders: {
+    where: { status: { in: ['SCHEDULED', 'WATCHING', 'COMPLETED'] } },
+    select: orderEntrySelect,
+  },
+  campaigns: { select: campaignEntrySelect },
+  nowItem: { select: { id: true, title: true } },
+} satisfies Prisma.StreamSessionInclude;
+
+function withEntries({
+  orders,
+  campaigns,
+  ...s
+}: Prisma.StreamSessionGetPayload<{ include: typeof sessionInclude }>) {
+  return {
     ...s,
     entries: [...orders.map(orderEntry), ...campaigns.map(campaignEntry)].sort(byQueueOrder),
-  }));
+  };
+}
+
+/** One session with what's scheduled on it (title pages: position and estimated time). */
+export async function sessionWithEntries(id: string) {
+  const s = await db().streamSession.findUnique({ where: { id }, include: sessionInclude });
+  return s ? withEntries(s) : null;
 }
 
 // ── putting things on (and off) a session ─────────────────────────────────────

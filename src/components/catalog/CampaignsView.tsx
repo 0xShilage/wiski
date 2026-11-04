@@ -1,35 +1,32 @@
 import Link from 'next/link';
 import { Mascote } from '@/components/brand/Mascote';
 import { MediaPicture } from '@/components/media/MediaPicture';
+import type { CatalogFilter } from '@/lib/catalog/filter';
 import type { PublicItem } from '@/lib/catalog/types';
 import { AgeBadge } from './AgeBadge';
-import {
-  CampaignChips,
-  CampaignProgress,
-  CampaignStatus,
-  ContributeCta,
-  campaignSubtitle,
-} from './CampaignBits';
+import { CampaignGrid } from './CampaignGrid';
+import { CampaignChips, CampaignProgress, ContributeCta, campaignSubtitle } from './CampaignBits';
 import { TrailerButton } from './TrailerButton';
 
 /**
  * Séries / Franquias (11 §3, design §4): how crowdfunding works, a featured campaign and the
- * grid of campaign cards (open · meta atingida · prazo encerrado).
+ * grid of campaign cards (open · meta atingida · prazo encerrado), with filters (2026-11-04).
  */
 export function CampaignsView({
   title,
   lead,
   kindPath,
   items,
+  initialFilter,
 }: {
   title: string;
   lead: string;
   kindPath: 'series' | 'franquias';
   items: PublicItem[];
+  initialFilter: CatalogFilter;
 }) {
   const featured =
     items.find((i) => i.campaign?.state === 'OPEN' && i.campaign.raisedCents > 0) ?? items[0];
-  const rest = items.filter((i) => i !== featured);
   return (
     <div className="wf-page">
       <h1 className="wf-h1">{title}</h1>
@@ -77,36 +74,13 @@ export function CampaignsView({
         </article>
       )}
 
-      {rest.length ? (
-        <ul
-          className="wf-grid list-none p-0"
-          aria-label={`Outras campanhas de ${title.toLowerCase()}`}
-        >
-          {rest.map((item) => (
-            <li key={item.id} className="flex">
-              <Link href={`/${kindPath}/${item.slug}`} className="wf-scard w-full">
-                <div className="wf-scard__poster">
-                  <MediaPicture
-                    picture={item.poster}
-                    alt=""
-                    sizes="(max-width: 760px) 50vw, (max-width: 1440px) 25vw, 320px"
-                  />
-                </div>
-                <div className="wf-scard__body">
-                  <h3 className="wf-scard__title">{item.title}</h3>
-                  <p className="wf-muted text-sm">{campaignSubtitle(item)}</p>
-                  {item.campaign ? (
-                    <>
-                      <CampaignProgress c={item.campaign} size="sm" />
-                      <CampaignStatus c={item.campaign} />
-                    </>
-                  ) : null}
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      <CampaignGrid
+        items={items}
+        featuredId={featured?.id ?? null}
+        kindPath={kindPath}
+        title={title}
+        initialFilter={initialFilter}
+      />
     </div>
   );
 }

@@ -8,6 +8,7 @@ export type OpsSection =
   | 'sugestoes'
   | 'roleta'
   | 'estreias'
+  | 'analise'
   | 'overlays'
   | 'metas'
   | 'subathon'
@@ -37,6 +38,7 @@ const OPS: { id: OpsSection; label: string; badge?: (c: OpsCounts) => number }[]
   { id: 'estreias', label: 'Estreias' },
 ];
 const STREAMER: { id: OpsSection; label: string; badge?: (c: OpsCounts) => number }[] = [
+  { id: 'analise', label: 'Análise' },
   { id: 'overlays', label: 'Overlays (OBS)' },
   { id: 'metas', label: 'Metas' },
   { id: 'subathon', label: 'Subathon' },

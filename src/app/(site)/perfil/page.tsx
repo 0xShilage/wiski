@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Avatar } from '@/components/Avatar';
 import { DataTools } from '@/components/account/DataTools';
+import { AchievementBadges } from '@/components/community/AchievementBadges';
+import { AchievementsToggle } from '@/components/community/AchievementsToggle';
 import { LogoutButton } from '@/components/account/LogoutButton';
 import { ProfileForm } from '@/components/account/ProfileForm';
 import { Mascote } from '@/components/brand/Mascote';
@@ -13,6 +15,7 @@ import { formatBRL } from '@/lib/catalog/pricing';
 import { ORDER_STATUS_LABEL } from '@/lib/checkout/types';
 import { nextUsernameChange } from '@/server/auth/accounts';
 import { myOrders } from '@/server/checkout/access';
+import { achievementsFor } from '@/server/community/achievements';
 import { getCurrentSession } from '@/server/auth/current';
 import { isGoogleLoginConfigured } from '@/server/env';
 import { safeReturnTo } from '@/server/security/return-to';
@@ -90,7 +93,8 @@ export default async function PerfilPage({ searchParams }: Props) {
   if (!user.username) redirect('/bem-vindo?next=%2Fperfil');
   const nextChange = nextUsernameChange(user);
   const privileged = user.role !== 'USER';
-  const orders = await myOrders(user);
+  const [orders, badges] = await Promise.all([myOrders(user), achievementsFor(user)]);
+  const earnedCount = badges.filter((b) => b.earned).length;
 
   return (
     <div className="wf-page wf-page--narrow space-y-8">
@@ -141,6 +145,29 @@ export default async function PerfilPage({ searchParams }: Props) {
           canChangeUsername={nextChange === null}
           nextChangeLabel={nextChange ? formatDate(nextChange) : null}
         />
+      </section>
+
+      <section aria-labelledby="minhas-conquistas" className={card}>
+        <div className="mb-2 flex flex-wrap items-baseline justify-between gap-3">
+          <h2 id="minhas-conquistas" className={heading.h3}>
+            Conquistas{' '}
+            <span className="text-sm font-normal text-fg-muted">
+              {earnedCount} de {badges.length}
+            </span>
+          </h2>
+          <Link
+            href="/ranking"
+            className="text-sm text-lavender underline-offset-4 hover:underline"
+          >
+            Ver ranking
+          </Link>
+        </div>
+        <p className="mb-4 text-sm text-fg-muted">
+          Contam patrocínios e contribuições com seu nome visível (nunca os anônimos), suas
+          avaliações e as curtidas que elas recebem. Valores nunca aparecem.
+        </p>
+        <AchievementBadges items={badges} showLocked labelledBy="minhas-conquistas" />
+        <AchievementsToggle initial={user.showAchievements} />
       </section>
 
       <section aria-labelledby="meus-pedidos" className={card}>

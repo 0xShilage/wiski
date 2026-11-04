@@ -1,5 +1,6 @@
 import 'server-only';
 import { z } from 'zod';
+import { SUBATHON_MAX_SECONDS } from '@/lib/subathon';
 import { codePointLength, plainText } from '../text/sanitize';
 
 /**
@@ -8,7 +9,7 @@ import { codePointLength, plainText } from '../text/sanitize';
  * fixed length, and the whole event is checked against a strict schema before it's published.
  * The overlay page renders them as React text nodes only — no HTML, no URLs, no images.
  */
-export const WIDGETS = ['agora', 'fila', 'meta', 'meta-total', 'patrocinio'] as const;
+export const WIDGETS = ['agora', 'fila', 'meta', 'meta-total', 'patrocinio', 'subathon'] as const;
 export type Widget = (typeof WIDGETS)[number];
 export const WIDGET_LABEL: Record<Widget, string> = {
   agora: 'Agora assistindo',
@@ -16,9 +17,17 @@ export const WIDGET_LABEL: Record<Widget, string> = {
   meta: 'Meta',
   'meta-total': 'Meta total',
   patrocinio: 'Novo patrocínio',
+  subathon: 'Subathon',
 };
 
-export const LIMITS = { title: 80, sponsor: 30, message: 140, goal: 60 } as const;
+export const LIMITS = {
+  title: 80,
+  sponsor: 30,
+  message: 140,
+  goal: 60,
+  subathonTitle: 60,
+  subathonLabel: 60,
+} as const;
 
 /** Plain text, cut to `max` code points (with "…"); empty → null. */
 export function overlayText(raw: string | null | undefined, max: number): string | null {
@@ -111,6 +120,28 @@ export const overlayEventSchema = z.discriminatedUnion('type', [
       sponsor: safe(LIMITS.sponsor).nullable(),
     })
     .strict(),
+  z
+    .object({
+      /** the subathon timer (2026-11-03): the widget counts down from endsAt on its own */
+      type: z.literal('subathon'),
+      status: z.enum(['READY', 'RUNNING', 'PAUSED', 'ENDED']),
+      title: safe(LIMITS.subathonTitle),
+      remainingSeconds: z.int().min(0).max(SUBATHON_MAX_SECONDS),
+      endsAt: z.iso.datetime().nullable(),
+      /** the server's clock, so OBS's own clock being off doesn't shift the countdown */
+      serverNow: z.iso.datetime(),
+      /** what just moved the timer (shown as "+5:00 · Sub de …"); null on a plain refresh */
+      last: z
+        .object({
+          id: z.uuid(),
+          seconds: z.int().min(-SUBATHON_MAX_SECONDS).max(SUBATHON_MAX_SECONDS),
+          label: safe(LIMITS.subathonLabel).nullable(),
+        })
+        .strict()
+        .nullable(),
+    })
+    .strict()
+    .refine((e) => (e.status === 'RUNNING') === (e.endsAt !== null), 'endsAt only while running'),
 ]);
 export type OverlayEvent = z.infer<typeof overlayEventSchema>;
 
@@ -121,6 +152,7 @@ export const WIDGET_EVENT: Record<Widget, OverlayEvent['type']> = {
   meta: 'goal',
   'meta-total': 'goal-total',
   patrocinio: 'new-sponsorship',
+  subathon: 'subathon',
 };
 
 // ── builders: raw database values in, publishable events out ──
@@ -224,5 +256,32 @@ export function sponsorshipEvent(title: string, sponsor: string | null): Overlay
     type: 'new-sponsorship',
     title: t,
     sponsor: overlayText(sponsor, LIMITS.sponsor),
+  });
+}
+
+export function subathonEvent(
+  s: {
+    status: 'READY' | 'RUNNING' | 'PAUSED' | 'ENDED';
+    title: string;
+    remainingSeconds: number;
+    endsAt: Date | null;
+  },
+  last: { id: string; seconds: number; label: string | null } | null,
+  now = new Date(),
+): OverlayEvent {
+  return overlayEventSchema.parse({
+    type: 'subathon',
+    status: s.status,
+    title: overlayText(s.title, LIMITS.subathonTitle) ?? 'Subathon',
+    remainingSeconds: Math.max(0, Math.min(SUBATHON_MAX_SECONDS, s.remainingSeconds)),
+    endsAt: s.status === 'RUNNING' && s.endsAt ? s.endsAt.toISOString() : null,
+    serverNow: now.toISOString(),
+    last: last
+      ? {
+          id: last.id,
+          seconds: Math.max(-SUBATHON_MAX_SECONDS, Math.min(SUBATHON_MAX_SECONDS, last.seconds)),
+          label: overlayText(last.label, LIMITS.subathonLabel),
+        }
+      : null,
   });
 }

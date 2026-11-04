@@ -22,6 +22,9 @@ import { disconnectRedis } from '@/server/redis';
 import { purgeContact } from '@/server/contact/contact';
 import { purgeSuggestions } from '@/server/suggestions/suggestions';
 import { publishLegal } from '@/server/legal/publish';
+import { syncSiteCredits } from '@/server/subathon/credits';
+import { startStreamElements } from '@/server/subathon/streamelements';
+import { finishIfDue } from '@/server/subathon/timer';
 import { runAuditVerify } from './jobs/audit-verify';
 import { WAKE_CHANNEL } from '@/server/payments/wake';
 
@@ -56,6 +59,16 @@ const jobs: Job[] = [
   { name: 'webhook.events', everyMs: 2_000, run: () => processWebhookEvents() },
   { name: 'orders.expire', everyMs: 60_000, run: () => expireOrders() },
   { name: 'payment.reconcile', everyMs: reconcileEveryMs(), run: () => reconcilePending() },
+  {
+    // subathon timer (2026-11-03): paid site orders add time, refunded ones take it back, and a
+    // running timer that reached zero ends
+    name: 'subathon',
+    everyMs: 5_000,
+    run: async () => {
+      await finishIfDue();
+      await syncSiteCredits();
+    },
+  },
   {
     name: 'daily',
     everyMs: 60_000,
@@ -115,6 +128,8 @@ async function main() {
     return setInterval(() => void tick(j), j.everyMs);
   });
 
+  const stopStreamElements = startStreamElements();
+
   const sub = new Redis(getEnv().REDIS_URL, { maxRetriesPerRequest: null });
   sub.on('error', (err) => logger.warn({ err: err.message }, 'worker wake subscriber error'));
   await sub.subscribe(WAKE_CHANNEL).catch(() => {});
@@ -123,6 +138,7 @@ async function main() {
   const stop = async (signal: string) => {
     logger.info({ signal }, 'worker stopping');
     timers.forEach(clearInterval);
+    stopStreamElements();
     sub.disconnect();
     for (let i = 0; i < 50 && jobs.some((j) => j.running); i++) {
       await new Promise((r) => setTimeout(r, 100));

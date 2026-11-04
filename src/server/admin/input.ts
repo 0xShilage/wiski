@@ -4,6 +4,7 @@ import { contactEmailSchema } from '../checkout/buyer';
 import { MANUAL_MAX_CENTS } from '../checkout/admin';
 import { codePointLength, plainText } from '../text/sanitize';
 import { METRICS } from '../mediakit/stats';
+import { SUBATHON_MAX_SECONDS, SUBATHON_TITLE_MAX, subathonRatesSchema } from '@/lib/subathon';
 import { WIDGETS } from '../overlay/events';
 
 /** Request schemas for the Phase 4 endpoints (all `.strict()`). */
@@ -271,5 +272,38 @@ export const releaseUpdateInput = z
     releaseYear: releaseYear.optional(),
     note: z.string().max(400).nullable().optional(),
     posterId: z.uuid().nullable().optional(),
+  })
+  .strict();
+
+// ── subathon timer (2026-11-03) ──
+const subathonSettings = {
+  title: oneLine(1, SUBATHON_TITLE_MAX, 'De 1 a 60 caracteres.'),
+  secondsPerReal: z.int().min(1).max(3600),
+  capSeconds: z.int().min(60).max(SUBATHON_MAX_SECONDS).nullable(),
+  rates: subathonRatesSchema,
+};
+export const subathonCreateInput = z
+  .object({ ...subathonSettings, initialSeconds: z.int().min(0).max(SUBATHON_MAX_SECONDS) })
+  .strict();
+export const subathonUpdateInput = z
+  .object({
+    expectedVersion: version,
+    title: subathonSettings.title.optional(),
+    secondsPerReal: subathonSettings.secondsPerReal.optional(),
+    capSeconds: subathonSettings.capSeconds.optional(),
+    rates: subathonSettings.rates.optional(),
+  })
+  .strict();
+export const subathonActionInput = z
+  .object({ action: z.enum(['start', 'pause', 'resume', 'end']), expectedVersion: version })
+  .strict();
+export const subathonAdjustInput = z
+  .object({
+    seconds: z
+      .int()
+      .min(-SUBATHON_MAX_SECONDS)
+      .max(SUBATHON_MAX_SECONDS)
+      .refine((n) => n !== 0, 'Informe um tempo diferente de zero.'),
+    idempotencyKey: z.uuid(),
   })
   .strict();

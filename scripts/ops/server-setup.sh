@@ -124,6 +124,8 @@ MP_COLLECTOR_ID=CHANGE_ME
 MP_APPLICATION_ID=CHANGE_ME
 MP_ACCESS_TOKEN=CHANGE_ME
 MP_WEBHOOK_SECRET=CHANGE_ME
+# Optional, subathon timer: the channel's StreamElements JWT (leave commented out to turn it off)
+# STREAMELEMENTS_JWT=
 ENV
   chmod 600 "$app"
 fi

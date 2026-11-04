@@ -3,8 +3,9 @@ import { db } from '../db';
 import { overlayGoal } from '../goals/goals';
 import { totalGoal } from '../goals/total';
 import { logger } from '../log';
-import { redis } from '../redis';
+import { subathonSnapshot } from '../subathon/overlay';
 import { publicMessage, publicSponsor, sponsorSelect } from '../live/sponsor';
+import { publishOverlay } from './publish';
 import {
   goalEvent,
   nowPlayingEvent,
@@ -19,7 +20,7 @@ import {
  * What each overlay widget shows right now, and the fan-out when it changes. Snapshots are rebuilt
  * from the database (never from an event body) and published on `wf:overlay:<widget>`.
  */
-export const overlayChannel = (w: Widget) => `wf:overlay:${w}`;
+export { overlayChannel } from './publish';
 
 export async function nowPlayingSnapshot(): Promise<OverlayEvent> {
   const live = await db().streamSession.findFirst({
@@ -131,16 +132,11 @@ export async function snapshot(w: Widget): Promise<OverlayEvent | null> {
   if (w === 'fila') return queueSnapshot();
   if (w === 'meta') return goalSnapshot();
   if (w === 'meta-total') return totalGoalSnapshot();
+  if (w === 'subathon') return subathonSnapshot();
   return null; // "Novo patrocínio" only shows live events
 }
 
-async function publish(w: Widget, e: OverlayEvent) {
-  try {
-    await redis().publish(overlayChannel(w), JSON.stringify(e));
-  } catch (err) {
-    logger.warn({ err: err instanceof Error ? err.message : 'unknown' }, 'overlay publish failed');
-  }
-}
+const publish = publishOverlay;
 
 /**
  * After a commit that changes what a widget shows. Best effort: overlays also resync on reconnect.

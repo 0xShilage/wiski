@@ -76,6 +76,18 @@ export const envSchema = z
      *  real-money Pix test. Real charges; refund them from the dashboard. Refused elsewhere. */
     MP_ALLOW_LIVE_IN_DEV: optional(z.enum(['1'])),
 
+    /** Subathon timer (2026-11-03): the channel's StreamElements JWT (dashboard → Account →
+     *  Channels → "Show secrets"). The worker uses it to receive tips, bits and subs; unset = off. */
+    STREAMELEMENTS_JWT: optional(
+      z
+        .string()
+        .max(4096)
+        .regex(
+          /^[\w-]+\.[\w-]+\.[\w-]+$/,
+          'must be a StreamElements JWT (three dot-separated parts)',
+        ),
+    ),
+
     /** Processed images (11 §5). Production: the Docker volume /var/lib/wiski/media, served by
      *  nginx at /media/. Development/test default: <cwd>/.media (served by the app). */
     MEDIA_DIR: optional(

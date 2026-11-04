@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { GoalRing, type GoalIcon } from './GoalRing';
+import { SubathonTimer, type SubathonEv } from './SubathonTimer';
 
 type Ev =
   | {
@@ -32,6 +33,7 @@ type Ev =
       }[];
     }
   | { type: 'new-sponsorship'; title: string; sponsor: string | null }
+  | SubathonEv
   | { type: 'ready' };
 
 const KEY = /^#k=(wfo_[\w-]{43})$/;
@@ -53,6 +55,7 @@ const LABEL = {
   meta: 'Meta',
   'meta-total': 'Meta total',
   patrocinio: 'Novo patrocínio!',
+  subathon: 'Subathon',
 } as const;
 const KIND_LABEL = { MOVIE: 'Filmes', SERIES: 'Séries', FRANCHISE: 'Franquias' } as const;
 const KIND_ICON: Record<keyof typeof KIND_LABEL, GoalIcon> = {
@@ -253,6 +256,7 @@ export function OverlayClient({ widget }: { widget: keyof typeof LABEL }) {
       </div>
     );
   }
+  if (ev.type === 'subathon') return <SubathonTimer ev={ev} />;
   if (ev.type === 'goal-total') {
     if (!ev.titles) return null;
     return (

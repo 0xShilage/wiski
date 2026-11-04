@@ -41,7 +41,7 @@ const orderStatus = z.enum([
 const moderationStatus = z.enum(['VISIBLE', 'AUTO_HIDDEN', 'HIDDEN', 'REMOVED']);
 const textDecision = z.enum(['APPROVED', 'REJECTED']);
 const role = z.enum(['USER', 'MODERATOR', 'STREAMER']);
-const overlayWidget = z.enum(['agora', 'fila', 'meta', 'meta-total', 'patrocinio']);
+const overlayWidget = z.enum(['agora', 'fila', 'meta', 'meta-total', 'patrocinio', 'subathon']);
 const goalMetric = z.enum(['SPONSORSHIP_COUNT', 'SPONSORSHIP_REVENUE_CENTS', 'WATCHED_MINUTES']);
 const platform = z.enum(['TWITCH', 'YOUTUBE', 'KICK', 'TIKTOK', 'INSTAGRAM', 'X']);
 /** Names of edited catalog fields (never their values). */
@@ -242,7 +242,7 @@ export const AUDIT_ACTIONS = {
     .object({ reviews: z.int().nonnegative(), orders: z.int().nonnegative() })
     .strict(),
   'user.export': z.object({}).strict(),
-  'overlay.key.create': z.object({ widgets: z.array(overlayWidget).min(1).max(5) }).strict(),
+  'overlay.key.create': z.object({ widgets: z.array(overlayWidget).min(1).max(6) }).strict(),
   'overlay.key.revoke': z.object({}).strict(),
   'goal.create': z.object({ metric: goalMetric, target: z.int().positive() }).strict(),
   'goal.update': z
@@ -263,6 +263,30 @@ export const AUDIT_ACTIONS = {
     })
     .strict(),
   'goal.delete': z.object({}).strict(),
+  // subathon timer (2026-11-03): settings and clock changes; the ledger itself is SubathonEntry
+  'subathon.create': z
+    .object({
+      initialSeconds: z.int().min(0),
+      secondsPerReal: z.int().positive(),
+      capSeconds: z.int().positive().nullable(),
+    })
+    .strict(),
+  'subathon.update': z
+    .object({
+      fields: z
+        .array(z.enum(['title', 'secondsPerReal', 'capSeconds', 'rates']))
+        .min(1)
+        .max(4),
+    })
+    .strict(),
+  'subathon.status': z
+    .object({
+      from: z.enum(['READY', 'RUNNING', 'PAUSED', 'ENDED']),
+      to: z.enum(['READY', 'RUNNING', 'PAUSED', 'ENDED']),
+      remainingSeconds: z.int().min(0),
+    })
+    .strict(),
+  'subathon.adjust': z.object({ seconds: z.int(), appliedSeconds: z.int() }).strict(),
   'stats.update': z
     .object({
       platform: platform,

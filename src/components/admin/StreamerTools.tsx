@@ -37,7 +37,7 @@ type KeyView = {
   lastUsedAt: string | null;
   revokedAt: string | null;
 };
-const WIDGETS = ['agora', 'fila', 'meta', 'meta-total', 'patrocinio'] as const;
+const WIDGETS = ['agora', 'fila', 'meta', 'meta-total', 'patrocinio', 'subathon'] as const;
 
 export function OverlayKeysPanel({ initial, origin }: { initial: KeyView[]; origin: string }) {
   const id = useId();

@@ -1,6 +1,6 @@
 /**
- * Orders in the dashboard (Phase 4): list/detail (e-mails for the streamer only), approving the
- * sponsor message and guest name, accepting a NEEDS_ATTENTION order, and the exception refund
+ * Orders in the dashboard (Phase 4): list/detail (e-mails for the streamer only), hiding and
+ * showing the sponsor message and guest name, accepting a NEEDS_ATTENTION order, and the refund
  * through Mercado Pago (step-up, idempotency, holds given back, webhook → REFUNDED).
  */
 import { randomUUID } from 'node:crypto';
@@ -77,52 +77,66 @@ describe('list and detail', () => {
 });
 
 describe('sponsor message and guest name (Q10, Q16)', () => {
-  it('the name stays private until approved; the message shows at once (2026-11-03); audited', async () => {
+  it('both show at once (2026-11-04); a moderator hides and shows them again; audited', async () => {
     const { order } = await paidMovieOrder({
       displayName: 'Lu Convidada',
       message: 'Bora assistir!',
     });
-    expect(order).toMatchObject({ displayNameStatus: 'PENDING', messageStatus: 'APPROVED' });
+    expect(order).toMatchObject({ displayNameStatus: 'APPROVED', messageStatus: 'APPROVED' });
     const mod = await as('MODERATOR');
     const before = await hit(getRoute, 'GET', '', { who: mod, params: { id: order.id } });
-    expect(before.json.order).toMatchObject({ publicName: null, shownMessage: 'Bora assistir!' });
-    const r = await hit(textsRoute, 'POST', '', {
+    expect(before.json.order).toMatchObject({
+      publicName: 'Lu Convidada',
+      shownMessage: 'Bora assistir!',
+    });
+    const hidden = await hit(textsRoute, 'POST', '', {
       who: mod,
       params: { id: order.id },
-      body: { expectedVersion: order.version, displayName: 'APPROVED', message: 'REJECTED' },
+      body: { expectedVersion: order.version, displayName: 'REJECTED', message: 'REJECTED' },
     });
-    expect(r.json.order).toMatchObject({
-      publicName: 'Lu Convidada',
+    expect(hidden.json.order).toMatchObject({
+      publicName: null,
       shownMessage: null,
+      displayNameStatus: 'REJECTED',
       messageStatus: 'REJECTED',
     });
-    const name = await hit(textsRoute, 'POST', '', {
-      who: mod,
-      params: { id: order.id },
-      body: { expectedVersion: order.version, displayName: 'REJECTED' },
-    });
-    expect([name.res.status, name.json.code]).toEqual([409, 'NOTHING_TO_REVIEW']);
-    const same = await hit(textsRoute, 'POST', '', {
-      who: mod,
-      params: { id: order.id },
-      body: { expectedVersion: order.version, message: 'REJECTED' },
-    });
-    expect([same.res.status, same.json.code]).toEqual([409, 'NOTHING_TO_REVIEW']);
+    // hiding what is already hidden changes nothing
+    for (const body of [{ displayName: 'REJECTED' }, { message: 'REJECTED' }] as const) {
+      const again = await hit(textsRoute, 'POST', '', {
+        who: mod,
+        params: { id: order.id },
+        body: { expectedVersion: order.version, ...body },
+      });
+      expect([again.res.status, again.json.code]).toEqual([409, 'NOTHING_TO_REVIEW']);
+    }
     const back = await hit(textsRoute, 'POST', '', {
       who: mod,
       params: { id: order.id },
-      body: { expectedVersion: order.version, message: 'APPROVED' },
+      body: { expectedVersion: order.version, displayName: 'APPROVED', message: 'APPROVED' },
     });
-    expect(back.json.order).toMatchObject({ shownMessage: 'Bora assistir!' });
+    expect(back.json.order).toMatchObject({
+      publicName: 'Lu Convidada',
+      shownMessage: 'Bora assistir!',
+    });
     const logs = await db().auditLog.findMany({
       where: { action: 'order.texts', targetId: order.id },
       orderBy: { id: 'asc' },
     });
     expect(logs.map((l) => l.metadata)).toEqual([
-      { displayName: 'APPROVED', message: 'REJECTED' },
-      { message: 'APPROVED' },
+      { displayName: 'REJECTED', message: 'REJECTED' },
+      { displayName: 'APPROVED', message: 'APPROVED' },
     ]);
     expect(JSON.stringify(logs.map((l) => l.metadata))).not.toContain('Lu Convidada');
+  });
+
+  it('a guest name is public right away, with no moderator in the way', async () => {
+    const { order } = await paidMovieOrder({ displayName: 'Dudu' });
+    const o = await db().order.findUniqueOrThrow({ where: { id: order.id } });
+    expect(o.displayNameStatus).toBe('APPROVED');
+    const list = await hit(listRoute, 'GET', '/api/v1/admin/orders?texts=1', {
+      who: await as('MODERATOR'),
+    });
+    expect((list.json.orders as { id: string }[]).map((x) => x.id)).toContain(order.id);
   });
 
   it('no message: nothing to show or hide', async () => {

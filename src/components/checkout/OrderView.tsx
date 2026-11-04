@@ -401,17 +401,13 @@ export function OrderView({ code, signedIn }: { code: string; signedIn: boolean 
           {o.anonymous
             ? ' · anônimo'
             : o.displayName
-              ? ` · nome: ${o.displayName}${o.displayNameStatus === 'PENDING' ? ' (aguardando moderação)' : ''}`
+              ? ` · nome: ${o.displayName}${o.displayNameStatus === 'REJECTED' ? ' (ocultado pela moderação)' : ''}`
               : ''}
         </p>
         {o.message ? (
           <p className="wf-co__muted mt-2 text-sm">
             Mensagem: “{o.message}”
-            {o.messageStatus === 'PENDING'
-              ? ' (aguardando moderação)'
-              : o.messageStatus === 'REJECTED'
-                ? ' (ocultada pela moderação)'
-                : ''}
+            {o.messageStatus === 'REJECTED' ? ' (ocultada pela moderação)' : ''}
           </p>
         ) : null}
         {link ? (

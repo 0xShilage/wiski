@@ -470,12 +470,14 @@ async function newOrderRows(
       discountCents: p.amounts.discountCents,
       queueJumpCents: p.amounts.queueJumpCents,
       totalCents: p.amounts.totalCents,
+      // Both texts go live with the order (message 2026-11-03, guest name 2026-11-04): nothing
+      // waits for a moderator. Either can be hidden afterwards in Pedidos, and the input schemas
+      // still cap the length and strip control characters.
       ...(p.input.message
-        ? // shown without waiting for a moderator (2026-11-03); moderators can hide it in Pedidos
-          { sponsorMessage: p.input.message, messageStatus: 'APPROVED' as const }
+        ? { sponsorMessage: p.input.message, messageStatus: 'APPROVED' as const }
         : {}),
       ...(p.input.displayName
-        ? { guestDisplayName: p.input.displayName, displayNameStatus: 'PENDING' as const }
+        ? { guestDisplayName: p.input.displayName, displayNameStatus: 'APPROVED' as const }
         : {}),
       showSponsorName: !p.input.anonymous,
       clientRequestId: p.buyer.idempotencyKey,

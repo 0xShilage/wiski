@@ -11,8 +11,8 @@ export const GET = route<'public', undefined, undefined, { id: string }>(
   async ({ req, params, ipKey }) => {
     const c = await getPublicCampaign(uuidParam(params.id));
     if (!c) throw Problems.notFound();
-    const release = await acquireStreamSlot(`ip:${ipKey}`, 5);
-    if (!release) throw Problems.rateLimited(30);
+    const slot = await acquireStreamSlot(`ip:${ipKey}`, 5);
+    if (!slot) throw Problems.rateLimited(30);
     return sseResponse(
       req,
       channel.campaign(c.id),
@@ -24,7 +24,7 @@ export const GET = route<'public', undefined, undefined, { id: string }>(
         state: c.state,
         at: new Date().toISOString(),
       },
-      release,
+      { slot },
     );
   },
 );

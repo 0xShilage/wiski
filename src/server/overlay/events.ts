@@ -1,6 +1,7 @@
 import 'server-only';
 import { z } from 'zod';
 import { SUBATHON_MAX_SECONDS } from '@/lib/subathon';
+import { randomToken } from '../security/crypto';
 import { codePointLength, plainText } from '../text/sanitize';
 
 /**
@@ -118,6 +119,10 @@ export const overlayEventSchema = z.discriminatedUnion('type', [
       type: z.literal('new-sponsorship'),
       title: safe(LIMITS.title),
       sponsor: safe(LIMITS.sponsor).nullable(),
+      /** a unique id (2026-11-05): replayed after a reconnect, shown once */
+      id: z.string().regex(/^\d{13}-[\w-]{6,16}$/),
+      /** server time of the payment's announcement */
+      at: z.iso.datetime(),
     })
     .strict(),
   z
@@ -250,13 +255,20 @@ export function totalGoalEvent(t: {
   });
 }
 
-export function sponsorshipEvent(title: string, sponsor: string | null): OverlayEvent | null {
+export function sponsorshipEvent(
+  title: string,
+  sponsor: string | null,
+  now = new Date(),
+  nonce = randomToken(6),
+): OverlayEvent | null {
   const t = overlayText(title, LIMITS.title);
   if (!t) return null;
   return overlayEventSchema.parse({
     type: 'new-sponsorship',
     title: t,
     sponsor: overlayText(sponsor, LIMITS.sponsor),
+    id: `${now.getTime()}-${nonce}`,
+    at: now.toISOString(),
   });
 }
 

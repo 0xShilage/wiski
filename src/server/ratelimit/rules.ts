@@ -129,10 +129,15 @@ export const RL = {
   reviewRead: { name: 'review-read', perIp: { limit: 120, windowMs: MIN } },
 
   // ── Phase 4 (05 §9) ──
-  overlaySession: { name: 'overlay-session', perIp: { limit: 10, windowMs: MIN } },
+  /**
+   * OBS loads every browser source at once (one key exchange and one stream each, and all of them
+   * again after a deploy), so these fit 20–40 sources (2026-11-05: 10 and 60 refused some).
+   * Keys are 256-bit and every stream re-checks the key, so this is not a guessing window.
+   */
+  overlaySession: { name: 'overlay-session', perIp: { limit: 60, windowMs: MIN } },
   // subathon chat command (2026-11-04): StreamElements' customapi calls it from its proxy
   subathonCommand: { name: 'subathon-command', perIp: { limit: 30, windowMs: MIN } },
-  overlayStream: { name: 'overlay-stream', perIp: { limit: 60, windowMs: MIN } },
+  overlayStream: { name: 'overlay-stream', perIp: { limit: 240, windowMs: MIN } },
   contact: { name: 'contact', perIp: { limit: 5, windowMs: HOUR } },
   contactDaily: { name: 'contact-day', perIp: { limit: 20, windowMs: 24 * HOUR } },
   publicRead: { name: 'public-read', perIp: { limit: 120, windowMs: MIN } },

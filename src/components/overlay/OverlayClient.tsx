@@ -32,11 +32,15 @@ type Ev =
         percent: number;
       }[];
     }
-  | { type: 'new-sponsorship'; title: string; sponsor: string | null }
+  | { type: 'new-sponsorship'; title: string; sponsor: string | null; id?: string; at?: string }
   | SubathonEv
   | { type: 'ready' };
 
 const KEY = /^#k=(wfo_[\w-]{43})$/;
+/** no ping (every 20 s) for this long → reconnect */
+const WATCHDOG_MS = 50_000;
+/** how long "Novo patrocínio" stays (the CSS animation is 8 s) */
+const FLASH_MS = 8_500;
 
 type Problem = 'bad-key' | 'not-in-key' | 'denied' | 'busy' | 'offline';
 /** What the streamer sees in the OBS preview when a widget can't show (never on a working one). */
@@ -71,9 +75,12 @@ const METRIC_ICON: Record<string, GoalIcon> = {
 const num = (n: number) => n.toLocaleString('pt-BR');
 
 /**
- * OBS browser source (01 §3.4): the key in the URL fragment is exchanged once for the overlay
- * cookie and removed from the address; then one SSE stream per widget. Everything is rendered as
- * text — the server already sanitised it and the schema checked it.
+ * OBS browser source (01 §3.4): the key in the URL fragment is exchanged for the overlay cookie
+ * and removed from the address; then one SSE stream per widget. Everything is rendered as text —
+ * the server already sanitised it and the schema checked it.
+ * 2026-11-05: the page reconnects by itself after any drop (with a watchdog on the server's
+ * pings), signs in again with the key when the cookie expires, and gets back the "Novo
+ * patrocínio" alerts it missed meanwhile, each shown once.
  */
 export function OverlayClient({ widget }: { widget: keyof typeof LABEL }) {
   const [ev, setEv] = useState<Ev | null>(null);
@@ -85,16 +92,60 @@ export function OverlayClient({ widget }: { widget: keyof typeof LABEL }) {
   useEffect(() => {
     let es: EventSource | null = null;
     let timer: ReturnType<typeof setTimeout> | null = null;
+    let watchdog: ReturnType<typeof setTimeout> | null = null;
     let stopped = false;
-    let attempt = 0;
+    let failures = 0;
+    /** the key from the address, kept in memory to sign in again when the 12 h cookie runs out */
+    let key: string | null = null;
+    let lastExchange = 0;
     /** the key in this address does not list this widget (another key in the cookie might) */
     let keyLacksWidget = false;
+    /** server time of the last thing received: alerts missed while reconnecting come back */
+    let since: string | null = null;
+    const seen: string[] = [];
 
-    const retry = (ms: number) => {
-      if (!stopped) timer = setTimeout(connect, ms);
+    const later = (fn: () => void, ms: number) => {
+      if (stopped) return;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(fn, ms);
     };
+    const backoff = () => Math.min(30_000, 1_000 * 2 ** Math.min(failures, 5));
 
-    /** The stream never opened: ask once why (EventSource does not expose the status). */
+    /** Pings come every 20 s; silence means the connection died without closing. */
+    function alive() {
+      if (watchdog) clearTimeout(watchdog);
+      watchdog = setTimeout(() => {
+        es?.close();
+        es = null;
+        failures += 1;
+        later(connect, 1_000);
+      }, WATCHDOG_MS);
+    }
+
+    async function exchange(): Promise<'ok' | 'bad' | 'later'> {
+      if (!key) return 'bad';
+      lastExchange = Date.now();
+      let res: Response | null = null;
+      try {
+        res = await fetch('/api/v1/overlay/session', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ key }),
+          credentials: 'same-origin',
+        });
+      } catch {
+        return 'later';
+      }
+      if (res.ok) {
+        if (window.location.hash) history.replaceState(null, '', window.location.pathname);
+        const body = (await res.json().catch(() => null)) as { widgets?: string[] } | null;
+        keyLacksWidget = !!body?.widgets && !body.widgets.includes(widget);
+        return 'ok';
+      }
+      return res.status === 401 ? 'bad' : 'later';
+    }
+
+    /** The stream didn't open: ask why (EventSource does not expose the status). */
     async function diagnose() {
       const ac = new AbortController();
       let status = 0;
@@ -109,36 +160,63 @@ export function OverlayClient({ widget }: { widget: keyof typeof LABEL }) {
       } finally {
         ac.abort();
       }
-      attempt += 1;
+      if (stopped) return;
+      failures += 1;
       if (status === 401) {
+        // the cookie ran out (12 h) or was replaced: sign in again with the key we still hold
+        if (key && Date.now() - lastExchange > 30_000) {
+          const r = await exchange();
+          if (r === 'ok') return later(connect, 500);
+          if (r === 'bad') {
+            setProblem('bad-key');
+            return later(connect, 60_000);
+          }
+        }
         setProblem(keyLacksWidget ? 'not-in-key' : 'denied');
-        retry(60_000); // a new key may be added in the dashboard meanwhile
+        later(connect, 60_000); // a new key may be added in the dashboard meanwhile
       } else if (status === 200) {
-        retry(1_000);
+        later(connect, 1_000);
       } else {
         setProblem(status === 429 ? 'busy' : 'offline');
-        retry(Math.min(30_000, 2_000 * 2 ** Math.min(attempt, 4)));
+        later(connect, backoff());
       }
     }
 
     function connect() {
       if (stopped) return;
       es?.close();
-      es = new EventSource(`/api/v1/overlay/stream?widget=${widget}`);
+      const url = `/api/v1/overlay/stream?widget=${widget}${since ? `&since=${encodeURIComponent(since)}` : ''}`;
+      const source = new EventSource(url);
+      es = source;
       let opened = false;
-      es.onopen = () => {
+      source.onopen = () => {
         opened = true;
-        attempt = 0;
+        failures = 0;
         setProblem(null);
+        alive();
       };
-      es.onerror = () => {
-        // once open, EventSource reconnects by itself; if it never opened, find out why
-        if (!opened) {
-          es?.close();
-          void diagnose();
+      source.onerror = () => {
+        // 2026-11-05: always reconnect ourselves. EventSource retries only some failures and
+        // gives up for good on any non-200 answer (a deploy's 502, a 429, an expired cookie),
+        // which left an overlay frozen until OBS reloaded it.
+        if (es !== source) return;
+        source.close();
+        es = null;
+        if (watchdog) clearTimeout(watchdog);
+        if (opened) later(connect, failures ? backoff() : 1_000);
+        else void diagnose();
+      };
+      source.addEventListener('ping', (msg) => {
+        alive();
+        try {
+          const at = (JSON.parse((msg as MessageEvent<string>).data) as { at?: string }).at;
+          if (at && (!since || at > since)) since = at;
+        } catch {
+          /* a ping is only a sign of life */
         }
-      };
-      es.onmessage = (msg) => {
+      });
+      source.onmessage = (msg) => {
+        alive();
         let data: Ev;
         try {
           data = JSON.parse(msg.data) as Ev;
@@ -146,6 +224,12 @@ export function OverlayClient({ widget }: { widget: keyof typeof LABEL }) {
           return;
         }
         if (data.type === 'new-sponsorship') {
+          if (data.id) {
+            if (seen.includes(data.id)) return; // replayed after a reconnect, already shown
+            seen.push(data.id);
+            if (seen.length > 50) seen.shift();
+          }
+          if (data.at && (!since || data.at > since)) since = data.at;
           setFlash((f) => ({ n: (f?.n ?? 0) + 1, title: data.title, sponsor: data.sponsor }));
         } else setEv(data);
       };
@@ -154,26 +238,13 @@ export function OverlayClient({ widget }: { widget: keyof typeof LABEL }) {
     void (async () => {
       const m = KEY.exec(window.location.hash);
       if (m) {
-        let res: Response | null = null;
-        try {
-          res = await fetch('/api/v1/overlay/session', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ key: m[1] }),
-            credentials: 'same-origin',
-          });
-        } catch {
-          res = null;
-        }
-        if (res?.ok) {
-          history.replaceState(null, '', window.location.pathname);
-          const body = (await res.json().catch(() => null)) as { widgets?: string[] } | null;
-          if (body?.widgets && !body.widgets.includes(widget)) keyLacksWidget = true;
-        } else if (res?.status === 401) {
+        key = m[1]!;
+        const r = await exchange();
+        if (r === 'bad') {
           setProblem('bad-key');
           return;
         }
-        // offline / rate-limited: keep the key in the address and try the stream anyway
+        // offline / rate-limited: try the stream anyway (another source may have set the cookie)
       }
       connect();
     })();
@@ -181,8 +252,17 @@ export function OverlayClient({ widget }: { widget: keyof typeof LABEL }) {
       stopped = true;
       es?.close();
       if (timer) clearTimeout(timer);
+      if (watchdog) clearTimeout(watchdog);
     };
   }, [widget]);
+
+  // the alert leaves after its animation, also where animations are off (reduced motion)
+  useEffect(() => {
+    if (!flash) return;
+    const n = flash.n;
+    const t = setTimeout(() => setFlash((f) => (f && f.n === n ? null : f)), FLASH_MS);
+    return () => clearTimeout(t);
+  }, [flash]);
 
   if (problem && !ev) {
     return (

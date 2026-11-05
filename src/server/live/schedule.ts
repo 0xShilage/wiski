@@ -49,7 +49,7 @@ export const LiveProblems = {
   rescheduleClosed: (detail: string) => new HttpError(409, 'RESCHEDULE_NOT_ALLOWED', detail),
 };
 
-async function inTx<T>(fn: (t: Tx) => Promise<T>): Promise<T> {
+export async function inTx<T>(fn: (t: Tx) => Promise<T>): Promise<T> {
   try {
     return await db().$transaction(fn, { isolationLevel: 'ReadCommitted', timeout: 10_000 });
   } catch (err) {
@@ -62,7 +62,7 @@ async function inTx<T>(fn: (t: Tx) => Promise<T>): Promise<T> {
   }
 }
 
-function cleanNote(raw: string | null | undefined): string | null | undefined {
+export function cleanNote(raw: string | null | undefined): string | null | undefined {
   if (raw === undefined) return undefined;
   if (raw === null) return null;
   const s = plainText(raw);
@@ -160,7 +160,7 @@ export async function updateSession(
 }
 
 /** Take scheduled titles of a session back to the queue (PAID / FUNDED). */
-async function returnToQueue(t: Tx, sessionId: string): Promise<string[]> {
+async function returnToQueue(t: Tx, sessionId: string, now: Date): Promise<string[]> {
   const orders = await t.order.findMany({
     where: { sessionId, status: 'SCHEDULED' },
     select: { id: true, publicCode: true },
@@ -175,18 +175,59 @@ async function returnToQueue(t: Tx, sessionId: string): Promise<string[]> {
     where: { sessionId, status: 'SCHEDULED' },
     data: { status: 'FUNDED', sessionId: null, scheduledAt: null, version: { increment: 1 } },
   });
-  const booked = await t.order.aggregate({
-    where: { sessionId, kind: 'MOVIE', status: { in: ['SCHEDULED', 'WATCHING', 'COMPLETED'] } },
-    _sum: { runtimeMinutes: true },
+  // segments (2026-11-04): what was on screen when the live ended was shown; what never came
+  // up was skipped (a series part simply gets booked again — its campaign never left the queue)
+  await t.liveSegment.updateMany({
+    where: { sessionId, status: 'PLAYING' },
+    data: { status: 'DONE', doneAt: now, version: { increment: 1 } },
+  });
+  await t.liveSegment.updateMany({
+    where: { sessionId, status: 'SCHEDULED' },
+    data: { status: 'SKIPPED', version: { increment: 1 } },
   });
   await t.streamSession.update({
     where: { id: sessionId },
-    data: { bookedMinutes: booked._sum.runtimeMinutes ?? 0 },
+    data: { bookedMinutes: await bookedOn(t, sessionId) },
   });
   return orders.map((o) => o.id);
 }
 
-async function tellOrders(ids: string[], now: Date) {
+/** Minutes a session carries: its movies plus its segments that weren't skipped. */
+export async function bookedOn(t: Tx, sessionId: string): Promise<number> {
+  const [movies, segments] = await Promise.all([
+    t.order.aggregate({
+      where: { sessionId, kind: 'MOVIE', status: { in: ['SCHEDULED', 'WATCHING', 'COMPLETED'] } },
+      _sum: { runtimeMinutes: true },
+    }),
+    t.liveSegment.aggregate({
+      where: { sessionId, status: { in: ['SCHEDULED', 'PLAYING', 'DONE'] } },
+      _sum: { minutes: true },
+    }),
+  ]);
+  return (movies._sum.runtimeMinutes ?? 0) + (segments._sum.minutes ?? 0);
+}
+
+/**
+ * Whatever is on screen in this session stops being "Agora assistindo": a movie goes back to
+ * SCHEDULED in the same session, a playing segment too. Returns the orders that changed.
+ */
+export async function stopPlaying(t: Tx, sessionId: string): Promise<string[]> {
+  const prev = await t.order.findMany({
+    where: { sessionId, status: 'WATCHING' },
+    select: { id: true },
+  });
+  await t.order.updateMany({
+    where: { sessionId, status: 'WATCHING' },
+    data: { status: 'SCHEDULED', version: { increment: 1 } },
+  });
+  await t.liveSegment.updateMany({
+    where: { sessionId, status: 'PLAYING' },
+    data: { status: 'SCHEDULED', version: { increment: 1 } },
+  });
+  return prev.map((p) => p.id);
+}
+
+export async function tellOrders(ids: string[], now: Date) {
   if (!ids.length) return;
   const rows = await db().order.findMany({
     where: { id: { in: ids } },
@@ -252,7 +293,7 @@ export async function endSession(ctx: Ctx, id: string, expectedVersion: number, 
       if (!(await t.streamSession.count({ where: { id } }))) throw Problems.notFound();
       throw LiveProblems.changed();
     }
-    returned = await returnToQueue(t, id);
+    returned = await returnToQueue(t, id, now);
     await audit(
       {
         action: 'session.end',
@@ -288,7 +329,7 @@ export async function cancelSession(
       if (!(await t.streamSession.count({ where: { id } }))) throw Problems.notFound();
       throw LiveProblems.changed();
     }
-    returned = await returnToQueue(t, id);
+    returned = await returnToQueue(t, id, now);
     await audit(
       {
         action: 'session.cancel',
@@ -310,11 +351,12 @@ export async function cancelSession(
 // ── the queue ────────────────────────────────────────────────────────────────
 
 export type QueueEntry = {
-  kind: 'ORDER' | 'CAMPAIGN';
+  kind: 'ORDER' | 'CAMPAIGN' | 'SEGMENT';
   id: string;
   version: number;
   status: string;
-  item: { id: string; kind: 'MOVIE' | 'SERIES' | 'FRANCHISE'; slug: string; title: string };
+  /** the catalog title; null only for a custom event */
+  item: { id: string; kind: 'MOVIE' | 'SERIES' | 'FRANCHISE'; slug: string; title: string } | null;
   runtimeMinutes: number;
   sponsor: string | null;
   message: string | null;
@@ -322,7 +364,36 @@ export type QueueEntry = {
   since: string;
   sessionId: string | null;
   publicCode: string | null;
+  /** SEGMENT only (2026-11-04): a part of a series/franchise, or a custom event */
+  segment: {
+    kind: 'PART' | 'EVENT';
+    label: string;
+    note: string | null;
+    campaignId: string | null;
+    atStart: boolean;
+  } | null;
+  /** CAMPAIGN in the queue: its parts booked or watched so far, oldest first */
+  parts?: {
+    label: string;
+    status: 'SCHEDULED' | 'PLAYING' | 'DONE';
+    startsAt: string;
+    season: number | null;
+    episodeTo: number | null;
+    film: number | null;
+  }[];
+  /** CAMPAIGN in the queue: what the dashboard needs to book a part */
+  plan?: {
+    seasonCount: number | null;
+    episodeCount: number | null;
+    runtimeMinutes: number;
+    films: { position: number; title: string; runtimeMinutes: number }[];
+  };
 };
+
+/** Watched / shown: a completed movie, a watched campaign, a segment that was on. */
+export function entryDone(e: Pick<QueueEntry, 'status'>): boolean {
+  return e.status === 'COMPLETED' || e.status === 'WATCHED' || e.status === 'DONE';
+}
 
 const TIER_RANK = { topo: 0, prioridade: 1 } as const;
 
@@ -352,6 +423,47 @@ const campaignEntrySelect = {
   item: { select: { id: true, kind: true, slug: true, title: true, runtimeMinutes: true } },
 } satisfies Prisma.CampaignSelect;
 
+const segmentEntrySelect = {
+  id: true,
+  version: true,
+  status: true,
+  kind: true,
+  label: true,
+  note: true,
+  minutes: true,
+  atStart: true,
+  createdAt: true,
+  sessionId: true,
+  campaignId: true,
+  campaign: { select: { item: { select: { id: true, kind: true, slug: true, title: true } } } },
+} satisfies Prisma.LiveSegmentSelect;
+
+function segmentEntry(
+  g: Prisma.LiveSegmentGetPayload<{ select: typeof segmentEntrySelect }>,
+): QueueEntry {
+  return {
+    kind: 'SEGMENT',
+    id: g.id,
+    version: g.version,
+    status: g.status,
+    item: g.campaign?.item ?? null,
+    runtimeMinutes: g.minutes,
+    sponsor: null,
+    message: null,
+    tier: null,
+    since: g.createdAt.toISOString(),
+    sessionId: g.sessionId,
+    publicCode: null,
+    segment: {
+      kind: g.kind,
+      label: g.label,
+      note: g.note,
+      campaignId: g.campaignId,
+      atStart: g.atStart,
+    },
+  };
+}
+
 function orderEntry(o: Prisma.OrderGetPayload<{ select: typeof orderEntrySelect }>): QueueEntry {
   return {
     kind: 'ORDER',
@@ -366,6 +478,7 @@ function orderEntry(o: Prisma.OrderGetPayload<{ select: typeof orderEntrySelect 
     since: (o.paidAt ?? new Date(0)).toISOString(),
     sessionId: o.sessionId,
     publicCode: o.publicCode,
+    segment: null,
   };
 }
 
@@ -385,14 +498,17 @@ function campaignEntry(
     since: (c.fundedAt ?? new Date(0)).toISOString(),
     sessionId: c.sessionId,
     publicCode: null,
+    segment: null,
   };
 }
 
-/** Queue order (04 §5): "Topo da fila" first, then "Prioridade", then by when it was paid. */
+/**
+ * Queue order (04 §5): "Topo da fila" first, then "Prioridade", then by when it was paid (a
+ * segment: when it was added). A segment marked "no começo da live" comes before all of them.
+ */
 export function byQueueOrder(a: QueueEntry, b: QueueEntry): number {
-  const ra = a.tier ? TIER_RANK[a.tier] : 2;
-  const rb = b.tier ? TIER_RANK[b.tier] : 2;
-  return ra - rb || a.since.localeCompare(b.since) || a.id.localeCompare(b.id);
+  const rank = (e: QueueEntry) => (e.segment?.atStart ? -1 : e.tier ? TIER_RANK[e.tier] : 2);
+  return rank(a) - rank(b) || a.since.localeCompare(b.since) || a.id.localeCompare(b.id);
 }
 
 /** Paid movies and funded campaigns not on a session yet. */
@@ -405,7 +521,70 @@ export async function queue(): Promise<QueueEntry[]> {
     }),
     db().campaign.findMany({ where: { status: 'FUNDED' }, select: campaignEntrySelect, take: 50 }),
   ]);
-  return [...orders.map(orderEntry), ...campaigns.map(campaignEntry)].sort(byQueueOrder);
+  // a funded series/franchise is watched in parts over several lives and stays here meanwhile
+  const parts = campaigns.length
+    ? await db().liveSegment.findMany({
+        where: {
+          campaignId: { in: campaigns.map((c) => c.id) },
+          status: { in: ['SCHEDULED', 'PLAYING', 'DONE'] },
+        },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          campaignId: true,
+          label: true,
+          status: true,
+          seasonNumber: true,
+          episodeTo: true,
+          franchisePosition: true,
+          session: { select: { startsAt: true } },
+        },
+      })
+    : [];
+  const plans = new Map(
+    (campaigns.length
+      ? await db().catalogItem.findMany({
+          where: { id: { in: campaigns.map((c) => c.item.id) } },
+          select: {
+            id: true,
+            seasonCount: true,
+            episodeCount: true,
+            runtimeMinutes: true,
+            franchiseEntries: {
+              orderBy: { position: 'asc' },
+              select: { position: true, title: true, runtimeMinutes: true },
+            },
+          },
+        })
+      : []
+    ).map((i) => [
+      i.id,
+      {
+        seasonCount: i.seasonCount,
+        episodeCount: i.episodeCount,
+        runtimeMinutes: i.runtimeMinutes,
+        films: i.franchiseEntries,
+      },
+    ]),
+  );
+  const partsOf = (id: string) =>
+    parts
+      .filter((p) => p.campaignId === id)
+      .map((p) => ({
+        label: p.label,
+        status: p.status as 'SCHEDULED' | 'PLAYING' | 'DONE',
+        startsAt: p.session.startsAt.toISOString(),
+        season: p.seasonNumber,
+        episodeTo: p.episodeTo,
+        film: p.franchisePosition,
+      }));
+  return [
+    ...orders.map(orderEntry),
+    ...campaigns.map((c) => ({
+      ...campaignEntry(c),
+      parts: partsOf(c.id),
+      ...(plans.has(c.item.id) ? { plan: plans.get(c.item.id)! } : {}),
+    })),
+  ].sort(byQueueOrder);
 }
 
 /** Sessions from `from` on, with what's scheduled on each (admin agenda and public schedule). */
@@ -436,17 +615,26 @@ const sessionInclude = {
     select: orderEntrySelect,
   },
   campaigns: { select: campaignEntrySelect },
+  segments: { where: { status: { not: 'SKIPPED' } }, select: segmentEntrySelect },
   nowItem: { select: { id: true, title: true } },
 } satisfies Prisma.StreamSessionInclude;
 
 function withEntries({
   orders,
   campaigns,
+  segments,
   ...s
 }: Prisma.StreamSessionGetPayload<{ include: typeof sessionInclude }>) {
+  const entries = [
+    ...orders.map(orderEntry),
+    ...campaigns.map(campaignEntry),
+    ...segments.map(segmentEntry),
+  ].sort(byQueueOrder);
   return {
     ...s,
-    entries: [...orders.map(orderEntry), ...campaigns.map(campaignEntry)].sort(byQueueOrder),
+    entries,
+    /** what is on screen: a playing segment wins over the session's title (2026-11-04) */
+    playing: entries.find((e) => e.status === 'PLAYING') ?? null,
   };
 }
 
@@ -592,15 +780,7 @@ export async function nowPlaying(ctx: Ctx, target: Target, now = new Date()) {
       if (o.version !== target.expectedVersion || o.status !== 'SCHEDULED')
         throw LiveProblems.changed();
       // whatever was playing goes back to "scheduled" in the same session
-      const prev = await t.order.findMany({
-        where: { sessionId: live.id, status: 'WATCHING' },
-        select: { id: true },
-      });
-      await t.order.updateMany({
-        where: { sessionId: live.id, status: 'WATCHING' },
-        data: { status: 'SCHEDULED', version: { increment: 1 } },
-      });
-      changed.push(...prev.map((p) => p.id));
+      changed.push(...(await stopPlaying(t, live.id)));
       const res = await t.order.updateMany({
         where: { id: o.id, status: 'SCHEDULED', version: o.version },
         data: { status: 'WATCHING', version: { increment: 1 } },
@@ -614,15 +794,7 @@ export async function nowPlaying(ctx: Ctx, target: Target, now = new Date()) {
       if (c.sessionId !== live.id || c.status !== 'SCHEDULED') {
         throw LiveProblems.state('Esta campanha não está na sessão ao vivo.');
       }
-      const prev = await t.order.findMany({
-        where: { sessionId: live.id, status: 'WATCHING' },
-        select: { id: true },
-      });
-      await t.order.updateMany({
-        where: { sessionId: live.id, status: 'WATCHING' },
-        data: { status: 'SCHEDULED', version: { increment: 1 } },
-      });
-      changed.push(...prev.map((p) => p.id));
+      changed.push(...(await stopPlaying(t, live.id)));
       itemId = c.itemId;
     }
     const res = await t.streamSession.updateMany({
@@ -681,6 +853,27 @@ export async function completeInTx(
       where: { id: item.campaign.id },
       data: { status: 'WATCHED', version: { increment: 1 } },
     });
+    // its parts (2026-11-04): the one on screen was watched; parts still booked are dropped
+    await t.liveSegment.updateMany({
+      where: { campaignId: item.campaign.id, status: 'PLAYING' },
+      data: { status: 'DONE', doneAt: now, version: { increment: 1 } },
+    });
+    const later = await t.liveSegment.findMany({
+      where: { campaignId: item.campaign.id, status: 'SCHEDULED' },
+      select: { sessionId: true },
+    });
+    if (later.length) {
+      await t.liveSegment.updateMany({
+        where: { campaignId: item.campaign.id, status: 'SCHEDULED' },
+        data: { status: 'SKIPPED', version: { increment: 1 } },
+      });
+      for (const sid of new Set(later.map((l) => l.sessionId))) {
+        await t.streamSession.update({
+          where: { id: sid },
+          data: { bookedMinutes: await bookedOn(t, sid) },
+        });
+      }
+    }
   }
   const res = await t.catalogItem.updateMany({
     where: { id: itemId, status: item.status, version: item.version },

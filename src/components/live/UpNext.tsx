@@ -28,19 +28,33 @@ export function UpNext({ sessions }: { sessions: PublicSession[] }) {
             {s.note ? <span className="text-sm text-fg-muted">{s.note}</span> : null}
             {s.titles.length ? (
               <ul className="wf-upnext__titles">
-                {s.titles.map((t) => (
-                  <li key={`${t.kind}:${t.slug}`}>
-                    <Link href={`/${KIND_PATH[t.kind]}/${t.slug}`}>
-                      {t.done ? '✓ ' : s.now === t.title ? '▶ ' : ''}
-                      {t.title}
-                    </Link>
-                    <span className="text-xs text-fg-muted">
-                      {' '}
-                      · {t.sponsor ?? 'Anônimo'}
-                      {t.jumped ? ' · furou a fila' : ''}
-                    </span>
-                  </li>
-                ))}
+                {s.titles.map((t, n) => {
+                  const mark = t.done ? '✓ ' : t.playing ? '▶ ' : '';
+                  const name = t.part ? `${t.title} · ${t.part}` : t.title;
+                  return (
+                    <li key={`${n}:${t.kind}:${t.slug ?? t.title}`}>
+                      {t.slug ? (
+                        <Link href={`/${KIND_PATH[t.kind as keyof typeof KIND_PATH]}/${t.slug}`}>
+                          {mark}
+                          {name}
+                        </Link>
+                      ) : (
+                        <span>
+                          {mark}
+                          {name}
+                        </span>
+                      )}
+                      <span className="text-xs text-fg-muted">
+                        {t.kind === 'MOVIE'
+                          ? ` · ${t.sponsor ?? 'Anônimo'}`
+                          : t.note
+                            ? ` · ${t.note}`
+                            : ''}
+                        {t.jumped ? ' · furou a fila' : ''}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             ) : (
               <span className="text-sm text-fg-muted">

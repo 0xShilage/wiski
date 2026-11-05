@@ -121,6 +121,39 @@ test('agenda: a moderator starts the live and the overlay follows over SSE', asy
   await overlayCtx.close();
 });
 
+test('agenda: a custom event goes on a live, shows on the Cronograma and comes off again', async ({
+  browser,
+}) => {
+  const mod = await seedUser({ role: 'MODERATOR', passkeyVerified: true });
+  const ctx = await browser.newContext();
+  await signIn(ctx, mod.token);
+  const admin = await ctx.newPage();
+  await admin.goto('/admin/agenda');
+  await admin.getByRole('button', { name: 'Adicionar evento' }).first().click();
+  const form = admin.getByRole('form', { name: /Novo evento/ });
+  await form.getByLabel('Nome do evento').fill('Jogando com os Viewers');
+  await form.getByLabel('Duração (minutos)').fill('45');
+  await form.getByLabel('No começo da live').check();
+  await form.getByRole('button', { name: 'Adicionar evento' }).click();
+  await expect(admin.getByText('Evento adicionado: feito.')).toBeVisible();
+  const row = admin.locator('li', { hasText: 'Jogando com os Viewers' }).first();
+  await expect(row).toContainText('Evento');
+  await expect(row).toContainText('No começo');
+
+  const pub = await (await browser.newContext()).newPage();
+  await pub.goto('/cronograma');
+  const item = pub.locator('.wf-cron__titles li', { hasText: 'Jogando com os Viewers' }).first();
+  await expect(item).toBeVisible();
+  await expect(item).toContainText('Na live');
+  // an event has no title page to link to
+  await expect(item.getByRole('link')).toHaveCount(0);
+
+  await row.getByRole('button', { name: 'Tirar da sessão' }).click();
+  await expect(admin.getByText('Tirado da sessão: feito.')).toBeVisible();
+  await expect(admin.locator('li', { hasText: 'Jogando com os Viewers' })).toHaveCount(0);
+  await ctx.close();
+});
+
 test('pedidos: the streamer registers a movie as "Já pago" (it enters the queue) and undoes it', async ({
   browser,
 }) => {

@@ -3,11 +3,12 @@
 export type Kind = 'MOVIE' | 'SERIES' | 'FRANCHISE';
 
 export type AgendaEntry = {
-  kind: 'ORDER' | 'CAMPAIGN';
+  kind: 'ORDER' | 'CAMPAIGN' | 'SEGMENT';
   id: string;
   version: number;
   status: string;
-  item: { id: string; kind: Kind; slug: string; title: string };
+  /** null only for a custom event */
+  item: { id: string; kind: Kind; slug: string; title: string } | null;
   runtimeMinutes: number;
   sponsor: string | null;
   message: string | null;
@@ -15,6 +16,28 @@ export type AgendaEntry = {
   since: string;
   sessionId: string | null;
   publicCode: string | null;
+  /** 2026-11-04: a part of a series/franchise, or a custom event */
+  segment: {
+    kind: 'PART' | 'EVENT';
+    label: string;
+    note: string | null;
+    campaignId: string | null;
+    atStart: boolean;
+  } | null;
+  parts?: {
+    label: string;
+    status: 'SCHEDULED' | 'PLAYING' | 'DONE';
+    startsAt: string;
+    season: number | null;
+    episodeTo: number | null;
+    film: number | null;
+  }[];
+  plan?: {
+    seasonCount: number | null;
+    episodeCount: number | null;
+    runtimeMinutes: number;
+    films: { position: number; title: string; runtimeMinutes: number }[];
+  };
 };
 
 export type AgendaSession = {
@@ -29,6 +52,7 @@ export type AgendaSession = {
   nowItemId: string | null;
   nowItem: { id: string; title: string } | null;
   entries: AgendaEntry[];
+  playing: AgendaEntry | null;
 };
 
 export type AdminOrderView = {

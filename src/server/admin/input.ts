@@ -167,7 +167,13 @@ export const overlayKeyInput = z
   })
   .strict();
 export const overlaySessionInput = z.object({ key: z.string().min(10).max(80) }).strict();
-export const overlayStreamQuery = z.object({ widget: z.enum(WIDGETS) }).strict();
+export const overlayStreamQuery = z
+  .object({
+    widget: z.enum(WIDGETS),
+    /** server time of the last thing this overlay received (2026-11-05): alerts missed since */
+    since: z.iso.datetime().optional(),
+  })
+  .strict();
 
 // ── goals, stats, settings ──
 const goalMetric = z.enum(['SPONSORSHIP_COUNT', 'SPONSORSHIP_REVENUE_CENTS', 'WATCHED_MINUTES']);

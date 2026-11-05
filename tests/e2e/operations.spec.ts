@@ -49,6 +49,32 @@ test('overlay: the key in the fragment opens the stream and leaves the address b
   await expect(page.getByText('Sem acesso a “Agora assistindo”')).toBeVisible();
 });
 
+test('overlay: after the stream drops and a reconnect gets a 502 (a deploy), it recovers by itself', async ({
+  page,
+}) => {
+  const key = await overlayKey(['fila']);
+  let n = 0;
+  await page.route('**/api/v1/overlay/stream?**', async (route) => {
+    n += 1;
+    if (n === 1) {
+      // a stream that opens, shows something, and ends (like the server's 10-minute rotation)
+      return route.fulfill({
+        status: 200,
+        headers: { 'content-type': 'text/event-stream' },
+        body: 'retry: 1000\n\ndata: {"type":"queue","items":[{"title":"Título velho","sponsor":null,"jumped":false}]}\n\n',
+      });
+    }
+    if (n === 2) return route.fulfill({ status: 502, body: 'Bad Gateway' });
+    return route.continue();
+  });
+  await page.goto(`/overlay/fila#k=${key}`);
+  await expect(page.getByText('Título velho')).toBeVisible();
+  // the real stream comes back with the real queue (before 2026-11-05 it froze on the old one)
+  await expect(page.getByText('Título velho')).toHaveCount(0, { timeout: 15_000 });
+  await expect(page.locator('.wf-overlay__queue li').first()).toBeVisible();
+  expect(n).toBeGreaterThanOrEqual(3);
+});
+
 test('overlay: two keys in one browser (like OBS) both keep working; clear messages otherwise', async ({
   page,
 }) => {

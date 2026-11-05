@@ -257,6 +257,8 @@ describe('snapshots', () => {
       type: 'new-sponsorship',
       title: 'Filme invertido',
       sponsor: `@${fan.user.username}`,
+      id: expect.stringMatching(/^\d{13}-[\w-]+$/),
+      at: expect.any(String),
     });
   });
 });

@@ -212,9 +212,7 @@ export const AUDIT_ACTIONS = {
       minutes: z.int().min(1).max(1440),
     })
     .strict(),
-  'segment.remove': z
-    .object({ sessionId: z.uuid(), kind: z.enum(['PART', 'EVENT']) })
-    .strict(),
+  'segment.remove': z.object({ sessionId: z.uuid(), kind: z.enum(['PART', 'EVENT']) }).strict(),
   'segment.now': z.object({ sessionId: z.uuid() }).strict(),
   'segment.complete': z.object({ sessionId: z.uuid(), finish: z.boolean() }).strict(),
   'order.reschedule': z

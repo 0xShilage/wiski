@@ -319,7 +319,7 @@ export function AgendaBoard({ initial, role }: { initial: Data; role: 'MODERATOR
             required
           />
         </label>
-        <label className="wf-field" htmlFor={`${id}-pnote-${e.id}`}>
+        <label className="wf-field full" htmlFor={`${id}-pnote-${e.id}`}>
           <span>Aviso público (opcional)</span>
           <input
             id={`${id}-pnote-${e.id}`}
@@ -329,7 +329,7 @@ export function AgendaBoard({ initial, role }: { initial: Data; role: 'MODERATOR
             onChange={(ev) => set({ note: ev.target.value })}
           />
         </label>
-        <label className="wf-switch">
+        <label className="wf-switch full">
           <input
             type="checkbox"
             checked={f.atStart}
@@ -370,7 +370,7 @@ export function AgendaBoard({ initial, role }: { initial: Data; role: 'MODERATOR
           });
         }}
       >
-        <label className="wf-field" htmlFor={`${id}-et-${s.id}`}>
+        <label className="wf-field full" htmlFor={`${id}-et-${s.id}`}>
           <span>Nome do evento</span>
           <input
             id={`${id}-et-${s.id}`}
@@ -396,7 +396,7 @@ export function AgendaBoard({ initial, role }: { initial: Data; role: 'MODERATOR
             required
           />
         </label>
-        <label className="wf-field" htmlFor={`${id}-en-${s.id}`}>
+        <label className="wf-field full" htmlFor={`${id}-en-${s.id}`}>
           <span>Aviso público (opcional)</span>
           <input
             id={`${id}-en-${s.id}`}
@@ -406,7 +406,7 @@ export function AgendaBoard({ initial, role }: { initial: Data; role: 'MODERATOR
             onChange={(ev) => set({ note: ev.target.value })}
           />
         </label>
-        <label className="wf-switch">
+        <label className="wf-switch full">
           <input
             type="checkbox"
             checked={f.atStart}

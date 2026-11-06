@@ -311,3 +311,16 @@ A live no longer carries a funded series or franchise as one block. `LiveSegment
 4. **Alerts lost in a reconnect gap.** "Novo patrocínio" has no state to resync, so an alert published while the source was reconnecting never showed. Alerts now carry an id and the server time and are kept for 5 minutes (`wf:overlay:patrocinio:recent`, 20 at most); a reconnecting page sends `since` (the server time of the last thing it received) and gets the missed ones, each shown once.
 5. **The alert never left with animations off.** With Windows animations off (reduced motion) the CSS animation is disabled and the alert stayed on screen forever; a timer now removes it after 8.5 s either way.
 6. **The 12 h overlay cookie.** A source open longer than 12 hours lost access. The page keeps the key from its address in memory and signs in again on a 401.
+
+## 16. "Agora assistindo" and "Próximos da fila" pop in; !agora and !fila (2026-11-06)
+
+The two overlays no longer stay on screen. Each **shows for two minutes** when what it shows changes (a title starts playing, the queue changes, or the OBS source loads), then fades out. A reconnect with the same content doesn't bring it back.
+
+Two **StreamElements chat commands** bring them back for two minutes and answer in chat — titles only, never a sponsor's name or message:
+
+| Command | Response in StreamElements | Answer in chat |
+|---|---|---|
+| `!agora` | `$(customapi https://wiski.fun/api/v1/subathon/command?a=agora&k=<key>)` | 🎬 Agora na live: … / Nada passando agora na live. |
+| `!fila` | `$(customapi https://wiski.fun/api/v1/subathon/command?a=fila&k=<key>)` | 📋 Próximos na live: 1. … · 2. … · 3. … / A fila está vazia por enquanto. |
+
+Same endpoint and key as `!pausar`/`!retomar`/`!tempo` (Admin › Subathon › Comandos no chat lists all five when a key is created); they work with or without a subathon. Suggested StreamElements settings: everyone, 30-second cooldown. The command sets `wf:overlay:show:<widget>` in Redis for two minutes and publishes a `show` event; a source that connects meanwhile is shown for the time left (`pendingShow`). Code: `src/server/overlay/show.ts`, `OverlayClient` (`popIn`), `.wf-overlay__box.is-away`.

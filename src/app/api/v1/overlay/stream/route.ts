@@ -4,6 +4,7 @@ import { RL } from '@/server/ratelimit/rules';
 import { overlayStreamQuery } from '@/server/admin/input';
 import { overlayAccess } from '@/server/overlay/keys';
 import { missedAlerts } from '@/server/overlay/publish';
+import { pendingShow } from '@/server/overlay/show';
 import { overlayChannel, snapshot } from '@/server/overlay/state';
 import { acquireStreamSlot, sseResponse } from '@/server/realtime/events';
 
@@ -26,7 +27,14 @@ export const GET = route<'public', undefined, typeof overlayStreamQuery>(
     const slot = await acquireStreamSlot(`overlay:${ipKey}`, OVERLAY_STREAMS_PER_IP);
     if (!slot) throw Problems.rateLimited(30);
     const initial = (await snapshot(query.widget)) ?? { type: 'ready' };
-    const replay = query.widget === 'patrocinio' ? await missedAlerts(query.since) : [];
+    const w = query.widget;
+    // missed alerts; or, for a pop-in widget shown by a chat command, the time it has left
+    const replay =
+      w === 'patrocinio'
+        ? await missedAlerts(query.since)
+        : w === 'agora' || w === 'fila'
+          ? await pendingShow(w)
+          : [];
     return sseResponse(req, overlayChannel(query.widget), initial, { slot, replay });
   },
 );

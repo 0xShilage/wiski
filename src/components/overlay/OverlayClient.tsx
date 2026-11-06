@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { GoalRing, type GoalIcon } from './GoalRing';
 import { SubathonTimer, type SubathonEv } from './SubathonTimer';
 
@@ -34,6 +34,7 @@ type Ev =
     }
   | { type: 'new-sponsorship'; title: string; sponsor: string | null; id?: string; at?: string }
   | SubathonEv
+  | { type: 'show'; seconds: number }
   | { type: 'ready' };
 
 const KEY = /^#k=(wfo_[\w-]{43})$/;
@@ -41,6 +42,18 @@ const KEY = /^#k=(wfo_[\w-]{43})$/;
 const WATCHDOG_MS = 50_000;
 /** how long "Novo patrocínio" stays (the CSS animation is 8 s) */
 const FLASH_MS = 8_500;
+/**
+ * "Agora assistindo" and "Próximos da fila" pop in (2026-11-06): two minutes when what they show
+ * changes, and when !agora / !fila is typed in chat (a `show` event); hidden otherwise.
+ */
+const POP_MS = 120_000;
+const isPop = (w: string) => w === 'agora' || w === 'fila';
+/** what a pop-in widget shows, to tell a real change from the same snapshot after a reconnect */
+function signature(e: Ev): string | null {
+  if (e.type === 'now-playing') return e.title ? `${e.title}|${e.sponsor}|${e.message}` : null;
+  if (e.type === 'queue') return e.items.map((i) => i.title).join('|') || null;
+  return null;
+}
 
 type Problem = 'bad-key' | 'not-in-key' | 'denied' | 'busy' | 'offline';
 /** What the streamer sees in the OBS preview when a widget can't show (never on a working one). */
@@ -88,6 +101,21 @@ export function OverlayClient({ widget }: { widget: keyof typeof LABEL }) {
     null,
   );
   const [problem, setProblem] = useState<Problem | null>(null);
+  const [away, setAway] = useState(false);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const shown = useRef<string | null>(null);
+  /** show the widget for `ms`, then hide it */
+  const popIn = useCallback((ms: number) => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    setAway(false);
+    hideTimer.current = setTimeout(() => setAway(true), ms);
+  }, []);
+  useEffect(
+    () => () => {
+      if (hideTimer.current) clearTimeout(hideTimer.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     let es: EventSource | null = null;
@@ -231,7 +259,18 @@ export function OverlayClient({ widget }: { widget: keyof typeof LABEL }) {
           }
           if (data.at && (!since || data.at > since)) since = data.at;
           setFlash((f) => ({ n: (f?.n ?? 0) + 1, title: data.title, sponsor: data.sponsor }));
-        } else setEv(data);
+        } else if (data.type === 'show') {
+          if (isPop(widget)) popIn(data.seconds * 1000);
+        } else {
+          setEv(data);
+          if (isPop(widget)) {
+            const sig = signature(data);
+            if (sig !== shown.current) {
+              shown.current = sig;
+              if (sig) popIn(POP_MS);
+            }
+          }
+        }
       };
     }
 
@@ -254,7 +293,7 @@ export function OverlayClient({ widget }: { widget: keyof typeof LABEL }) {
       if (timer) clearTimeout(timer);
       if (watchdog) clearTimeout(watchdog);
     };
-  }, [widget]);
+  }, [widget, popIn]);
 
   // the alert leaves after its animation, also where animations are off (reduced motion)
   useEffect(() => {
@@ -286,7 +325,7 @@ export function OverlayClient({ widget }: { widget: keyof typeof LABEL }) {
   if (ev.type === 'now-playing') {
     if (!ev.title) return null;
     return (
-      <div className="wf-overlay__box">
+      <div className={away ? 'wf-overlay__box is-away' : 'wf-overlay__box'}>
         <p className="wf-overlay__label">{LABEL.agora}</p>
         <p className="wf-overlay__title">{ev.title}</p>
         {ev.sponsor ? <p className="wf-overlay__sub">Patrocínio: {ev.sponsor}</p> : null}
@@ -297,7 +336,7 @@ export function OverlayClient({ widget }: { widget: keyof typeof LABEL }) {
   if (ev.type === 'queue') {
     if (!ev.items.length) return null;
     return (
-      <div className="wf-overlay__box">
+      <div className={away ? 'wf-overlay__box is-away' : 'wf-overlay__box'}>
         <p className="wf-overlay__label">{LABEL.fila}</p>
         <ol className="wf-overlay__queue">
           {ev.items.map((i, n) => (

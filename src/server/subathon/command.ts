@@ -94,15 +94,20 @@ const badKey = () => new HttpError(401, 'BAD_COMMAND_KEY', 'Chave do comando inv
 export type CommandAction = 'pause' | 'resume' | 'status';
 
 /** Run a chat command; returns the one-line answer the chatbot posts (≤ 400 bytes). */
+/** The chat-command key check, shared by every chat command (401 on any mismatch). */
+export async function verifyCommandKey(key: string): Promise<void> {
+  const s = await stored();
+  if (!s || !COMMAND_KEY.test(key) || !safeEqual(sha256(key).toString('base64url'), s.hash)) {
+    throw badKey();
+  }
+}
+
 export async function runCommand(
   key: string,
   action: CommandAction,
   now = new Date(),
 ): Promise<string> {
-  const s = await stored();
-  if (!s || !COMMAND_KEY.test(key) || !safeEqual(sha256(key).toString('base64url'), s.hash)) {
-    throw badKey();
-  }
+  await verifyCommandKey(key);
   const sub = await openSubathon();
   if (!sub) return 'Nenhum subathon aberto no momento.';
   const left = () => formatClock(remainingAt(sub, now.getTime()));

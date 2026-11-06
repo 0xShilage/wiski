@@ -217,3 +217,9 @@ Fix (PR "fix-prefetch-burst"): no prefetch on the header tabs, the phone bar, th
 - `tests/integration/overlay-reliability.test.ts` (5): a full slot key refuses and a release frees a place; slots never released (a crashed process) expire after a lease while a renewed one stays; an alert published while the overlay was away is replayed once with `since` (snapshot, replay, then a ping with the server time), not to a fresh source, not after it was seen, never on other widgets, never past the 5-minute window; `since` must be a timestamp. `overlay.test.ts`: the alert carries its id and time.
 - `tests/e2e/operations.spec.ts`: an overlay whose stream ends and whose next reconnect gets a 502 recovers by itself and shows the real queue (it stayed frozen before).
 - Unit 375/375, integration 1099/1099, e2e (operations, subathon, two-factor) green locally.
+
+## Addendum — pop-in overlays, !agora and !fila (2026-11-06)
+
+- `tests/integration/overlay-commands.test.ts` (3): `!agora` with nothing on and with a movie playing (title only, no sponsor name; one `show` event of 120 s; a new source gets the time left; `fila` unaffected); `!fila` empty and with four paid movies (the next three, one `show` event); a wrong key is 401 and shows nothing; an unknown action is 422.
+- `tests/e2e/operations.spec.ts`: with the page clock installed, "Próximos da fila" is visible on load, hidden after 2:05, back after `!fila`'s URL is called, hidden again after another 2:05.
+- Unit 375/375, integration 1102/1102, e2e operations and subathon green locally.

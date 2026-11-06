@@ -75,6 +75,40 @@ test('overlay: after the stream drops and a reconnect gets a 502 (a deploy), it 
   expect(n).toBeGreaterThanOrEqual(3);
 });
 
+test('overlay: "Próximos da fila" shows for two minutes, hides, and !fila brings it back', async ({
+  page,
+}) => {
+  const key = await overlayKey(['fila']);
+  const command = `wfc_${randomBytes(32).toString('base64url')}`;
+  await withDb((c) =>
+    c.query(
+      `INSERT INTO "AppSetting"(key, value, "updatedAt") VALUES ('subathon.commandKey', $1, now())
+       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, "updatedAt" = now()`,
+      [
+        JSON.stringify({
+          hash: createHash('sha256').update(command).digest('base64url'),
+          prefix: command.slice(4, 10),
+          createdAt: new Date().toISOString(),
+        }),
+      ],
+    ),
+  );
+  await page.clock.install();
+  await page.goto(`/overlay/fila#k=${key}`);
+  const box = page.locator('.wf-overlay__box');
+  await expect(box).toBeVisible();
+  await page.clock.fastForward('02:05');
+  await expect(box).toBeHidden();
+
+  // !fila in chat (StreamElements calls this URL) → back for two minutes
+  const res = await page.request.get(`/api/v1/subathon/command?a=fila&k=${command}`);
+  expect(res.status()).toBe(200);
+  expect(await res.text()).toMatch(/^📋 Próximos na live: 1\. /);
+  await expect(box).toBeVisible();
+  await page.clock.fastForward('02:05');
+  await expect(box).toBeHidden();
+});
+
 test('overlay: two keys in one browser (like OBS) both keep working; clear messages otherwise', async ({
   page,
 }) => {

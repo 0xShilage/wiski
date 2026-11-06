@@ -54,6 +54,8 @@ const safe = (max: number) =>
 const kind = z.enum(['MOVIE', 'SERIES', 'FRANCHISE']);
 
 export const overlayEventSchema = z.discriminatedUnion('type', [
+  /** "Agora assistindo" / "Próximos da fila": appear for `seconds`, then hide (2026-11-06) */
+  z.object({ type: z.literal('show'), seconds: z.int().min(1).max(600) }).strict(),
   z
     .object({
       type: z.literal('now-playing'),
@@ -297,4 +299,9 @@ export function subathonEvent(
         }
       : null,
   });
+}
+
+/** Show a pop-in widget for `seconds` (the chat commands !agora and !fila). */
+export function showEvent(seconds: number): OverlayEvent {
+  return overlayEventSchema.parse({ type: 'show', seconds });
 }

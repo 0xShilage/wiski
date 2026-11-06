@@ -278,6 +278,9 @@ export function SubathonPanel({ initial, origin }: { initial: View; origin: stri
     { name: '!pausar', a: 'pausar', level: 'Moderador' },
     { name: '!retomar', a: 'retomar', level: 'Moderador' },
     { name: '!tempo', a: 'tempo', level: 'Todos' },
+    // 2026-11-06: show the overlay for two minutes (works with or without a subathon)
+    { name: '!agora', a: 'agora', level: 'Todos (cooldown 30 s)' },
+    { name: '!fila', a: 'fila', level: 'Todos (cooldown 30 s)' },
   ] as const;
 
   const se = view.streamElements;
@@ -551,9 +554,16 @@ export function SubathonPanel({ initial, origin }: { initial: View; origin: stri
         <h2 id={`${id}-cmd`}>Comandos no chat</h2>
         <p className="wf-muted m-0 text-sm">
           Comandos do chatbot do StreamElements: <strong>!pausar</strong> e{' '}
-          <strong>!retomar</strong> (só moderadores) e <strong>!tempo</strong> (todos). No
+          <strong>!retomar</strong> (só moderadores) e <strong>!tempo</strong> (todos).{' '}
+          <strong>!agora</strong> e <strong>!fila</strong> mostram por 2 minutos os overlays “Agora
+          assistindo” e “Próximos da fila” (que somem sozinhos) e respondem no chat. No
           StreamElements: Chatbot → Commands → Custom commands → criar cada um com a resposta abaixo
           e o nível de usuário indicado.
+        </p>
+        <p className="wf-muted m-0 mt-2 text-sm">
+          Já tem os comandos do subathon? Não precisa de chave nova: copie a resposta do{' '}
+          <strong>!tempo</strong> e troque <code>a=tempo</code> por <code>a=agora</code> ou{' '}
+          <code>a=fila</code>.
         </p>
         {newKey ? (
           <ul className="wf-ops-list mt-3">

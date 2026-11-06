@@ -107,6 +107,8 @@ test('overlay: "Próximos da fila" shows for two minutes, hides, and !fila bring
   await expect(box).toBeVisible();
   await page.clock.fastForward('02:05');
   await expect(box).toBeHidden();
+  // leave no chat-command key behind (the subathon spec creates its own)
+  await withDb((c) => c.query(`DELETE FROM "AppSetting" WHERE key = 'subathon.commandKey'`));
 });
 
 test('overlay: two keys in one browser (like OBS) both keep working; clear messages otherwise', async ({

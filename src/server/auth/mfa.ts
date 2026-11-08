@@ -15,7 +15,7 @@ import { clearHostCookie, COOKIE, setHostCookie } from './cookies';
  *    same browser start already verified, until the original 96 h are up. Logging out clears it.
  *  • `User.mfaEpoch` invalidates every remembered device at once: bumped when a factor is removed
  *    or the role changes.
- *  • STREAMER money actions still need a Google login in the last 10 minutes (step-up).
+ *  • Money actions (moderators and the streamer) still need a Google login in the last 10 minutes (step-up).
  */
 export const MFA_MAX_AGE_SEC = 96 * 3600;
 const DEVICE_PURPOSE = 'mfa-device';

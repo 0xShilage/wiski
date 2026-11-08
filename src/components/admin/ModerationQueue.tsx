@@ -26,24 +26,22 @@ const ACTION_LABEL: Record<ModerationAction, string> = {
   REMOVE: 'Remover de vez',
 };
 
-function actionsFor(e: QueueEntry, role: 'MODERATOR' | 'STREAMER'): ModerationAction[] {
+function actionsFor(e: QueueEntry): ModerationAction[] {
   const s = e.review.status;
   const out: ModerationAction[] = [];
   if (s === 'VISIBLE') out.push('HIDE', ...(e.openReports.length ? (['DISMISS'] as const) : []));
   if (s === 'AUTO_HIDDEN') out.push('RESTORE', 'HIDE');
   if (s === 'HIDDEN') out.push('RESTORE');
-  if (role === 'STREAMER' && s !== 'REMOVED') out.push('REMOVE');
+  if (s !== 'REMOVED') out.push('REMOVE');
   return out;
 }
 
 function Entry({
   e,
-  role,
   busy,
   onAct,
 }: {
   e: QueueEntry;
-  role: 'MODERATOR' | 'STREAMER';
   busy: boolean;
   onAct: (e: QueueEntry, a: ModerationAction) => void;
 }) {
@@ -96,7 +94,7 @@ function Entry({
           </ul>
         ) : null}
         <div className="wf-mod__actions">
-          {actionsFor(e, role).map((a) => (
+          {actionsFor(e).map((a) => (
             <button
               key={a}
               type="button"
@@ -124,13 +122,7 @@ function Entry({
  * (reason, note, reporter's account age); the moderator acts on the status they see — if someone
  * else acted first, the server answers 409 and the queue reloads.
  */
-export function ModerationQueue({
-  initial,
-  role,
-}: {
-  initial: Queue;
-  role: 'MODERATOR' | 'STREAMER';
-}) {
+export function ModerationQueue({ initial }: { initial: Queue; role: 'MODERATOR' | 'STREAMER' }) {
   const [queue, setQueue] = useState(initial);
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null);
@@ -203,7 +195,6 @@ export function ModerationQueue({
               <Entry
                 key={e.review.id}
                 e={e}
-                role={role}
                 busy={busy === e.review.id}
                 onAct={(x, a) => void act(x, a)}
               />
@@ -224,7 +215,6 @@ export function ModerationQueue({
               <Entry
                 key={e.review.id}
                 e={e}
-                role={role}
                 busy={busy === e.review.id}
                 onAct={(x, a) => void act(x, a)}
               />

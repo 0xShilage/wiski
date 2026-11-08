@@ -50,7 +50,6 @@ export function ItemEditor({
   kind,
   item,
   newSlot,
-  role,
   drafts,
   onChanged,
   onDeleted,
@@ -263,23 +262,22 @@ export function ItemEditor({
     typedGoalCents && Number.isInteger(typedGoalCents) && typedGoalCents > 0
       ? typedGoalCents
       : (money?.cents ?? null);
-  const paidRoom =
-    !item || role !== 'STREAMER'
-      ? null
-      : kind === 'MOVIE'
-        ? status === 'ACTIVE' && !item.reserved
-          ? (item.priceCents ?? null)
-          : null
-        : draftCampaign
-          ? draftGoalCents
-          : item.campaign &&
-              (item.campaign.state === 'OPEN' || item.campaign.state === 'PAUSED') &&
-              status === 'ACTIVE'
-            ? Math.max(
-                0,
-                item.campaign.goalCents - item.campaign.raisedCents - item.campaign.reservedCents,
-              ) || null
-            : null;
+  const paidRoom = !item
+    ? null
+    : kind === 'MOVIE'
+      ? status === 'ACTIVE' && !item.reserved
+        ? (item.priceCents ?? null)
+        : null
+      : draftCampaign
+        ? draftGoalCents
+        : item.campaign &&
+            (item.campaign.state === 'OPEN' || item.campaign.state === 'PAUSED') &&
+            status === 'ACTIVE'
+          ? Math.max(
+              0,
+              item.campaign.goalCents - item.campaign.raisedCents - item.campaign.reservedCents,
+            ) || null
+          : null;
 
   async function registerPaid() {
     if (!item || !paid || paidRoom === null) return;
@@ -529,15 +527,12 @@ export function ItemEditor({
                 formulaCents ? `vazio = ${formatBRL(formulaCents)}` : 'vazio = automático'
               }
               value={form.manualPrice}
-              readOnly={role !== 'STREAMER'}
               onChange={(e) => set('manualPrice', e.target.value)}
               aria-describedby={`${fid}-mp`}
               {...inv('manualPriceCents')}
             />
             <span className="wf-hint" id={`${fid}-mp`}>
-              {role === 'STREAMER'
-                ? 'Substitui o preço pela duração. Vazio = automático.'
-                : 'Só a streamer define o preço manual.'}
+              Substitui o preço pela duração. Vazio = automático.
             </span>
             {err('manualPriceCents')}
           </label>
@@ -881,7 +876,7 @@ export function ItemEditor({
           <h3 id="abrir" className="text-base font-semibold">
             Abrir campanha
           </h3>
-          {role === 'STREAMER' ? (
+          <>
             <div className="wf-form">
               <label className="wf-field">
                 Meta (R$, vazio = fórmula{money ? ` ${formatBRL(money.cents)}` : ''})
@@ -926,9 +921,7 @@ export function ItemEditor({
               </div>
               {paidForm ? <div className="full">{paidForm}</div> : null}
             </div>
-          ) : (
-            <p className="wf-hint">Pronto? O streamer abre a campanha (define meta e prazo).</p>
-          )}
+          </>
         </section>
       ) : null}
 
@@ -1011,8 +1004,7 @@ export function ItemEditor({
                 }).format(new Date(item.campaign.deadlineAt))}
                 {item.campaign.extensions ? ` · ${item.campaign.extensions} prorrogação(ões)` : ''}
               </p>
-              {role === 'STREAMER' &&
-              (item.campaign.state === 'OPEN' || item.campaign.state === 'PAUSED') ? (
+              {item.campaign.state === 'OPEN' || item.campaign.state === 'PAUSED' ? (
                 <div className="wf-actions mt-0">
                   <button
                     type="button"

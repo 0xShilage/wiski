@@ -7,9 +7,9 @@ import { listOverlayKeys } from '@/server/overlay/keys';
 
 export const metadata: Metadata = { title: 'Overlays (OBS)' };
 
-/** /admin/overlays — streamer only (moderators: 404), passkey ≤ 10 min. */
+/** /admin/overlays — moderators and the streamer (2026-11-08), passkey ≤ 10 min. */
 export default async function OverlaysPage() {
-  const p = await adminPage('/admin/overlays', { streamer: true });
+  const p = await adminPage('/admin/overlays');
   if ('gate' in p) return p.gate;
   return (
     <AdminShell

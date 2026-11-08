@@ -6,9 +6,9 @@ import { listVouchers } from '@/server/admin/vouchers';
 
 export const metadata: Metadata = { title: 'Cupons' };
 
-/** /admin/cupons — streamer only (moderators: 404), passkey ≤ 10 min. */
+/** /admin/cupons — moderators and the streamer (2026-11-08), passkey ≤ 10 min. */
 export default async function CuponsPage() {
-  const p = await adminPage('/admin/cupons', { streamer: true });
+  const p = await adminPage('/admin/cupons');
   if ('gate' in p) return p.gate;
   return (
     <AdminShell

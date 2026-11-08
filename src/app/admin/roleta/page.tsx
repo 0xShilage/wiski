@@ -17,10 +17,7 @@ export default async function RoletaAdminPage() {
       lead="Os prêmios que o público ganhou na roleta (quem tirou “Nada” não aparece). Cupons já chegam prontos para a pessoa; filmes e VIP na Twitch são entregues por vocês: entregue e marque aqui."
       {...p.shell}
     >
-      <RoletaBoard
-        initial={JSON.parse(JSON.stringify(await listRoletaPrizes({})))}
-        streamer={p.ctx.user.role === 'STREAMER'}
-      />
+      <RoletaBoard initial={JSON.parse(JSON.stringify(await listRoletaPrizes({})))} />
     </AdminShell>
   );
 }

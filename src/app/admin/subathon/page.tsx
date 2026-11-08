@@ -7,9 +7,9 @@ import { subathonAdminView } from '@/server/subathon/admin';
 
 export const metadata: Metadata = { title: 'Subathon' };
 
-/** /admin/subathon — the subathon timer (streamer only; moderators: 404). */
+/** /admin/subathon — the subathon timer (moderators and the streamer). */
 export default async function SubathonAdminPage() {
-  const p = await adminPage('/admin/subathon', { streamer: true });
+  const p = await adminPage('/admin/subathon');
   if ('gate' in p) return p.gate;
   return (
     <AdminShell

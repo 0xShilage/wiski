@@ -12,7 +12,7 @@ import { COUNTED_ORDER_STATUSES } from '../community/achievements';
 import { db } from '../db';
 
 /**
- * Admin › Análise (2026-11-04, streamer only): money and community numbers for a period, with the
+ * Admin › Análise (2026-11-04; moderators too since 2026-11-08): money and community numbers for a period, with the
  * same period before it for comparison. Read-only. Revenue = paid orders that weren't refunded
  * (a refunded order leaves the counted statuses), by the day they were paid, in São Paulo.
  */

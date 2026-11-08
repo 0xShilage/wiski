@@ -6,9 +6,9 @@ import { listStats, METRIC_LABEL } from '@/server/mediakit/stats';
 
 export const metadata: Metadata = { title: 'Media kit' };
 
-/** /admin/media-kit — streamer only (moderators: 404), passkey ≤ 10 min. */
+/** /admin/media-kit — moderators and the streamer (2026-11-08), passkey ≤ 10 min. */
 export default async function MediaKitPage() {
-  const p = await adminPage('/admin/media-kit', { streamer: true });
+  const p = await adminPage('/admin/media-kit');
   if ('gate' in p) return p.gate;
   return (
     <AdminShell

@@ -4,7 +4,7 @@ import { formatBRL } from '@/lib/catalog/pricing';
 import { adminFetch } from '@/lib/passkey-client';
 import { fmtDateTime, fromLocalInput, METRIC_PT, toLocalInput, WIDGET_PT } from '@/lib/admin/types';
 
-/** Streamer-only dashboard tools (Phase 4). Small panels; every write goes through adminFetch. */
+/** Channel dashboard tools (Phase 4; moderators too since 2026-11-08). Small panels; every write goes through adminFetch. */
 
 type Toast = { ok: boolean; text: string } | null;
 function useAct() {

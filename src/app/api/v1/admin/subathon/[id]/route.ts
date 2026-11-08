@@ -6,8 +6,8 @@ import { subathonAdminView } from '@/server/subathon/admin';
 import { updateSubathon } from '@/server/subathon/timer';
 
 /** PATCH /api/v1/admin/subathon/[id] — title, R$ rule, cap and rates (apply to what comes next). */
-export const PATCH = route<'streamer', typeof subathonUpdateInput, undefined, { id: string }>(
-  { methods: ['PATCH'], access: 'streamer', rateLimit: RL.adminWrite, body: subathonUpdateInput },
+export const PATCH = route<'moderator', typeof subathonUpdateInput, undefined, { id: string }>(
+  { methods: ['PATCH'], access: 'moderator', rateLimit: RL.adminWrite, body: subathonUpdateInput },
   async ({ user, requestId, body, params }) => {
     await updateSubathon({ actor: user, requestId }, uuidParam(params.id), body);
     return subathonAdminView();

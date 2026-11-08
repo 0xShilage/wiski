@@ -5,10 +5,10 @@ import { versionInput } from '@/server/admin/input';
 import { undoManualPayment } from '@/server/checkout/admin';
 
 /** POST /api/v1/admin/orders/[id]/undo — streamer: cancel a "Já pago" registered by mistake. */
-export const POST = route<'streamer', typeof versionInput, undefined, { id: string }>(
+export const POST = route<'moderator', typeof versionInput, undefined, { id: string }>(
   {
     methods: ['POST'],
-    access: 'streamer',
+    access: 'moderator',
     stepUp: true,
     rateLimit: RL.adminWrite,
     body: versionInput,

@@ -59,9 +59,9 @@ function Stat({
   );
 }
 
-/** /admin/analise — money and community numbers for the streamer (moderators: 404). */
+/** /admin/analise — money and community numbers for moderators and the streamer. */
 export default async function AnalisePage({ searchParams }: Props) {
-  const p = await adminPage('/admin/analise', { streamer: true });
+  const p = await adminPage('/admin/analise');
   if ('gate' in p) return p.gate;
   const days = parseDays((await searchParams).periodo);
   const a = await analytics(days);

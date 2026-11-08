@@ -8,7 +8,7 @@ import { centsToReais, reaisToCents } from './types';
 const KIND_GROUP = { MOVIE: 'Filmes', SERIES: 'Séries', FRANCHISE: 'Franquias' } as const;
 
 /**
- * "Já pago" (2026-11-02, streamer only): register a payment received outside the site. The title
+ * "Já pago" (2026-11-02; moderators too since 2026-11-08): register a payment received outside the site. The title
  * enters the queue like a site sale — a movie is sponsored, a contribution counts towards its
  * campaign — without a Pix, an e-mail or a stream alert.
  */

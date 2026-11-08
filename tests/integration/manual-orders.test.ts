@@ -88,12 +88,10 @@ describe('manual movie price', () => {
     expect(log.metadata).toMatchObject({ fields: ['manualPriceCents'] });
   });
 
-  it('moderators cannot change it (resending the same value is fine); not for series; R$ 5–2.000', async () => {
+  it('moderators set it too (since 2026-11-08); not for series; R$ 5–2.000', async () => {
     const movie = await liveMovie(100);
     const mod = await as('MODERATOR');
-    const r = await save(mod, movie.id, { manualPriceCents: 6000 });
-    expect(r.res.status).toBe(422);
-    expect(JSON.stringify(r.json)).toContain('manualPriceCents');
+    expect((await save(mod, movie.id, { manualPriceCents: 6000 })).res.status).toBe(200);
     expect((await save(mod, movie.id, { manualPriceCents: null, synopsis: 'ok' })).res.status).toBe(
       200,
     );
@@ -267,10 +265,11 @@ describe('"Já pago"', () => {
     expect([no.res.status, no.json.code]).toEqual([409, 'CANNOT_ACCEPT']);
   });
 
-  it('streamer only, with a recent Google step-up', async () => {
+  it('moderators and the streamer, with a recent Google step-up', async () => {
     const movie = await liveMovie(100);
-    const mod = await register(await as('MODERATOR'), { itemId: movie.id });
-    expect(mod.res.status).toBe(404);
+    const staleMod = await as('MODERATOR', { authTime: new Date(Date.now() - 60 * 60_000) });
+    const m = await register(staleMod, { itemId: movie.id });
+    expect([m.res.status, m.json.code]).toEqual([401, 'STEP_UP_REQUIRED']);
     const stale = await as('STREAMER', { authTime: new Date(Date.now() - 60 * 60_000) });
     const r = await register(stale, { itemId: movie.id });
     expect([r.res.status, r.json.code]).toEqual([401, 'STEP_UP_REQUIRED']);

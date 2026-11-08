@@ -26,7 +26,7 @@ const suspend = (who: Who, id: string, days: number | null) =>
 const stale = () => as('STREAMER', { authTime: new Date(Date.now() - 60 * 60_000) });
 
 describe('suspensions', () => {
-  it('a moderator suspends for up to 7 days; the person can still read but not write', async () => {
+  it('a moderator suspends; the person can still read but not write', async () => {
     const mod = await as('MODERATOR');
     const target = await as('USER');
     const r = await suspend(mod, target.user.id, 7);
@@ -42,25 +42,21 @@ describe('suspensions', () => {
     });
     expect(log.metadata).toMatchObject({ days: 7 });
 
-    const tooLong = await suspend(mod, (await as('USER')).user.id, 8);
-    expect([tooLong.res.status, tooLong.json.code]).toEqual([403, 'STREAMER_ONLY']);
-    expect((await suspend(mod, (await as('USER')).user.id, null)).json.code).toBe('STREAMER_ONLY');
+    // longer than 7 days: moderators too (2026-11-08), with a fresh Google confirmation
+    const staleMod = await as('MODERATOR', { authTime: new Date(Date.now() - 60 * 60_000) });
+    const long = await suspend(staleMod, (await as('USER')).user.id, 8);
+    expect([long.res.status, long.json.code]).toEqual([401, 'STEP_UP_REQUIRED']);
+    expect((await suspend(mod, (await as('USER')).user.id, 30)).res.status).toBe(200);
   });
 
-  it('the streamer suspends longer or indefinitely, with Google step-up', async () => {
+  it('suspends longer or indefinitely, with Google step-up; a moderator can lift it', async () => {
     const target = await as('USER');
     const r1 = await suspend(await stale(), target.user.id, null);
     expect([r1.res.status, r1.json.code]).toEqual([401, 'STEP_UP_REQUIRED']);
     const r2 = await suspend(await as('STREAMER'), target.user.id, null);
     expect(r2.json.user).toMatchObject({ status: 'SUSPENDED', suspendedUntil: null });
-    // a moderator can't lift an indefinite suspension
-    const lift = await hit(unsuspendRoute, 'POST', '', {
-      who: await as('MODERATOR'),
-      params: { id: target.user.id },
-    });
-    expect(lift.json.code).toBe('STREAMER_ONLY');
     const ok = await hit(unsuspendRoute, 'POST', '', {
-      who: await as('STREAMER'),
+      who: await as('MODERATOR'),
       params: { id: target.user.id },
     });
     expect((ok.json.user as { status: string }).status).toBe('ACTIVE');
@@ -161,14 +157,14 @@ describe('roles and VIP (streamer + step-up)', () => {
     ).toBe(2);
   });
 
-  it('the list: search by username prefix, filters, e-mail for the streamer only', async () => {
+  it('the list: search by username prefix, filters, e-mail for staff', async () => {
     const u = await makeUser({ username: `procura_${Date.now().toString(36)}`.slice(0, 20) });
     const byMod = await hit(usersRoute, 'GET', `/api/v1/admin/users?q=${u.username}`, {
       who: await as('MODERATOR'),
     });
     const list = byMod.json.users as { id: string; email: string | null }[];
     expect(list.map((x) => x.id)).toEqual([u.id]);
-    expect(list[0]!.email).toBeNull();
+    expect(list[0]!.email).toBe(u.email);
     const bySt = await hit(usersRoute, 'GET', `/api/v1/admin/users?q=${u.username}`, {
       who: await as('STREAMER'),
     });

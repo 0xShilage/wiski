@@ -105,7 +105,7 @@ describe('contact form', () => {
     expect(s).toEqual([201, 201, 201, 201, 201, 429]);
   });
 
-  it('inbox (streamer): list, mark, delete — audited without the content; purge after the date', async () => {
+  it('inbox (streamer and moderators): list, mark, delete — audited without the content; purge after the date', async () => {
     await send(contactBody({ subject: 'Para a caixa de entrada' }));
     const st = await as('STREAMER');
     const list = await hit(inboxRoute, 'GET', '/api/v1/admin/contact', { who: st });
@@ -115,7 +115,7 @@ describe('contact form', () => {
     expect(
       (await hit(inboxRoute, 'GET', '/api/v1/admin/contact', { who: await as('MODERATOR') })).res
         .status,
-    ).toBe(404);
+    ).toBe(200);
     await hit(contactPatchRoute, 'PATCH', '', {
       who: st,
       params: { id: m.id },
@@ -190,7 +190,7 @@ describe('goals and media kit', () => {
     expect(JSON.stringify(pub.json)).not.toContain('2000');
   });
 
-  it('goal edits and deletes are audited; bad windows refused; moderators get 404', async () => {
+  it('goal edits and deletes are audited; bad windows refused; moderators see them too', async () => {
     const st = await as('STREAMER');
     const c = await hit(goalCreateRoute, 'POST', '', {
       who: st,
@@ -218,7 +218,7 @@ describe('goals and media kit', () => {
     expect(
       await db().auditLog.count({ where: { targetId: id, action: { startsWith: 'goal.' } } }),
     ).toBe(3);
-    expect((await hit(goalsRoute, 'GET', '', { who: await as('MODERATOR') })).res.status).toBe(404);
+    expect((await hit(goalsRoute, 'GET', '', { who: await as('MODERATOR') })).res.status).toBe(200);
   });
 
   it('media kit numbers: manual values set and cleared by the streamer', async () => {

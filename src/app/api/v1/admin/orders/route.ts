@@ -4,7 +4,7 @@ import { ordersQuery } from '@/server/admin/input';
 import { listOrders, orderCounts } from '@/server/checkout/admin';
 
 /** GET /api/v1/admin/orders?status=&texts=1&code=&before= — orders (texts=1: only the ones that
- *  carry a name or message; e-mails for the streamer only). */
+ *  carry a name or message; with e-mails). */
 export const GET = route<'moderator', undefined, typeof ordersQuery>(
   { methods: ['GET'], access: 'moderator', rateLimit: RL.admin, query: ordersQuery },
   async ({ query, user }) => ({

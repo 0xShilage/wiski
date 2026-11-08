@@ -6,9 +6,9 @@ import { getSettings } from '@/server/admin/settings';
 
 export const metadata: Metadata = { title: 'Configurações' };
 
-/** /admin/configuracoes — streamer only (moderators: 404), passkey ≤ 10 min. */
+/** /admin/configuracoes — moderators and the streamer (2026-11-08), passkey ≤ 10 min. */
 export default async function ConfiguracoesPage() {
-  const p = await adminPage('/admin/configuracoes', { streamer: true });
+  const p = await adminPage('/admin/configuracoes');
   if ('gate' in p) return p.gate;
   return (
     <AdminShell

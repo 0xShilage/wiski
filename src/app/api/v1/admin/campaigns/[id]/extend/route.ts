@@ -6,10 +6,10 @@ import { uuidParam } from '@/server/http/params';
 import { RL } from '@/server/ratelimit/rules';
 
 /** POST /api/v1/admin/campaigns/[id]/extend — new deadline (shown publicly). `[id]` = item id. */
-export const POST = route<'streamer', typeof extendCampaignInput, undefined, { id: string }>(
+export const POST = route<'moderator', typeof extendCampaignInput, undefined, { id: string }>(
   {
     methods: ['POST'],
-    access: 'streamer',
+    access: 'moderator',
     stepUp: true,
     rateLimit: RL.adminWrite,
     body: extendCampaignInput,

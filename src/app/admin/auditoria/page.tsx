@@ -6,9 +6,9 @@ import { auditPage } from '@/server/audit/viewer';
 
 export const metadata: Metadata = { title: 'Auditoria' };
 
-/** /admin/auditoria — streamer only (moderators: 404), passkey ≤ 10 min. */
+/** /admin/auditoria — moderators and the streamer (2026-11-08), passkey ≤ 10 min. */
 export default async function AuditoriaPage() {
-  const p = await adminPage('/admin/auditoria', { streamer: true });
+  const p = await adminPage('/admin/auditoria');
   if ('gate' in p) return p.gate;
   return (
     <AdminShell

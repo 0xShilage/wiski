@@ -324,3 +324,18 @@ Two **StreamElements chat commands** bring them back for two minutes and answer 
 | `!fila` | `$(customapi https://wiski.fun/api/v1/subathon/command?a=fila&k=<key>)` | 📋 Próximos na live: 1. … · 2. … · 3. … / A fila está vazia por enquanto. |
 
 Same endpoint and key as `!pausar`/`!retomar`/`!tempo` (Admin › Subathon › Comandos no chat lists all five when a key is created); they work with or without a subathon. Suggested StreamElements settings: everyone, 30-second cooldown. The command sets `wf:overlay:show:<widget>` in Redis for two minutes and publishes a `show` event; a source that connects meanwhile is shown for the time left (`pendingShow`). Code: `src/server/overlay/show.ts`, `OverlayClient` (`popIn`), `.wf-overlay__box.is-away`.
+
+## 17. Moderators get almost every streamer permission (2026-11-08)
+
+Requested by the streamer: the moderation team runs the channel day to day. Every admin endpoint that was `access: 'streamer'` is now `access: 'moderator'`, **except two**, which stay with the streamer:
+
+- **Refunds** (`POST /api/v1/admin/orders/[id]/refund`): money leaving the Mercado Pago account.
+- **Role changes** (`POST /api/v1/admin/users/[id]/role`): who is a moderator. Without this, a moderator could promote anyone or remove the others.
+
+The streamer's own account stays protected (cannot be suspended, edited or erased from the dashboard), and a moderator must still be demoted before being suspended.
+
+What moderators can do now: every dashboard section (Análise, Overlays, Metas, Subathon and chat commands, Media kit, Links, Contato, Cupons, Auditoria, Configurações), "Já pago" and its undo, accepting a NEEDS_ATTENTION order, opening campaigns / extending deadlines / lowering goals, the manual movie price, cancelling a planned session, VIP, "Liberar pedidos", suspensions of any length or until lifted (and lifting them), REMOVE on a review, cancelling a Roleta prize, and seeing contact e-mails and the MP payment id.
+
+The step-up rules apply to the action, not the role: every route that had `stepUp: true` keeps it, so a moderator also confirms with a recent Google login (10 min) for money actions, overlay keys, coupons, settings, VIP, and suspensions longer than 7 days or without a date. The second factor (authenticator or passkey) is required as before. Every action stays audited with the actor.
+
+The sidebar shows the former "Streamer" group as "Canal" to everyone on staff; the "Reembolsar" and "Tornar moderação / Tirar da moderação" buttons are shown to the streamer only.

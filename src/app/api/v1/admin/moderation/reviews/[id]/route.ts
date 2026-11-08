@@ -6,7 +6,7 @@ import { moderate } from '@/server/reviews/moderation';
 
 /**
  * POST /api/v1/admin/moderation/reviews/[id] — `{action: HIDE|RESTORE|DISMISS|REMOVE,
- * expectedStatus}`. MODERATOR+ with a passkey; REMOVE is STREAMER-only. Audited.
+ * expectedStatus}`. MODERATOR+ with a passkey; REMOVE too (2026-11-08). Audited.
  */
 export const POST = route<'moderator', typeof moderationInput, undefined, { id: string }>(
   { methods: ['POST'], access: 'moderator', rateLimit: RL.adminWrite, body: moderationInput },

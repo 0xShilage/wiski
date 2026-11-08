@@ -6,10 +6,10 @@ import { uuidParam } from '@/server/http/params';
 import { RL } from '@/server/ratelimit/rules';
 
 /** POST /api/v1/admin/campaigns/[id]/goal — lower the goal (never below raised + reserved). */
-export const POST = route<'streamer', typeof goalInput, undefined, { id: string }>(
+export const POST = route<'moderator', typeof goalInput, undefined, { id: string }>(
   {
     methods: ['POST'],
-    access: 'streamer',
+    access: 'moderator',
     stepUp: true,
     rateLimit: RL.adminWrite,
     body: goalInput,

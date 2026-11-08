@@ -126,7 +126,7 @@ describe('sessions', () => {
     expect(n.res.status).toBe(422);
   });
 
-  it('cancel (streamer only) sends everything back to the queue and frees the capacity', async () => {
+  it('cancel (moderators too, since 2026-11-08) sends everything back to the queue and frees the capacity', async () => {
     const mod = await as('MODERATOR');
     const s = await makeSession();
     const { order: o } = await paidMovie({ runtime: 120 });
@@ -134,14 +134,8 @@ describe('sessions', () => {
     await sched(mod, { action: 'add', target: T('ORDER', o.id, 0), sessionId: s.id });
     await sched(mod, { action: 'add', target: T('CAMPAIGN', campaign.id, 0), sessionId: s.id });
     expect((await session(s.id)).bookedMinutes).toBe(120);
-    const byMod = await hit(cancelRoute, 'POST', '', {
-      who: mod,
-      params: { id: s.id },
-      body: { expectedVersion: 0 },
-    });
-    expect(byMod.res.status).toBe(404); // streamer-only route
     const r = await hit(cancelRoute, 'POST', '', {
-      who: await as('STREAMER'),
+      who: mod,
       params: { id: s.id },
       body: { expectedVersion: 0 },
     });

@@ -4,8 +4,8 @@ import { contactQuery } from '@/server/admin/input';
 import { listContact } from '@/server/contact/contact';
 
 /** GET /api/v1/admin/contact?status=&before= — the contact inbox. */
-export const GET = route<'streamer', undefined, typeof contactQuery>(
-  { methods: ['GET'], access: 'streamer', rateLimit: RL.admin, query: contactQuery },
+export const GET = route<'moderator', undefined, typeof contactQuery>(
+  { methods: ['GET'], access: 'moderator', rateLimit: RL.admin, query: contactQuery },
   async ({ query }) =>
     listContact({
       ...(query.status ? { status: query.status } : {}),

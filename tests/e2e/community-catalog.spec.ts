@@ -1,7 +1,7 @@
 /**
  * 2026-11-04 end to end: catalog filters and sort on the home grid (kept in the address), a paid
  * movie's "Na fila" card, /ranking from the dev seed, badges on /perfil and the public profile
- * with the opt-out switch, and Admin › Análise for the streamer (moderators: 404).
+ * with the opt-out switch, and Admin › Análise for staff.
  */
 import { expect, test } from '@playwright/test';
 import { seedUser, signIn, withDb } from './support/seed';

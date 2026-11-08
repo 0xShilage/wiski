@@ -58,8 +58,6 @@ export const RoletaProblems = {
     ),
   notPending: () =>
     new HttpError(409, 'ROLETA_NOT_PENDING', 'Este prêmio já foi entregue ou cancelado.'),
-  streamerOnly: () =>
-    new HttpError(403, 'ROLETA_STREAMER_ONLY', 'Só o streamer pode cancelar um prêmio.'),
   badMove: () =>
     new HttpError(409, 'ROLETA_BAD_STATUS', 'Esta mudança não é possível para este prêmio.'),
 };
@@ -402,8 +400,6 @@ export async function setRoletaStatus(
   now = new Date(),
 ): Promise<void> {
   if (input.status === input.expectedStatus) return;
-  if (input.status === 'CANCELLED' && ctx.actor.role !== 'STREAMER')
-    throw RoletaProblems.streamerOnly();
   if (input.expectedStatus === 'CANCELLED') throw RoletaProblems.badMove();
   await db().$transaction(async (t) => {
     const row = await t.roletaSpin.findUnique({

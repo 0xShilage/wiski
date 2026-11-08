@@ -6,8 +6,8 @@ import { subathonAdminView } from '@/server/subathon/admin';
 import { changeStatus } from '@/server/subathon/timer';
 
 /** POST /api/v1/admin/subathon/[id]/action — start, pause, resume or end the timer. */
-export const POST = route<'streamer', typeof subathonActionInput, undefined, { id: string }>(
-  { methods: ['POST'], access: 'streamer', rateLimit: RL.adminWrite, body: subathonActionInput },
+export const POST = route<'moderator', typeof subathonActionInput, undefined, { id: string }>(
+  { methods: ['POST'], access: 'moderator', rateLimit: RL.adminWrite, body: subathonActionInput },
   async ({ user, requestId, body, params }) => {
     await changeStatus(
       { actor: user, requestId },

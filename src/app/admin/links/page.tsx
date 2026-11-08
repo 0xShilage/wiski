@@ -6,9 +6,9 @@ import { listLinks } from '@/server/links/links';
 
 export const metadata: Metadata = { title: 'Links' };
 
-/** /admin/links — the Links page's buttons (streamer only; moderators: 404). */
+/** /admin/links — the Links page's buttons (moderators and the streamer). */
 export default async function LinksAdminPage() {
-  const p = await adminPage('/admin/links', { streamer: true });
+  const p = await adminPage('/admin/links');
   if ('gate' in p) return p.gate;
   return (
     <AdminShell

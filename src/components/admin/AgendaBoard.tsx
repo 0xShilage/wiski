@@ -97,7 +97,7 @@ function guessMinutes(e: AgendaEntry, p: { from: number; to: number; film: numbe
  * franchise one film at a time, and stays in the queue until its last part is marked "fim da
  * série"; any session can also carry a custom event ("Jogando com os Viewers").
  */
-export function AgendaBoard({ initial, role }: { initial: Data; role: 'MODERATOR' | 'STREAMER' }) {
+export function AgendaBoard({ initial }: { initial: Data; role: 'MODERATOR' | 'STREAMER' }) {
   const id = useId();
   const [data, setData] = useState(initial);
   const [busy, setBusy] = useState(false);
@@ -811,7 +811,7 @@ export function AgendaBoard({ initial, role }: { initial: Data; role: 'MODERATOR
                     Mudar capacidade
                   </button>
                 ) : null}
-                {role === 'STREAMER' && s.status === 'PLANNED' ? (
+                {s.status === 'PLANNED' ? (
                   <button
                     type="button"
                     className="wf-linkbtn text-xs"

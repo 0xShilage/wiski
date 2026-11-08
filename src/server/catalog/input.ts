@@ -86,7 +86,7 @@ export const itemFieldsInput = z
     logoId: mediaId,
     /** MOVIE: title drawn over the poster in the carousel ("Adicionar texto?") */
     posterTitle: z.boolean(),
-    /** MOVIE: price set by hand (cents, R$ 5–2.000); null = by runtime. Streamer only. */
+    /** MOVIE: price set by hand (cents, R$ 5–2.000); null = by runtime. */
     manualPriceCents: z.int().min(500).max(200_000).nullable(),
     franchiseEntries: z.array(franchiseEntryInput).max(30),
     /** Planned slot for a draft (the slot it will take when published). */

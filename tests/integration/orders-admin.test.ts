@@ -58,13 +58,12 @@ const refund = (who: Who, id: string, body: unknown, key = randomUUID()) =>
   });
 
 describe('list and detail', () => {
-  it('moderators see the public name, the streamer also the e-mail and the MP id', async () => {
+  it('moderators and the streamer see the public name, the e-mail and the MP id (2026-11-08)', async () => {
     const { order } = await paidMovieOrder({ contactEmail: 'fulana@example.com' });
     const mod = await as('MODERATOR');
     const s = await as('STREAMER');
     const byMod = await hit(getRoute, 'GET', '', { who: mod, params: { id: order.id } });
-    expect((byMod.json.order as { email: string | null }).email).toBeNull();
-    expect(JSON.stringify(byMod.json)).not.toContain('fulana@example.com');
+    expect((byMod.json.order as { email: string | null }).email).toBe('fulana@example.com');
     const bySt = await hit(getRoute, 'GET', '', { who: s, params: { id: order.id } });
     expect(bySt.json.order).toMatchObject({ email: 'fulana@example.com', code: order.publicCode });
     const list = await hit(listRoute, 'GET', '/api/v1/admin/orders?status=PAID', { who: mod });

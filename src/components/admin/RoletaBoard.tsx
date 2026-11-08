@@ -36,7 +36,7 @@ const HOW: Partial<Record<RoletaPrize, string>> = {
  * VIP are given by hand and marked delivered here; coupons are delivered by the system. The
  * streamer can switch the wheel off and cancel a prize (a coupon's voucher is switched off too).
  */
-export function RoletaBoard({ initial, streamer }: { initial: Page; streamer: boolean }) {
+export function RoletaBoard({ initial }: { initial: Page }) {
   const [page, setPage] = useState(initial);
   const [status, setStatus] = useState<RoletaPrizeStatus>('PENDING');
   const [busy, setBusy] = useState(false);
@@ -76,7 +76,7 @@ export function RoletaBoard({ initial, streamer }: { initial: Page; streamer: bo
           {page.today.spins === 1 ? 'giro' : 'giros'} · <strong>{page.today.prizes}</strong>{' '}
           {page.today.prizes === 1 ? 'prêmio' : 'prêmios'}
         </p>
-        {streamer ? (
+        <>
           <label className="wf-switch">
             <input
               type="checkbox"
@@ -92,9 +92,7 @@ export function RoletaBoard({ initial, streamer }: { initial: Page; streamer: bo
             />
             Roleta aberta para o público
           </label>
-        ) : (
-          <p className="wf-muted">Roleta {page.open ? 'aberta' : 'fechada'}.</p>
-        )}
+        </>
       </div>
       <div className="wf-seg" role="group" aria-label="Situação">
         {(
@@ -167,7 +165,7 @@ export function RoletaBoard({ initial, streamer }: { initial: Page; streamer: bo
                   Desfazer entrega
                 </button>
               ) : null}
-              {streamer && p.status !== 'CANCELLED' ? (
+              {p.status !== 'CANCELLED' ? (
                 <button
                   type="button"
                   className="wf-btn wf-btn--sm wf-btn--ghost"

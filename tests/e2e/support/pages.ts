@@ -51,7 +51,8 @@ export const PAGES: PageCase[] = [
   { name: 'cupons', path: '/admin/cupons', auth: 'streamer', shell: false },
   { name: 'auditoria', path: '/admin/auditoria', auth: 'streamer', shell: false },
   { name: 'configuracoes', path: '/admin/configuracoes', auth: 'streamer', shell: false },
-  { name: 'streamer-bloqueado', path: '/admin/overlays', auth: 'admin', status: 404, shell: false },
+  // moderators open the channel sections too (2026-11-08)
+  { name: 'overlays-moderacao', path: '/admin/overlays', auth: 'admin', shell: false },
   { name: 'overlay-sem-chave', path: '/overlay/fila', shell: false },
   // Phase 6: links page, suggestions
   { name: 'links', path: '/links' },
@@ -65,7 +66,7 @@ export const PAGES: PageCase[] = [
   { name: 'estreias-admin', path: '/admin/estreias', auth: 'admin', shell: false },
   // 2026-11-03: subathon timer
   { name: 'subathon-admin', path: '/admin/subathon', auth: 'streamer', shell: false },
-  { name: 'subathon-bloqueado', path: '/admin/subathon', auth: 'admin', status: 404, shell: false },
+  { name: 'subathon-moderacao', path: '/admin/subathon', auth: 'admin', shell: false },
   // 2026-11-04: Roleta
   { name: 'roleta-entrar', path: '/roleta' },
   { name: 'roleta', path: '/roleta', auth: 'user' },
@@ -77,5 +78,5 @@ export const PAGES: PageCase[] = [
   { name: 'series-filtradas', path: '/series?ordem=meta' },
   { name: 'analise', path: '/admin/analise', auth: 'streamer', shell: false },
   { name: 'analise-12-meses', path: '/admin/analise?periodo=365', auth: 'streamer', shell: false },
-  { name: 'analise-bloqueada', path: '/admin/analise', auth: 'admin', status: 404, shell: false },
+  { name: 'analise-moderacao', path: '/admin/analise', auth: 'admin', shell: false },
 ];

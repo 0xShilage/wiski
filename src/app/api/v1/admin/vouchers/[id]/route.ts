@@ -5,10 +5,10 @@ import { voucherUpdateInput } from '@/server/admin/input';
 import { updateVoucher } from '@/server/admin/vouchers';
 
 /** PATCH /api/v1/admin/vouchers/[id] — turn off, change the end date or the usage cap; step-up. */
-export const PATCH = route<'streamer', typeof voucherUpdateInput, undefined, { id: string }>(
+export const PATCH = route<'moderator', typeof voucherUpdateInput, undefined, { id: string }>(
   {
     methods: ['PATCH'],
-    access: 'streamer',
+    access: 'moderator',
     stepUp: true,
     rateLimit: RL.adminWrite,
     body: voucherUpdateInput,

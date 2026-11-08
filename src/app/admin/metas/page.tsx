@@ -6,9 +6,9 @@ import { listGoals } from '@/server/goals/goals';
 
 export const metadata: Metadata = { title: 'Metas' };
 
-/** /admin/metas — streamer only (moderators: 404), passkey ≤ 10 min. */
+/** /admin/metas — moderators and the streamer (2026-11-08), passkey ≤ 10 min. */
 export default async function MetasPage() {
-  const p = await adminPage('/admin/metas', { streamer: true });
+  const p = await adminPage('/admin/metas');
   if ('gate' in p) return p.gate;
   return (
     <AdminShell

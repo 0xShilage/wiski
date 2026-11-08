@@ -134,15 +134,15 @@ export const MATRIX: Row[] = [
     contentType: 'application/octet-stream',
   }),
   // money actions (STREAMER, passkey + step-up)
-  R('/api/v1/admin/campaigns/[id]/open', 'POST', 'streamer', {
+  R('/api/v1/admin/campaigns/[id]/open', 'POST', 'moderator', {
     params: { id: NO_ID },
     body: { expectedVersion: 1 },
   }),
-  R('/api/v1/admin/campaigns/[id]/extend', 'POST', 'streamer', {
+  R('/api/v1/admin/campaigns/[id]/extend', 'POST', 'moderator', {
     params: { id: NO_ID },
     body: { days: 7 },
   }),
-  R('/api/v1/admin/campaigns/[id]/goal', 'POST', 'streamer', {
+  R('/api/v1/admin/campaigns/[id]/goal', 'POST', 'moderator', {
     params: { id: NO_ID },
     body: { goalCents: 10000 },
   }),
@@ -238,7 +238,7 @@ export const MATRIX: Row[] = [
     params: { id: NO_ID },
     body: VERSION0,
   }),
-  R('/api/v1/admin/sessions/[id]/cancel', 'POST', 'streamer', {
+  R('/api/v1/admin/sessions/[id]/cancel', 'POST', 'moderator', {
     params: { id: NO_ID },
     body: VERSION0,
   }),
@@ -262,16 +262,16 @@ export const MATRIX: Row[] = [
     params: { id: NO_ID },
     body: { expectedVersion: 0, message: 'APPROVED' },
   }),
-  R('/api/v1/admin/orders/[id]/accept', 'POST', 'streamer', {
+  R('/api/v1/admin/orders/[id]/accept', 'POST', 'moderator', {
     params: { id: NO_ID },
     body: VERSION0,
   }),
-  R('/api/v1/admin/orders/[id]/undo', 'POST', 'streamer', {
+  R('/api/v1/admin/orders/[id]/undo', 'POST', 'moderator', {
     params: { id: NO_ID },
     body: VERSION0,
   }),
-  R('/api/v1/admin/orders/manual', 'GET', 'streamer'),
-  R('/api/v1/admin/orders/manual', 'POST', 'streamer', {
+  R('/api/v1/admin/orders/manual', 'GET', 'moderator'),
+  R('/api/v1/admin/orders/manual', 'POST', 'moderator', {
     body: { itemId: NO_ID, idempotencyKey: NO_ID },
   }),
   R('/api/v1/admin/orders/[id]/refund', 'POST', 'streamer', {
@@ -289,18 +289,18 @@ export const MATRIX: Row[] = [
     params: { id: NO_ID },
     body: { role: 'MODERATOR' },
   }),
-  R('/api/v1/admin/users/[id]/vip', 'POST', 'streamer', {
+  R('/api/v1/admin/users/[id]/vip', 'POST', 'moderator', {
     params: { id: NO_ID },
     body: { vip: true },
   }),
-  R('/api/v1/admin/users/[id]/unthrottle', 'POST', 'streamer', { params: { id: NO_ID } }),
+  R('/api/v1/admin/users/[id]/unthrottle', 'POST', 'moderator', { params: { id: NO_ID } }),
   R('/api/v1/me/export', 'GET', 'user'),
   R('/api/v1/me/erase', 'POST', 'user', { body: { confirmUsername: 'nao-confere' } }),
-  R('/api/v1/admin/overlay-keys', 'GET', 'streamer'),
-  R('/api/v1/admin/overlay-keys', 'POST', 'streamer', {
+  R('/api/v1/admin/overlay-keys', 'GET', 'moderator'),
+  R('/api/v1/admin/overlay-keys', 'POST', 'moderator', {
     body: { label: 'Matriz', widgets: ['agora'] },
   }),
-  R('/api/v1/admin/overlay-keys/[id]', 'DELETE', 'streamer', { params: { id: NO_ID } }),
+  R('/api/v1/admin/overlay-keys/[id]', 'DELETE', 'moderator', { params: { id: NO_ID } }),
   // overlay credentials are the key / the overlay cookie, not a role: 401 without them
   R('/api/v1/overlay/session', 'POST', 'public', {
     body: { key: `wfo_${'A'.repeat(43)}` },
@@ -310,8 +310,8 @@ export const MATRIX: Row[] = [
     url: '/api/v1/overlay/stream?widget=agora',
     alsoAllowed: [401],
   }),
-  R('/api/v1/admin/goals', 'GET', 'streamer'),
-  R('/api/v1/admin/goals', 'POST', 'streamer', {
+  R('/api/v1/admin/goals', 'GET', 'moderator'),
+  R('/api/v1/admin/goals', 'POST', 'moderator', {
     body: {
       title: 'Matriz',
       metric: 'SPONSORSHIP_COUNT',
@@ -319,14 +319,14 @@ export const MATRIX: Row[] = [
       startsAt: '2030-01-01T00:00:00.000Z',
     },
   }),
-  R('/api/v1/admin/goals/[id]', 'PATCH', 'streamer', {
+  R('/api/v1/admin/goals/[id]', 'PATCH', 'moderator', {
     params: { id: NO_ID },
     body: { target: 5 },
   }),
-  R('/api/v1/admin/goals/[id]', 'DELETE', 'streamer', { params: { id: NO_ID } }),
+  R('/api/v1/admin/goals/[id]', 'DELETE', 'moderator', { params: { id: NO_ID } }),
   // subathon timer (2026-11-03): streamer only
-  R('/api/v1/admin/subathon', 'GET', 'streamer'),
-  R('/api/v1/admin/subathon', 'POST', 'streamer', {
+  R('/api/v1/admin/subathon', 'GET', 'moderator'),
+  R('/api/v1/admin/subathon', 'POST', 'moderator', {
     body: {
       title: 'Matriz',
       initialSeconds: 3600,
@@ -352,28 +352,28 @@ export const MATRIX: Row[] = [
       },
     },
   }),
-  R('/api/v1/admin/subathon/[id]', 'PATCH', 'streamer', {
+  R('/api/v1/admin/subathon/[id]', 'PATCH', 'moderator', {
     params: { id: NO_ID },
     body: { expectedVersion: 0, title: 'Matriz' },
   }),
-  R('/api/v1/admin/subathon/[id]/action', 'POST', 'streamer', {
+  R('/api/v1/admin/subathon/[id]/action', 'POST', 'moderator', {
     params: { id: NO_ID },
     body: { action: 'start', expectedVersion: 0 },
   }),
-  R('/api/v1/admin/subathon/[id]/adjust', 'POST', 'streamer', {
+  R('/api/v1/admin/subathon/[id]/adjust', 'POST', 'moderator', {
     params: { id: NO_ID },
     body: { seconds: 60, idempotencyKey: '00000000-0000-4000-8000-000000000001' },
   }),
   // subathon chat commands (2026-11-04): the key is the streamer's; the command answers with a key
-  R('/api/v1/admin/subathon/command-key', 'POST', 'streamer'),
-  R('/api/v1/admin/subathon/command-key', 'DELETE', 'streamer'),
+  R('/api/v1/admin/subathon/command-key', 'POST', 'moderator'),
+  R('/api/v1/admin/subathon/command-key', 'DELETE', 'moderator'),
   R('/api/v1/subathon/command', 'GET', 'public', {
     url: `/api/v1/subathon/command?a=tempo&k=wfc_${'A'.repeat(43)}`,
     // authenticates by its key, not by role (subathon.test.ts): a wrong key is 401 for everyone
     alsoAllowed: [401],
   }),
-  R('/api/v1/admin/stats', 'GET', 'streamer'),
-  R('/api/v1/admin/stats', 'PUT', 'streamer', {
+  R('/api/v1/admin/stats', 'GET', 'moderator'),
+  R('/api/v1/admin/stats', 'PUT', 'moderator', {
     body: { platform: 'KICK', metric: 'followers', value: null },
   }),
   R('/api/v1/stats', 'GET', 'public'),
@@ -388,18 +388,18 @@ export const MATRIX: Row[] = [
     },
     headers: { 'x-turnstile-token': 'tok' },
   }),
-  R('/api/v1/admin/contact', 'GET', 'streamer'),
-  R('/api/v1/admin/contact/[id]', 'PATCH', 'streamer', {
+  R('/api/v1/admin/contact', 'GET', 'moderator'),
+  R('/api/v1/admin/contact/[id]', 'PATCH', 'moderator', {
     params: { id: NO_ID },
     body: { status: 'READ' },
   }),
-  R('/api/v1/admin/contact/[id]', 'DELETE', 'streamer', { params: { id: NO_ID } }),
-  R('/api/v1/admin/audit', 'GET', 'streamer'),
-  R('/api/v1/admin/audit/export', 'GET', 'streamer'),
-  R('/api/v1/admin/settings', 'GET', 'streamer'),
-  R('/api/v1/admin/settings', 'PUT', 'streamer', { body: { ordersOpen: true } }),
-  R('/api/v1/admin/vouchers', 'GET', 'streamer'),
-  R('/api/v1/admin/vouchers', 'POST', 'streamer', {
+  R('/api/v1/admin/contact/[id]', 'DELETE', 'moderator', { params: { id: NO_ID } }),
+  R('/api/v1/admin/audit', 'GET', 'moderator'),
+  R('/api/v1/admin/audit/export', 'GET', 'moderator'),
+  R('/api/v1/admin/settings', 'GET', 'moderator'),
+  R('/api/v1/admin/settings', 'PUT', 'moderator', { body: { ordersOpen: true } }),
+  R('/api/v1/admin/vouchers', 'GET', 'moderator'),
+  R('/api/v1/admin/vouchers', 'POST', 'moderator', {
     body: {
       code: `MATRIZ-${Date.now().toString(36).toUpperCase()}`.slice(0, 32),
       kind: 'PERCENT',
@@ -407,22 +407,22 @@ export const MATRIX: Row[] = [
       maxPerUser: 1,
     },
   }),
-  R('/api/v1/admin/vouchers/[id]', 'PATCH', 'streamer', {
+  R('/api/v1/admin/vouchers/[id]', 'PATCH', 'moderator', {
     params: { id: NO_ID },
     body: { active: false },
   }),
 
   // ── Phase 6 (links page, suggestions) ──
-  R('/api/v1/admin/links', 'GET', 'streamer'),
-  R('/api/v1/admin/links', 'POST', 'streamer', {
+  R('/api/v1/admin/links', 'GET', 'moderator'),
+  R('/api/v1/admin/links', 'POST', 'moderator', {
     body: { label: 'Matriz', url: 'https://example.com/matriz' },
   }),
-  R('/api/v1/admin/links/[id]', 'PATCH', 'streamer', {
+  R('/api/v1/admin/links/[id]', 'PATCH', 'moderator', {
     params: { id: NO_ID },
     body: { visible: false },
   }),
-  R('/api/v1/admin/links/[id]', 'DELETE', 'streamer', { params: { id: NO_ID } }),
-  R('/api/v1/admin/links/order', 'PUT', 'streamer', { body: { ids: [] } }),
+  R('/api/v1/admin/links/[id]', 'DELETE', 'moderator', { params: { id: NO_ID } }),
+  R('/api/v1/admin/links/order', 'PUT', 'moderator', { body: { ids: [] } }),
   R('/api/v1/suggestions', 'POST', 'user', {
     body: { kind: 'MOVIE', title: `Matriz ${Date.now()}` },
   }),
@@ -443,7 +443,7 @@ export const MATRIX: Row[] = [
     params: { id: NO_ID },
     body: { status: 'DELIVERED', expectedStatus: 'PENDING' },
   }),
-  R('/api/v1/admin/roleta/open', 'PUT', 'streamer', { body: { open: true } }),
+  R('/api/v1/admin/roleta/open', 'PUT', 'moderator', { body: { open: true } }),
   // "Próximas temporadas" (Admin › Estreias)
   R('/api/v1/admin/releases', 'GET', 'moderator'),
   R('/api/v1/admin/releases', 'POST', 'moderator', {

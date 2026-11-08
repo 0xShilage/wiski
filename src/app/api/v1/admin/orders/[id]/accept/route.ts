@@ -5,10 +5,10 @@ import { versionInput } from '@/server/admin/input';
 import { acceptOrder } from '@/server/checkout/admin';
 
 /** POST /api/v1/admin/orders/[id]/accept — streamer: a NEEDS_ATTENTION order with an approved Pix becomes a sale. */
-export const POST = route<'streamer', typeof versionInput, undefined, { id: string }>(
+export const POST = route<'moderator', typeof versionInput, undefined, { id: string }>(
   {
     methods: ['POST'],
-    access: 'streamer',
+    access: 'moderator',
     stepUp: true,
     rateLimit: RL.adminWrite,
     body: versionInput,

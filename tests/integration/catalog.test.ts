@@ -440,13 +440,16 @@ describe('campaigns (STREAMER + step-up + passkey)', () => {
     return item!;
   }
 
-  it('moderators cannot open; a stale Google login → STEP_UP_REQUIRED; the streamer opens with the formula goal', async () => {
+  it('a stale Google login → STEP_UP_REQUIRED (moderator or streamer); the streamer opens with the formula goal', async () => {
     const s = await preparedSeries();
     expect(s.formulaGoalCents).toBe(30000);
     const path = `/api/v1/admin/campaigns/${s.id}/open`;
-    expect((await post(openRoute.POST, path, s.id, { expectedVersion: s.version })).status).toBe(
-      404,
+    const staleMod = await signedIn(
+      await makeUser({ role: 'MODERATOR' }),
+      new Date(Date.now() - 30 * 60_000),
     );
+    const r0 = await post(openRoute.POST, path, s.id, { expectedVersion: s.version }, staleMod);
+    expect(await r0.json()).toMatchObject({ code: 'STEP_UP_REQUIRED' });
     const stale = await signedIn(streamerUser, new Date(Date.now() - 30 * 60_000));
     const r1 = await post(openRoute.POST, path, s.id, { expectedVersion: s.version }, stale);
     expect(r1.status).toBe(401);

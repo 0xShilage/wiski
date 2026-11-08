@@ -226,7 +226,7 @@ describe('Admin › Roleta', () => {
     );
   });
 
-  it('delivered / undo by moderators with compare-and-set; cancel is the streamer’s and switches the coupon off', async () => {
+  it('delivered / undo by moderators with compare-and-set; cancel (moderators too, since 2026-11-08) switches the coupon off', async () => {
     const u = await makeUser();
     const film = (await spinRoleta(u, null, T0, FILME)).won!;
     const coupon = (await spinRoleta(u, null, T0, COUPON)).won!;
@@ -242,10 +242,7 @@ describe('Admin › Roleta', () => {
     const stale = await move(mod, film.id, 'DELIVERED', 'PENDING');
     expect(stale.res.status).toBe(409);
     expect(stale.json.code).toBe('ROLETA_CHANGED');
-    expect((await move(mod, film.id, 'CANCELLED', 'PENDING')).json.code).toBe(
-      'ROLETA_STREAMER_ONLY',
-    );
-    expect((await move(st, film.id, 'CANCELLED', 'PENDING')).json.code).toBe('ROLETA_CHANGED');
+    expect((await move(mod, film.id, 'CANCELLED', 'PENDING')).json.code).toBe('ROLETA_CHANGED');
     expect((await move(mod, film.id, 'PENDING', 'DELIVERED')).res.status).toBe(200);
     expect(
       (await db().roletaSpin.findUniqueOrThrow({ where: { id: film.id } })).deliveredAt,

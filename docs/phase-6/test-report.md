@@ -223,3 +223,9 @@ Fix (PR "fix-prefetch-burst"): no prefetch on the header tabs, the phone bar, th
 - `tests/integration/overlay-commands.test.ts` (3): `!agora` with nothing on and with a movie playing (title only, no sponsor name; one `show` event of 120 s; a new source gets the time left; `fila` unaffected); `!fila` empty and with four paid movies (the next three, one `show` event); a wrong key is 401 and shows nothing; an unknown action is 422.
 - `tests/e2e/operations.spec.ts`: with the page clock installed, "Próximos da fila" is visible on load, hidden after 2:05, back after `!fila`'s URL is called, hidden again after another 2:05.
 - Unit 375/375, integration 1102/1102, e2e operations and subathon green locally.
+
+## Addendum — moderators with almost every streamer permission (2026-11-08)
+
+- `tests/integration/authz.test.ts`: the matrix now expects `moderator` for every former streamer route except refunds and role changes (still `streamer`: moderators 404).
+- Updated to the new rule: a moderator cancels a planned session (`live.test.ts`), sets the manual movie price and registers "Já pago" with a fresh Google login (`manual-orders.test.ts`), a stale moderator opening a campaign gets STEP_UP_REQUIRED (`catalog.test.ts`), REMOVE on a review (`moderation.test.ts`), the contact inbox and goals (`operations.test.ts`), the Links list (`community.test.ts`), e-mails on orders and people (`orders-admin.test.ts`, `users-admin.test.ts`), suspensions longer than 7 days with step-up and lifting an indefinite one (`users-admin.test.ts`), cancelling a Roleta prize (`roleta.test.ts`).
+- Unit 375/375, integration 1102/1102.

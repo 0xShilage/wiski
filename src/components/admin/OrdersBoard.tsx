@@ -101,14 +101,14 @@ export function OrdersBoard({ initial, role }: { initial: Page; role: 'MODERATOR
           {toast.text}
         </p>
       ) : null}
-      {role === 'STREAMER' ? (
+      <>
         <ManualPaymentForm
           onDone={(text, ok) => {
             setToast({ ok, text });
             void load(filter);
           }}
         />
-      ) : null}
+      </>
       <div className="wf-seg" role="group" aria-label="Filtrar pedidos">
         {FILTERS.map((f) => (
           <button
@@ -237,7 +237,7 @@ export function OrdersBoard({ initial, role }: { initial: Page; role: 'MODERATOR
                 </div>
               ) : null}
 
-              {role === 'STREAMER' ? (
+              <>
                 <div className="wf-ops-actions">
                   {o.status === 'NEEDS_ATTENTION' &&
                   o.payment?.status === 'APPROVED' &&
@@ -281,7 +281,9 @@ export function OrdersBoard({ initial, role }: { initial: Page; role: 'MODERATOR
                       Desfazer registro
                     </button>
                   ) : null}
-                  {['PAID', 'SCHEDULED', 'NEEDS_ATTENTION'].includes(o.status) &&
+                  {/* refunds (money leaving the account) stay the streamer's call (2026-11-08) */}
+                  {role === 'STREAMER' &&
+                  ['PAID', 'SCHEDULED', 'NEEDS_ATTENTION'].includes(o.status) &&
                   o.payment?.status === 'APPROVED' ? (
                     <button
                       type="button"
@@ -293,7 +295,7 @@ export function OrdersBoard({ initial, role }: { initial: Page; role: 'MODERATOR
                     </button>
                   ) : null}
                 </div>
-              ) : null}
+              </>
             </li>
           ))}
         </ul>

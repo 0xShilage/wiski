@@ -6,9 +6,9 @@ import { listContact } from '@/server/contact/contact';
 
 export const metadata: Metadata = { title: 'Contato' };
 
-/** /admin/contato — streamer only (moderators: 404), passkey ≤ 10 min. */
+/** /admin/contato — moderators and the streamer (2026-11-08), passkey ≤ 10 min. */
 export default async function ContatoPage() {
-  const p = await adminPage('/admin/contato', { streamer: true });
+  const p = await adminPage('/admin/contato');
   if ('gate' in p) return p.gate;
   return (
     <AdminShell

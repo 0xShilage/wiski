@@ -5,8 +5,8 @@ import { versionInput } from '@/server/admin/input';
 import { cancelSession } from '@/server/live/schedule';
 
 /** POST /api/v1/admin/sessions/[id]/cancel — PLANNED → CANCELLED (streamer); everything on it goes back to the queue. */
-export const POST = route<'streamer', typeof versionInput, undefined, { id: string }>(
-  { methods: ['POST'], access: 'streamer', rateLimit: RL.adminWrite, body: versionInput },
+export const POST = route<'moderator', typeof versionInput, undefined, { id: string }>(
+  { methods: ['POST'], access: 'moderator', rateLimit: RL.adminWrite, body: versionInput },
   async ({ body, user, requestId, params }) => ({
     session: await cancelSession(
       { actor: user, requestId },

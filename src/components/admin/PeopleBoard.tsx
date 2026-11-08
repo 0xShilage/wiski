@@ -23,7 +23,7 @@ export function PeopleBoard({ initial, role }: { initial: Page; role: 'MODERATOR
   const [busy, setBusy] = useState(false);
   const [days, setDays] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null);
-  const options = role === 'STREAMER' ? ['1', '3', '7', '30', '90', 'sempre'] : ['1', '3', '7'];
+  const options = ['1', '3', '7', '30', '90', 'sempre'];
 
   async function load(f = filter, query = q, after?: string) {
     const params = new URLSearchParams();
@@ -146,17 +146,15 @@ export function PeopleBoard({ initial, role }: { initial: Page; role: 'MODERATOR
               </div>
             </div>
             <div className="wf-ops-actions">
-              {role === 'STREAMER' ? (
-                <button
-                  type="button"
-                  className="wf-btn wf-btn--sm wf-btn--ghost"
-                  disabled={busy}
-                  title="Zera os contadores de pedidos por hora e o bloqueio por cupom errado"
-                  onClick={() => void unthrottle(u)}
-                >
-                  Liberar pedidos
-                </button>
-              ) : null}
+              <button
+                type="button"
+                className="wf-btn wf-btn--sm wf-btn--ghost"
+                disabled={busy}
+                title="Zera os contadores de pedidos por hora e o bloqueio por cupom errado"
+                onClick={() => void unthrottle(u)}
+              >
+                Liberar pedidos
+              </button>
               {u.isVip ? <span className="wf-pill wf-pill--ok">VIP</span> : null}
               {u.status === 'SUSPENDED' ? (
                 <span className="wf-pill wf-pill--bad">
@@ -214,7 +212,7 @@ export function PeopleBoard({ initial, role }: { initial: Page; role: 'MODERATOR
                   </button>
                 </>
               ) : null}
-              {role === 'STREAMER' && u.role !== 'STREAMER' && u.status === 'ACTIVE' ? (
+              {u.role !== 'STREAMER' && u.status === 'ACTIVE' ? (
                 <>
                   <button
                     type="button"
@@ -230,27 +228,30 @@ export function PeopleBoard({ initial, role }: { initial: Page; role: 'MODERATOR
                   >
                     {u.isVip ? 'Tirar VIP' : 'Dar VIP'}
                   </button>
-                  <button
-                    type="button"
-                    className="wf-btn wf-btn--sm wf-btn--ghost"
-                    disabled={busy}
-                    onClick={() => {
-                      const to = u.role === 'USER' ? 'MODERATOR' : 'USER';
-                      if (
-                        window.confirm(
-                          to === 'MODERATOR'
-                            ? `Tornar @${u.username} moderador(a)? Vai precisar cadastrar uma passkey.`
-                            : `Tirar @${u.username} da moderação?`,
-                        )
-                      ) {
-                        void act('Papel alterado', `/api/v1/admin/users/${u.id}/role`, {
-                          role: to,
-                        });
-                      }
-                    }}
-                  >
-                    {u.role === 'USER' ? 'Tornar moderação' : 'Tirar da moderação'}
-                  </button>
+                  {/* who moderates stays the streamer's call (2026-11-08) */}
+                  {role === 'STREAMER' ? (
+                    <button
+                      type="button"
+                      className="wf-btn wf-btn--sm wf-btn--ghost"
+                      disabled={busy}
+                      onClick={() => {
+                        const to = u.role === 'USER' ? 'MODERATOR' : 'USER';
+                        if (
+                          window.confirm(
+                            to === 'MODERATOR'
+                              ? `Tornar @${u.username} moderador(a)? Vai precisar cadastrar uma passkey.`
+                              : `Tirar @${u.username} da moderação?`,
+                          )
+                        ) {
+                          void act('Papel alterado', `/api/v1/admin/users/${u.id}/role`, {
+                            role: to,
+                          });
+                        }
+                      }}
+                    >
+                      {u.role === 'USER' ? 'Tornar moderação' : 'Tirar da moderação'}
+                    </button>
+                  ) : null}
                 </>
               ) : null}
             </div>

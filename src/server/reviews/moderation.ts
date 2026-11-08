@@ -34,8 +34,6 @@ const TRANSITIONS: Record<
 };
 
 export const ModerationProblems = {
-  streamerOnly: () =>
-    new HttpError(403, 'STREAMER_ONLY', 'Só o streamer pode remover uma avaliação de vez.'),
   invalid: () =>
     new HttpError(
       409,
@@ -60,7 +58,6 @@ export async function moderate(
   audit: Audit,
   now = new Date(),
 ): Promise<{ status: ReviewStatus; resolvedReports: number }> {
-  if (action === 'REMOVE' && actor.role !== 'STREAMER') throw ModerationProblems.streamerOnly();
   const t = TRANSITIONS[action];
   if (!t.from.includes(expectedStatus)) throw ModerationProblems.invalid();
 

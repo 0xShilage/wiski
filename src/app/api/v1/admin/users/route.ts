@@ -3,7 +3,7 @@ import { RL } from '@/server/ratelimit/rules';
 import { usersQuery } from '@/server/admin/input';
 import { listUsers } from '@/server/users/admin';
 
-/** GET /api/v1/admin/users?q=&filter=&after= — people (e-mail for the streamer only). */
+/** GET /api/v1/admin/users?q=&filter=&after= — people (with e-mails, for staff). */
 export const GET = route<'moderator', undefined, typeof usersQuery>(
   { methods: ['GET'], access: 'moderator', rateLimit: RL.admin, query: usersQuery },
   async ({ query, user }) =>

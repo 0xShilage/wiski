@@ -36,7 +36,7 @@ const OPS: { id: OpsSection; label: string; badge?: (c: OpsCounts) => number }[]
   { id: 'roleta', label: 'Roleta', badge: (c) => c.roleta },
   { id: 'estreias', label: 'Estreias' },
 ];
-const STREAMER: { id: OpsSection; label: string; badge?: (c: OpsCounts) => number }[] = [
+const CHANNEL: { id: OpsSection; label: string; badge?: (c: OpsCounts) => number }[] = [
   { id: 'analise', label: 'Análise' },
   { id: 'overlays', label: 'Overlays (OBS)' },
   { id: 'metas', label: 'Metas' },
@@ -49,7 +49,7 @@ const STREAMER: { id: OpsSection; label: string; badge?: (c: OpsCounts) => numbe
   { id: 'configuracoes', label: 'Configurações' },
 ];
 
-/** The dashboard sidebar sections after "Catálogo" (Phase 4). Streamer-only ones are hidden from moderators. */
+/** The dashboard sidebar sections after "Catálogo" (Phase 4); moderators see all of them since 2026-11-08. */
 export function OpsNav({
   active,
   counts,
@@ -84,14 +84,14 @@ export function OpsNav({
       <nav className="wf-admin__nav wf-admin__nav--ops" aria-label="Operação">
         {OPS.map(item)}
       </nav>
-      {role === 'STREAMER' ? (
+      {role === 'USER' ? null : (
         <>
-          <p className="wf-admin__group">Streamer</p>
-          <nav className="wf-admin__nav wf-admin__nav--ops" aria-label="Streamer">
-            {STREAMER.map(item)}
+          <p className="wf-admin__group">Canal</p>
+          <nav className="wf-admin__nav wf-admin__nav--ops" aria-label="Canal">
+            {CHANNEL.map(item)}
           </nav>
         </>
-      ) : null}
+      )}
     </>
   );
 }

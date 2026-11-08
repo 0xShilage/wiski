@@ -19,7 +19,7 @@ import { uniqueViolation } from './orders';
  * Orders in the dashboard (03 §5.6): the list, one order, hiding or showing the sponsor's message
  * and a guest's public name (Q10, Q16), and the streamer accepting an order that NEEDS_ATTENTION
  * (e.g. a Pix paid after its reservation expired) when the movie / campaign room is still there.
- * Contact e-mails are shown to the STREAMER only (support and refunds); moderators see the public
+ * Contact e-mails are shown to staff (support; 2026-11-08); both see the public
  * name.
  */
 type Ctx = { actor: { id: string; role: Role }; requestId: string | null };
@@ -63,7 +63,7 @@ const listSelect = {
 
 type Row = Prisma.OrderGetPayload<{ select: typeof listSelect }>;
 
-function view(o: Row, role: Role) {
+function view(o: Row) {
   return {
     id: o.id,
     code: o.publicCode,
@@ -85,7 +85,7 @@ function view(o: Row, role: Role) {
         : o.user?.username
           ? `@${o.user.username}`
           : 'Convidado',
-    email: role === 'STREAMER' && o.source !== 'MANUAL' ? o.contactEmail : null,
+    email: o.source !== 'MANUAL' ? o.contactEmail : null,
     publicName: publicSponsor(o),
     anonymous: !o.showSponsorName,
     guestDisplayName: o.guestDisplayName,
@@ -97,7 +97,7 @@ function view(o: Row, role: Role) {
       ? {
           status: o.payment.status,
           detail: o.payment.statusDetail,
-          providerId: role === 'STREAMER' ? o.payment.providerPaymentId : null,
+          providerId: o.payment.providerPaymentId,
           approvedAt: o.payment.approvedAt?.toISOString() ?? null,
         }
       : null,
@@ -127,7 +127,7 @@ export async function listOrders(
   const more = rows.length > PAGE;
   const shown = rows.slice(0, PAGE);
   return {
-    orders: shown.map((o) => view(o, role)),
+    orders: shown.map((o) => view(o)),
     next: more ? shown.at(-1)!.createdAt.toISOString() : null,
   };
 }
@@ -143,7 +143,7 @@ export async function orderCounts() {
 export async function getOrder(role: Role, id: string) {
   const o = await db().order.findUnique({ where: { id }, select: listSelect });
   if (!o) throw Problems.notFound();
-  return view(o, role);
+  return view(o);
 }
 
 /**

@@ -116,14 +116,9 @@ describe('moderation actions', () => {
     expect([again.res.status, again.json.code]).toEqual([409, 'INVALID_TRANSITION']);
   });
 
-  it('REMOVE is for the STREAMER only, and is final', async () => {
+  it('REMOVE (moderators too, since 2026-11-08) is final', async () => {
     const review = await reported(1);
-    const mod = await moderateReview(await staff('MODERATOR'), review.id, {
-      action: 'REMOVE',
-      expectedStatus: 'VISIBLE',
-    });
-    expect([mod.res.status, mod.json.code]).toEqual([403, 'STREAMER_ONLY']);
-    const s = await staff('STREAMER');
+    const s = await staff('MODERATOR');
     const ok = await moderateReview(s, review.id, { action: 'REMOVE', expectedStatus: 'VISIBLE' });
     expect(ok.json).toEqual({ status: 'REMOVED', resolvedReports: 1 });
     for (const action of ['RESTORE', 'HIDE', 'REMOVE'] as const) {

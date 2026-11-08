@@ -18,7 +18,7 @@ export default async function PedidosPage() {
     <AdminShell
       active="pedidos"
       title="Pedidos"
-      lead="Nomes e mensagens aparecem na hora, sem aprovação — aqui você oculta o que não quiser na live e pode mostrar de novo. Pedidos que precisam de atenção (Pix pago depois do prazo, valor que não conferiu) ficam com o streamer: aceitar como venda ou reembolsar."
+      lead="Nomes e mensagens aparecem na hora, sem aprovação — aqui você oculta o que não quiser na live e pode mostrar de novo. Pedidos que precisam de atenção (Pix pago depois do prazo, valor que não conferiu) podem ser aceitos como venda aqui; reembolsar é só com o streamer."
       {...p.shell}
     >
       <OrdersBoard

@@ -101,7 +101,7 @@ describe('links page', () => {
     expect(JSON.stringify(actions)).not.toContain('twitch.tv'); // field names, never values
   });
 
-  it('refuses unsafe or useless addresses; caps the page at 30; moderators get 404', async () => {
+  it('refuses unsafe or useless addresses; caps the page at 30 (moderators edit it too)', async () => {
     const st = await as('STREAMER');
     for (const url of [
       'http://twitch.tv/wiski',
@@ -130,9 +130,10 @@ describe('links page', () => {
     const full = await add(st, { label: 'Mais um', url: 'https://a.example/31' });
     expect(full.res.status).toBe(409);
     expect(full.json.code).toBe('LINKS_FULL');
+    // a moderator reaches the same list (and its cap)
     expect(
-      (await add(await as('MODERATOR'), { label: 'M', url: 'https://a.example' })).res.status,
-    ).toBe(404);
+      (await add(await as('MODERATOR'), { label: 'M', url: 'https://a.example' })).json.code,
+    ).toBe('LINKS_FULL');
   });
 
   it('url helpers: platform names, IDN to punycode', () => {

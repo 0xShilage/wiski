@@ -10,10 +10,10 @@ import { RL } from '@/server/ratelimit/rules';
  * (goal + deadline). `[id]` is the catalog item: the campaign is created by opening it.
  * Money action → passkey AND a fresh Google login (step-up).
  */
-export const POST = route<'streamer', typeof openCampaignInput, undefined, { id: string }>(
+export const POST = route<'moderator', typeof openCampaignInput, undefined, { id: string }>(
   {
     methods: ['POST'],
-    access: 'streamer',
+    access: 'moderator',
     stepUp: true,
     rateLimit: RL.adminWrite,
     body: openCampaignInput,

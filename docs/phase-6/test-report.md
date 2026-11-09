@@ -235,3 +235,10 @@ Fix (PR "fix-prefetch-burst"): no prefetch on the header tabs, the phone bar, th
 - `tests/integration/agenda-batch.test.ts` (8): hand-made order (saved, later entries after it, stale and foreign lists refused, Cronograma follows it); clearing hides only DONE/CANCELLED; event poster (created with one, shown on the Cronograma, a BACKDROP refused, removed; a part can't have one); "Desmarcar assistido" for a sponsored movie (order back to PAID, in the queue, WatchEvent gone, audited, a second undo refused) and for a watched series (back to FUNDED and in the queue); `!proximo` (empty agenda, next planned live with date, next on the live, wrong key 401); database rules (hiddenAt only when finished, entryOrder keys, poster only on events, 50 series).
 - `db-constraints-r1.test.ts`: the per-kind limits now 50 series. Authz matrix: 3 new routes.
 - Unit 375/375, integration 1122/1122.
+
+## Addendum — "Novo patrocínio" alerts (2026-11-09)
+
+- `tests/unit/stream-safe.test.ts` (5): ordinary text untouched; links (also disguised) removed; swear words masked with accents, digits and repeated letters; unsafe names dropped; chat lines never start like a command.
+- `tests/integration/overlay-alerts.test.ts` (7): guest name and message (masked word and link removed), the TTS request (key in a header, pt-BR voice, text), one chat line per order through the channel in the JWT; @username vs anonymous; the voice served as MP3 only to an overlay with "patrocinio" (401 without cookie or with another widget, 404 unknown id); switched off / Google failing → alert without voice, audited; no key → `voiceReady: false`; "Já pago" announced on stream and in chat; "Testar alerta" never in chat.
+- `tests/e2e/operations.spec.ts`: two alerts in a row (name and message, then "por Anônimo"), the second waits its turn, both leave.
+- Unit 380/380, integration 1145/1145.

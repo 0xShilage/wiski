@@ -126,6 +126,8 @@ MP_ACCESS_TOKEN=CHANGE_ME
 MP_WEBHOOK_SECRET=CHANGE_ME
 # Optional, subathon timer: the channel's StreamElements JWT (leave commented out to turn it off)
 # STREAMELEMENTS_JWT=
+# Optional, "Novo patrocínio" voice: a Google Cloud API key restricted to Text-to-Speech
+# GOOGLE_TTS_API_KEY=
 ENV
   chmod 600 "$app"
 fi

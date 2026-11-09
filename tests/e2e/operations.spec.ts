@@ -216,6 +216,64 @@ test('agenda: a custom event goes on a live, shows on the Cronograma and comes o
   await ctx.close();
 });
 
+test('agenda: ↑/↓ reorder a session and "Limpar encerradas e canceladas" hides finished ones', async ({
+  browser,
+}) => {
+  const mod = await seedUser({ role: 'MODERATOR', passkeyVerified: true });
+  const sessionId = randomUUID();
+  const cancelledId = randomUUID();
+  await withDb(async (c) => {
+    await c.query(
+      `INSERT INTO "StreamSession"(id, "startsAt", "capacityMinutes", "updatedAt")
+       VALUES ($1, now() + interval '40 days', 300, now())`,
+      [sessionId],
+    );
+    await c.query(
+      `INSERT INTO "StreamSession"(id, "startsAt", "capacityMinutes", status, "cancelledAt", "updatedAt")
+       VALUES ($1, now() + interval '1 day', 120, 'CANCELLED', now(), now())`,
+      [cancelledId],
+    );
+    for (const [label, at] of [
+      ['Primeiro evento', '1 minute'],
+      ['Segundo evento', '0 minutes'],
+    ] as const) {
+      await c.query(
+        `INSERT INTO "LiveSegment"(id, "sessionId", kind, label, minutes, "createdAt")
+         VALUES ($1, $2, 'EVENT', $3, 30, now() - $4::interval)`,
+        [randomUUID(), sessionId, label, at],
+      );
+    }
+  });
+  const ctx = await browser.newContext();
+  await signIn(ctx, mod.token);
+  const admin = await ctx.newPage();
+  admin.on('dialog', (d) => void d.accept());
+  await admin.goto('/admin/agenda');
+  const card = admin.locator('section.wf-ops-card').filter({ hasText: 'Primeiro evento' });
+  const rows = card.locator('.wf-ops-row__title');
+  await expect(rows).toHaveText(['Primeiro evento', 'Segundo evento']);
+  await card.getByRole('button', { name: 'Descer “Primeiro evento”' }).click();
+  await expect(admin.getByText('Ordem salva: feito.')).toBeVisible();
+  await expect(rows).toHaveText(['Segundo evento', 'Primeiro evento']);
+
+  await expect(
+    admin
+      .getByRole('region', { name: /Sessão de/ })
+      .filter({ hasText: 'Cancelada' })
+      .first(),
+  ).toBeVisible();
+  await admin.getByRole('button', { name: 'Limpar encerradas e canceladas' }).click();
+  await expect(admin.getByText('Agenda limpa: feito.')).toBeVisible();
+  await expect(
+    admin.getByRole('region', { name: /Sessão de/ }).filter({ hasText: 'Cancelada' }),
+  ).toHaveCount(0);
+
+  await withDb((c) =>
+    c.query(`DELETE FROM "StreamSession" WHERE id = ANY($1)`, [[sessionId, cancelledId]]),
+  );
+  await ctx.close();
+});
+
 test('pedidos: the streamer registers a movie as "Já pago" (it enters the queue) and undoes it', async ({
   browser,
 }) => {

@@ -74,7 +74,7 @@ describe('CatalogItem CHECKs', () => {
     );
     expect(await sqlState(makeItem({ kind: 'MOVIE', status: 'FUNDED', slot: 1 }))).toBe('23514');
     // series slots stop at 20 (Phase 6), franchise slots at 10
-    expect(await sqlState(makeItem({ kind: 'SERIES', status: 'ACTIVE', slot: 21 }))).toBe('23514');
+    expect(await sqlState(makeItem({ kind: 'SERIES', status: 'ACTIVE', slot: 51 }))).toBe('23514');
     expect(await sqlState(makeItem({ kind: 'FRANCHISE', status: 'ACTIVE', slot: 11 }))).toBe(
       '23514',
     );
@@ -150,8 +150,8 @@ describe('live limit trigger (50 movies, 20 series, 10 franchises)', () => {
     ).resolves.toBeTruthy();
   });
 
-  it('counts per kind: 20 series and 10 franchises', async () => {
-    for (let slot = 1; slot <= 20; slot++) {
+  it('counts per kind: 50 series and 10 franchises', async () => {
+    for (let slot = 1; slot <= 50; slot++) {
       await makeItem({ kind: 'SERIES', status: 'ACTIVE', slot });
       if (slot <= 10) await makeItem({ kind: 'FRANCHISE', status: 'ACTIVE', slot });
     }
@@ -163,7 +163,7 @@ describe('live limit trigger (50 movies, 20 series, 10 franchises)', () => {
   });
 
   it('concurrent publishes never exceed the limit (advisory lock)', async () => {
-    for (let slot = 1; slot <= 18; slot++)
+    for (let slot = 1; slot <= 48; slot++)
       await makeItem({ kind: 'SERIES', status: 'ACTIVE', slot });
     const drafts = await Promise.all(
       Array.from({ length: 6 }, () => makeItem({ kind: 'SERIES', status: 'DRAFT' })),
@@ -172,12 +172,12 @@ describe('live limit trigger (50 movies, 20 series, 10 franchises)', () => {
       drafts.map((d, i) =>
         db().catalogItem.update({
           where: { id: d.id },
-          data: { status: 'ACTIVE', slot: 19 + (i % 2), publishedAt: new Date() },
+          data: { status: 'ACTIVE', slot: 49 + (i % 2), publishedAt: new Date() },
         }),
       ),
     );
     expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(2);
-    expect(await db().catalogItem.count({ where: { kind: 'SERIES', status: 'ACTIVE' } })).toBe(20);
+    expect(await db().catalogItem.count({ where: { kind: 'SERIES', status: 'ACTIVE' } })).toBe(50);
   });
 
   it('refuses publishes outside READ COMMITTED', async () => {

@@ -120,6 +120,9 @@ export const AUDIT_ACTIONS = {
     .object({ kind: itemKind, slot: z.int(), replacementId: z.uuid().nullable() })
     .strict(),
   'catalog.watched': z.object({ kind: itemKind }).strict(),
+  'catalog.unwatched': z
+    .object({ kind: itemKind, status: z.enum(['ACTIVE', 'SPONSORED', 'FUNDED']) })
+    .strict(),
   'catalog.delete': z.object({ kind: itemKind }).strict(),
   'campaign.open': z
     .object({
@@ -192,6 +195,8 @@ export const AUDIT_ACTIONS = {
   'session.start': z.object({}).strict(),
   'session.end': z.object({ returnedToQueue: z.int().nonnegative() }).strict(),
   'session.cancel': z.object({ returnedToQueue: z.int().nonnegative() }).strict(),
+  'session.reorder': z.object({ entries: z.int().nonnegative() }).strict(),
+  'session.clear': z.object({ hidden: z.int().nonnegative() }).strict(),
   'schedule.add': z
     .object({
       sessionId: z.uuid(),
@@ -214,6 +219,7 @@ export const AUDIT_ACTIONS = {
     .strict(),
   'segment.remove': z.object({ sessionId: z.uuid(), kind: z.enum(['PART', 'EVENT']) }).strict(),
   'segment.now': z.object({ sessionId: z.uuid() }).strict(),
+  'segment.poster': z.object({ sessionId: z.uuid(), poster: z.boolean() }).strict(),
   'segment.complete': z.object({ sessionId: z.uuid(), finish: z.boolean() }).strict(),
   'order.reschedule': z
     .object({ from: z.uuid(), to: z.uuid(), count: z.int().min(1).max(2) })

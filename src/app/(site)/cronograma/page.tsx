@@ -112,7 +112,11 @@ export default async function CronogramaPage() {
                                   className="wf-cron__thumb wf-cron__thumb--event"
                                   aria-hidden="true"
                                 >
-                                  ★
+                                  {t.poster ? (
+                                    <MediaPicture picture={t.poster} alt="" sizes="56px" />
+                                  ) : (
+                                    '★'
+                                  )}
                                 </span>
                               )}
                               <div className="wf-cron__info">

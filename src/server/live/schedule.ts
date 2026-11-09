@@ -1,5 +1,6 @@
 import 'server-only';
 import type { Prisma, Role } from '@/generated/prisma/client';
+import { type Picture, pictureFrom } from '@/lib/media';
 import { audit } from '../audit/audit';
 import { db } from '../db';
 import { pgErrorCode, PG } from '../db-errors';
@@ -348,6 +349,74 @@ export async function cancelSession(
   return s;
 }
 
+/**
+ * "Reorganizar" (2026-11-09): the dashboard puts a session's entries in its own order. Every key
+ * must be an entry of this session (watched ones included, so the order reads as it happened);
+ * entries not listed keep following in queue order.
+ */
+export async function reorderSession(
+  ctx: Ctx,
+  id: string,
+  expectedVersion: number,
+  keys: string[],
+) {
+  const s = await inTx(async (t) => {
+    const row = await t.streamSession.findUnique({ where: { id }, include: sessionInclude });
+    if (!row) throw Problems.notFound();
+    if (row.version !== expectedVersion) throw LiveProblems.changed();
+    if (row.status === 'CANCELLED') throw LiveProblems.state('Esta sessão foi cancelada.');
+    const mine = new Set(withEntries(row).entries.map(entryKey));
+    if (new Set(keys).size !== keys.length || keys.some((k) => !mine.has(k))) {
+      throw LiveProblems.changed(); // something was added or taken off meanwhile
+    }
+    const res = await t.streamSession.updateMany({
+      where: { id, version: expectedVersion },
+      data: { entryOrder: keys, version: { increment: 1 } },
+    });
+    if (res.count !== 1) throw LiveProblems.changed();
+    await audit(
+      {
+        action: 'session.reorder',
+        actor: ctx.actor,
+        requestId: ctx.requestId,
+        targetType: 'StreamSession',
+        targetId: id,
+        metadata: { entries: keys.length },
+      },
+      t,
+    );
+    return t.streamSession.findUniqueOrThrow({ where: { id } });
+  });
+  await refreshOverlays(['fila']);
+  return s;
+}
+
+/**
+ * "Limpar encerradas e canceladas" (2026-11-09): hides every DONE or CANCELLED session from the
+ * agenda and the Cronograma. Nothing is deleted: what was watched on them (and the episodes of a
+ * series watched so far) stays.
+ */
+export async function clearPastSessions(ctx: Ctx, now = new Date()) {
+  return inTx(async (t) => {
+    const res = await t.streamSession.updateMany({
+      where: { status: { in: ['DONE', 'CANCELLED'] }, hiddenAt: null },
+      data: { hiddenAt: now, version: { increment: 1 } },
+    });
+    await audit(
+      {
+        action: 'session.clear',
+        actor: ctx.actor,
+        requestId: ctx.requestId,
+        targetType: 'StreamSession',
+        targetId: null,
+        metadata: { hidden: res.count },
+      },
+      t,
+    );
+    return { hidden: res.count };
+  });
+}
+
 // ── the queue ────────────────────────────────────────────────────────────────
 
 export type QueueEntry = {
@@ -371,6 +440,9 @@ export type QueueEntry = {
     note: string | null;
     campaignId: string | null;
     atStart: boolean;
+    /** EVENT only (2026-11-09) */
+    poster: Picture | null;
+    posterId: string | null;
   } | null;
   /** CAMPAIGN in the queue: its parts booked or watched so far, oldest first */
   parts?: {
@@ -436,6 +508,8 @@ const segmentEntrySelect = {
   sessionId: true,
   campaignId: true,
   campaign: { select: { item: { select: { id: true, kind: true, slug: true, title: true } } } },
+  posterId: true,
+  poster: { select: { width: true, height: true, variants: true } },
 } satisfies Prisma.LiveSegmentSelect;
 
 function segmentEntry(
@@ -460,6 +534,8 @@ function segmentEntry(
       note: g.note,
       campaignId: g.campaignId,
       atStart: g.atStart,
+      poster: pictureFrom(g.poster),
+      posterId: g.posterId,
     },
   };
 }
@@ -601,6 +677,7 @@ export async function sessionsWithEntries(opts: {
         { status: 'LIVE' },
       ],
       ...(opts.statuses ? { status: { in: opts.statuses } } : {}),
+      hiddenAt: null, // "Limpar encerradas e canceladas" (2026-11-09)
     },
     orderBy: { startsAt: 'asc' },
     take: opts.take ?? 30,
@@ -619,17 +696,34 @@ const sessionInclude = {
   nowItem: { select: { id: true, title: true } },
 } satisfies Prisma.StreamSessionInclude;
 
+export const entryKey = (e: Pick<QueueEntry, 'kind' | 'id'>) => `${e.kind}:${e.id}`;
+
+/**
+ * A session's entries (2026-11-09): the ones the dashboard ordered by hand first, in that order;
+ * the rest (added later, or never ordered) after them in queue order.
+ */
+export function sortEntries(entries: QueueEntry[], order: readonly string[]): QueueEntry[] {
+  const at = new Map(order.map((k, i) => [k, i]));
+  return [...entries].sort((a, b) => {
+    const ia = at.get(entryKey(a));
+    const ib = at.get(entryKey(b));
+    if (ia !== undefined && ib !== undefined) return ia - ib;
+    if (ia !== undefined) return -1;
+    if (ib !== undefined) return 1;
+    return byQueueOrder(a, b);
+  });
+}
+
 function withEntries({
   orders,
   campaigns,
   segments,
   ...s
 }: Prisma.StreamSessionGetPayload<{ include: typeof sessionInclude }>) {
-  const entries = [
-    ...orders.map(orderEntry),
-    ...campaigns.map(campaignEntry),
-    ...segments.map(segmentEntry),
-  ].sort(byQueueOrder);
+  const entries = sortEntries(
+    [...orders.map(orderEntry), ...campaigns.map(campaignEntry), ...segments.map(segmentEntry)],
+    s.entryOrder,
+  );
   return {
     ...s,
     entries,
@@ -888,6 +982,72 @@ export async function completeInTx(
     data: { nowItemId: null, version: { increment: 1 } },
   });
   return { orderIds };
+}
+
+/**
+ * "Desmarcar assistido" (2026-11-09): undoes a "Concluído" / "Marcar como assistido" that was a
+ * mistake. The title goes back to what it was before (a movie with a sponsor → SPONSORED and its
+ * order back in the queue as PAID; a watched campaign → FUNDED, back in the queue; a movie
+ * without an order → ACTIVE). The latest WatchEvent is removed (reviews already written stay);
+ * parts of a series stay as they were (DONE/SKIPPED, it's their history).
+ */
+export async function uncompleteInTx(
+  t: Tx,
+  itemId: string,
+  expectedVersion: number,
+): Promise<{ orderIds: string[]; status: 'ACTIVE' | 'SPONSORED' | 'FUNDED' }> {
+  const item = await t.catalogItem.findUnique({
+    where: { id: itemId },
+    include: { campaign: true },
+  });
+  if (!item) throw Problems.notFound();
+  if (item.status !== 'WATCHED' || item.version !== expectedVersion) {
+    throw item.status === 'WATCHED'
+      ? LiveProblems.changed()
+      : LiveProblems.state('Este título não está marcado como assistido.');
+  }
+  const orderIds: string[] = [];
+  let status: 'ACTIVE' | 'SPONSORED' | 'FUNDED' = 'ACTIVE';
+  if (item.kind === 'MOVIE') {
+    const o = await t.order.findFirst({
+      where: { itemId, kind: 'MOVIE', status: 'COMPLETED' },
+      orderBy: { completedAt: 'desc' },
+    });
+    if (o) {
+      const res = await t.order.updateMany({
+        where: { id: o.id, version: o.version, status: 'COMPLETED' },
+        data: {
+          status: 'PAID',
+          completedAt: null,
+          sessionId: null,
+          scheduledAt: null,
+          version: { increment: 1 },
+        },
+      });
+      if (res.count !== 1) throw LiveProblems.changed();
+      orderIds.push(o.id);
+      status = 'SPONSORED';
+    }
+  } else if (item.campaign) {
+    if (item.campaign.status !== 'WATCHED') throw LiveProblems.changed();
+    await t.campaign.update({
+      where: { id: item.campaign.id },
+      data: { status: 'FUNDED', sessionId: null, scheduledAt: null, version: { increment: 1 } },
+    });
+    status = 'FUNDED';
+  }
+  const res = await t.catalogItem.updateMany({
+    where: { id: itemId, status: 'WATCHED', version: expectedVersion },
+    data: { status, watchedAt: null },
+  });
+  if (res.count !== 1) throw LiveProblems.changed();
+  const last = await t.watchEvent.findFirst({
+    where: { itemId },
+    orderBy: { watchedAt: 'desc' },
+    select: { id: true },
+  });
+  if (last) await t.watchEvent.delete({ where: { id: last.id } });
+  return { orderIds, status };
 }
 
 /** "Concluído": watched on the live session. */

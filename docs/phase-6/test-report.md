@@ -258,3 +258,8 @@ Fix (PR "fix-prefetch-burst"): no prefetch on the header tabs, the phone bar, th
 ## Addendum — Mural de apoiadores (2026-11-09)
 
 - `tests/integration/supporters-wall.test.ts` (3): the checkout opt-in is off by default, on when ticked, never with "anônimo"; the wall lists only opted-in orders that still count, with a safe public name, newest first, one card per title; a moderator takes a name off (audited) and can't put it back.
+
+## Addendum — "Mais" drawer (2026-11-09)
+
+- e2e `community.spec.ts` "desktop: Mais opens a full-height drawer…": both lists and their order, fully opaque after the fade, flush with the right edge and as tall as the window, the ✕ where the button is, closed by Esc, ✕ and a click on the veil, a link navigates and closes it, the button then says "você está em Jogos" and the drawer marks it. Screenshot `test-results/drawer/mais-1280.png`.
+- `viewports.spec.ts` (header on one line at 761–1280 px) and `headers.spec.ts` unchanged and green; unit 380 passed.

@@ -8,7 +8,8 @@
   .wf-header__inner {
     max-width: var(--stage);
     margin-inline: auto;
-    padding: var(--header-top) var(--pad) 0;
+    --header-pad: var(--pad);
+    padding: var(--header-top) var(--header-pad) 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -87,38 +88,201 @@
     outline-offset: 2px;
     border-radius: 4px;
   }
-  .wf-nav__menu {
+  /* "Mais ▾" drawer (2026-11-09), after HBO Max's menu but from the right, where the button sits:
+     full height, big links, a short line, the footer pages smaller. The veil behind it is darkest
+     at the right and fades in with the drawer (popover + @starting-style; the closed state is the
+     UA's display:none, kept during the fade-out by allow-discrete). The ✕ takes the button's place:
+     same top as the header row, same right edge as the header (--header-pad, inherited through
+     the DOM even from the top layer). */
+  .wf-drawer {
     position: fixed;
-    inset: calc(var(--header-top) + 52px)
-      max(var(--pad), calc((100vw - var(--stage)) / 2 + var(--pad))) auto auto;
+    inset: 0 0 0 auto;
+    width: auto;
+    min-width: min(440px, 100vw);
+    max-width: 100vw;
+    height: 100dvh;
+    max-height: none;
     margin: 0;
-    min-width: 200px;
-    padding: 6px;
-    border-radius: 14px;
-    border: 1px solid rgb(79 61 114 / 0.95);
-    background: rgb(27 18 37 / 0.98);
-    box-shadow: 0 12px 32px rgb(0 0 0 / 0.5);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--fg-78);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    opacity: 0;
+    translate: 32px 0;
+    transition-property: opacity, translate, overlay, display;
+    transition-duration: 0.32s;
+    transition-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
+    transition-behavior: allow-discrete;
   }
-  .wf-nav__menu ul {
+  .wf-drawer:popover-open {
+    opacity: 1;
+    translate: 0 0;
+  }
+  @starting-style {
+    .wf-drawer:popover-open {
+      opacity: 0;
+      translate: 32px 0;
+    }
+  }
+  .wf-drawer::backdrop {
+    background: linear-gradient(
+      to left,
+      rgb(14 9 20 / 0.97) 0,
+      rgb(14 9 20 / 0.9) min(36rem, 55vw),
+      rgb(14 9 20 / 0.66) 100%
+    );
+    opacity: 0;
+    transition-property: opacity, overlay, display;
+    transition-duration: 0.32s;
+    transition-timing-function: ease;
+    transition-behavior: allow-discrete;
+  }
+  .wf-drawer:popover-open::backdrop {
+    opacity: 1;
+  }
+  @starting-style {
+    .wf-drawer:popover-open::backdrop {
+      opacity: 0;
+    }
+  }
+  .wf-drawer__panel {
+    box-sizing: border-box;
+    min-height: 100%;
+    padding: var(--header-top) calc(max(0px, (100vw - var(--stage)) / 2) + var(--header-pad)) 48px
+      clamp(56px, 8vw, 140px);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+  }
+  .wf-drawer__close {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    margin-right: -10px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    color: var(--color-lilac);
+    cursor: pointer;
+    transition:
+      color 0.2s,
+      background-color 0.2s;
+  }
+  .wf-drawer__close svg {
+    width: 28px;
+    height: 28px;
+  }
+  .wf-drawer__close:hover {
+    background: rgb(229 221 237 / 0.08);
+  }
+  .wf-drawer__close:focus-visible {
+    outline: 2px solid var(--color-lavender);
+    outline-offset: 2px;
+  }
+  .wf-drawer nav {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    margin-top: clamp(28px, 7vh, 80px);
+  }
+  .wf-drawer ul {
     list-style: none;
     margin: 0;
     padding: 0;
     display: grid;
-    gap: 2px;
+    justify-items: end;
   }
-  .wf-nav__menu a {
-    display: block;
-    padding: 10px 14px;
-    border-radius: 10px;
+  .wf-drawer__main {
+    gap: clamp(2px, 1.1vh, 12px);
+  }
+  .wf-drawer__info {
+    gap: clamp(0px, 0.6vh, 6px);
+  }
+  .wf-drawer a {
+    display: inline-block;
+    padding-block: 6px;
     color: var(--fg-78);
     text-decoration: none;
-    font-size: 15px;
+    transition:
+      color 0.2s,
+      text-shadow 0.2s;
   }
-  .wf-nav__menu a:hover,
-  .wf-nav__menu a:focus-visible,
-  .wf-nav__menu a[aria-current='page'] {
-    background: rgb(46 33 65 / 0.9);
-    color: var(--color-lilac);
+  .wf-drawer__main a {
+    font-size: clamp(24px, 0.8vw + 16px, 32px);
+    line-height: 1.25;
+  }
+  .wf-drawer__info a {
+    font-size: clamp(17px, 0.3vw + 14px, 21px);
+    line-height: 1.3;
+  }
+  .wf-drawer a:hover,
+  .wf-drawer a:focus-visible {
+    color: #fff;
+  }
+  .wf-drawer a:focus-visible {
+    outline: 2px solid var(--color-lavender);
+    outline-offset: 4px;
+    border-radius: 4px;
+  }
+  .wf-drawer a[aria-current='page'] {
+    color: #fff;
+    font-weight: 700;
+    text-shadow: 0 0 14px rgb(169 157 224 / 0.7);
+  }
+  .wf-drawer__rule {
+    width: min(190px, 60%);
+    height: 0;
+    margin: clamp(18px, 3.5vh, 36px) 0;
+    border: 0;
+    border-top: 1px solid rgb(229 221 237 / 0.4);
+  }
+  /* the links follow the drawer in, one after another */
+  .wf-drawer li {
+    transition-property: opacity, translate;
+    transition-duration: 0.4s;
+    transition-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  @starting-style {
+    .wf-drawer:popover-open li {
+      opacity: 0;
+      translate: 16px 0;
+    }
+  }
+  .wf-drawer__main li:nth-child(2) {
+    transition-delay: 30ms;
+  }
+  .wf-drawer__main li:nth-child(3) {
+    transition-delay: 60ms;
+  }
+  .wf-drawer__main li:nth-child(4) {
+    transition-delay: 90ms;
+  }
+  .wf-drawer__main li:nth-child(5) {
+    transition-delay: 120ms;
+  }
+  .wf-drawer__main li:nth-child(6) {
+    transition-delay: 150ms;
+  }
+  .wf-drawer__main li:nth-child(n + 7) {
+    transition-delay: 180ms;
+  }
+  .wf-drawer__info li {
+    transition-delay: 210ms;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .wf-drawer,
+    .wf-drawer::backdrop {
+      translate: none;
+      transition-duration: 0.01s;
+    }
+    .wf-drawer li {
+      transition: none;
+    }
   }
 
   /* 761–1080 px: ten tabs next to the logo (2026-11-04) need smaller labels, tighter gaps and a
@@ -126,7 +290,7 @@
   @media (min-width: 761px) and (max-width: 1080px) {
     .wf-header__inner {
       gap: 16px;
-      padding-inline: clamp(20px, 3vw, 40px);
+      --header-pad: clamp(20px, 3vw, 40px);
     }
     .wf-nav {
       gap: clamp(8px, 1.4vw, 16px);
@@ -140,7 +304,7 @@
   @media (min-width: 761px) and (max-width: 900px) {
     .wf-header__inner {
       gap: 12px;
-      padding-inline: 16px;
+      --header-pad: 16px;
     }
     .wf-nav {
       gap: clamp(6px, 2.4vw - 12px, 10px);

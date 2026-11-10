@@ -1,16 +1,8 @@
 import Link from 'next/link';
 import { Img } from '@/components/Img';
+import { INFO_LINKS } from './nav-items';
 
 /** Footer (11 §3): the ranking (2026-11-04), legal pages, media kit, contact and the LGPD channel. */
-const LINKS = [
-  { href: '/ranking', label: 'Ranking' },
-  { href: '/privacidade', label: 'Termos e privacidade' },
-  { href: '/reembolso', label: 'Reembolso' },
-  { href: '/privacidade#secao-1', label: 'Canal de privacidade (LGPD)' },
-  { href: '/media-kit', label: 'Media kit' },
-  { href: '/contato', label: 'Contato' },
-] as const;
-
 export function SiteFooter() {
   const year = new Date().getFullYear();
   return (
@@ -26,7 +18,7 @@ export function SiteFooter() {
         />
         <nav aria-label="Informações e contato">
           <ul>
-            {LINKS.map((l) => (
+            {INFO_LINKS.map((l) => (
               <li key={l.href}>
                 <Link href={l.href}>{l.label}</Link>
               </li>

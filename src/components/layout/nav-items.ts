@@ -110,3 +110,16 @@ export const NAV_ITEMS = [
 ] as const;
 
 export type NavItem = (typeof NAV_ITEMS)[number];
+
+/**
+ * Footer links (11 §3). `drawer` ones also sit under the line in the desktop "Mais" drawer
+ * (2026-11-09), like the secondary list in HBO Max's menu.
+ */
+export const INFO_LINKS = [
+  { href: '/ranking', label: 'Ranking', drawer: true },
+  { href: '/privacidade', label: 'Termos e privacidade', drawer: true },
+  { href: '/reembolso', label: 'Reembolso', drawer: true },
+  { href: '/privacidade#secao-1', label: 'Canal de privacidade (LGPD)', drawer: false },
+  { href: '/media-kit', label: 'Media kit', drawer: true },
+  { href: '/contato', label: 'Contato', drawer: true },
+] as const;

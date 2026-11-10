@@ -117,7 +117,7 @@ for (const w of [761, 800, 900, 1024, 1080, 1100, 1180, 1280]) {
     await page.evaluate(() => document.fonts.ready);
     await noHorizontalScroll(page);
     const tabs = page.locator('.wf-header nav a');
-    await expect(tabs).toHaveCount(10);
+    await expect(tabs).toHaveCount(11);
     const logo = await box(page, '.wf-logo');
     const boxes = await tabs.evaluateAll((els) =>
       els.map((e) => {

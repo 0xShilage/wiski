@@ -1,6 +1,6 @@
 /**
- * The tabs (11 §3): Filmes · Séries · Franquias · Cronograma · Assistidos · Avaliações ·
- * Sugestões · Roleta · Links · Perfil. Roleta (2026-11-04): the daily wheel of fortune. No search. Cronograma (2026-10-31): what is booked on the next
+ * The tabs (11 §3): Filmes · Séries · Franquias · Fila · Cronograma · Assistidos · Avaliações ·
+ * Sugestões · Roleta · Links · Perfil. Fila (2026-11-09): what is paid and waiting. Roleta (2026-11-04): the daily wheel of fortune. No search. Cronograma (2026-10-31): what is booked on the next
  * lives. Sugestões and Links (Phase 6). Assistidos (2026-11-01): everything already watched.
  *
  * Desktop shows every tab. Phones show the `bar` tabs plus "Mais", which opens the `more` ones.
@@ -23,6 +23,12 @@ export const NAV_ITEMS = [
     label: 'Franquias',
     mobile: 'bar',
     match: (p: string) => p.startsWith('/franquias'),
+  },
+  {
+    href: '/fila',
+    label: 'Fila',
+    mobile: 'more',
+    match: (p: string) => p.startsWith('/fila'),
   },
   {
     href: '/cronograma',

@@ -2,7 +2,7 @@ import 'server-only';
 import type { Prisma } from '@/generated/prisma/client';
 import type { ItemKind } from '@/generated/prisma/enums';
 import type { PublicItem, PublicState } from '@/lib/catalog/types';
-import { LIVE_STATUSES, PUBLIC_STATUSES } from '@/lib/catalog/kinds';
+import { LIVE_STATUSES, PUBLIC_STATUSES, QUEUE_STATUSES } from '@/lib/catalog/kinds';
 import { moviePriceCents, movieListPriceCents } from '@/lib/catalog/pricing';
 import { pictureFrom } from '@/lib/media';
 import { matchesSearch, searchTerms } from '@/lib/search';
@@ -125,7 +125,7 @@ export async function getPublic(kind: ItemKind, slug: string, now = new Date()) 
       kind,
       slug,
       OR: [
-        { status: { in: [...PUBLIC_STATUSES, 'WATCHED'] } },
+        { status: { in: [...PUBLIC_STATUSES, ...QUEUE_STATUSES, 'WATCHED'] } },
         { status: 'ARCHIVED', watchedAt: { not: null } },
       ],
     },

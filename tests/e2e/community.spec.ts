@@ -243,7 +243,7 @@ test('links editor: the streamer adds, moves and hides a link', async ({ browser
   await ctx.close();
 });
 
-test('phone: the bar has five tabs + "Mais", which opens Assistidos, Avaliações, Sugestões, Roleta and Links', async ({
+test('phone: the bar has five tabs + "Mais", which opens Fila, Assistidos, Avaliações, Sugestões, Roleta and Links', async ({
   page,
 }, info) => {
   test.skip(!info.project.name.startsWith('mobile'), 'touch only');
@@ -261,6 +261,7 @@ test('phone: the bar has five tabs + "Mais", which opens Assistidos, Avaliaçõe
   const menu = page.getByRole('list', { name: 'Mais páginas' });
   await expect(menu).toBeVisible();
   await expect(menu.getByRole('link')).toHaveText([
+    'Fila',
     'Assistidos',
     'Avaliações',
     'Sugestões',

@@ -18,6 +18,15 @@ export const KIND_LABEL: Record<ItemKindCode, { one: string; many: string }> = {
   FRANCHISE: { one: 'Franquia', many: 'Franquias' },
 };
 
-export const LIVE_STATUSES = ['ACTIVE', 'SPONSORED', 'FUNDED', 'WATCHED'] as const;
-/** What the public pages list (a watched item moves to Avaliações). */
-export const PUBLIC_STATUSES = ['ACTIVE', 'SPONSORED', 'FUNDED'] as const;
+/**
+ * What holds a slot on the board and counts towards the limit (2026-11-09, "Fila"): only titles
+ * open for sponsorship. A paid title (SPONSORED / FUNDED) moves to the Fila tab and frees its
+ * slot; a watched one moves to Assistidos.
+ */
+export const LIVE_STATUSES = ['ACTIVE'] as const;
+/** What the Filmes / Séries / Franquias tabs list: only what can still be sponsored. */
+export const PUBLIC_STATUSES = ['ACTIVE'] as const;
+/** Paid and waiting to be watched: the Fila tab. */
+export const QUEUE_STATUSES = ['SPONSORED', 'FUNDED'] as const;
+/** Every title on a board or in the queue ("Meta total" counts them all). */
+export const BOARD_STATUSES = ['ACTIVE', 'SPONSORED', 'FUNDED'] as const;

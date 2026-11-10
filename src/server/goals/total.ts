@@ -1,6 +1,6 @@
 import 'server-only';
 import { franchiseGoalCents, movieListPriceCents, seriesGoalCents } from '@/lib/catalog/pricing';
-import { PUBLIC_STATUSES } from '@/lib/catalog/kinds';
+import { BOARD_STATUSES } from '@/lib/catalog/kinds';
 import { db } from '../db';
 
 /**
@@ -95,7 +95,7 @@ export function sumTotals(rows: Row[]): TotalGoal {
 
 export async function totalGoal(): Promise<TotalGoal> {
   const rows = await db().catalogItem.findMany({
-    where: { status: { in: [...PUBLIC_STATUSES] } },
+    where: { status: { in: [...BOARD_STATUSES] } },
     select: {
       kind: true,
       status: true,

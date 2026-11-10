@@ -381,8 +381,10 @@ describe('slot board, Substituir, Assistido', () => {
     expect((await db().catalogItem.findUniqueOrThrow({ where: { id: a.id } })).slot).toBe(3);
   });
 
-  it('Substituir archives a watched movie and puts a complete draft into the same slot', async () => {
-    const old = await makeItem({ status: 'WATCHED', slot: 7 });
+  it('Substituir archives a watched movie and puts a complete draft into a free slot', async () => {
+    // a watched title holds no slot since 2026-11-09 ("Fila"): the draft takes the first free one
+    for (let slot = 1; slot <= 6; slot++) await makeItem({ status: 'ACTIVE', slot });
+    const old = await makeItem({ status: 'WATCHED' });
     const next = await completeMovie('Diamante Violeta');
     const res = await post(replaceRoute.POST, '/x', old.id, { replacementId: next.id });
     expect(res.status).toBe(200);
@@ -397,13 +399,13 @@ describe('slot board, Substituir, Assistido', () => {
   });
 
   it('a sponsored movie cannot be replaced; marking watched creates the watch event', async () => {
-    const sp = await makeItem({ status: 'SPONSORED', slot: 2 });
+    const sp = await makeItem({ status: 'SPONSORED' });
     expect((await post(replaceRoute.POST, '/x', sp.id, { replacementId: null })).status).toBe(409);
     const res = await post(watchedRoute.POST, '/x', sp.id, undefined);
     expect(res.status).toBe(200);
     expect(((await res.json()) as { item: AdminItem }).item).toMatchObject({
       status: 'WATCHED',
-      slot: 2,
+      slot: null,
     });
     expect(await db().watchEvent.count({ where: { itemId: sp.id } })).toBe(1);
   });

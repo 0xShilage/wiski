@@ -4,11 +4,14 @@ import { MediaPicture } from '@/components/media/MediaPicture';
 import { IconPlus } from '@/components/ui/icons';
 import { type AdminListItem, type Kind, LIMIT, STATE_LABEL, tileState } from './types';
 
-const LIVE = new Set(['ACTIVE', 'SPONSORED', 'FUNDED', 'WATCHED']);
+/** Only titles open for sponsorship hold a slot (2026-11-09, "Fila"). */
+const LIVE = new Set(['ACTIVE']);
 
 /**
  * The slot board (11 §4): numbered positions of the carousel/grid. Live items can be dragged to
  * another slot (swap) or moved with Alt + ← / → on the keyboard; empty slots start a new draft.
+ * 2026-11-09: a paid title leaves its slot for the Fila (listed below the board, as are the
+ * watched ones still on the dashboard).
  */
 export function SlotBoard({
   kind,
@@ -36,6 +39,29 @@ export function SlotBoard({
     drafts.filter((d) => d.slot && !live.has(d.slot)).map((d) => [d.slot as number, d]),
   );
   const unplanned = drafts.filter((d) => !d.slot || live.has(d.slot));
+  const queued = items.filter((i) => i.status === 'SPONSORED' || i.status === 'FUNDED');
+  const watched = items.filter((i) => i.status === 'WATCHED');
+  const list = (id: string, title: string, rows: AdminListItem[]) =>
+    rows.length ? (
+      <section className="wf-drafts" aria-labelledby={id}>
+        <h2 id={id} className="wf-admin__group m-0">
+          {title} ({rows.length})
+        </h2>
+        <ul>
+          {rows.map((d) => (
+            <li key={d.id}>
+              <button
+                type="button"
+                aria-current={d.id === selectedId ? 'true' : undefined}
+                onClick={() => onSelect(d.id)}
+              >
+                {d.title}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ) : null;
 
   const drop = (slot: number) => (e: DragEvent) => {
     e.preventDefault();
@@ -122,6 +148,7 @@ export function SlotBoard({
           );
         })}
       </ol>
+      {list('na-fila', 'Na Fila — pagos, sem vaga', queued)}
       {unplanned.length ? (
         <section className="wf-drafts" aria-labelledby="rascunhos">
           <h3 id="rascunhos" className="wf-admin__group m-0">
@@ -142,6 +169,7 @@ export function SlotBoard({
           </ul>
         </section>
       ) : null}
+      {list('assistidos-painel', 'Assistidos', watched)}
     </>
   );
 }

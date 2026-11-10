@@ -1484,6 +1484,49 @@ html:has(.wf-overlay) .skip-link {
     color: var(--fg-78);
   }
 
+  /* Fila (2026-11-09): the position on the poster, "Passando agora" highlighted */
+  .wf-fila .wf-seen__poster {
+    position: relative;
+  }
+  .wf-fila__n {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 6px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: rgb(26 18 38 / 0.85);
+    border: 1px solid rgb(169 157 224 / 0.5);
+    color: #f7f2fb;
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .wf-fila__now {
+    color: var(--color-lavender);
+    font-weight: 600;
+  }
+
+  /* Tabs (2026-11-09): the page fades in when a tab is opened — desktop only, never with
+     reduced motion. The template remounts on every navigation, so the animation replays. */
+  @media (min-width: 761px) and (prefers-reduced-motion: no-preference) {
+    .wf-tab-enter {
+      animation: wf-tab-enter 0.32s ease-out;
+    }
+    @keyframes wf-tab-enter {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+  }
+
   /* Home: "Filmes disponíveis" (2026-11-02) — every sponsorable movie, below the carousel */
   .wf-movie-grid {
     position: relative;

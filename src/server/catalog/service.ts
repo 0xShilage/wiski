@@ -452,13 +452,12 @@ export async function replaceItem(
 ) {
   const item = await db().catalogItem.findUnique({ where: { id }, include: { campaign: true } });
   if (!item) throw Problems.notFound();
-  if (!live.includes(item.status as (typeof live)[number])) {
-    throw CatalogProblems.invalidState('Só títulos no ar podem ser substituídos.');
+  if (item.status === 'SPONSORED' || item.status === 'FUNDED') {
+    throw CatalogProblems.invalidState('Este título está na Fila: marque como assistido antes.');
   }
-  if (item.status === 'SPONSORED') {
-    throw CatalogProblems.invalidState(
-      'Este filme já foi patrocinado: marque como assistido antes.',
-    );
+  // ACTIVE holds a slot; a watched title no longer does (2026-11-09) but can still be archived
+  if (item.status !== 'ACTIVE' && item.status !== 'WATCHED') {
+    throw CatalogProblems.invalidState('Só títulos no ar podem ser substituídos.');
   }
   if (item.reservedUntil && item.reservedUntil > now) {
     throw CatalogProblems.invalidState(
@@ -473,7 +472,7 @@ export async function replaceItem(
   }
   return refreshTotalAfter(
     tx(item.kind, async (t) => {
-      const slot = item.slot as number;
+      const slot = item.slot;
       const res = await t.catalogItem.updateMany({
         where: { id, status: item.status, version: item.version },
         data: { status: 'ARCHIVED', slot: null, archivedAt: now },
@@ -488,7 +487,7 @@ export async function replaceItem(
         }
         if (item.kind === 'MOVIE') {
           await goLive(t, draft, slot, now);
-        } else {
+        } else if (slot !== null) {
           await t.catalogItem.update({ where: { id: draft.id }, data: { slot } });
         }
       }
@@ -508,7 +507,7 @@ export async function replaceItem(
   );
 }
 
-/** Mark as watched on stream → reviews unlock; the slot stays until a moderator replaces it. */
+/** Mark as watched on stream → reviews unlock; it moves to Assistidos (no slot since 2026-11-09). */
 export async function markWatched(ctx: Ctx, id: string, now = new Date()) {
   const item = await db().catalogItem.findUnique({ where: { id }, include: { campaign: true } });
   if (!item) throw Problems.notFound();

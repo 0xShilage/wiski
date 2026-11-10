@@ -55,6 +55,13 @@ export const IconLayers = ({ className }: P) => (
     <path d="M3 14l9 5 9-5" />
   </svg>
 );
+/** Fila (2026-11-09): a numbered list. */
+export const IconQueue = ({ className }: P) => (
+  <svg {...base} className={className}>
+    <path d="M9 6h11M9 12h11M9 18h11" />
+    <path d="M4 5.5l1-.5v3M4 11.5h2l-2 2h2M4 17h1.5a.75.75 0 0 1 0 1.5H4.5h1a.75.75 0 0 1 0 1.5H4" />
+  </svg>
+);
 export const IconCalendar = ({ className }: P) => (
   <svg {...base} className={className}>
     <rect x="3.5" y="5" width="17" height="15" rx="2" />

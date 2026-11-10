@@ -324,6 +324,14 @@ export const AUDIT_ACTIONS = {
     .strict(),
   'contact.status': z.object({ to: z.enum(['NEW', 'READ', 'ARCHIVED', 'SPAM']) }).strict(),
   'contact.delete': z.object({}).strict(),
+  'alerts.test': z.object({ voice: z.boolean() }).strict(),
+  'alerts.update': z
+    .object({
+      voice: z.boolean(),
+      voiceName: z.string().regex(/^pt-BR-[A-Za-z0-9-]{1,40}$/),
+      chat: z.boolean(),
+    })
+    .strict(),
   'settings.update': z
     .object({ key: z.enum(['orders.open', 'roleta.open']), value: z.boolean() })
     .strict(),

@@ -319,6 +319,10 @@ export const MATRIX: Row[] = [
     url: '/api/v1/overlay/stream?widget=agora',
     alsoAllowed: [401],
   }),
+  R('/api/v1/overlay/tts', 'GET', 'public', {
+    url: '/api/v1/overlay/tts?id=1700000000000-abcdef',
+    alsoAllowed: [401],
+  }),
   R('/api/v1/admin/goals', 'GET', 'moderator'),
   R('/api/v1/admin/goals', 'POST', 'moderator', {
     body: {
@@ -405,6 +409,11 @@ export const MATRIX: Row[] = [
   R('/api/v1/admin/contact/[id]', 'DELETE', 'moderator', { params: { id: NO_ID } }),
   R('/api/v1/admin/audit', 'GET', 'moderator'),
   R('/api/v1/admin/audit/export', 'GET', 'moderator'),
+  R('/api/v1/admin/alerts', 'GET', 'moderator'),
+  R('/api/v1/admin/alerts', 'PUT', 'moderator', {
+    body: { voice: true, voiceName: 'pt-BR-Neural2-A', chat: true },
+  }),
+  R('/api/v1/admin/alerts/test', 'POST', 'moderator'),
   R('/api/v1/admin/settings', 'GET', 'moderator'),
   R('/api/v1/admin/settings', 'PUT', 'moderator', { body: { ordersOpen: true } }),
   R('/api/v1/admin/vouchers', 'GET', 'moderator'),

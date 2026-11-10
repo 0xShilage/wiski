@@ -75,6 +75,43 @@ test('overlay: after the stream drops and a reconnect gets a 502 (a deploy), it 
   expect(n).toBeGreaterThanOrEqual(3);
 });
 
+test('overlay "Novo patrocínio": name and message, one alert after the other', async ({ page }) => {
+  const key = await overlayKey(['patrocinio']);
+  const alert = (n: number, sponsor: string | null, message: string | null) =>
+    `data: ${JSON.stringify({
+      type: 'new-sponsorship',
+      title: `Filme ${n}`,
+      sponsor,
+      message,
+      voice: false,
+      id: `${1_700_000_000_000 + n}-abcdef`,
+      at: new Date(1_700_000_000_000 + n).toISOString(),
+    })}\n\n`;
+  let served = false;
+  await page.route('**/api/v1/overlay/stream?**', async (route) => {
+    if (served) return route.abort();
+    served = true;
+    return route.fulfill({
+      status: 200,
+      headers: { 'content-type': 'text/event-stream' },
+      body: `retry: 60000\n\n${alert(1, 'Tia Lu', 'Que filme lindo!')}${alert(2, null, null)}`,
+    });
+  });
+  await page.clock.install();
+  await page.goto(`/overlay/patrocinio#k=${key}`);
+  const box = page.locator('.wf-overlay__flash');
+  await expect(box).toContainText('Filme 1');
+  await expect(box).toContainText('por Tia Lu');
+  await expect(box).toContainText('“Que filme lindo!”');
+  // the second waits its turn, then shows "Anônimo" and no message
+  await page.clock.runFor(10_000);
+  await expect(box).toContainText('Filme 2');
+  await expect(box).toContainText('por Anônimo');
+  await expect(box.locator('.wf-overlay__message')).toHaveCount(0);
+  await page.clock.runFor(10_000);
+  await expect(box).toHaveCount(0);
+});
+
 test('overlay: "Próximos da fila" shows for two minutes, hides, and !fila brings it back', async ({
   page,
 }) => {

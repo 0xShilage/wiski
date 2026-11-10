@@ -7,7 +7,7 @@ import { db } from '../db';
 import { pgErrorCode, PG } from '../db-errors';
 import { HttpError, Problems } from '../http/problem';
 import { publicMessage, publicSponsor, sponsorSelect } from '../live/sponsor';
-import { refreshOverlays } from '../overlay/state';
+import { announcePaidOrder, refreshOverlays } from '../overlay/state';
 import { priceMovie } from '../pricing/engine';
 import { type ActiveRuleSet, activeRuleSet } from '../pricing/ruleset';
 import { publishCampaign, publishOrder } from '../realtime/events';
@@ -305,7 +305,8 @@ export async function acceptOrder(ctx: Ctx, id: string, expectedVersion: number,
     throw err;
   }
   await publishOrder(id, { type: 'status', code, status: 'PAID', at: now.toISOString() });
-  await refreshOverlays(['fila', 'meta']);
+  // accepted as a sale: "Novo patrocínio" on stream and in chat (2026-11-09)
+  await announcePaidOrder(id);
   return getOrder(ctx.actor.role, id);
 }
 
@@ -569,7 +570,8 @@ export async function registerManualPayment(
     }
   }
   await announceProgress(orderId, code, item.campaign?.id ?? null, 'PAID', now);
-  await refreshOverlays(['fila', 'meta']);
+  // a "Já pago" is a sponsorship too: "Novo patrocínio" on stream and in chat (2026-11-09)
+  await announcePaidOrder(orderId);
   return getOrder(ctx.actor.role, orderId);
 }
 

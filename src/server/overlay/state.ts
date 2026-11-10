@@ -5,12 +5,23 @@ import { totalGoal } from '../goals/total';
 import { logger } from '../log';
 import { subathonSnapshot } from '../subathon/overlay';
 import { publicMessage, publicSponsor, sponsorSelect } from '../live/sponsor';
+import { streamSafe, streamSafeName } from '@/lib/stream-safe';
+import { randomToken } from '../security/crypto';
+import {
+  chatLine,
+  getAlertSettings,
+  sayInChat,
+  spokenLine,
+  storeVoice,
+  synthesize,
+} from './alerts';
 import { publishOverlay } from './publish';
 import {
   goalEvent,
   nowPlayingEvent,
   queueEvent,
   sponsorshipEvent,
+  sponsorshipId,
   totalGoalEvent,
   type OverlayEvent,
   type Widget,
@@ -194,16 +205,65 @@ export async function refreshOverlays(widgets: Widget[]): Promise<void> {
   }
 }
 
-/** A movie was just paid: "Novo patrocínio" + the queue and the goal moved. */
-export async function announcePaidOrder(orderId: string): Promise<void> {
+/**
+ * "Testar alerta" (2026-11-09): a sample "Novo patrocínio" with the current voice, to set up OBS
+ * audio. Never posted in chat.
+ */
+export async function testSponsorshipAlert(now = new Date()): Promise<{ voice: boolean }> {
+  const settings = await getAlertSettings();
+  const nonce = randomToken(6);
+  const sample = {
+    sponsor: 'Wiskiflix',
+    title: 'Filme de teste',
+    message: 'Este é um teste do alerta de patrocínio.',
+  };
+  let voice = false;
+  if (settings.voice && settings.voiceReady) {
+    const mp3 = await synthesize(spokenLine(sample), settings.voiceName);
+    voice = !!mp3 && (await storeVoice(sponsorshipId(now, nonce), mp3));
+  }
+  const e = sponsorshipEvent(sample.title, sample.sponsor, now, nonce, {
+    message: sample.message,
+    voice,
+  });
+  if (e) await publish('patrocinio', e);
+  return { voice };
+}
+
+/**
+ * A movie or a contribution was just paid (on the site, or registered as "Já pago"): "Novo
+ * patrocínio" + the queue and the goal moved. 2026-11-09: the alert carries the sponsor's name
+ * (logged in: @username; guest: the name typed; none or "Anônimo" ticked: null) and message, both
+ * through `streamSafe`; a voice reads it (if set up) and the StreamElements bot thanks the sponsor
+ * in chat (once per order).
+ */
+export async function announcePaidOrder(orderId: string, now = new Date()): Promise<void> {
   try {
     const o = await db().order.findUnique({
       where: { id: orderId },
       select: { kind: true, status: true, item: { select: { title: true } }, ...sponsorSelect },
     });
     if (!o || o.status !== 'PAID') return;
-    const e = sponsorshipEvent(o.item.title, publicSponsor(o));
+    const sponsor = streamSafeName(publicSponsor(o));
+    const message = streamSafe(publicMessage(o));
+    const nonce = randomToken(6);
+    const settings = await getAlertSettings();
+    let voice = false;
+    if (settings.voice && settings.voiceReady) {
+      const mp3 = await synthesize(
+        spokenLine({ sponsor, title: o.item.title, message: message?.spoken ?? null }),
+        settings.voiceName,
+      );
+      voice = !!mp3 && (await storeVoice(sponsorshipId(now, nonce), mp3));
+    }
+    const e = sponsorshipEvent(o.item.title, sponsor, now, nonce, {
+      message: message?.shown ?? null,
+      voice,
+    });
     if (e) await publish('patrocinio', e);
+    if (settings.chat && settings.chatReady) {
+      await sayInChat(`order:${orderId}`, chatLine({ sponsor, title: o.item.title }));
+    }
     await refreshOverlays(o.kind === 'MOVIE' ? ['fila', 'meta'] : ['meta']);
   } catch (err) {
     logger.warn({ err: err instanceof Error ? err.message : 'unknown' }, 'overlay announce failed');

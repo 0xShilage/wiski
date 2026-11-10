@@ -121,6 +121,10 @@ export const overlayEventSchema = z.discriminatedUnion('type', [
       type: z.literal('new-sponsorship'),
       title: safe(LIMITS.title),
       sponsor: safe(LIMITS.sponsor).nullable(),
+      /** the sponsor's message, links and swear words removed (2026-11-09) */
+      message: safe(LIMITS.message).nullable(),
+      /** a spoken version is ready at /api/v1/overlay/tts?id=<id> (2026-11-09) */
+      voice: z.boolean(),
       /** a unique id (2026-11-05): replayed after a reconnect, shown once */
       id: z.string().regex(/^\d{13}-[\w-]{6,16}$/),
       /** server time of the payment's announcement */
@@ -262,6 +266,7 @@ export function sponsorshipEvent(
   sponsor: string | null,
   now = new Date(),
   nonce = randomToken(6),
+  extra: { message?: string | null; voice?: boolean } = {},
 ): OverlayEvent | null {
   const t = overlayText(title, LIMITS.title);
   if (!t) return null;
@@ -269,10 +274,15 @@ export function sponsorshipEvent(
     type: 'new-sponsorship',
     title: t,
     sponsor: overlayText(sponsor, LIMITS.sponsor),
-    id: `${now.getTime()}-${nonce}`,
+    message: overlayText(extra.message, LIMITS.message),
+    voice: extra.voice ?? false,
+    id: sponsorshipId(now, nonce),
     at: now.toISOString(),
   });
 }
+
+/** The alert's id: also the key of its spoken version. */
+export const sponsorshipId = (now: Date, nonce: string) => `${now.getTime()}-${nonce}`;
 
 export function subathonEvent(
   s: {

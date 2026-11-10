@@ -88,6 +88,12 @@ export const envSchema = z
         ),
     ),
 
+    /** "Novo patrocínio" voice (2026-11-09): a Google Cloud API key restricted to the
+     *  Text-to-Speech API. Unset = the overlay plays the chime only. */
+    GOOGLE_TTS_API_KEY: optional(
+      z.string().regex(/^AIza[\w-]{35}$/, 'must be a Google Cloud API key (AIza…)'),
+    ),
+
     /** Processed images (11 §5). Production: the Docker volume /var/lib/wiski/media, served by
      *  nginx at /media/. Development/test default: <cwd>/.media (served by the app). */
     MEDIA_DIR: optional(

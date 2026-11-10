@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { playAlert } from './alert-sound';
 import { GoalRing, type GoalIcon } from './GoalRing';
 import { SubathonTimer, type SubathonEv } from './SubathonTimer';
 
@@ -32,7 +33,15 @@ type Ev =
         percent: number;
       }[];
     }
-  | { type: 'new-sponsorship'; title: string; sponsor: string | null; id?: string; at?: string }
+  | {
+      type: 'new-sponsorship';
+      title: string;
+      sponsor: string | null;
+      message?: string | null;
+      voice?: boolean;
+      id?: string;
+      at?: string;
+    }
   | SubathonEv
   | { type: 'show'; seconds: number }
   | { type: 'ready' };
@@ -40,8 +49,20 @@ type Ev =
 const KEY = /^#k=(wfo_[\w-]{43})$/;
 /** no ping (every 20 s) for this long → reconnect */
 const WATCHDOG_MS = 50_000;
-/** how long "Novo patrocínio" stays (the CSS animation is 8 s) */
+/** how long "Novo patrocínio" stays at least (longer while the voice reads it) */
 const FLASH_MS = 8_500;
+/** the fade-out at the end of an alert, and the pause before the next one */
+const LEAVE_MS = 600;
+
+type Alert = {
+  n: number;
+  title: string;
+  sponsor: string | null;
+  message: string | null;
+  id?: string | undefined;
+  voice: boolean;
+  leaving: boolean;
+};
 /**
  * "Agora assistindo" and "Próximos da fila" pop in (2026-11-06): two minutes when what they show
  * changes, and when !agora / !fila is typed in chat (a `show` event); hidden otherwise.
@@ -94,11 +115,39 @@ const num = (n: number) => n.toLocaleString('pt-BR');
  * 2026-11-05: the page reconnects by itself after any drop (with a watchdog on the server's
  * pings), signs in again with the key when the cookie expires, and gets back the "Novo
  * patrocínio" alerts it missed meanwhile, each shown once.
+ * 2026-11-09: "Novo patrocínio" shows the sponsor's message, plays a chime and the spoken version
+ * (when the server made one); alerts that arrive together wait their turn.
  */
 export function OverlayClient({ widget }: { widget: keyof typeof LABEL }) {
   const [ev, setEv] = useState<Ev | null>(null);
-  const [flash, setFlash] = useState<{ n: number; title: string; sponsor: string | null } | null>(
-    null,
+  const [flash, setFlash] = useState<Alert | null>(null);
+  const pending = useRef<Alert[]>([]);
+  const playing = useRef(false);
+  const counter = useRef(0);
+  /** one alert at a time: chime + voice, fade out, then the next */
+  const drain = useCallback(async () => {
+    if (playing.current) return;
+    playing.current = true;
+    const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    for (let next = pending.current.shift(); next; next = pending.current.shift()) {
+      const n = next.n;
+      setFlash(next);
+      await playAlert(next, FLASH_MS);
+      setFlash((f) => (f && f.n === n ? { ...f, leaving: true } : f));
+      await pause(LEAVE_MS);
+      setFlash((f) => (f && f.n === n ? null : f));
+      await pause(LEAVE_MS);
+    }
+    playing.current = false;
+  }, []);
+  const enqueue = useCallback(
+    (a: Omit<Alert, 'n' | 'leaving'>) => {
+      counter.current += 1;
+      pending.current.push({ ...a, n: counter.current, leaving: false });
+      if (pending.current.length > 10) pending.current.shift(); // a flood: keep the latest
+      void drain();
+    },
+    [drain],
   );
   const [problem, setProblem] = useState<Problem | null>(null);
   const [away, setAway] = useState(false);
@@ -258,7 +307,13 @@ export function OverlayClient({ widget }: { widget: keyof typeof LABEL }) {
             if (seen.length > 50) seen.shift();
           }
           if (data.at && (!since || data.at > since)) since = data.at;
-          setFlash((f) => ({ n: (f?.n ?? 0) + 1, title: data.title, sponsor: data.sponsor }));
+          enqueue({
+            title: data.title,
+            sponsor: data.sponsor,
+            message: data.message ?? null,
+            id: data.id,
+            voice: data.voice === true,
+          });
         } else if (data.type === 'show') {
           if (isPop(widget)) popIn(data.seconds * 1000);
         } else {
@@ -293,17 +348,10 @@ export function OverlayClient({ widget }: { widget: keyof typeof LABEL }) {
       if (timer) clearTimeout(timer);
       if (watchdog) clearTimeout(watchdog);
     };
-  }, [widget, popIn]);
+  }, [widget, popIn, enqueue]);
 
-  // the alert leaves after its animation, also where animations are off (reduced motion)
-  useEffect(() => {
-    if (!flash) return;
-    const n = flash.n;
-    const t = setTimeout(() => setFlash((f) => (f && f.n === n ? null : f)), FLASH_MS);
-    return () => clearTimeout(t);
-  }, [flash]);
-
-  if (problem && !ev) {
+  // an alert already on screen finishes even if the stream drops meanwhile
+  if (problem && !ev && !(widget === 'patrocinio' && flash)) {
     return (
       <div className="wf-overlay__box">
         <p className="wf-overlay__sub">{PROBLEM_TEXT[problem](LABEL[widget].replace(/!$/, ''))}</p>
@@ -313,10 +361,19 @@ export function OverlayClient({ widget }: { widget: keyof typeof LABEL }) {
 
   if (widget === 'patrocinio') {
     return flash ? (
-      <div key={flash.n} className="wf-overlay__box wf-overlay__flash" role="status">
+      <div
+        key={flash.n}
+        className={
+          flash.leaving
+            ? 'wf-overlay__box wf-overlay__flash is-leaving'
+            : 'wf-overlay__box wf-overlay__flash'
+        }
+        role="status"
+      >
         <p className="wf-overlay__label">{LABEL.patrocinio}</p>
         <p className="wf-overlay__title">{flash.title}</p>
         <p className="wf-overlay__sub">{flash.sponsor ? `por ${flash.sponsor}` : 'por Anônimo'}</p>
+        {flash.message ? <p className="wf-overlay__message">“{flash.message}”</p> : null}
       </div>
     ) : null;
   }

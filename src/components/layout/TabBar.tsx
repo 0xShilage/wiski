@@ -10,6 +10,7 @@ import {
   IconLayers,
   IconLink,
   IconMore,
+  IconQueue,
   IconStar,
   IconTv,
   IconUser,
@@ -24,6 +25,7 @@ const ICON: Record<
   '/': IconFilm,
   '/series': IconTv,
   '/franquias': IconLayers,
+  '/fila': IconQueue,
   '/cronograma': IconCalendar,
   '/assistidos': IconEye,
   '/avaliacoes': IconStar,
@@ -38,7 +40,7 @@ const MORE = NAV_ITEMS.filter((i) => i.mobile === 'more');
 
 /**
  * Phones (≤ 760 px): a fixed bottom bar — Filmes · Séries · Franquias · Cronograma · Perfil ·
- * Mais (Phase 6). "Mais" opens a native popover (light dismiss and Esc for free) with Assistidos,
+ * Mais (Phase 6). "Mais" opens a native popover (light dismiss and Esc for free) with Fila, Assistidos,
  * Avaliações, Sugestões, Roleta and Links. Hidden on larger screens, where the header shows every tab.
  * No prefetch, like the header tabs (NavLinks).
  */

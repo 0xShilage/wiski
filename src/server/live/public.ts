@@ -2,6 +2,7 @@ import 'server-only';
 import { type Picture, pictureFrom } from '@/lib/media';
 import { db } from '../db';
 import { entryDone, type QueueEntry, sessionsWithEntries } from './schedule';
+import { publicSponsor, sponsorSelect } from './sponsor';
 
 /**
  * "Próximos na live" (11 §3, O7): the next lives and their titles, for everyone. Only public
@@ -203,6 +204,134 @@ export async function nextUpAnswer(now = new Date()): Promise<string> {
   const first = planned?.entries.find((e) => !entryDone(e));
   if (!planned || !first) return 'Nada agendado na agenda da live por enquanto.';
   return `⏭️ Próximo na live: ${label(first)} (${whenFmt.format(planned.startsAt).replace(',', '')})`;
+}
+
+/**
+ * Fila (2026-11-09): every title already paid and waiting to be watched — sponsored movies and
+ * series/franchises with the goal reached. What is on screen first, then what has a date (by
+ * date), then the rest in queue order ("Topo da fila", "Prioridade", then by payment).
+ */
+export type FilaEntry = {
+  key: string;
+  title: string;
+  kind: 'MOVIE' | 'SERIES' | 'FRANCHISE';
+  slug: string;
+  year: number | null;
+  poster: Picture | null;
+  sponsor: string | null;
+  jumped: boolean;
+  playing: boolean;
+  /** the live it is booked on (a series: its next part), else null */
+  when: string | null;
+  /** series/franchise: parts already watched, e.g. "T1 · E6" */
+  lastPart: string | null;
+};
+
+const posterSelect = { select: { width: true, height: true, variants: true } } as const;
+const filaItemSelect = {
+  id: true,
+  kind: true,
+  slug: true,
+  title: true,
+  year: true,
+  status: true,
+  poster: posterSelect,
+} as const;
+const TIER_ORDER: Record<string, number> = { topo: 0, prioridade: 1 };
+
+export async function publicQueue(): Promise<FilaEntry[]> {
+  const [orders, campaigns] = await Promise.all([
+    db().order.findMany({
+      where: {
+        kind: 'MOVIE',
+        status: { in: ['PAID', 'SCHEDULED', 'WATCHING'] },
+        item: { status: 'SPONSORED' },
+      },
+      select: {
+        id: true,
+        status: true,
+        paidAt: true,
+        queueJumpTierId: true,
+        session: { select: { startsAt: true, status: true } },
+        item: { select: filaItemSelect },
+        ...sponsorSelect,
+      },
+      take: 200,
+    }),
+    db().campaign.findMany({
+      where: { status: { in: ['FUNDED', 'SCHEDULED'] }, item: { status: 'FUNDED' } },
+      select: {
+        id: true,
+        status: true,
+        fundedAt: true,
+        session: { select: { startsAt: true, status: true } },
+        item: { select: filaItemSelect },
+        segments: {
+          where: { status: { in: ['SCHEDULED', 'PLAYING', 'DONE'] } },
+          orderBy: { createdAt: 'asc' },
+          select: {
+            label: true,
+            status: true,
+            session: { select: { startsAt: true, status: true } },
+          },
+        },
+      },
+      take: 100,
+    }),
+  ]);
+  type Row = FilaEntry & { rank: number; since: number };
+  const rows: Row[] = [];
+  for (const o of orders) {
+    const playing = o.status === 'WATCHING';
+    const when = o.session && o.status === 'SCHEDULED' ? o.session.startsAt.toISOString() : null;
+    rows.push({
+      key: `o:${o.id}`,
+      title: o.item.title,
+      kind: o.item.kind,
+      slug: o.item.slug,
+      year: o.item.year,
+      poster: pictureFrom(o.item.poster),
+      sponsor: publicSponsor(o),
+      jumped: o.queueJumpTierId !== null,
+      playing,
+      when,
+      lastPart: null,
+      rank: playing ? -1 : (TIER_ORDER[o.queueJumpTierId ?? ''] ?? 2),
+      since: (o.paidAt ?? new Date(0)).getTime(),
+    });
+  }
+  for (const c of campaigns) {
+    const playing = c.segments.some((g) => g.status === 'PLAYING' && g.session.status === 'LIVE');
+    const next = c.segments.find((g) => g.status === 'SCHEDULED');
+    const done = c.segments.filter((g) => g.status === 'DONE');
+    const when = next
+      ? next.session.startsAt.toISOString()
+      : c.status === 'SCHEDULED' && c.session
+        ? c.session.startsAt.toISOString()
+        : null;
+    rows.push({
+      key: `c:${c.id}`,
+      title: c.item.title,
+      kind: c.item.kind,
+      slug: c.item.slug,
+      year: c.item.year,
+      poster: pictureFrom(c.item.poster),
+      sponsor: null,
+      jumped: false,
+      playing,
+      when,
+      lastPart: done.at(-1)?.label ?? null,
+      rank: playing ? -1 : 2,
+      since: (c.fundedAt ?? new Date(0)).getTime(),
+    });
+  }
+  rows.sort((a, b) => {
+    if (a.playing !== b.playing) return a.playing ? -1 : 1;
+    if (a.when && b.when) return a.when.localeCompare(b.when);
+    if (a.when || b.when) return a.when ? -1 : 1;
+    return a.rank - b.rank || a.since - b.since || a.key.localeCompare(b.key);
+  });
+  return rows.map(({ rank: _r, since: _s, ...e }) => e);
 }
 
 /** Is a live session marked "Ao vivo" in Cronograma right now? (home page Twitch block) */

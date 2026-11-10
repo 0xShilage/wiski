@@ -117,11 +117,11 @@ export const AUDIT_ACTIONS = {
   'catalog.revert': z.object({ kind: itemKind, toVersion: z.int(), version: z.int() }).strict(),
   'catalog.slots': z.object({ kind: itemKind, moved: z.int().nonnegative() }).strict(),
   'catalog.replace': z
-    .object({ kind: itemKind, slot: z.int(), replacementId: z.uuid().nullable() })
+    .object({ kind: itemKind, slot: z.int().nullable(), replacementId: z.uuid().nullable() })
     .strict(),
   'catalog.watched': z.object({ kind: itemKind }).strict(),
   'catalog.unwatched': z
-    .object({ kind: itemKind, status: z.enum(['ACTIVE', 'SPONSORED', 'FUNDED']) })
+    .object({ kind: itemKind, status: z.enum(['ACTIVE', 'SPONSORED', 'FUNDED', 'DRAFT']) })
     .strict(),
   'catalog.delete': z.object({ kind: itemKind }).strict(),
   'campaign.open': z

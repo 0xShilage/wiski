@@ -73,11 +73,12 @@ for (const [w, h, margin] of [
     expect(Math.round(m.logoX)).toBe(margin);
     expect(Math.abs(m.activeCentre - m.W / 2)).toBeLessThan(2);
     // Cronograma (2026-10-31), Sugestões and Links (Phase 6), Assistidos (2026-11-01) and
-    // Roleta (2026-11-04) are additions to the Figma header
+    // Roleta (2026-11-04) and Fila (2026-11-09) are additions to the Figma header
     expect(m.nav).toEqual([
       'Filmes',
       'Séries',
       'Franquias',
+      'Fila',
       'Cronograma',
       'Assistidos',
       'Avaliações',
@@ -90,12 +91,20 @@ for (const [w, h, margin] of [
   });
 }
 
-test('Filmes 1440, sponsored state', async ({ page }) => {
+// 2026-11-09 ("Fila"): a sponsored movie leaves the carousel, so the unavailable state on the
+// board is now the reserved one (a pending Pix)
+test('Filmes 1440, reserved state', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1080 });
   await page.goto('/', { waitUntil: 'networkidle' });
+  // the seed's reserved movie (pending Pix); its place on the board depends on what earlier specs
+  // sponsored, so step until it is on screen
   const next = page.getByRole('button', { name: 'Próximo filme' });
-  for (let i = 0; i < 3; i++) await next.click();
-  await expect(page.locator('.wf-hero__ctas')).toContainText('Patrocinado');
+  for (let i = 0; i < 12; i++) {
+    if ((await page.locator('.wf-hero__ctas').textContent())?.includes('Reservado')) break;
+    await next.click();
+  }
+  await expect(page.locator('.wf-hero__ctas')).toContainText('Reservado');
+  // the Figma frame of the unavailable (sponsored) state has the same layout
   await sideBySide(page, 'r1-filmes-1440-sponsored');
 });
 

@@ -249,8 +249,9 @@ test('"Já pago" from the movie editor: the movie becomes sponsored; undone in P
   await panel.getByLabel('Nome público (opcional)').fill('Tia Lu');
   await panel.getByRole('button', { name: 'Registrar como pago' }).click();
   await expect(page.getByText('Pagamento registrado: o título entrou na fila.')).toBeVisible();
+  // 2026-11-09 ("Fila"): paid, it leaves its slot for the "Na Fila" list under the board
   await expect(
-    page.getByRole('button', { name: new RegExp(`Patrocinado: ${TITLE}`) }),
+    page.getByRole('region', { name: /Na Fila/ }).getByRole('button', { name: TITLE }),
   ).toBeVisible();
   // a sponsored movie offers no second "Já pago"
   await expect(page.getByRole('button', { name: 'Já pago' })).toHaveCount(0);
@@ -300,8 +301,9 @@ test('"Já pago" on a draft series: the campaign opens with the goal met; undone
   await panel.getByLabel('Nome público (opcional)').fill('Tio Beto');
   await panel.getByRole('button', { name: 'Abrir e registrar como pago' }).click();
   await expect(page.getByText('Pagamento registrado: o título entrou na fila.')).toBeVisible();
+  // 2026-11-09 ("Fila"): with its goal met it leaves its slot for the "Na Fila" list
   await expect(
-    page.getByRole('button', { name: new RegExp(`Meta atingida: ${series}`) }),
+    page.getByRole('region', { name: /Na Fila/ }).getByRole('button', { name: series }),
   ).toBeVisible();
   // a funded campaign offers no second "Já pago"
   await expect(page.getByRole('button', { name: 'Já pago' })).toHaveCount(0);

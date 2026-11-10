@@ -242,3 +242,9 @@ Fix (PR "fix-prefetch-burst"): no prefetch on the header tabs, the phone bar, th
 - `tests/integration/overlay-alerts.test.ts` (7): guest name and message (masked word and link removed), the TTS request (key in a header, pt-BR voice, text), one chat line per order through the channel in the JWT; @username vs anonymous; the voice served as MP3 only to an overlay with "patrocinio" (401 without cookie or with another widget, 404 unknown id); switched off / Google failing → alert without voice, audited; no key → `voiceReady: false`; "Já pago" announced on stream and in chat; "Testar alerta" never in chat.
 - `tests/e2e/operations.spec.ts`: two alerts in a row (name and message, then "por Anônimo"), the second waits its turn, both leave.
 - Unit 380/380, integration 1145/1145.
+
+## Addendum — "Fila" (2026-11-09)
+
+- `tests/integration/queue-tab.test.ts` (5): a sponsored movie leaves Filmes, keeps its page and frees its slot for a new movie on a full board; a funded series leaves Séries and is on /fila; back to ACTIVE takes the lowest free slot, or comes back as a draft with the board full; a draft can't be published onto a full board and a paid title can't keep a slot; /fila order (on screen, by date, Prioridade, by payment) and public sponsor names.
+- `db-constraints-r1.test.ts` and `catalog.test.ts` updated to the new rules (slot cleared on leaving ACTIVE, assigned on coming back; paid and watched titles don't count; Substituir on a watched title).
+- Integration 1150/1150.

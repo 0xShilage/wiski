@@ -76,15 +76,20 @@ test('keyboard: ← → move while focus is in the carousel; focus follows the a
   await expect(active).toBeFocused();
 });
 
-test('sponsored and reserved movies: badge, disabled CTA, explanation', async ({ page }) => {
+test('a sponsored movie is on /fila, not in the carousel; a reserved one shows why', async ({
+  page,
+}) => {
+  // 2026-11-09 ("Fila"): the seed's sponsored movie (@luana_v) left the board for /fila
+  await page.goto('/fila');
+  await expect(page.locator('.wf-fila')).toContainText('Patrocínio: @luana_v');
   await page.goto('/', { waitUntil: 'networkidle' });
+  // the seed's reserved movie (pending Pix); its place on the board depends on what earlier specs
+  // sponsored, so step until it is on screen
   const next = page.getByRole('button', { name: 'Próximo filme' });
-  for (let i = 0; i < 3; i++) await next.click(); // slot 4 = sponsored by @luana_v in the seed
-  await expect(page.locator('.wf-hero__ctas')).toContainText('Patrocinado');
-  await expect(page.locator('.wf-hero__price')).toContainText('Patrocinado por @luana_v');
-  await expect(page.getByRole('link', { name: 'Patrocine agora' })).toHaveCount(0);
-  await next.click(); // slot 5
-  await next.click(); // slot 6 = reserved (pending Pix)
+  for (let i = 0; i < 12; i++) {
+    if ((await page.locator('.wf-hero__ctas').textContent())?.includes('Reservado')) break;
+    await next.click();
+  }
   await expect(page.locator('.wf-hero__ctas')).toContainText('Reservado');
   await expect(page.locator('.wf-hero__price')).toContainText('35 minutos');
 });

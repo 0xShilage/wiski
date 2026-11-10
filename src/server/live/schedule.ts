@@ -995,7 +995,7 @@ export async function uncompleteInTx(
   t: Tx,
   itemId: string,
   expectedVersion: number,
-): Promise<{ orderIds: string[]; status: 'ACTIVE' | 'SPONSORED' | 'FUNDED' }> {
+): Promise<{ orderIds: string[]; status: 'ACTIVE' | 'SPONSORED' | 'FUNDED' | 'DRAFT' }> {
   const item = await t.catalogItem.findUnique({
     where: { id: itemId },
     include: { campaign: true },
@@ -1041,13 +1041,19 @@ export async function uncompleteInTx(
     data: { status, watchedAt: null },
   });
   if (res.count !== 1) throw LiveProblems.changed();
+  // back to ACTIVE takes a free slot; with the board full the title comes back as a draft
+  // (the catalog guard trigger, 2026-11-09)
+  const now = await t.catalogItem.findUniqueOrThrow({
+    where: { id: itemId },
+    select: { status: true },
+  });
   const last = await t.watchEvent.findFirst({
     where: { itemId },
     orderBy: { watchedAt: 'desc' },
     select: { id: true },
   });
   if (last) await t.watchEvent.delete({ where: { id: last.id } });
-  return { orderIds, status };
+  return { orderIds, status: now.status === 'DRAFT' ? 'DRAFT' : status };
 }
 
 /** "Concluído": watched on the live session. */

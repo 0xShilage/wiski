@@ -91,9 +91,7 @@ export function Dashboard({
   const move = async (id: string, to: number) => {
     const a = items.find((i) => i.id === id);
     if (!a?.slot || a.slot === to) return;
-    const b = items.find(
-      (i) => i.slot === to && ['ACTIVE', 'SPONSORED', 'FUNDED', 'WATCHED'].includes(i.status),
-    );
+    const b = items.find((i) => i.slot === to && i.status === 'ACTIVE');
     const slots = [{ id: a.id, slot: to }, ...(b ? [{ id: b.id, slot: a.slot }] : [])];
     setBoardError(null);
     const res = await adminFetch('/api/v1/admin/catalog/slots', {

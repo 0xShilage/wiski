@@ -64,10 +64,15 @@ describe('CatalogItem CHECKs', () => {
   });
 
   it('ties status to slot, kind and lifecycle timestamps', async () => {
-    // live without slot
-    expect(await sqlState(makeItem({ status: 'ACTIVE', slot: null }))).toBe('23514');
-    // archived with a slot
-    expect(await sqlState(makeItem({ status: 'ARCHIVED', slot: 3 }))).toBe('23514');
+    // live without slot: the guard gives it the lowest free one (2026-11-09)
+    expect((await makeItem({ status: 'ACTIVE', slot: null })).slot).toBe(1);
+    // archived (or paid, or watched) never keeps a slot: the guard clears it…
+    expect((await makeItem({ status: 'ARCHIVED', slot: 3 })).slot).toBeNull();
+    // …and the CHECK refuses one set afterwards
+    const archived = await makeItem({ status: 'ARCHIVED' });
+    expect(
+      await sqlState(db().catalogItem.update({ where: { id: archived.id }, data: { slot: 3 } })),
+    ).toBe('23514');
     // SPONSORED is movie-only, FUNDED is campaign-only
     expect(await sqlState(makeItem({ kind: 'SERIES', status: 'SPONSORED', slot: 1 }))).toBe(
       '23514',
@@ -99,7 +104,8 @@ describe('live slots (deferred exclusion)', () => {
   it('two live items of the same kind cannot share a slot; drafts and other kinds can', async () => {
     await makeItem({ status: 'ACTIVE', slot: 5 });
     expect(await sqlState(makeItem({ status: 'ACTIVE', slot: 5 }))).toBe('23P01');
-    expect(await sqlState(makeItem({ status: 'WATCHED', slot: 5 }))).toBe('23P01');
+    // a watched title gives its slot up (2026-11-09), so it never collides
+    expect((await makeItem({ status: 'WATCHED', slot: 5 })).slot).toBeNull();
     await expect(makeItem({ status: 'DRAFT', slot: 5 })).resolves.toBeTruthy();
     await expect(makeItem({ kind: 'SERIES', status: 'ACTIVE', slot: 5 })).resolves.toBeTruthy();
   });
@@ -122,11 +128,13 @@ describe('live slots (deferred exclusion)', () => {
   });
 });
 
-describe('live limit trigger (50 movies, 20 series, 10 franchises)', () => {
-  it('refuses the 51st live movie with SQLSTATE WF409, counting WATCHED too', async () => {
+describe('live limit trigger (50 movies, 50 series, 10 franchises)', () => {
+  it('refuses the 51st live movie with SQLSTATE WF409; paid and watched ones do not count', async () => {
     for (let slot = 1; slot <= 49; slot++) await makeItem({ status: 'ACTIVE', slot });
-    await makeItem({ status: 'WATCHED', slot: 50 });
-    expect(await sqlState(makeItem({ status: 'ACTIVE', slot: 50 }))).toBe('WF409');
+    await makeItem({ status: 'WATCHED' });
+    await makeItem({ status: 'SPONSORED' });
+    await makeItem({ status: 'ACTIVE', slot: 50 });
+    expect(await sqlState(makeItem({ status: 'ACTIVE', slot: null }))).toBe('WF409');
     const draft = await makeItem({ status: 'DRAFT' });
     expect(
       await sqlState(
@@ -136,12 +144,9 @@ describe('live limit trigger (50 movies, 20 series, 10 franchises)', () => {
         }),
       ),
     ).toBe('WF409');
-    // Archiving one frees room.
-    const watched = await db().catalogItem.findFirstOrThrow({ where: { status: 'WATCHED' } });
-    await db().catalogItem.update({
-      where: { id: watched.id },
-      data: { status: 'ARCHIVED', slot: null, archivedAt: new Date() },
-    });
+    // A movie getting sponsored frees room.
+    const sold = await db().catalogItem.findFirstOrThrow({ where: { status: 'ACTIVE', slot: 50 } });
+    await db().catalogItem.update({ where: { id: sold.id }, data: { status: 'SPONSORED' } });
     await expect(
       db().catalogItem.update({
         where: { id: draft.id },
@@ -156,9 +161,11 @@ describe('live limit trigger (50 movies, 20 series, 10 franchises)', () => {
       if (slot <= 10) await makeItem({ kind: 'FRANCHISE', status: 'ACTIVE', slot });
     }
     expect(await sqlState(makeItem({ kind: 'SERIES', status: 'ACTIVE', slot: 3 }))).toBe('WF409');
-    expect(await sqlState(makeItem({ kind: 'FRANCHISE', status: 'FUNDED', slot: 3 }))).toBe(
+    expect(await sqlState(makeItem({ kind: 'FRANCHISE', status: 'ACTIVE', slot: 3 }))).toBe(
       'WF409',
     );
+    // a franchise with its goal reached holds no slot, so it doesn't count (2026-11-09)
+    await expect(makeItem({ kind: 'FRANCHISE', status: 'FUNDED' })).resolves.toBeTruthy();
     await expect(makeItem({ kind: 'MOVIE', status: 'ACTIVE', slot: 1 })).resolves.toBeTruthy();
   });
 

@@ -433,7 +433,12 @@ async function newOrderRows(
     buyerKey: string;
     accessToken: string;
     legal: CurrentLegal;
-    input: { displayName?: string | undefined; anonymous: boolean; message?: string | undefined };
+    input: {
+      displayName?: string | undefined;
+      anonymous: boolean;
+      wall?: boolean | undefined;
+      message?: string | undefined;
+    };
     amounts: {
       breakdown: unknown;
       subtotalCents: number;
@@ -480,6 +485,8 @@ async function newOrderRows(
         ? { guestDisplayName: p.input.displayName, displayNameStatus: 'APPROVED' as const }
         : {}),
       showSponsorName: !p.input.anonymous,
+      // the wall shows a name: an anonymous sponsorship never goes on it
+      wallOptIn: !!p.input.wall && !p.input.anonymous,
       clientRequestId: p.buyer.idempotencyKey,
     },
   });

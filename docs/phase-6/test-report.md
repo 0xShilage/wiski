@@ -254,3 +254,7 @@ Fix (PR "fix-prefetch-burst"): no prefetch on the header tabs, the phone bar, th
 - `tests/integration/animes-games.test.ts` (4): a board of 20 animes (21st refused), season fields on an anime but not a movie, its own tab and title pages; a funded anime on /fila and booked by episodes; games added, ordered (Jogando, Zerado newest first, Dropado), edited (version checked), removed, audited; VOD links only https Twitch/YouTube (http, other hosts, credentials and script URLs refused; DB CHECK as backstop); the cover must be a poster; "Zerado em" refused on a game still being played.
 - Updated: nav lists (unit and e2e), the progress block and "Meta total" with ANIME, authz rows for the game routes, `/fila`, `/animes`, `/jogos`, `/admin/jogos` in the CSP/a11y page list.
 - Unit 380/380, integration 1170/1170.
+
+## Addendum — Mural de apoiadores (2026-11-09)
+
+- `tests/integration/supporters-wall.test.ts` (3): the checkout opt-in is off by default, on when ticked, never with "anônimo"; the wall lists only opted-in orders that still count, with a safe public name, newest first, one card per title; a moderator takes a name off (audited) and can't put it back.

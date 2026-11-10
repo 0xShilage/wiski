@@ -47,6 +47,8 @@ export const manualPaymentInput = z
     amountCents: z.int().min(1).max(MANUAL_MAX_CENTS).optional(),
     sponsorName: oneLine(2, 24, 'Use de 2 a 24 caracteres.').optional(),
     message: oneLine(1, 140, 'Use até 140 caracteres.').optional(),
+    /** the sponsor asked to be on the supporters wall (2026-11-09); needs a name */
+    wall: z.boolean().optional(),
     /** a fresh UUID per form submit: a double click registers once */
     idempotencyKey: z.uuid(),
   })
@@ -158,6 +160,8 @@ export const textsInput = z
     expectedVersion: version,
     message: decision.optional(),
     displayName: decision.optional(),
+    /** 2026-11-09: take the order off the supporters wall (never put it back) */
+    wall: z.literal(false).optional(),
   })
   .strict();
 

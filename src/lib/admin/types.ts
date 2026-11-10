@@ -78,6 +78,8 @@ export type AdminOrderView = {
   email: string | null;
   publicName: string | null;
   anonymous: boolean;
+  /** on the supporters wall (the sponsor opted in, 2026-11-09) */
+  wall: boolean;
   guestDisplayName: string | null;
   displayNameStatus: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
   sponsorMessage: string | null;

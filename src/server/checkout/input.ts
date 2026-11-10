@@ -44,6 +44,8 @@ const buyerFields = {
   displayName: text(2, 24, 'Use de 2 a 24 caracteres.').optional(),
   /** "patrocinar anonimamente" (Q16) */
   anonymous: z.boolean().default(false),
+  /** "Quero aparecer no mural de apoiadores" (2026-11-09): opt-in, off by default */
+  wall: z.boolean().default(false),
   /** shown on stream only after moderator approval (Q10) */
   message: text(1, 140, 'Use até 140 caracteres.').optional(),
   legal: legalAcceptance,

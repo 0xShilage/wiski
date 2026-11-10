@@ -661,6 +661,9 @@ model Order {
   guestDisplayName  String? // guests only, ≤ 24 chars, sanitised; public only once APPROVED
   displayNameStatus MessageStatus?
   showSponsorName   Boolean        @default(true) // false = "Anônimo" everywhere
+  /// 2026-11-09: the sponsor ticked "Quero aparecer no mural de apoiadores" (off by default);
+  /// a moderator can take it off, never put it back
+  wallOptIn         Boolean        @default(false)
   status            OrderStatus    @default(PENDING_PAYMENT)
   source            OrderSource    @default(CHECKOUT)
   clientRequestId   String // Idempotency-Key sent by the browser (double-submit guard)

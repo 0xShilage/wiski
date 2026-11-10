@@ -12,6 +12,8 @@ export type BuyerState = {
   email: string;
   displayName: string;
   anonymous: boolean;
+  /** "Quero aparecer no mural de apoiadores" (2026-11-09), off by default */
+  wall: boolean;
   message: string;
   accepted: boolean;
 };
@@ -20,6 +22,7 @@ export const emptyBuyer: BuyerState = {
   email: '',
   displayName: '',
   anonymous: false,
+  wall: false,
   message: '',
   accepted: false,
 };
@@ -29,6 +32,7 @@ export function buyerPayload(b: BuyerState, props: CheckoutProps) {
     ...(props.signedIn ? {} : { contactEmail: b.email.trim() }),
     ...(!props.signedIn && b.displayName.trim() ? { displayName: b.displayName.trim() } : {}),
     anonymous: b.anonymous,
+    wall: b.wall && !b.anonymous,
     ...(b.message.trim() ? { message: b.message.trim() } : {}),
     legal: props.legal!,
   };
@@ -129,6 +133,21 @@ export function BuyerFields({
           onChange={(e) => set('anonymous', e.target.checked)}
         />
         <span>Patrocinar anonimamente (seu nome não aparece no site nem na live)</span>
+      </label>
+      <label className="wf-check">
+        <input
+          type="checkbox"
+          checked={value.wall && !value.anonymous}
+          disabled={value.anonymous}
+          onChange={(e) => set('wall', e.target.checked)}
+        />
+        <span>
+          Quero aparecer no{' '}
+          <a href="/apoiadores" target="_blank" rel="noopener">
+            mural de apoiadores
+          </a>{' '}
+          com meu nome (opcional)
+        </span>
       </label>
       <label className="wf-check">
         <input

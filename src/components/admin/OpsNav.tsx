@@ -11,6 +11,7 @@ export type OpsSection =
   | 'jogos'
   | 'analise'
   | 'overlays'
+  | 'aparencia'
   | 'metas'
   | 'subathon'
   | 'media-kit'
@@ -41,6 +42,7 @@ const OPS: { id: OpsSection; label: string; badge?: (c: OpsCounts) => number }[]
 const CHANNEL: { id: OpsSection; label: string; badge?: (c: OpsCounts) => number }[] = [
   { id: 'analise', label: 'Análise' },
   { id: 'overlays', label: 'Overlays (OBS)' },
+  { id: 'aparencia', label: 'Aparência' },
   { id: 'metas', label: 'Metas' },
   { id: 'subathon', label: 'Subathon' },
   { id: 'media-kit', label: 'Media kit' },

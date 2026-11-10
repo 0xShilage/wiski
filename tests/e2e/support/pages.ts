@@ -58,6 +58,8 @@ export const PAGES: PageCase[] = [
   { name: 'configuracoes', path: '/admin/configuracoes', auth: 'streamer', shell: false },
   // moderators open the channel sections too (2026-11-08)
   { name: 'overlays-moderacao', path: '/admin/overlays', auth: 'admin', shell: false },
+  // 2026-11-10: seasonal theme + home pop-up
+  { name: 'aparencia', path: '/admin/aparencia', auth: 'admin', shell: false },
   { name: 'overlay-sem-chave', path: '/overlay/fila', shell: false },
   // Phase 6: links page, suggestions
   { name: 'links', path: '/links' },

@@ -160,6 +160,76 @@ export async function updateSession(
   });
 }
 
+export const POSTPONE_MAX_DAYS = 14;
+
+/**
+ * "Adiar" (2026-11-10): Iara missed the 10/11 live — move it to 11/11, and (cascade) the 11/11
+ * one to 12/11 and so on: every planned session from this one on moves by the same number of
+ * days, same time of day (São Paulo has no daylight saving time, so N × 24 h keeps the clock
+ * time). What was booked moves with its session; sponsors' own reschedules are not used up.
+ * The chosen session is compare-and-set on the version the moderator saw; the others on the
+ * version read here, all in one transaction. Only PLANNED sessions move.
+ */
+export async function postponeSessions(
+  ctx: Ctx,
+  id: string,
+  input: { expectedVersion: number; days: number; cascade: boolean },
+  now = new Date(),
+) {
+  if (!Number.isInteger(input.days) || input.days < 1 || input.days > POSTPONE_MAX_DAYS) {
+    throw Problems.validation([
+      { path: 'days', message: `Adie de 1 a ${POSTPONE_MAX_DAYS} dias.` },
+    ]);
+  }
+  const shift = input.days * DAY;
+  const moved = await inTx(async (t) => {
+    const s = await t.streamSession.findUnique({ where: { id } });
+    if (!s) throw Problems.notFound();
+    if (s.status !== 'PLANNED') {
+      throw LiveProblems.state('Só sessões planejadas podem ser adiadas.');
+    }
+    const later = input.cascade
+      ? await t.streamSession.findMany({
+          where: {
+            status: 'PLANNED',
+            hiddenAt: null,
+            id: { not: id },
+            startsAt: { gte: s.startsAt },
+          },
+          select: { id: true, version: true, startsAt: true },
+          orderBy: { startsAt: 'asc' },
+        })
+      : [];
+    const all = [{ id, version: input.expectedVersion, startsAt: s.startsAt }, ...later];
+    for (const x of all) {
+      const res = await t.streamSession.updateMany({
+        where: { id: x.id, version: x.version, status: 'PLANNED' },
+        data: { startsAt: new Date(x.startsAt.getTime() + shift), version: { increment: 1 } },
+      });
+      if (res.count !== 1) throw LiveProblems.changed();
+    }
+    await audit(
+      {
+        action: 'session.postpone',
+        actor: ctx.actor,
+        requestId: ctx.requestId,
+        targetType: 'StreamSession',
+        targetId: id,
+        metadata: { days: input.days, cascade: input.cascade, sessions: all.length },
+      },
+      t,
+    );
+    const orders = await t.order.findMany({
+      where: { sessionId: { in: all.map((x) => x.id) }, status: 'SCHEDULED' },
+      select: { id: true },
+    });
+    return { sessions: all.map((x) => x.id), orders: orders.map((o) => o.id) };
+  });
+  await tellOrders(moved.orders, now);
+  await refreshOverlays(['fila']);
+  return { moved: moved.sessions.length };
+}
+
 /** Take scheduled titles of a session back to the queue (PAID / FUNDED). */
 async function returnToQueue(t: Tx, sessionId: string, now: Date): Promise<string[]> {
   const orders = await t.order.findMany({

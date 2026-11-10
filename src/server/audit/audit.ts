@@ -197,6 +197,9 @@ export const AUDIT_ACTIONS = {
   'session.cancel': z.object({ returnedToQueue: z.int().nonnegative() }).strict(),
   'session.reorder': z.object({ entries: z.int().nonnegative() }).strict(),
   'session.clear': z.object({ hidden: z.int().nonnegative() }).strict(),
+  'session.postpone': z
+    .object({ days: z.int().positive(), cascade: z.boolean(), sessions: z.int().positive() })
+    .strict(),
   'schedule.add': z
     .object({
       sessionId: z.uuid(),
@@ -331,6 +334,15 @@ export const AUDIT_ACTIONS = {
   'game.create': z.object({ status: z.enum(['PLAYING', 'FINISHED', 'DROPPED']) }).strict(),
   'game.update': z.object({ status: z.enum(['PLAYING', 'FINISHED', 'DROPPED']) }).strict(),
   'game.delete': z.object({}).strict(),
+  'season.update': z
+    .object({
+      theme: z.enum(['none', 'natal', 'halloween', 'aniversario']),
+      until: z.iso.date().nullable(),
+    })
+    .strict(),
+  'popup.update': z
+    .object({ active: z.boolean(), renewed: z.boolean(), image: z.boolean() })
+    .strict(),
   'alerts.test': z.object({ voice: z.boolean() }).strict(),
   'alerts.update': z
     .object({

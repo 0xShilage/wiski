@@ -117,6 +117,15 @@ export const scheduleInput = z.discriminatedUnion('action', [
 ]);
 
 /** "Reorganizar" (2026-11-09): every entry of the session, in the new order. */
+/** "Adiar" (2026-11-10): N days; `cascade` = this session and every planned one after it. */
+export const sessionPostponeInput = z
+  .object({
+    expectedVersion: z.int().nonnegative(),
+    days: z.int().min(1).max(14),
+    cascade: z.boolean(),
+  })
+  .strict();
+
 export const sessionOrderInput = z
   .object({
     expectedVersion: version,

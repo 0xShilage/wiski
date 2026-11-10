@@ -1,0 +1,299 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Seasonal themes (2026-11-10, Admin › Aparência). The root layout sets <html data-season>;
+   this repaints the glow tokens, lays a pattern tile behind every page and recolours the header
+   logo, with the season's piece next to it (SeasonBadge). Unlayered on purpose, like tokens.css,
+   so the tokens win. OBS overlays keep their usual look (:has(.wf-overlay)). Text contrast never
+   depends on any of it: only decoration changes.
+   ───────────────────────────────────────────────────────────────────────────── */
+html[data-season='natal']:not(:has(.wf-overlay)) {
+  --season-tile: url('/seasonal/natal.svg');
+  --season-logo: #fff4ef;
+  --glow-sm: 0 0 6px rgb(255 120 135 / 0.85), 0 0 16px rgb(80 200 140 / 0.5);
+  --glow:
+    0 0 8px rgb(255 120 135 / 0.9), 0 0 22px rgb(255 120 135 / 0.5), 0 0 48px rgb(80 200 140 / 0.4);
+  --glow-strong:
+    0 0 10px rgb(255 244 239 / 0.95), 0 0 28px rgb(255 120 135 / 0.7),
+    0 0 64px rgb(80 200 140 / 0.55);
+  --logo-glow: drop-shadow(0 0 5px rgb(255 110 125 / 0.85))
+    drop-shadow(0 0 16px rgb(80 200 140 / 0.6));
+  --text-glow: 0 0 22px rgb(255 120 135 / 0.35);
+}
+html[data-season='halloween']:not(:has(.wf-overlay)) {
+  --season-tile: url('/seasonal/halloween.svg');
+  --season-logo: #ffd2a1;
+  --glow-sm: 0 0 6px rgb(255 160 70 / 0.85), 0 0 16px rgb(150 90 210 / 0.55);
+  --glow:
+    0 0 8px rgb(255 160 70 / 0.9), 0 0 22px rgb(255 160 70 / 0.5), 0 0 48px rgb(150 90 210 / 0.45);
+  --glow-strong:
+    0 0 10px rgb(255 210 161 / 0.95), 0 0 28px rgb(255 160 70 / 0.75),
+    0 0 64px rgb(150 90 210 / 0.6);
+  --logo-glow: drop-shadow(0 0 5px rgb(255 150 60 / 0.85))
+    drop-shadow(0 0 16px rgb(150 90 210 / 0.65));
+  --text-glow: 0 0 22px rgb(255 160 70 / 0.35);
+}
+html[data-season='aniversario']:not(:has(.wf-overlay)) {
+  --season-tile: url('/seasonal/aniversario.svg');
+  --season-logo: #ffe6a6;
+  --glow-sm: 0 0 6px rgb(255 140 200 / 0.85), 0 0 16px rgb(255 210 110 / 0.5);
+  --glow:
+    0 0 8px rgb(255 140 200 / 0.9), 0 0 22px rgb(255 140 200 / 0.5), 0 0 48px rgb(255 210 110 / 0.4);
+  --glow-strong:
+    0 0 10px rgb(255 230 166 / 0.95), 0 0 28px rgb(255 140 200 / 0.7),
+    0 0 64px rgb(255 210 110 / 0.55);
+  --logo-glow: drop-shadow(0 0 5px rgb(255 140 200 / 0.85))
+    drop-shadow(0 0 16px rgb(255 210 110 / 0.6));
+  --text-glow: 0 0 22px rgb(255 140 200 / 0.35);
+}
+
+/* the pattern: on the page canvas (the body's own colour is cleared so the canvas shows; cards,
+   the hero and panels keep their backgrounds and cover it) */
+html[data-season]:not(:has(.wf-overlay)) {
+  background-color: var(--color-ink);
+  background-image: var(--season-tile);
+  background-size: 260px 260px;
+  background-repeat: repeat;
+  background-attachment: fixed;
+}
+html[data-season]:not(:has(.wf-overlay)) body {
+  background-color: transparent;
+}
+
+@layer components {
+  html[data-season] .wf-header .wf-logo > svg path {
+    fill: var(--season-logo, currentColor);
+  }
+  .wf-logo:has(.wf-season-badge) {
+    position: relative;
+  }
+  .wf-season-badge {
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    width: 36px;
+    height: 36px;
+    margin-left: 14px;
+    translate: 0 -55%;
+    pointer-events: none;
+  }
+  .wf-season-badge svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 0 6px rgb(0 0 0 / 0.35));
+  }
+  .wf-season-badge--natal {
+    rotate: 14deg;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .wf-season-badge {
+      animation: wf-season-sway 4s ease-in-out infinite;
+      transform-origin: 50% 90%;
+    }
+  }
+  @keyframes wf-season-sway {
+    50% {
+      transform: rotate(-7deg) translateY(-2px);
+    }
+  }
+  @media (max-width: 760px) {
+    .wf-season-badge {
+      width: 28px;
+      height: 28px;
+      margin-left: 10px;
+    }
+  }
+}
+
+/* ── Home pop-up (2026-11-10): a centred card that fades and rises in over a dark veil ── */
+@layer components {
+  .wf-popup {
+    width: min(520px, calc(100vw - 32px));
+    max-height: calc(100dvh - 32px);
+    margin: auto;
+    padding: 0;
+    border: 0;
+    border-radius: 20px;
+    background: transparent;
+    color: var(--color-lilac);
+    overflow: visible;
+    opacity: 0;
+    translate: 0 18px;
+    scale: 0.98;
+    transition-property: opacity, translate, scale, overlay, display;
+    transition-duration: 0.35s;
+    transition-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
+    transition-behavior: allow-discrete;
+  }
+  .wf-popup[open] {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+  @starting-style {
+    .wf-popup[open] {
+      opacity: 0;
+      translate: 0 18px;
+      scale: 0.98;
+    }
+  }
+  .wf-popup::backdrop {
+    background: rgb(14 9 20 / 0.78);
+    opacity: 0;
+    transition-property: opacity, overlay, display;
+    transition-duration: 0.35s;
+    transition-behavior: allow-discrete;
+  }
+  .wf-popup[open]::backdrop {
+    opacity: 1;
+  }
+  @starting-style {
+    .wf-popup[open]::backdrop {
+      opacity: 0;
+    }
+  }
+  .wf-popup__card {
+    position: relative;
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
+    border: 1px solid rgb(169 157 224 / 0.45);
+    border-radius: 20px;
+    background:
+      radial-gradient(120% 80% at 50% 0%, rgb(115 107 178 / 0.35), transparent 60%),
+      var(--color-surface-2);
+    box-shadow: var(--glow);
+  }
+  .wf-popup__img {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border-radius: 19px 19px 0 0;
+  }
+  .wf-popup__img img,
+  .wf-popup__img picture {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .wf-popup__body {
+    display: grid;
+    gap: 12px;
+    padding: 24px 24px 22px;
+  }
+  .wf-popup__title {
+    margin: 0;
+    padding-right: 28px;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(26px, 1vw + 20px, 34px);
+    line-height: 1.05;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    text-shadow: var(--text-glow);
+  }
+  .wf-popup__text {
+    margin: 0;
+    color: var(--fg-78);
+    font-size: 16px;
+    line-height: 1.55;
+    white-space: pre-line;
+  }
+  .wf-popup__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 6px;
+  }
+  .wf-popup__x {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 999px;
+    background: rgb(27 18 37 / 0.7);
+    color: var(--color-lilac);
+    font-size: 18px;
+    cursor: pointer;
+  }
+  .wf-popup__x:hover {
+    background: rgb(46 33 65 / 0.95);
+  }
+  .wf-popup__x:focus-visible {
+    outline: 2px solid var(--color-lavender);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .wf-popup,
+    .wf-popup::backdrop {
+      translate: none;
+      scale: none;
+      transition-duration: 0.01s;
+    }
+  }
+}
+
+/* ── Admin › Aparência: the theme choice as big radio cards ── */
+@layer components {
+  .wf-season-pick {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .wf-season-opt {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 12px 14px;
+    border: 1px solid var(--color-plum);
+    border-radius: 12px;
+    background: var(--color-surface-1);
+    cursor: pointer;
+  }
+  .wf-season-opt:has(input:checked) {
+    border-color: var(--color-lavender);
+    box-shadow: var(--glow-sm);
+  }
+  .wf-season-opt input {
+    margin-top: 3px;
+    accent-color: var(--color-lavender);
+  }
+  .wf-season-opt span {
+    display: grid;
+    gap: 2px;
+  }
+  .wf-season-opt small {
+    color: var(--fg-70);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+}
+
+/* ── Agenda › "Adiar" (2026-11-10) ── */
+@layer components {
+  .wf-postpone {
+    display: grid;
+    gap: 10px;
+    margin-top: 10px;
+    padding: 12px 14px;
+    border: 1px dashed rgb(169 157 224 / 0.5);
+    border-radius: 12px;
+    background: rgb(27 18 37 / 0.35);
+  }
+  .wf-postpone__which {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+}

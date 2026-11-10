@@ -1,6 +1,6 @@
 'use client';
 import { useRef, useState } from 'react';
-import { Logo } from '@/components/brand/Logo';
+import { LogoWiskiLilac } from '@/components/brand/generated';
 import { MediaPicture } from '@/components/media/MediaPicture';
 import type { OrderView } from '@/lib/checkout/types';
 import { drawTicket, largestFromSrcset } from './ticket-image';
@@ -108,7 +108,7 @@ export function Ticket({ order }: { order: Order }) {
             </div>
             <div className="wf-ticket__body">
               <p className="wf-ticket__brand">
-                <Logo className="wf-ticket__logo" />
+                <LogoWiskiLilac className="wf-ticket__logo" aria-hidden="true" focusable="false" />
                 <span>Ingresso · {kicker}</span>
               </p>
               <h2 ref={titleRef} className="wf-ticket__title">

@@ -395,8 +395,8 @@
     text-transform: uppercase;
   }
   .wf-ticket__logo {
+    width: auto;
     height: 20px;
-    min-height: 0;
     filter: var(--logo-glow);
   }
   .wf-ticket__title {

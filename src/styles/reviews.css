@@ -249,6 +249,7 @@
     color: var(--fg-70);
   }
   .wf-review__like {
+    position: relative; /* the popcorn burst (2026-11-10) starts from the button */
     cursor: pointer;
   }
   .wf-review__like[aria-pressed='true'] {

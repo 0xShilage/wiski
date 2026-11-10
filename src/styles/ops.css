@@ -2477,4 +2477,211 @@ html:has(.wf-overlay) .skip-link {
     font-size: 13px;
     color: var(--color-lavender);
   }
+
+  /* ── Popcorn burst (2026-11-10, components/fx/PopcornBurst): paid order, liked review ── */
+  .wf-pop {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+    z-index: 3;
+  }
+  .wf-pop__p {
+    position: absolute;
+    left: 0;
+    top: 0;
+    opacity: 0;
+    animation: wf-pop-fly 1.15s cubic-bezier(0.15, 0.75, 0.3, 1) forwards;
+  }
+  .wf-pop--lg .wf-pop__p {
+    width: 24px;
+    height: 24px;
+    margin: -12px 0 0 -12px;
+  }
+  .wf-pop--sm .wf-pop__p {
+    width: 12px;
+    height: 12px;
+    margin: -6px 0 0 -6px;
+    animation-duration: 0.7s;
+  }
+  .wf-pop__p svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .wf-pop__kernel {
+    fill: #fff6e2;
+    stroke: #e8c37a;
+    stroke-width: 1;
+  }
+  .wf-pop__spark {
+    fill: var(--color-lavender);
+    filter: drop-shadow(0 0 3px rgb(169 157 224 / 0.9));
+  }
+  @keyframes wf-pop-fly {
+    0% {
+      opacity: 1;
+      transform: translate(0, 0) scale(0.3) rotate(0deg);
+    }
+    65% {
+      opacity: 1;
+      transform: translate(var(--x), var(--y)) scale(1) rotate(var(--r));
+    }
+    100% {
+      opacity: 0;
+      transform: translate(var(--x), calc(var(--y) + 28px)) scale(0.9) rotate(var(--r));
+    }
+  }
+  .wf-pop--lg .wf-pop__p:nth-child(1) {
+    --x: -7px;
+    --y: -87px;
+    --r: -108deg;
+    animation-delay: 68ms;
+  }
+  .wf-pop--lg .wf-pop__p:nth-child(2) {
+    --x: 34px;
+    --y: -115px;
+    --r: -99deg;
+    animation-delay: 11ms;
+  }
+  .wf-pop--lg .wf-pop__p:nth-child(3) {
+    --x: 66px;
+    --y: -59px;
+    --r: -231deg;
+    animation-delay: 54ms;
+  }
+  .wf-pop--lg .wf-pop__p:nth-child(4) {
+    --x: 118px;
+    --y: -61px;
+    --r: -251deg;
+    animation-delay: 80ms;
+  }
+  .wf-pop--lg .wf-pop__p:nth-child(5) {
+    --x: 95px;
+    --y: 2px;
+    --r: 102deg;
+    animation-delay: 28ms;
+  }
+  .wf-pop--lg .wf-pop__p:nth-child(6) {
+    --x: 159px;
+    --y: 32px;
+    --r: 197deg;
+    animation-delay: 18ms;
+  }
+  .wf-pop--lg .wf-pop__p:nth-child(7) {
+    --x: 97px;
+    --y: 84px;
+    --r: -116deg;
+    animation-delay: 74ms;
+  }
+  .wf-pop--lg .wf-pop__p:nth-child(8) {
+    --x: 38px;
+    --y: 84px;
+    --r: -230deg;
+    animation-delay: 8ms;
+  }
+  .wf-pop--lg .wf-pop__p:nth-child(9) {
+    --x: -3px;
+    --y: 121px;
+    --r: 264deg;
+    animation-delay: 68ms;
+  }
+  .wf-pop--lg .wf-pop__p:nth-child(10) {
+    --x: -42px;
+    --y: 93px;
+    --r: 182deg;
+    animation-delay: 38ms;
+  }
+  .wf-pop--lg .wf-pop__p:nth-child(11) {
+    --x: -67px;
+    --y: 69px;
+    --r: -110deg;
+    animation-delay: 73ms;
+  }
+  .wf-pop--lg .wf-pop__p:nth-child(12) {
+    --x: -118px;
+    --y: 50px;
+    --r: 276deg;
+    animation-delay: 57ms;
+  }
+  .wf-pop--lg .wf-pop__p:nth-child(13) {
+    --x: -173px;
+    --y: 11px;
+    --r: -221deg;
+    animation-delay: 53ms;
+  }
+  .wf-pop--lg .wf-pop__p:nth-child(14) {
+    --x: -115px;
+    --y: -27px;
+    --r: 197deg;
+    animation-delay: 5ms;
+  }
+  .wf-pop--lg .wf-pop__p:nth-child(15) {
+    --x: -56px;
+    --y: -67px;
+    --r: 177deg;
+    animation-delay: 88ms;
+  }
+  .wf-pop--lg .wf-pop__p:nth-child(16) {
+    --x: -57px;
+    --y: -101px;
+    --r: 107deg;
+    animation-delay: 11ms;
+  }
+  .wf-pop--sm .wf-pop__p:nth-child(1) {
+    --x: 5px;
+    --y: -25px;
+    --r: -105deg;
+    animation-delay: 19ms;
+  }
+  .wf-pop--sm .wf-pop__p:nth-child(2) {
+    --x: 31px;
+    --y: -19px;
+    --r: 162deg;
+    animation-delay: 24ms;
+  }
+  .wf-pop--sm .wf-pop__p:nth-child(3) {
+    --x: 26px;
+    --y: 8px;
+    --r: 180deg;
+    animation-delay: 10ms;
+  }
+  .wf-pop--sm .wf-pop__p:nth-child(4) {
+    --x: 12px;
+    --y: 23px;
+    --r: -286deg;
+    animation-delay: 18ms;
+  }
+  .wf-pop--sm .wf-pop__p:nth-child(5) {
+    --x: -8px;
+    --y: 21px;
+    --r: 313deg;
+    animation-delay: 31ms;
+  }
+  .wf-pop--sm .wf-pop__p:nth-child(6) {
+    --x: -27px;
+    --y: 9px;
+    --r: 316deg;
+    animation-delay: 8ms;
+  }
+  .wf-pop--sm .wf-pop__p:nth-child(7) {
+    --x: -25px;
+    --y: -22px;
+    --r: 270deg;
+    animation-delay: 26ms;
+  }
+  /* phones: a tighter burst, so no kernel flies past the screen edge */
+  @media (max-width: 560px) {
+    .wf-pop--lg {
+      transform: scale(0.62);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .wf-pop {
+      display: none;
+    }
+  }
 }

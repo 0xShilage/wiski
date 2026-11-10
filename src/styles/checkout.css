@@ -323,4 +323,204 @@
       width: 100%;
     }
   }
+
+  /* ── Cinema ticket (2026-11-10): on a paid order — main part + stub torn along a dashed line,
+     with the two round notches cut by a mask; the glow comes from the wrapper's drop-shadow so it
+     follows the cut shape. Stub = "Fila NN", the place in the Fila tab. ── */
+  .wf-ticket-stage {
+    position: relative;
+  }
+  .wf-ticket-wrap {
+    margin-top: 20px;
+  }
+  .wf-ticket-glow {
+    filter: drop-shadow(0 0 14px rgb(169 157 224 / 0.35));
+  }
+  .wf-ticket {
+    --stub: 132px;
+    --notch: 12px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--stub);
+    border-radius: 18px;
+    background:
+      radial-gradient(120% 140% at 0% 0%, rgb(115 107 178 / 0.35), transparent 60%),
+      linear-gradient(135deg, var(--color-surface-3), var(--color-surface-2));
+    color: var(--color-lilac);
+    mask:
+      radial-gradient(circle var(--notch) at calc(100% - var(--stub)) 0, #0000 98%, #000) top / 100%
+        51% no-repeat,
+      radial-gradient(circle var(--notch) at calc(100% - var(--stub)) 100%, #0000 98%, #000)
+        bottom / 100% 51% no-repeat;
+  }
+  .wf-ticket__main {
+    display: flex;
+    gap: 16px;
+    padding: 18px;
+    min-width: 0;
+  }
+  .wf-ticket__poster {
+    position: relative;
+    flex: none;
+    width: 92px;
+    aspect-ratio: 2 / 3;
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--color-ink);
+    outline: 1px solid rgb(169 157 224 / 0.5);
+  }
+  .wf-ticket__poster img,
+  .wf-ticket__poster picture {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .wf-ticket__body {
+    display: grid;
+    align-content: start;
+    gap: 8px;
+    min-width: 0;
+  }
+  .wf-ticket__brand {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    margin: 0;
+    color: var(--color-lavender);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .wf-ticket__logo {
+    height: 20px;
+    min-height: 0;
+    filter: var(--logo-glow);
+  }
+  .wf-ticket__title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(22px, 1vw + 16px, 30px);
+    line-height: 1.05;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+  }
+  .wf-ticket__fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 24px;
+    margin: 4px 0 0;
+  }
+  .wf-ticket__fields dt {
+    color: var(--color-lavender);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .wf-ticket__fields dd {
+    margin: 2px 0 0;
+    font-size: 15px;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+  }
+  .wf-ticket__stub {
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 2px;
+    padding: 14px 10px;
+    border-left: 2px dashed rgb(229 221 237 / 0.35);
+    background: rgb(27 18 37 / 0.25);
+    text-align: center;
+  }
+  .wf-ticket__seat-label {
+    color: var(--color-lavender);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  .wf-ticket__seat {
+    font-size: 48px;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    text-shadow:
+      0 0 12px rgb(169 157 224 / 0.9),
+      0 0 26px rgb(115 107 178 / 0.7);
+  }
+  .wf-ticket__seat-note {
+    max-width: 11ch;
+    color: var(--fg-70);
+    font-size: 11px;
+    line-height: 1.25;
+  }
+  .wf-ticket__code {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgb(229 221 237 / 0.2);
+    color: var(--fg-70);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    font-variant-numeric: tabular-nums;
+  }
+  .wf-ticket__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    margin-top: 14px;
+  }
+  .wf-ticket__actions .wf-hint {
+    margin: 0;
+  }
+  /* phones: the stub goes under the main part, torn along a horizontal line */
+  @media (max-width: 560px) {
+    .wf-ticket {
+      --stub: 104px;
+      grid-template-columns: 1fr;
+      grid-template-rows: auto var(--stub);
+      mask:
+        radial-gradient(circle var(--notch) at 0 calc(100% - var(--stub)), #0000 98%, #000) left /
+          51% 100% no-repeat,
+        radial-gradient(circle var(--notch) at 100% calc(100% - var(--stub)), #0000 98%, #000)
+          right / 51% 100% no-repeat;
+    }
+    .wf-ticket__main {
+      padding: 14px;
+    }
+    .wf-ticket__poster {
+      width: 76px;
+    }
+    .wf-ticket__logo {
+      height: 16px;
+    }
+    .wf-ticket__brand {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+    }
+    .wf-ticket__stub {
+      grid-template-columns: auto auto 1fr;
+      place-content: center stretch;
+      align-items: center;
+      column-gap: 12px;
+      border-left: 0;
+      border-top: 2px dashed rgb(229 221 237 / 0.35);
+      text-align: left;
+    }
+    .wf-ticket__seat-note {
+      max-width: none;
+    }
+    .wf-ticket__code {
+      grid-column: 1 / -1;
+      justify-self: center;
+      margin-top: 4px;
+      padding-top: 4px;
+    }
+  }
 }

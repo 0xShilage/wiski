@@ -339,3 +339,16 @@ export async function liveNow(): Promise<boolean> {
   const s = await db().streamSession.findFirst({ where: { status: 'LIVE' }, select: { id: true } });
   return s !== null;
 }
+
+/**
+ * "AO VIVO" bar (2026-11-10): on every page while a live is "Ao vivo" in Cronograma, with what is
+ * on screen ("Duna", "Breaking Bad · T1 · E1-E3", an event's name), or just "ao vivo" when nothing
+ * is marked. One indexed lookup when there is no live; the full session only while there is one.
+ */
+export type LiveStatus = { live: boolean; now: string | null };
+
+export async function liveStatus(now = new Date()): Promise<LiveStatus> {
+  if (!(await liveNow())) return { live: false, now: null };
+  const [s] = await sessionsWithEntries({ from: now, statuses: ['LIVE'], take: 1 });
+  return { live: true, now: s ? nowLabel(s) : null };
+}

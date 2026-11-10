@@ -6,6 +6,8 @@ import { apiFetch, type Problem } from '@/lib/api-fetch';
 import { KIND_PATH } from '@/lib/catalog/kinds';
 import { formatBRL } from '@/lib/catalog/pricing';
 import { ORDER_STATUS_LABEL, type OrderView as View } from '@/lib/checkout/types';
+import { PopcornBurst } from '@/components/fx/PopcornBurst';
+import { Ticket } from './Ticket';
 
 const TOKEN = /^#t=([\w-]{43})$/;
 
@@ -136,13 +138,25 @@ export function OrderView({ code, signedIn }: { code: string; signedIn: boolean 
   const [copied, setCopied] = useState<'pix' | 'link' | null>(null);
   const [busy, setBusy] = useState(false);
   const status = useRef<string | null>(null);
+  const [burst, setBurst] = useState(0);
 
   const load = useCallback(async () => {
     const r = await apiFetch<View>(`/api/v1/orders/${code}`);
     if (r.ok) {
+      const before = status.current;
+      const o = r.data.order;
+      // popcorn (2026-11-10): the payment was approved while this page was open, or just before
+      // it opened (the buyer came back from the bank app)
+      const paidNow = o.status !== 'PENDING_PAYMENT' && o.ticket !== null;
+      if (
+        paidNow &&
+        (before === 'PENDING_PAYMENT' ||
+          (before === null && o.paidAt && Date.now() - Date.parse(o.paidAt) < 120_000))
+      )
+        setBurst((b) => b + 1);
       setView(r.data);
       setProblem(null);
-      status.current = r.data.order.status;
+      status.current = o.status;
     } else setProblem(r.problem);
   }, [code]);
 
@@ -304,6 +318,12 @@ export function OrderView({ code, signedIn }: { code: string; signedIn: boolean 
 
         {o.status === 'PENDING_PAYMENT' && !o.pix ? (
           <p className="wf-co__muted mt-4">O Pix deste pedido expirou ou está sendo atualizado…</p>
+        ) : null}
+        {o.ticket ? (
+          <div className="wf-ticket-stage">
+            <Ticket order={o} />
+            {burst ? <PopcornBurst key={burst} /> : null}
+          </div>
         ) : null}
         {o.status === 'PAID' ? (
           <p className="mt-4">

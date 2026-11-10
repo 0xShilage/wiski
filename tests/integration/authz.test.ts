@@ -390,6 +390,7 @@ export const MATRIX: Row[] = [
     body: { platform: 'KICK', metric: 'followers', value: null },
   }),
   R('/api/v1/stats', 'GET', 'public'),
+  R('/api/v1/live', 'GET', 'public'),
   R('/api/v1/contact', 'POST', 'public', {
     body: {
       name: 'Matriz',

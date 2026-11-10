@@ -15,6 +15,167 @@
     justify-content: space-between;
     gap: 24px;
   }
+  /* ── "AO VIVO" (2026-11-10): a slim strip on top of the header while a live is on. It moves
+     the header and the pages down (--live-h feeds --header-top), puts a pulsing dot on the logo
+     and makes its glow a little stronger. ── */
+  :root:has(.wf-livebar) {
+    --live-h: 36px;
+    --logo-glow: drop-shadow(0 0 6px rgb(169 157 224 / 0.95))
+      drop-shadow(0 0 22px rgb(115 107 178 / 0.85));
+  }
+  .wf-livebar {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: var(--live-h);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding-inline: 16px;
+    background:
+      linear-gradient(90deg, transparent, rgb(255 143 154 / 0.14) 50%, transparent),
+      rgb(27 18 37 / 0.88);
+    border-bottom: 1px solid rgb(255 143 154 / 0.3);
+    color: var(--color-lilac);
+    font-size: 14px;
+    line-height: 1;
+    white-space: nowrap;
+    text-decoration: none;
+    transition: background-color 0.2s;
+  }
+  .wf-livebar:hover {
+    background-color: rgb(46 33 65 / 0.95);
+  }
+  .wf-livebar:focus-visible {
+    outline: 2px solid var(--color-lavender);
+    outline-offset: -3px;
+  }
+  .wf-livebar__dot {
+    position: relative;
+    flex: none;
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    background: var(--color-danger);
+    box-shadow: 0 0 10px rgb(255 143 154 / 0.9);
+  }
+  .wf-livebar__tag {
+    flex: none;
+    padding: 4px 7px;
+    border-radius: 4px;
+    background: var(--color-danger);
+    color: var(--color-ink);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .wf-livebar__now {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .wf-livebar__cta {
+    flex: none;
+    color: var(--color-lavender);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  :root:has(.wf-livebar) .wf-logo {
+    position: relative;
+  }
+  :root:has(.wf-livebar) .wf-logo::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    right: -10px;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--color-danger);
+    box-shadow: 0 0 8px rgb(255 143 154 / 0.9);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .wf-livebar__dot::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: var(--color-danger);
+      animation: wf-live-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+    :root:has(.wf-livebar) .wf-logo::after {
+      animation: wf-live-pulse 1.6s ease-in-out infinite;
+    }
+  }
+  @keyframes wf-live-ping {
+    75%,
+    100% {
+      transform: scale(2.4);
+      opacity: 0;
+    }
+  }
+  @media (max-width: 760px) {
+    .wf-livebar {
+      justify-content: flex-start;
+      font-size: 13px;
+    }
+    .wf-livebar__cta {
+      display: none;
+    }
+  }
+
+  /* ── Neon logo (2026-11-10): on a browser's first visit the logo flickers on like a neon sign,
+     then stays as always (no fill afterwards, so the live glow still applies). ── */
+  @media (prefers-reduced-motion: no-preference) {
+    .wf-logo--ignite svg {
+      animation: wf-neon-on 1.9s linear 0.2s backwards;
+    }
+  }
+  @keyframes wf-neon-on {
+    0% {
+      opacity: 0.1;
+      filter: none;
+    }
+    5% {
+      opacity: 0.85;
+      filter: var(--logo-glow);
+    }
+    8% {
+      opacity: 0.15;
+      filter: none;
+    }
+    13% {
+      opacity: 0.95;
+      filter: var(--logo-glow);
+    }
+    16% {
+      opacity: 0.3;
+      filter: none;
+    }
+    26% {
+      opacity: 0.12;
+      filter: none;
+    }
+    34% {
+      opacity: 1;
+      filter: var(--logo-glow);
+    }
+    52% {
+      opacity: 1;
+      filter: var(--logo-glow);
+    }
+    55% {
+      opacity: 0.5;
+      filter: none;
+    }
+    59%,
+    100% {
+      opacity: 1;
+      filter: var(--logo-glow);
+    }
+  }
+
   .wf-logo {
     display: inline-flex;
     align-items: center;
@@ -327,7 +488,7 @@
       display: none;
     }
     .wf-header__inner {
-      padding: 16px 20px 0;
+      padding: calc(16px + var(--live-h, 0px)) 20px 0;
     }
     .wf-tabbar {
       display: flex;
@@ -726,5 +887,95 @@
     border-top: 1px solid rgb(169 157 224 / 0.25);
     display: grid;
     gap: 2px;
+  }
+
+  /* ── Squirrel error pages (2026-11-10, components/brand/Oops): 404 / 500 ── */
+  .wf-oops {
+    display: grid;
+    justify-items: center;
+    gap: 14px;
+    max-width: 640px;
+    margin: clamp(0px, 4vh, 48px) auto 0;
+    text-align: center;
+  }
+  .wf-oops__art {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: min(340px, 80vw);
+    aspect-ratio: 4 / 3;
+  }
+  .wf-oops__code {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-family: var(--font-display);
+    font-size: clamp(120px, 20vw, 190px);
+    line-height: 1;
+    letter-spacing: 0.04em;
+    color: transparent;
+    -webkit-text-stroke: 2px rgb(169 157 224 / 0.45);
+    text-shadow: 0 0 30px rgb(115 107 178 / 0.35);
+    user-select: none;
+  }
+  .wf-oops__squirrel {
+    position: relative;
+    z-index: 1;
+    width: 58%;
+    filter: drop-shadow(0 0 10px rgb(169 157 224 / 0.6));
+  }
+  .wf-oops__spot {
+    position: absolute;
+    bottom: 4%;
+    left: 50%;
+    width: 62%;
+    height: 14%;
+    translate: -50% 0;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgb(169 157 224 / 0.38), transparent);
+  }
+  .wf-oops__title {
+    margin: 8px 0 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(30px, 1.6vw + 20px, 48px);
+    line-height: 1.05;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    text-shadow: var(--text-glow);
+  }
+  .wf-oops__lead {
+    margin: 0;
+    max-width: 52ch;
+    color: var(--fg-78);
+    font-size: 17px;
+    line-height: 1.55;
+  }
+  .wf-oops__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 10px;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .wf-oops__squirrel {
+      animation: wf-oops-bob 3.2s ease-in-out infinite;
+    }
+    .wf-oops__spot {
+      animation: wf-oops-spot 3.2s ease-in-out infinite;
+    }
+  }
+  @keyframes wf-oops-bob {
+    50% {
+      transform: translateY(-10px) rotate(-2deg);
+    }
+  }
+  @keyframes wf-oops-spot {
+    50% {
+      scale: 0.86 1;
+      opacity: 0.7;
+    }
   }
 }

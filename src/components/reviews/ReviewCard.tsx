@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { Avatar } from '@/components/Avatar';
+import { PopcornBurst } from '@/components/fx/PopcornBurst';
 import { apiFetch } from '@/lib/api-fetch';
 import { KIND_PATH } from '@/lib/catalog/kinds';
 import type { PublicReview } from '@/lib/reviews/types';
@@ -45,6 +46,7 @@ export function ReviewCard({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reporting, setReporting] = useState(false);
+  const [pop, setPop] = useState(0);
   const mine = review.mine ?? false;
 
   async function toggleLike() {
@@ -54,6 +56,7 @@ export function ReviewCard({
     setError(null);
     setLiked(next);
     setCount((c) => c + (next ? 1 : -1));
+    if (next) setPop((p) => p + 1);
     const r = await apiFetch<{ liked: boolean; likeCount: number }>(
       `/api/v1/reviews/${review.id}/like`,
       { method: next ? 'PUT' : 'DELETE' },
@@ -123,6 +126,7 @@ export function ReviewCard({
             <Heart on={liked} />
             <span>{count}</span>
             <span className="sr-only"> {liked ? 'Remover curtida' : 'Curtir'}</span>
+            {pop && liked ? <PopcornBurst key={pop} size="sm" /> : null}
           </button>
         ) : (
           <Link href={viewer.loginHref} className="wf-review__like">

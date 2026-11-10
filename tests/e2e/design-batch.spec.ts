@@ -18,6 +18,10 @@ async function endLive() {
   );
 }
 
+async function deleteSession(id: string) {
+  await withDb((c) => c.query(`DELETE FROM "StreamSession" WHERE id = $1`, [id]));
+}
+
 test('AO VIVO: a slim bar on top of every page while a live is on, with what is on screen', async ({
   page,
 }, info) => {
@@ -26,17 +30,17 @@ test('AO VIVO: a slim bar on top of every page while a live is on, with what is 
   await expect(page.locator('.wf-livebar')).toHaveCount(0);
   const before = await page.locator('.wf-logo').evaluate((e) => e.getBoundingClientRect().top);
 
-  const title = await withDb(async (c) => {
+  const { title, sessionId } = await withDb(async (c) => {
     const item = await c.query<{ id: string; title: string }>(
       `SELECT id, title FROM "CatalogItem" WHERE kind = 'MOVIE' AND status = 'ACTIVE' ORDER BY slot LIMIT 1`,
     );
     const it = item.rows[0]!;
-    await c.query(
+    const r = await c.query<{ id: string }>(
       `INSERT INTO "StreamSession" (id, "startsAt", "capacityMinutes", status, "startedAt", "nowItemId", "updatedAt")
-       VALUES (gen_random_uuid(), now(), 120, 'LIVE', now(), $1, now())`,
+       VALUES (gen_random_uuid(), now(), 120, 'LIVE', now(), $1, now()) RETURNING id`,
       [it.id],
     );
-    return it.title;
+    return { title: it.title, sessionId: r.rows[0]!.id };
   });
   try {
     for (const path of ['/links', '/cronograma']) {
@@ -61,11 +65,13 @@ test('AO VIVO: a slim bar on top of every page while a live is on, with what is 
     }
     await page.screenshot({ path: `${SHOTS}/ao-vivo-${info.project.name}.png` });
     // the bar asks again when the tab comes back: the live ended → it goes away
-    await endLive();
+    await deleteSession(sessionId);
     await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
     await expect(page.locator('.wf-livebar')).toHaveCount(0);
   } finally {
-    await endLive();
+    // deleted, not just set back to PLANNED: a planned live starting "now" changes what the
+    // overlays and Cronograma show for the tests after this one
+    await deleteSession(sessionId);
   }
 });
 

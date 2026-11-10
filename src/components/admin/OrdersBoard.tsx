@@ -196,6 +196,26 @@ export function OrdersBoard({ initial, role }: { initial: Page; role: 'MODERATOR
                   </span>
                 </div>
               ) : null}
+              {o.wall ? (
+                <div className="wf-ops-row">
+                  <span>No mural de apoiadores (a pessoa pediu)</span>
+                  <span className="wf-ops-actions">
+                    <button
+                      type="button"
+                      className="wf-btn wf-btn--sm wf-btn--ghost"
+                      disabled={busy}
+                      onClick={() =>
+                        void act('Tirado do mural', `/api/v1/admin/orders/${o.id}/texts`, {
+                          expectedVersion: o.version,
+                          wall: false,
+                        })
+                      }
+                    >
+                      Tirar do mural
+                    </button>
+                  </span>
+                </div>
+              ) : null}
               {o.sponsorMessage ? (
                 <div className="wf-ops-row">
                   <span>

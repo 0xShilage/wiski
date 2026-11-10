@@ -268,6 +268,7 @@ test('phone: the bar has five tabs + "Mais", which opens Animes, Jogos, Fila, As
     'Avaliações',
     'Sugestões',
     'Roleta',
+    'Apoiadores',
     'Links',
   ]);
   await page.keyboard.press('Escape');

@@ -86,6 +86,13 @@ export const NAV_ITEMS = [
     match: (p: string) => p.startsWith('/roleta'),
   },
   {
+    href: '/apoiadores',
+    desktop: 'more',
+    label: 'Apoiadores',
+    mobile: 'more',
+    match: (p: string) => p.startsWith('/apoiadores'),
+  },
+  {
     href: '/links',
     desktop: 'more',
     label: 'Links',

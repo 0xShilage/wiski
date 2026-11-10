@@ -225,7 +225,11 @@ export const AUDIT_ACTIONS = {
     .object({ from: z.uuid(), to: z.uuid(), count: z.int().min(1).max(2) })
     .strict(),
   'order.texts': z
-    .object({ message: textDecision.optional(), displayName: textDecision.optional() })
+    .object({
+      message: textDecision.optional(),
+      displayName: textDecision.optional(),
+      wall: z.literal(false).optional(),
+    })
     .strict(),
   'order.accept': z.object({ kind: orderKind, totalCents: z.int().positive() }).strict(),
   'order.manual': z

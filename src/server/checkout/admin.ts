@@ -59,6 +59,7 @@ const listSelect = {
     select: { status: true, statusDetail: true, providerPaymentId: true, approvedAt: true },
   },
   ...sponsorSelect,
+  wallOptIn: true,
 } satisfies Prisma.OrderSelect;
 
 type Row = Prisma.OrderGetPayload<{ select: typeof listSelect }>;
@@ -88,6 +89,7 @@ function view(o: Row) {
     email: o.source !== 'MANUAL' ? o.contactEmail : null,
     publicName: publicSponsor(o),
     anonymous: !o.showSponsorName,
+    wall: o.wallOptIn,
     guestDisplayName: o.guestDisplayName,
     displayNameStatus: o.displayNameStatus,
     sponsorMessage: o.sponsorMessage,
@@ -159,6 +161,7 @@ export async function reviewTexts(
     expectedVersion: number;
     message?: 'APPROVED' | 'REJECTED';
     displayName?: 'APPROVED' | 'REJECTED';
+    wall?: false | undefined;
   },
 ) {
   await db().$transaction(async (t) => {
@@ -176,7 +179,12 @@ export async function reviewTexts(
         throw AdminOrderProblems.nothing();
       data.displayNameStatus = input.displayName;
     }
-    if (!input.message && !input.displayName) throw AdminOrderProblems.nothing();
+    if (input.wall === false) {
+      if (!o.wallOptIn) throw AdminOrderProblems.nothing();
+      data.wallOptIn = false;
+    }
+    if (!input.message && !input.displayName && input.wall === undefined)
+      throw AdminOrderProblems.nothing();
     // the version stays: showing or hiding a text doesn't change the order's state machine
     const res = await t.order.updateMany({
       where: {
@@ -200,6 +208,7 @@ export async function reviewTexts(
         metadata: {
           ...(input.message ? { message: input.message } : {}),
           ...(input.displayName ? { displayName: input.displayName } : {}),
+          ...(input.wall === false ? { wall: false as const } : {}),
         },
       },
       t,
@@ -419,6 +428,7 @@ export async function registerManualPayment(
     amountCents?: number | undefined;
     sponsorName?: string | undefined;
     message?: string | undefined;
+    wall?: boolean | undefined;
     idempotencyKey: string;
   },
   now = new Date(),
@@ -532,6 +542,7 @@ export async function registerManualPayment(
                 ? { sponsorMessage: input.message, messageStatus: 'APPROVED' as const }
                 : {}),
               showSponsorName: !!input.sponsorName,
+              wallOptIn: !!input.sponsorName && !!input.wall,
               status: 'PAID',
               paidAt: now,
               clientRequestId: input.idempotencyKey,

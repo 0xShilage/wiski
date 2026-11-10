@@ -25,6 +25,7 @@ export function ManualPaymentForm({ onDone }: { onDone: (text: string, ok: boole
   const [amount, setAmount] = useState('');
   const [name, setName] = useState('');
   const [message, setMessage] = useState('');
+  const [wall, setWall] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -71,7 +72,7 @@ export function ManualPaymentForm({ onDone }: { onDone: (text: string, ok: boole
       body: {
         itemId: chosen.itemId,
         amountCents: cents,
-        ...(name.trim() ? { sponsorName: name } : {}),
+        ...(name.trim() ? { sponsorName: name, wall } : {}),
         ...(message.trim() ? { message } : {}),
         idempotencyKey: crypto.randomUUID(),
       },
@@ -85,6 +86,7 @@ export function ManualPaymentForm({ onDone }: { onDone: (text: string, ok: boole
     setAmount('');
     setName('');
     setMessage('');
+    setWall(false);
     setList(null);
     setOpen(false);
     onDone(`Pagamento de “${chosen.title}” registrado: entrou na fila.`, true);
@@ -174,6 +176,15 @@ export function ManualPaymentForm({ onDone }: { onDone: (text: string, ok: boole
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
+      </label>
+      <label className="wf-switch">
+        <input
+          type="checkbox"
+          checked={wall && !!name.trim()}
+          disabled={!name.trim()}
+          onChange={(e) => setWall(e.target.checked)}
+        />
+        A pessoa quer aparecer no mural de apoiadores
       </label>
       <label className="wf-field full" htmlFor={`${id}-msg`}>
         Mensagem na live (opcional)

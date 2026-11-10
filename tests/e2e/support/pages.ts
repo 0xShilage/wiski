@@ -25,6 +25,7 @@ export const PAGES: PageCase[] = [
   { name: 'fila', path: '/fila' },
   { name: 'animes', path: '/animes' },
   { name: 'jogos', path: '/jogos' },
+  { name: 'apoiadores', path: '/apoiadores' },
   { name: 'filme-assistido', path: '/filmes/a-primeira-live' },
   { name: 'filme-assistido-logado', path: '/filmes/a-primeira-live', auth: 'user' },
   { name: 'perfil-publico-avaliacoes', path: '/u/bia_cine' },

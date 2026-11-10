@@ -120,6 +120,11 @@ export function AgendaBoard({ initial }: { initial: Data; role: 'MODERATOR' | 'S
   const [part, setPart] = useState<{ entry: AgendaEntry; form: PartForm } | null>(null);
   const [event, setEvent] = useState<{ sessionId: string; form: EventForm } | null>(null);
   const [posterFor, setPosterFor] = useState<string | null>(null);
+  const [postpone, setPostpone] = useState<{
+    sessionId: string;
+    days: number;
+    cascade: boolean;
+  } | null>(null);
 
   const upcoming = data.sessions.filter((s) => s.status === 'PLANNED' || s.status === 'LIVE');
 
@@ -141,6 +146,94 @@ export function AgendaBoard({ initial }: { initial: Data; role: 'MODERATOR' | 'S
     setToast(r.ok ? { ok: true, text: `${label}: feito.` } : { ok: false, text: r.problem.detail });
     await reload();
     return r.ok;
+  }
+
+  /**
+   * "Adiar" (2026-11-10): N days later, this live alone or this one and every planned live after
+   * it (Iara missed 10/11 → 10/11 goes to 11/11, 11/11 to 12/11, …).
+   */
+  function postponeForm(
+    s: (typeof data.sessions)[number],
+    p: { sessionId: string; days: number; cascade: boolean },
+  ) {
+    const following = data.sessions.filter(
+      (x) => x.status === 'PLANNED' && x.id !== s.id && x.startsAt >= s.startsAt,
+    ).length;
+    const moved = new Date(new Date(s.startsAt).getTime() + p.days * 86_400_000).toISOString();
+    return (
+      <div
+        className="wf-postpone"
+        role="group"
+        aria-label={`Adiar a live de ${fmtDateTime(s.startsAt)}`}
+      >
+        <label className="wf-field" htmlFor={`${id}-pp-days`}>
+          <span>Adiar por</span>
+          <select
+            id={`${id}-pp-days`}
+            className="wf-input"
+            value={p.days}
+            onChange={(e) => setPostpone({ ...p, days: Number(e.target.value) })}
+          >
+            {[1, 2, 3, 4, 5, 6, 7, 14].map((n) => (
+              <option key={n} value={n}>
+                {n} {n === 1 ? 'dia' : 'dias'}
+              </option>
+            ))}
+          </select>
+        </label>
+        <fieldset className="wf-postpone__which">
+          <legend className="sr-only">Quais lives</legend>
+          <label className="wf-check">
+            <input
+              type="radio"
+              name={`${id}-pp-which`}
+              checked={p.cascade}
+              onChange={() => setPostpone({ ...p, cascade: true })}
+            />
+            <span>
+              Esta e as seguintes ({following + 1} {following ? 'lives' : 'live'})
+            </span>
+          </label>
+          <label className="wf-check">
+            <input
+              type="radio"
+              name={`${id}-pp-which`}
+              checked={!p.cascade}
+              onChange={() => setPostpone({ ...p, cascade: false })}
+            />
+            <span>Só esta</span>
+          </label>
+        </fieldset>
+        <p className="wf-hint m-0">
+          {fmtDateTime(s.startsAt)} → <strong>{fmtDateTime(moved)}</strong>
+          {p.cascade && following
+            ? `; as outras ${following} também andam ${p.days} ${p.days === 1 ? 'dia' : 'dias'}.`
+            : '.'}{' '}
+          O que está agendado vai junto.
+        </p>
+        <div className="wf-ops-actions">
+          <button
+            type="button"
+            className="wf-btn wf-btn--sm wf-btn--neon"
+            disabled={busy}
+            onClick={() => {
+              void run('Agenda adiada', `/api/v1/admin/sessions/${s.id}/postpone`, 'POST', {
+                expectedVersion: s.version,
+                days: p.days,
+                cascade: p.cascade,
+              }).then((ok) => {
+                if (ok) setPostpone(null);
+              });
+            }}
+          >
+            Adiar
+          </button>
+          <button type="button" className="wf-linkbtn text-xs" onClick={() => setPostpone(null)}>
+            Voltar
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const target = (e: AgendaEntry) => ({ kind: e.kind, id: e.id, expectedVersion: e.version });
@@ -889,6 +982,7 @@ export function AgendaBoard({ initial }: { initial: Data; role: 'MODERATOR' | 'S
                 <p className="wf-muted text-sm">Nada agendado.</p>
               )}
               {event?.sessionId === s.id ? eventForm(s, event.form) : null}
+              {postpone?.sessionId === s.id ? postponeForm(s, postpone) : null}
               <div className="wf-ops-actions">
                 {s.status === 'PLANNED' ? (
                   <button
@@ -965,6 +1059,16 @@ export function AgendaBoard({ initial }: { initial: Data; role: 'MODERATOR' | 'S
                     }}
                   >
                     Mudar capacidade
+                  </button>
+                ) : null}
+                {s.status === 'PLANNED' && postpone?.sessionId !== s.id ? (
+                  <button
+                    type="button"
+                    className="wf-btn wf-btn--sm wf-btn--ghost"
+                    disabled={busy}
+                    onClick={() => setPostpone({ sessionId: s.id, days: 1, cascade: true })}
+                  >
+                    Adiar
                   </button>
                 ) : null}
                 {s.status === 'PLANNED' ? (

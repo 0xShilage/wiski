@@ -251,6 +251,24 @@ export const MATRIX: Row[] = [
     body: { expectedVersion: 0, entries: [`ORDER:${NO_ID}`] },
   }),
   R('/api/v1/admin/sessions/clear', 'POST', 'moderator'),
+  R('/api/v1/admin/sessions/[id]/postpone', 'POST', 'moderator', {
+    params: { id: NO_ID },
+    body: { expectedVersion: 0, days: 1, cascade: true },
+  }),
+  R('/api/v1/admin/season', 'GET', 'moderator'),
+  R('/api/v1/admin/season', 'PUT', 'moderator', { body: { theme: 'none', until: null } }),
+  R('/api/v1/admin/popup', 'GET', 'moderator'),
+  R('/api/v1/admin/popup', 'PUT', 'moderator', {
+    body: {
+      active: false,
+      title: '',
+      body: '',
+      imageId: null,
+      ctaLabel: null,
+      ctaHref: null,
+      until: null,
+    },
+  }),
   R('/api/v1/admin/schedule', 'POST', 'moderator', {
     body: { action: 'remove', target: { kind: 'ORDER', id: NO_ID, expectedVersion: 0 } },
     params: {},

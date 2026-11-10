@@ -5,11 +5,13 @@ import { MovieGrid } from '@/components/catalog/MovieGrid';
 import { ProgressBlock } from '@/components/live/ProgressBlock';
 import { TwitchLive } from '@/components/live/TwitchLive';
 import { UpNext } from '@/components/live/UpNext';
+import { HomePopup } from '@/components/site/HomePopup';
 import { parseFilter } from '@/lib/catalog/filter';
 import { watchProgress } from '@/server/catalog/progress';
 import { listPublic } from '@/server/catalog/read';
 import { getEnv } from '@/server/env';
 import { liveNow, publicSchedule } from '@/server/live/public';
+import { homePopup } from '@/server/site/appearance';
 
 export const metadata: Metadata = {
   title: { absolute: 'Wiski — Filmes' },
@@ -20,17 +22,19 @@ export const metadata: Metadata = {
 /**
  * `/` = Filmes (O9): the hero carousel with the live movies in slot order, every available movie
  * at once (2026-11-02; filters and sort 2026-11-04), the next lives, the progress block (Phase 6) and — while a live is "Ao
- * vivo" in Cronograma — the Twitch player (click to load).
+ * vivo" in Cronograma — the Twitch player (click to load). 2026-11-10: the home pop-up, once per
+ * visitor each time it is switched on (Admin › Aparência).
  */
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 export default async function FilmesPage({ searchParams }: Props) {
   const initialFilter = parseFilter(await searchParams, 'movies');
-  const [movies, sessions, progress, live] = await Promise.all([
+  const [movies, sessions, progress, live, popup] = await Promise.all([
     listPublic('MOVIE'),
     publicSchedule(),
     watchProgress(),
     liveNow(),
+    homePopup(),
   ]);
   return (
     <>
@@ -59,6 +63,7 @@ export default async function FilmesPage({ searchParams }: Props) {
       <UpNext sessions={sessions} />
       <ProgressBlock progress={progress} />
       {live ? <TwitchLive parent={new URL(getEnv().APP_ORIGIN).hostname} /> : null}
+      {popup ? <HomePopup popup={popup} /> : null}
     </>
   );
 }

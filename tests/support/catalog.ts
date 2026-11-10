@@ -55,6 +55,7 @@ export async function clearCatalog(): Promise<void> {
       where: { nowItemId: { not: null } },
       data: { nowItemId: null },
     }),
+    db().liveSegment.updateMany({ where: { posterId: { not: null } }, data: { posterId: null } }),
     db().watchEvent.deleteMany({}),
     db().review.deleteMany({}),
     db().refund.deleteMany({}),

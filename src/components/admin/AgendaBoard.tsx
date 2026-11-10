@@ -1,6 +1,9 @@
 'use client';
 import { useId, useState } from 'react';
+import { MediaPicture } from '@/components/media/MediaPicture';
+import type { Picture } from '@/lib/media';
 import { adminFetch } from '@/lib/passkey-client';
+import { MediaDrop } from './MediaDrop';
 import {
   fmtDateTime,
   fromLocalInput,
@@ -45,7 +48,14 @@ type PartForm = {
   atStart: boolean;
   note: string;
 };
-type EventForm = { title: string; minutes: string; atStart: boolean; note: string };
+type EventForm = {
+  title: string;
+  minutes: string;
+  atStart: boolean;
+  note: string;
+  posterId: string | null;
+  poster: Picture | null;
+};
 
 /** First guess for the next part: the episode after the last one booked, or the next film. */
 function nextPart(e: AgendaEntry, sessionId: string): PartForm {
@@ -96,6 +106,8 @@ function guessMinutes(e: AgendaEntry, p: { from: number; to: number; film: numbe
  * 2026-11-04: a funded series is booked a few episodes at a time ("Agendar episódios"), a
  * franchise one film at a time, and stays in the queue until its last part is marked "fim da
  * série"; any session can also carry a custom event ("Jogando com os Viewers").
+ * 2026-11-09: ↑/↓ put a session's entries in any order, an event can have a poster, and
+ * "Limpar encerradas e canceladas" hides the sessions that are over.
  */
 export function AgendaBoard({ initial }: { initial: Data; role: 'MODERATOR' | 'STREAMER' }) {
   const id = useId();
@@ -106,6 +118,7 @@ export function AgendaBoard({ initial }: { initial: Data; role: 'MODERATOR' | 'S
   const [form, setForm] = useState(() => ({ startsAt: tomorrowAt20(), capacity: '240', note: '' }));
   const [part, setPart] = useState<{ entry: AgendaEntry; form: PartForm } | null>(null);
   const [event, setEvent] = useState<{ sessionId: string; form: EventForm } | null>(null);
+  const [posterFor, setPosterFor] = useState<string | null>(null);
 
   const upcoming = data.sessions.filter((s) => s.status === 'PLANNED' || s.status === 'LIVE');
 
@@ -130,6 +143,49 @@ export function AgendaBoard({ initial }: { initial: Data; role: 'MODERATOR' | 'S
   }
 
   const target = (e: AgendaEntry) => ({ kind: e.kind, id: e.id, expectedVersion: e.version });
+  const keyOf = (e: AgendaEntry) => `${e.kind}:${e.id}`;
+  const past = data.sessions.filter((s) => s.status === 'DONE' || s.status === 'CANCELLED');
+
+  /** ↑ / ↓ (2026-11-09): swap an entry with its neighbour and send the whole new order. */
+  function move(s: AgendaSession, i: number, by: -1 | 1) {
+    const keys = s.entries.map(keyOf);
+    const j = i + by;
+    if (j < 0 || j >= keys.length) return;
+    [keys[i], keys[j]] = [keys[j]!, keys[i]!];
+    void run('Ordem salva', `/api/v1/admin/sessions/${s.id}/order`, 'POST', {
+      expectedVersion: s.version,
+      entries: keys,
+    });
+  }
+
+  function orderButtons(e: AgendaEntry, s: AgendaSession, i: number) {
+    if (s.status === 'CANCELLED' || s.entries.length < 2) return null;
+    const name = titleOf(e);
+    return (
+      <span className="wf-ops-order">
+        <button
+          type="button"
+          className="wf-iconbtn"
+          disabled={busy || i === 0}
+          onClick={() => move(s, i, -1)}
+          aria-label={`Subir “${name}”`}
+          title="Subir"
+        >
+          ↑
+        </button>
+        <button
+          type="button"
+          className="wf-iconbtn"
+          disabled={busy || i === s.entries.length - 1}
+          onClick={() => move(s, i, 1)}
+          aria-label={`Descer “${name}”`}
+          title="Descer"
+        >
+          ↓
+        </button>
+      </span>
+    );
+  }
   const titleOf = (e: AgendaEntry) => e.item?.title ?? e.segment?.label ?? '';
 
   function sessionPicker(e: AgendaEntry) {
@@ -365,6 +421,7 @@ export function AgendaBoard({ initial }: { initial: Data; role: 'MODERATOR' | 'S
             minutes: Number(f.minutes),
             note: f.note.trim() || null,
             atStart: f.atStart,
+            posterId: f.posterId,
           }).then((ok) => {
             if (ok) setEvent(null);
           });
@@ -414,6 +471,17 @@ export function AgendaBoard({ initial }: { initial: Data; role: 'MODERATOR' | 'S
           />
           No começo da live
         </label>
+        <div className="full">
+          <MediaDrop
+            role="POSTER"
+            label="Pôster do evento 2:3 (opcional)"
+            hint="mínimo 600×900"
+            className="wf-drop--poster wf-drop--event"
+            picture={f.poster}
+            onUploaded={(posterId, poster) => set({ posterId, poster })}
+            onClear={() => set({ posterId: null, poster: null })}
+          />
+        </div>
         <span className="wf-ops-actions full">
           <button type="submit" className="wf-btn wf-btn--sm wf-btn--neon" disabled={busy}>
             Adicionar evento
@@ -427,7 +495,7 @@ export function AgendaBoard({ initial }: { initial: Data; role: 'MODERATOR' | 'S
   }
 
   /** A segment on a session: a part of a series/franchise, or a custom event. */
-  function segmentRow(e: AgendaEntry, s: AgendaSession) {
+  function segmentRow(e: AgendaEntry, s: AgendaSession, i: number) {
     const g = e.segment!;
     const playing = e.status === 'PLAYING';
     const done = e.status === 'DONE';
@@ -435,6 +503,12 @@ export function AgendaBoard({ initial }: { initial: Data; role: 'MODERATOR' | 'S
     const series = e.item?.kind === 'SERIES';
     return (
       <li key={`${e.kind}:${e.id}`} className={playing ? 'wf-ops-row is-now' : 'wf-ops-row'}>
+        {orderButtons(e, s, i)}
+        {!isPart && g.poster ? (
+          <span className="wf-ops-thumb">
+            <MediaPicture picture={g.poster} alt="" sizes="48px" />
+          </span>
+        ) : null}
         <div className="wf-ops-row__main">
           <span className="wf-ops-row__title">
             {isPart ? `${e.item?.title ?? ''} · ${g.label}` : g.label}
@@ -529,18 +603,54 @@ export function AgendaBoard({ initial }: { initial: Data; role: 'MODERATOR' | 'S
               ) : null}
             </>
           )}
+          {!isPart ? (
+            <button
+              type="button"
+              className="wf-linkbtn text-xs"
+              disabled={busy}
+              onClick={() => setPosterFor(posterFor === e.id ? null : e.id)}
+            >
+              {g.poster ? 'Trocar pôster' : 'Pôster'}
+            </button>
+          ) : null}
         </div>
+        {!isPart && posterFor === e.id ? (
+          <div className="wf-ops-subform">
+            <MediaDrop
+              role="POSTER"
+              label={`Pôster de “${g.label}” 2:3`}
+              hint="mínimo 600×900"
+              className="wf-drop--poster wf-drop--event"
+              picture={g.poster}
+              onUploaded={(posterId) => {
+                void run('Pôster salvo', SCHEDULE, 'POST', {
+                  action: 'event-poster',
+                  target: { kind: 'SEGMENT', id: e.id, expectedVersion: e.version },
+                  posterId,
+                }).then((ok) => ok && setPosterFor(null));
+              }}
+              onClear={() => {
+                void run('Pôster removido', SCHEDULE, 'POST', {
+                  action: 'event-poster',
+                  target: { kind: 'SEGMENT', id: e.id, expectedVersion: e.version },
+                  posterId: null,
+                }).then((ok) => ok && setPosterFor(null));
+              }}
+            />
+          </div>
+        ) : null}
       </li>
     );
   }
 
-  function entryRow(e: AgendaEntry, s: AgendaSession | null) {
-    if (e.segment && s) return segmentRow(e, s);
+  function entryRow(e: AgendaEntry, s: AgendaSession | null, i = 0) {
+    if (e.segment && s) return segmentRow(e, s, i);
     if (!s && e.kind === 'CAMPAIGN') return campaignQueueRow(e);
     const isNow = !!s && !!e.item && s.nowItemId === e.item.id && !s.playing?.segment;
     const done = e.status === 'COMPLETED' || e.status === 'WATCHED';
     return (
       <li key={`${e.kind}:${e.id}`} className={isNow ? 'wf-ops-row is-now' : 'wf-ops-row'}>
+        {s ? orderButtons(e, s, i) : null}
         <div className="wf-ops-row__main">
           <span className="wf-ops-row__title">{titleOf(e)}</span>
           <span className="wf-muted text-xs">
@@ -708,6 +818,30 @@ export function AgendaBoard({ initial }: { initial: Data; role: 'MODERATOR' | 'S
 
         <div className="grid gap-4">
           {data.sessions.length ? null : <p className="wf-muted">Nenhuma sessão ainda.</p>}
+          {past.length ? (
+            <div className="wf-ops-actions">
+              <button
+                type="button"
+                className="wf-btn wf-btn--sm wf-btn--ghost"
+                disabled={busy}
+                onClick={() => {
+                  const what =
+                    past.length === 1
+                      ? 'a sessão encerrada ou cancelada'
+                      : `as ${past.length} sessões encerradas ou canceladas`;
+                  if (
+                    window.confirm(
+                      `Tirar da agenda ${what}? O que foi assistido nelas continua registrado.`,
+                    )
+                  ) {
+                    void run('Agenda limpa', '/api/v1/admin/sessions/clear', 'POST', undefined);
+                  }
+                }}
+              >
+                Limpar encerradas e canceladas
+              </button>
+            </div>
+          ) : null}
           {data.sessions.map((s) => (
             <section
               key={s.id}
@@ -735,7 +869,7 @@ export function AgendaBoard({ initial }: { initial: Data; role: 'MODERATOR' | 'S
                 aria-label={`${s.bookedMinutes} de ${s.capacityMinutes} minutos`}
               />
               {s.entries.length ? (
-                <ul className="wf-ops-list">{s.entries.map((e) => entryRow(e, s))}</ul>
+                <ul className="wf-ops-list">{s.entries.map((e, i) => entryRow(e, s, i))}</ul>
               ) : (
                 <p className="wf-muted text-sm">Nada agendado.</p>
               )}
@@ -783,7 +917,14 @@ export function AgendaBoard({ initial }: { initial: Data; role: 'MODERATOR' | 'S
                     onClick={() =>
                       setEvent({
                         sessionId: s.id,
-                        form: { title: '', minutes: '60', atStart: false, note: '' },
+                        form: {
+                          title: '',
+                          minutes: '60',
+                          atStart: false,
+                          note: '',
+                          posterId: null,
+                          poster: null,
+                        },
                       })
                     }
                   >

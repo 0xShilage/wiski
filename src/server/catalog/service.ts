@@ -8,7 +8,7 @@ import { audit } from '../audit/audit';
 import { db } from '../db';
 import { PG, pgErrorCode } from '../db-errors';
 import { HttpError, type ProblemField, Problems } from '../http/problem';
-import { completeInTx } from '../live/schedule';
+import { completeInTx, uncompleteInTx } from '../live/schedule';
 import { refreshOverlays } from '../overlay/state';
 import { publishOrder } from '../realtime/events';
 import type { ItemFieldsInput } from './input';
@@ -555,6 +555,51 @@ export async function markWatched(ctx: Ctx, id: string, now = new Date()) {
     }
   }
   await refreshOverlays(['agora', 'fila', 'meta']);
+  return row;
+}
+
+/**
+ * "Desmarcar assistido" (2026-11-09): the title goes back to where it was before it was marked
+ * watched (its order or campaign back in the queue); see `uncompleteInTx`.
+ */
+export async function unmarkWatched(ctx: Ctx, id: string, expectedVersion: number) {
+  const item = await db().catalogItem.findUnique({ where: { id }, select: { kind: true } });
+  if (!item) throw Problems.notFound();
+  let back: string[] = [];
+  const row = await tx(item.kind, async (t) => {
+    const done = await uncompleteInTx(t, id, expectedVersion).catch((err: unknown) => {
+      if (err instanceof HttpError && err.code === 'SCHEDULE_CHANGED') {
+        throw CatalogProblems.versionConflict(expectedVersion);
+      }
+      throw err;
+    });
+    back = done.orderIds;
+    await audit(
+      {
+        action: 'catalog.unwatched',
+        actor: ctx.actor,
+        requestId: ctx.requestId,
+        targetType: 'CatalogItem',
+        targetId: id,
+        metadata: { kind: item.kind, status: done.status },
+      },
+      t,
+    );
+    return t.catalogItem.findUniqueOrThrow({ where: { id } });
+  });
+  const now = new Date();
+  for (const orderId of back) {
+    const o = await db().order.findUnique({ where: { id: orderId }, select: { publicCode: true } });
+    if (o) {
+      await publishOrder(orderId, {
+        type: 'status',
+        code: o.publicCode,
+        status: 'PAID',
+        at: now.toISOString(),
+      });
+    }
+  }
+  await refreshOverlays(['fila', 'meta', 'meta-total']);
   return row;
 }
 

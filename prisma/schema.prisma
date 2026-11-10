@@ -335,6 +335,7 @@ model MediaAsset {
   backdropOf      CatalogItem[]   @relation("ItemBackdrop")
   logoOf          CatalogItem[]   @relation("ItemLogo")
   posterOfRelease SeasonRelease[] @relation("ReleasePoster")
+  posterOfSegment LiveSegment[]   @relation("SegmentPoster")
 
   @@index([unusedSince])
 }
@@ -515,6 +516,12 @@ model StreamSession {
   cancelledAt     DateTime?           @db.Timestamptz(3)
   /// Phase 4: what is on screen right now ("Agora assistindo"); only while LIVE (CHECK)
   nowItemId       String?             @db.Uuid
+  /// 2026-11-09: the order the dashboard put this session's entries in ("ORDER:<id>",
+  /// "CAMPAIGN:<id>", "SEGMENT:<id>"); entries not listed follow in queue order
+  entryOrder      String[]            @default([])
+  /// 2026-11-09: "Limpar encerradas e canceladas" hides a DONE/CANCELLED session from the
+  /// agenda and the Cronograma; the row (and what was watched on it) stays
+  hiddenAt        DateTime?           @db.Timestamptz(3)
   version         Int                 @default(0)
   createdAt       DateTime            @default(now()) @db.Timestamptz(3)
   updatedAt       DateTime            @updatedAt @db.Timestamptz(3)
@@ -564,17 +571,21 @@ model LiveSegment {
   /// shown before everything else on the live (e.g. an event that opens it)
   atStart           Boolean           @default(false)
   status            LiveSegmentStatus @default(SCHEDULED)
+  /// EVENT only (2026-11-09): a poster uploaded for the custom event (CHECK)
+  posterId          String?           @db.Uuid
   version           Int               @default(0)
   createdAt         DateTime          @default(now()) @db.Timestamptz(3)
   doneAt            DateTime?         @db.Timestamptz(3)
 
   session  StreamSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   campaign Campaign?     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  poster   MediaAsset?   @relation("SegmentPoster", fields: [posterId], references: [id], onDelete: Restrict)
 
   /// At most one segment "Agora assistindo" per session.
   @@unique([sessionId], map: "live_segment_one_playing", where: raw("(status = 'PLAYING'::\"LiveSegmentStatus\")"))
   @@index([sessionId, status])
   @@index([campaignId, status])
+  @@index([posterId])
 }
 
 /// Where an order came from (2026-11-02): the site's Pix checkout, or registered by the streamer

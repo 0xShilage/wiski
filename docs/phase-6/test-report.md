@@ -229,3 +229,9 @@ Fix (PR "fix-prefetch-burst"): no prefetch on the header tabs, the phone bar, th
 - `tests/integration/authz.test.ts`: the matrix now expects `moderator` for every former streamer route except refunds and role changes (still `streamer`: moderators 404).
 - Updated to the new rule: a moderator cancels a planned session (`live.test.ts`), sets the manual movie price and registers "Já pago" with a fresh Google login (`manual-orders.test.ts`), a stale moderator opening a campaign gets STEP_UP_REQUIRED (`catalog.test.ts`), REMOVE on a review (`moderation.test.ts`), the contact inbox and goals (`operations.test.ts`), the Links list (`community.test.ts`), e-mails on orders and people (`orders-admin.test.ts`, `users-admin.test.ts`), suspensions longer than 7 days with step-up and lifting an indefinite one (`users-admin.test.ts`), cancelling a Roleta prize (`roleta.test.ts`).
 - Unit 375/375, integration 1102/1102.
+
+## Addendum — operations batch (2026-11-09)
+
+- `tests/integration/agenda-batch.test.ts` (8): hand-made order (saved, later entries after it, stale and foreign lists refused, Cronograma follows it); clearing hides only DONE/CANCELLED; event poster (created with one, shown on the Cronograma, a BACKDROP refused, removed; a part can't have one); "Desmarcar assistido" for a sponsored movie (order back to PAID, in the queue, WatchEvent gone, audited, a second undo refused) and for a watched series (back to FUNDED and in the queue); `!proximo` (empty agenda, next planned live with date, next on the live, wrong key 401); database rules (hiddenAt only when finished, entryOrder keys, poster only on events, 50 series).
+- `db-constraints-r1.test.ts`: the per-kind limits now 50 series. Authz matrix: 3 new routes.
+- Unit 375/375, integration 1122/1122.

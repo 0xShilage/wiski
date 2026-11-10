@@ -1,4 +1,5 @@
 /** Client-safe shapes of the Phase 4 dashboard data (dates as ISO strings). */
+import type { Picture } from '@/lib/media';
 
 export type Kind = 'MOVIE' | 'SERIES' | 'FRANCHISE';
 
@@ -23,6 +24,9 @@ export type AgendaEntry = {
     note: string | null;
     campaignId: string | null;
     atStart: boolean;
+    /** EVENT only (2026-11-09) */
+    poster: Picture | null;
+    posterId: string | null;
   } | null;
   parts?: {
     label: string;

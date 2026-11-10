@@ -195,11 +195,23 @@ for (const bad of [
 }
 
 test('upload location: only POST, nginx caps the body at 11 MB', async ({ request }, info) => {
-  // Once per run: these requests count against nginx's 2 r/min upload zone.
+  // Once per run: these requests count against nginx's 2 r/min upload zone. Other specs upload
+  // too (posters), so a 429 here only means the zone is busy: wait for it (2026-11-09: this
+  // failed two CI runs in a row on a 429).
   test.skip(info.project.name !== 'desktop-1280', 'runs once');
-  expect((await request.get('/api/v1/admin/media')).status()).toBe(403);
-  // Announce 12 MB and send nothing: nginx answers 413 from the headers alone.
-  const status = await new Promise<number>((resolve, reject) => {
+  test.setTimeout(180_000);
+  await expect
+    .poll(async () => (await request.get('/api/v1/admin/media')).status(), {
+      timeout: 75_000,
+      intervals: [10_000],
+    })
+    .toBe(403);
+  await expect.poll(announce12Mb, { timeout: 75_000, intervals: [10_000] }).toBe(413);
+});
+
+/** Announce 12 MB and send nothing: nginx answers 413 from the headers alone. */
+function announce12Mb(): Promise<number> {
+  return new Promise<number>((resolve, reject) => {
     const url = new URL('/api/v1/admin/media?role=POSTER', stack().origin);
     const req = httpsRequest(
       url,
@@ -217,5 +229,4 @@ test('upload location: only POST, nginx caps the body at 11 MB', async ({ reques
     req.on('error', reject);
     req.flushHeaders();
   });
-  expect(status).toBe(413);
-});
+}

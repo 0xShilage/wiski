@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { route } from '@/server/http/route';
+import { nextUpAnswer } from '@/server/live/public';
 import { RL } from '@/server/ratelimit/rules';
 import { chatAnswer, type PopWidget, showOverlay } from '@/server/overlay/show';
 import { type CommandAction, runCommand, verifyCommandKey } from '@/server/subathon/command';
@@ -11,8 +12,10 @@ import { type CommandAction, runCommand, verifyCommandKey } from '@/server/subat
  * line of plain text that the chatbot posts in chat. A wrong or revoked key is 401.
  * 2026-11-06: `a=agora` / `a=fila` (!agora, !fila) show that overlay for two minutes and answer
  * with what is playing / the next titles. Same key, so a copy of !tempo with another `a=` works.
+ * 2026-11-09: `a=proximo` (!proximo) answers with the next title or event on the agenda.
  */
 const SHOW: Record<string, PopWidget> = { agora: 'agora', fila: 'fila' };
+const NEXT = ['proximo', 'próximo'];
 const ACTION: Record<string, CommandAction> = {
   pause: 'pause',
   pausar: 'pause',
@@ -24,7 +27,7 @@ const ACTION: Record<string, CommandAction> = {
 
 const query = z
   .object({
-    a: z.enum([...Object.keys(ACTION), ...Object.keys(SHOW)] as [string, ...string[]]),
+    a: z.enum([...Object.keys(ACTION), ...Object.keys(SHOW), ...NEXT] as [string, ...string[]]),
     k: z.string().min(1).max(64),
   })
   .strict();
@@ -44,6 +47,9 @@ export const GET = route<'public', undefined, typeof query>(
       await verifyCommandKey(q.k);
       await showOverlay(widget);
       text = await chatAnswer(widget);
+    } else if (NEXT.includes(q.a)) {
+      await verifyCommandKey(q.k);
+      text = await nextUpAnswer();
     } else text = await runCommand(q.k, ACTION[q.a]!);
     return new Response(text, {
       headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' },

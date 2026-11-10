@@ -123,6 +123,10 @@ export const MATRIX: Row[] = [
     body: { expectedVersion: 2, toVersion: 1 },
   }),
   R('/api/v1/admin/catalog/items/[id]/watched', 'POST', 'moderator', { params: { id: NO_ID } }),
+  R('/api/v1/admin/catalog/items/[id]/unwatched', 'POST', 'moderator', {
+    params: { id: NO_ID },
+    body: VERSION0,
+  }),
   R('/api/v1/admin/catalog/slots', 'PUT', 'moderator', {
     body: { kind: 'MOVIE', slots: [{ id: NO_ID, slot: 1 }] },
   }),
@@ -242,6 +246,11 @@ export const MATRIX: Row[] = [
     params: { id: NO_ID },
     body: VERSION0,
   }),
+  R('/api/v1/admin/sessions/[id]/order', 'POST', 'moderator', {
+    params: { id: NO_ID },
+    body: { expectedVersion: 0, entries: [`ORDER:${NO_ID}`] },
+  }),
+  R('/api/v1/admin/sessions/clear', 'POST', 'moderator'),
   R('/api/v1/admin/schedule', 'POST', 'moderator', {
     body: { action: 'remove', target: { kind: 'ORDER', id: NO_ID, expectedVersion: 0 } },
     params: {},

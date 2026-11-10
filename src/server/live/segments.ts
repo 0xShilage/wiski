@@ -57,6 +57,16 @@ async function reserve(
   if (room.count !== 1) throw LiveProblems.full();
 }
 
+/** An uploaded poster (2026-11-09): must exist and have been uploaded as a POSTER. */
+async function posterOf(t: Tx, id: string | null | undefined): Promise<string | null> {
+  if (!id) return null;
+  const a = await t.mediaAsset.findUnique({ where: { id }, select: { role: true } });
+  if (!a || a.role !== 'POSTER') {
+    throw Problems.validation([{ path: 'posterId', message: 'Envie a imagem como pôster.' }]);
+  }
+  return id;
+}
+
 async function logAdd(t: Tx, ctx: Ctx, g: LiveSegment) {
   await audit(
     {
@@ -180,6 +190,7 @@ export type EventInput = {
   minutes: number;
   note?: string | null | undefined;
   atStart?: boolean | undefined;
+  posterId?: string | null | undefined;
 };
 
 /** A custom event on a session ("Jogando com os Viewers"). */
@@ -187,6 +198,7 @@ export async function addEvent(ctx: Ctx, input: EventInput) {
   const note = cleanNote(input.note) ?? null;
   const g = await inTx(async (t) => {
     const s = await bookableSession(t, input.sessionId);
+    const posterId = await posterOf(t, input.posterId);
     await reserve(t, s, input.minutes);
     const created = await t.liveSegment.create({
       data: {
@@ -196,6 +208,7 @@ export async function addEvent(ctx: Ctx, input: EventInput) {
         note,
         minutes: input.minutes,
         atStart: input.atStart ?? false,
+        posterId,
       },
     });
     await logAdd(t, ctx, created);
@@ -203,6 +216,33 @@ export async function addEvent(ctx: Ctx, input: EventInput) {
   });
   await refreshOverlays(['fila']);
   return g;
+}
+
+/** "Trocar pôster" / "Tirar pôster" on a custom event (2026-11-09), in any state. */
+export async function setEventPoster(ctx: Ctx, target: Target, posterId: string | null) {
+  await inTx(async (t) => {
+    const g = await t.liveSegment.findUnique({ where: { id: target.id } });
+    if (!g) throw Problems.notFound();
+    if (g.kind !== 'EVENT') throw LiveProblems.state('Só eventos têm pôster próprio.');
+    const poster = await posterOf(t, posterId);
+    const res = await t.liveSegment.updateMany({
+      where: { id: g.id, version: target.expectedVersion },
+      data: { posterId: poster, version: { increment: 1 } },
+    });
+    if (res.count !== 1) throw LiveProblems.changed();
+    await audit(
+      {
+        action: 'segment.poster',
+        actor: ctx.actor,
+        requestId: ctx.requestId,
+        targetType: 'LiveSegment',
+        targetId: g.id,
+        metadata: { sessionId: g.sessionId, poster: poster !== null },
+      },
+      t,
+    );
+  });
+  await refreshOverlays(['agora', 'fila']);
 }
 
 /** Take a booked segment off its session (before it's on screen). */

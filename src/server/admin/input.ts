@@ -99,9 +99,31 @@ export const scheduleInput = z.discriminatedUnion('action', [
       minutes,
       note: segmentNote,
       atStart: z.boolean().optional(),
+      /** 2026-11-09: a poster uploaded through /api/v1/admin/media?role=POSTER */
+      posterId: z.uuid().nullable().optional(),
+    })
+    .strict(),
+  z
+    .object({
+      action: z.literal('event-poster'),
+      target: z
+        .object({ kind: z.literal('SEGMENT'), id: z.uuid(), expectedVersion: version })
+        .strict(),
+      posterId: z.uuid().nullable(),
     })
     .strict(),
 ]);
+
+/** "Reorganizar" (2026-11-09): every entry of the session, in the new order. */
+export const sessionOrderInput = z
+  .object({
+    expectedVersion: version,
+    entries: z
+      .array(z.string().regex(/^(ORDER|CAMPAIGN|SEGMENT):[0-9a-f-]{36}$/))
+      .min(1)
+      .max(300),
+  })
+  .strict();
 
 export const rescheduleInput = z.object({ sessionId: z.uuid() }).strict();
 

@@ -1,6 +1,6 @@
 /**
  * Phase 6 reviewed SQL (prisma/migrations/*_phase6_constraints): the Links page and suggestions,
- * hit directly through the app role. The 50/20/10 live limits are in db-constraints-r1.test.ts.
+ * hit directly through the app role. The 50/50/10 live limits are in db-constraints-r1.test.ts.
  * Also 20261108120100_manual_price_orders_constraints: manual movie prices and "Já pago" orders.
  */
 import { beforeEach, describe, expect, it } from 'vitest';

@@ -947,7 +947,23 @@ export function ItemEditor({
               >
                 Marcar como assistido
               </button>
-            ) : null}
+            ) : (
+              <button
+                type="button"
+                className="wf-btn wf-btn--ghost wf-btn--sm"
+                disabled={busy}
+                onClick={() =>
+                  void simple(
+                    `/api/v1/admin/catalog/items/${item.id}/unwatched`,
+                    { expectedVersion: item.version },
+                    'Voltou para a fila.',
+                    'Desmarcar como assistido? O título volta para a fila da live (se tiver patrocínio ou meta atingida).',
+                  )
+                }
+              >
+                Desmarcar assistido
+              </button>
+            )}
             <select
               className="wf-input max-w-64"
               aria-label="Rascunho que entra na vaga"

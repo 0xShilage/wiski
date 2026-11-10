@@ -9,6 +9,7 @@ import {
   completeSegment,
   removeSegment,
   segmentNow,
+  setEventPoster,
 } from '@/server/live/segments';
 
 /**
@@ -17,6 +18,7 @@ import {
  * "Agora assistindo", "Concluído" (→ watched, reviews open).
  * 2026-11-04: `part` books a few episodes / one film of a funded campaign, `event` a custom
  * event; both are SEGMENT targets for remove / now / complete (`finish`: the last part).
+ * 2026-11-09: an event may carry a poster (`posterId`); `event-poster` changes or removes it.
  */
 export const POST = route<'moderator', typeof scheduleInput>(
   { methods: ['POST'], access: 'moderator', rateLimit: RL.adminWrite, body: scheduleInput },
@@ -29,6 +31,11 @@ export const POST = route<'moderator', typeof scheduleInput>(
     if (body.action === 'event') {
       const { action: _a, ...input } = body;
       return { segment: { id: (await addEvent(ctx, input)).id } };
+    }
+    if (body.action === 'event-poster') {
+      const { id, expectedVersion } = body.target;
+      await setEventPoster(ctx, { id, expectedVersion }, body.posterId);
+      return { ok: true };
     }
     const t = body.target;
     if (t.kind === 'SEGMENT') {

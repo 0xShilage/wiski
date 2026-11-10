@@ -154,11 +154,55 @@ export async function cronograma(now = new Date()): Promise<CronogramaDay[]> {
       past,
       titles: entries.map((e) => ({
         ...publicTitle(e, s.nowItemId, s.status === 'LIVE'),
-        poster: e.item ? (posters.get(e.item.id) ?? null) : null,
+        // a custom event shows its own poster when it has one (2026-11-09)
+        poster: e.item ? (posters.get(e.item.id) ?? null) : (e.segment?.poster ?? null),
       })),
     });
   }
   return [...days.values()];
+}
+
+const whenFmt = new Intl.DateTimeFormat('pt-BR', {
+  timeZone: 'America/Sao_Paulo',
+  weekday: 'short',
+  day: '2-digit',
+  month: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
+/**
+ * !proximo (2026-11-09): the next title or event on the agenda, as one chat line. During a live:
+ * the first thing on it that isn't done or on screen; otherwise (or when the live has nothing
+ * left) the first thing on the next planned live, with its date. Titles only, never a sponsor.
+ */
+export async function nextUpAnswer(now = new Date()): Promise<string> {
+  const sessions = await sessionsWithEntries({
+    from: new Date(now.getTime() - 12 * 3_600_000),
+    statuses: ['PLANNED', 'LIVE'],
+    take: 10,
+  });
+  const live = sessions.find((s) => s.status === 'LIVE');
+  const label = (e: QueueEntry) => {
+    const t = publicTitle(e, null, false);
+    return t.part ? `${t.title} · ${t.part}` : t.title;
+  };
+  if (live) {
+    const next = live.entries.find(
+      (e) =>
+        !entryDone(e) &&
+        e.status !== 'PLAYING' &&
+        e.status !== 'WATCHING' &&
+        !(e.item && e.item.id === live.nowItemId && !live.playing?.segment),
+    );
+    if (next) return `⏭️ Próximo na live: ${label(next)}`;
+  }
+  const planned = sessions
+    .filter((s) => s.status === 'PLANNED' && s.startsAt.getTime() >= now.getTime() - 3_600_000)
+    .find((s) => s.entries.some((e) => !entryDone(e)));
+  const first = planned?.entries.find((e) => !entryDone(e));
+  if (!planned || !first) return 'Nada agendado na agenda da live por enquanto.';
+  return `⏭️ Próximo na live: ${label(first)} (${whenFmt.format(planned.startsAt).replace(',', '')})`;
 }
 
 /** Is a live session marked "Ao vivo" in Cronograma right now? (home page Twitch block) */

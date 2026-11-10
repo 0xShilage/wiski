@@ -104,7 +104,8 @@ test('Filmes 1440, reserved state', async ({ page }) => {
     await next.click();
   }
   await expect(page.locator('.wf-hero__ctas')).toContainText('Reservado');
-  await sideBySide(page, 'r1-filmes-1440-reserved');
+  // the Figma frame of the unavailable (sponsored) state has the same layout
+  await sideBySide(page, 'r1-filmes-1440-sponsored');
 });
 
 test('Filmes 390 (phone): bottom tab bar, CTA first, rail', async ({ page }) => {

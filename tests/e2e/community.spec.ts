@@ -280,6 +280,68 @@ test('phone: the bar has five tabs + "Mais", which opens Animes, Jogos, Fila, As
   await expect(bar.getByRole('button', { name: /você está em Links/ })).toBeVisible();
 });
 
+test('desktop: "Mais" opens a full-height drawer from the right that fades in, with the other pages and the footer pages', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name.startsWith('mobile'), 'desktop header only');
+  await page.goto('/');
+  const more = page.getByRole('navigation', { name: 'Principal' }).getByRole('button', {
+    name: /^Mais/,
+  });
+  const drawer = page.locator('.wf-drawer');
+  const main = page.getByRole('list', { name: 'Mais páginas' });
+  await expect(main).toBeHidden();
+  await more.click();
+  await expect(main).toBeVisible();
+  await expect(main.getByRole('link')).toHaveText([
+    'Jogos',
+    'Assistidos',
+    'Avaliações',
+    'Sugestões',
+    'Roleta',
+    'Apoiadores',
+    'Links',
+  ]);
+  await expect(page.getByRole('list', { name: 'Informações' }).getByRole('link')).toHaveText([
+    'Ranking',
+    'Termos e privacidade',
+    'Reembolso',
+    'Media kit',
+    'Contato',
+  ]);
+  // fades in to fully opaque, against the right edge, as tall as the window
+  await expect.poll(() => drawer.evaluate((e) => getComputedStyle(e).opacity)).toBe('1');
+  const vp = page.viewportSize()!;
+  const b = (await drawer.boundingBox())!;
+  expect(Math.round(b.x + b.width)).toBe(vp.width);
+  expect(Math.round(b.y)).toBe(0);
+  expect(Math.round(b.height)).toBe(vp.height);
+  expect(b.width).toBeLessThan(vp.width / 2);
+  // the ✕ sits where the button is
+  const btn = (await more.boundingBox())!;
+  const x = (await page.getByRole('button', { name: 'Fechar menu' }).boundingBox())!;
+  expect(Math.abs(x.x + x.width / 2 - (btn.x + btn.width / 2))).toBeLessThan(48);
+  expect(Math.abs(x.y + x.height / 2 - (btn.y + btn.height / 2))).toBeLessThan(24);
+  await page.screenshot({ path: 'test-results/drawer/mais-1280.png' });
+
+  await page.keyboard.press('Escape');
+  await expect(main).toBeHidden();
+  await more.click();
+  await page.getByRole('button', { name: 'Fechar menu' }).click();
+  await expect(main).toBeHidden();
+  await more.click();
+  await page.mouse.click(40, vp.height / 2); // the veil closes it
+  await expect(main).toBeHidden();
+
+  await more.click();
+  await main.getByRole('link', { name: 'Jogos' }).click();
+  await expect(page).toHaveURL(/\/jogos$/);
+  await expect(main).toBeHidden();
+  await expect(more).toHaveAccessibleName(/você está em Jogos/);
+  await more.click();
+  await expect(main.getByRole('link', { name: 'Jogos' })).toHaveAttribute('aria-current', 'page');
+});
+
 test('assistidos: watched titles with posters, filter by kind, cards open the title page', async ({
   page,
 }) => {

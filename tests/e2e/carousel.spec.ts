@@ -83,8 +83,13 @@ test('a sponsored movie is on /fila, not in the carousel; a reserved one shows w
   await page.goto('/fila');
   await expect(page.locator('.wf-fila')).toContainText('Patrocínio: @luana_v');
   await page.goto('/', { waitUntil: 'networkidle' });
+  // the seed's reserved movie (pending Pix); its place on the board depends on what earlier specs
+  // sponsored, so step until it is on screen
   const next = page.getByRole('button', { name: 'Próximo filme' });
-  for (let i = 0; i < 4; i++) await next.click(); // slot 6 = reserved (pending Pix), 5th on the board
+  for (let i = 0; i < 12; i++) {
+    if ((await page.locator('.wf-hero__ctas').textContent())?.includes('Reservado')) break;
+    await next.click();
+  }
   await expect(page.locator('.wf-hero__ctas')).toContainText('Reservado');
   await expect(page.locator('.wf-hero__price')).toContainText('35 minutos');
 });

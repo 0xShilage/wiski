@@ -96,8 +96,13 @@ for (const [w, h, margin] of [
 test('Filmes 1440, reserved state', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1080 });
   await page.goto('/', { waitUntil: 'networkidle' });
+  // the seed's reserved movie (pending Pix); its place on the board depends on what earlier specs
+  // sponsored, so step until it is on screen
   const next = page.getByRole('button', { name: 'Próximo filme' });
-  for (let i = 0; i < 4; i++) await next.click();
+  for (let i = 0; i < 12; i++) {
+    if ((await page.locator('.wf-hero__ctas').textContent())?.includes('Reservado')) break;
+    await next.click();
+  }
   await expect(page.locator('.wf-hero__ctas')).toContainText('Reservado');
   await sideBySide(page, 'r1-filmes-1440-reserved');
 });

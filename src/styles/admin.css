@@ -537,7 +537,9 @@
     }
     .wf-admin__nav {
       display: flex;
+      flex-wrap: wrap; /* Animes and Jogos (2026-11-09): more links than one row */
       gap: 4px;
+      min-width: 0;
     }
     .wf-admin__nav a small {
       margin-left: 8px;

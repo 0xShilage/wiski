@@ -9,7 +9,11 @@ export type ReviewStatus = 'VISIBLE' | 'AUTO_HIDDEN' | 'HIDDEN' | 'REMOVED';
 export type HoldReason = 'LINKS' | 'REPORTS';
 
 export type ReviewAuthor = { username: string; avatarKey: string };
-export type ReviewItemRef = { kind: 'MOVIE' | 'SERIES' | 'FRANCHISE'; slug: string; title: string };
+export type ReviewItemRef = {
+  kind: 'MOVIE' | 'SERIES' | 'FRANCHISE' | 'ANIME';
+  slug: string;
+  title: string;
+};
 
 /** A review as everyone sees it (only VISIBLE ones are listed publicly). */
 export type PublicReview = {

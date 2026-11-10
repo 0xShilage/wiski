@@ -16,7 +16,7 @@ const DAY = 86_400_000;
  * An item watched on stream → reviews open. ARCHIVED (watched, slot already replaced) needs no
  * slot, so tests don't fight over the 50/20/10 live slots; `liveWatched` covers WATCHED itself.
  */
-export async function watchedItem(kind: 'MOVIE' | 'SERIES' | 'FRANCHISE' = 'MOVIE') {
+export async function watchedItem(kind: 'MOVIE' | 'SERIES' | 'FRANCHISE' | 'ANIME' = 'MOVIE') {
   const item = await makeItem({ kind, status: 'ARCHIVED' });
   const watchedAt = new Date(Date.now() - 60_000);
   await db().watchEvent.create({ data: { itemId: item.id, watchedAt } });

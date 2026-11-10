@@ -28,7 +28,7 @@ function useAct() {
   return { busy, act, view };
 }
 
-const KIND_PT = { MOVIE: 'Filme', SERIES: 'Série', FRANCHISE: 'Franquia' } as const;
+const KIND_PT = { MOVIE: 'Filme', SERIES: 'Série', FRANCHISE: 'Franquia', ANIME: 'Anime' } as const;
 
 // ── Links ─────────────────────────────────────────────────────────────────────
 
@@ -276,7 +276,7 @@ export function LinksPanel({ initial }: { initial: AdminLink[] }) {
 type Status = 'NEW' | 'ACCEPTED' | 'DISMISSED';
 export type AdminSuggestion = {
   id: string;
-  kind: 'MOVIE' | 'SERIES' | 'FRANCHISE';
+  kind: 'MOVIE' | 'SERIES' | 'FRANCHISE' | 'ANIME';
   title: string;
   year: number | null;
   note: string | null;

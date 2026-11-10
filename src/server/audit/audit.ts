@@ -12,7 +12,7 @@ import { db } from '../db';
  * or payment data) — an action without a schema here cannot be logged.
  */
 const username = z.string().regex(USERNAME_PATTERN);
-const itemKind = z.enum(['MOVIE', 'SERIES', 'FRANCHISE']);
+const itemKind = z.enum(['MOVIE', 'SERIES', 'FRANCHISE', 'ANIME']);
 const mediaRole = z.enum(['POSTER', 'BACKDROP', 'LOGO']);
 const orderKind = z.enum(['MOVIE', 'CONTRIBUTION']);
 const paymentStatus = z.enum([
@@ -324,6 +324,9 @@ export const AUDIT_ACTIONS = {
     .strict(),
   'contact.status': z.object({ to: z.enum(['NEW', 'READ', 'ARCHIVED', 'SPAM']) }).strict(),
   'contact.delete': z.object({}).strict(),
+  'game.create': z.object({ status: z.enum(['PLAYING', 'FINISHED', 'DROPPED']) }).strict(),
+  'game.update': z.object({ status: z.enum(['PLAYING', 'FINISHED', 'DROPPED']) }).strict(),
+  'game.delete': z.object({}).strict(),
   'alerts.test': z.object({ voice: z.boolean() }).strict(),
   'alerts.update': z
     .object({

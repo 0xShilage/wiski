@@ -6,7 +6,12 @@ import { opsCounts } from '@/server/admin/counts';
 
 export const metadata: Metadata = { title: 'Catálogo' };
 
-const TIPO = { filmes: 'MOVIE', series: 'SERIES', franquias: 'FRANCHISE' } as const;
+const TIPO = {
+  filmes: 'MOVIE',
+  series: 'SERIES',
+  franquias: 'FRANCHISE',
+  animes: 'ANIME',
+} as const;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };

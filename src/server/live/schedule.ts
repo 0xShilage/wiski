@@ -425,7 +425,12 @@ export type QueueEntry = {
   version: number;
   status: string;
   /** the catalog title; null only for a custom event */
-  item: { id: string; kind: 'MOVIE' | 'SERIES' | 'FRANCHISE'; slug: string; title: string } | null;
+  item: {
+    id: string;
+    kind: 'MOVIE' | 'SERIES' | 'FRANCHISE' | 'ANIME';
+    slug: string;
+    title: string;
+  } | null;
   runtimeMinutes: number;
   sponsor: string | null;
   message: string | null;

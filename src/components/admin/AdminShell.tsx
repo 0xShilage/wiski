@@ -10,6 +10,7 @@ const CATALOG = [
   ['filmes', 'Filmes', 'MOVIE', LIVE_LIMIT.MOVIE],
   ['series', 'Séries', 'SERIES', LIVE_LIMIT.SERIES],
   ['franquias', 'Franquias', 'FRANCHISE', LIVE_LIMIT.FRANCHISE],
+  ['animes', 'Animes', 'ANIME', LIVE_LIMIT.ANIME],
 ] as const;
 
 /** Dashboard pages other than the catalogue board: sidebar + one content column. */
@@ -26,7 +27,7 @@ export function AdminShell({
   title: string;
   lead?: string;
   user: { username: string | null; role: Role };
-  catalog: Record<'MOVIE' | 'SERIES' | 'FRANCHISE', number>;
+  catalog: Record<'MOVIE' | 'SERIES' | 'FRANCHISE' | 'ANIME', number>;
   counts: OpsCounts;
   children: ReactNode;
 }) {

@@ -55,6 +55,20 @@ export const IconLayers = ({ className }: P) => (
     <path d="M3 14l9 5 9-5" />
   </svg>
 );
+/** Animes (2026-11-09): a sparkle. */
+export const IconSparkles = ({ className }: P) => (
+  <svg {...base} className={className}>
+    <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
+    <path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" />
+  </svg>
+);
+/** Jogos (2026-11-09): a gamepad. */
+export const IconGamepad = ({ className }: P) => (
+  <svg {...base} className={className}>
+    <path d="M7 8h10a4 4 0 0 1 4 4v2.5a2.5 2.5 0 0 1-4.6 1.4L15 14H9l-1.4 1.9A2.5 2.5 0 0 1 3 14.5V12a4 4 0 0 1 4-4z" />
+    <path d="M7.5 11v2M6.5 12h2M15.5 11.5h.01M17.5 12.5h.01" />
+  </svg>
+);
 /** Fila (2026-11-09): a numbered list. */
 export const IconQueue = ({ className }: P) => (
   <svg {...base} className={className}>

@@ -1,4 +1,5 @@
 import { PontoInk } from '@/components/brand/generated';
+import { isEpisodic } from '@/lib/catalog/kinds';
 import { formatBRL, MIN_CONTRIBUTION_CENTS, percentFunded } from '@/lib/catalog/pricing';
 import type { PublicCampaign, PublicItem } from '@/lib/catalog/types';
 import Link from 'next/link';
@@ -95,7 +96,7 @@ export function ContributeCta({ item, kindPath }: { item: PublicItem; kindPath: 
 }
 
 export function campaignSubtitle(item: PublicItem): string {
-  if (item.kind === 'SERIES') {
+  if (isEpisodic(item.kind)) {
     return [item.seasonsLabel, item.episodeCount ? `${item.episodeCount} episódios` : null]
       .filter(Boolean)
       .join(' · ');

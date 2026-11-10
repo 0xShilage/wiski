@@ -51,7 +51,7 @@ const safe = (max: number) =>
     .refine((s) => codePointLength(s) <= max, 'too long')
     .refine((s) => plainText(s) === s, 'unsafe characters');
 
-const kind = z.enum(['MOVIE', 'SERIES', 'FRANCHISE']);
+const kind = z.enum(['MOVIE', 'SERIES', 'FRANCHISE', 'ANIME']);
 
 export const overlayEventSchema = z.discriminatedUnion('type', [
   /** "Agora assistindo" / "Próximos da fila": appear for `seconds`, then hide (2026-11-06) */
@@ -112,7 +112,8 @@ export const overlayEventSchema = z.discriminatedUnion('type', [
             })
             .strict(),
         )
-        .length(3),
+        .min(3)
+        .max(4),
     })
     .strict()
     .refine((e) => e.funded <= e.titles, 'funded > titles'),
@@ -172,7 +173,7 @@ export function nowPlayingEvent(
   input: {
     title: string;
     /** null: a custom event on the live (2026-11-04) */
-    kind: 'MOVIE' | 'SERIES' | 'FRANCHISE' | null;
+    kind: 'MOVIE' | 'SERIES' | 'FRANCHISE' | 'ANIME' | null;
     sponsor: string | null;
     message: string | null;
   } | null,
@@ -241,7 +242,7 @@ export function totalGoalEvent(t: {
   titles: number;
   funded: number;
   kinds: {
-    kind: 'MOVIE' | 'SERIES' | 'FRANCHISE';
+    kind: 'MOVIE' | 'SERIES' | 'FRANCHISE' | 'ANIME';
     titles: number;
     funded: number;
     percent: number;

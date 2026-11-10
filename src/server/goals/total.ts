@@ -1,4 +1,5 @@
 import 'server-only';
+import { isEpisodic } from '@/lib/catalog/kinds';
 import { franchiseGoalCents, movieListPriceCents, seriesGoalCents } from '@/lib/catalog/pricing';
 import { BOARD_STATUSES } from '@/lib/catalog/kinds';
 import { db } from '../db';
@@ -10,11 +11,11 @@ import { db } from '../db';
  * longer count. Like every revenue goal on stream (Q19), only percentages and title counts leave
  * this module: never an amount.
  */
-export type Kind = 'MOVIE' | 'SERIES' | 'FRANCHISE';
+export type Kind = 'MOVIE' | 'SERIES' | 'FRANCHISE' | 'ANIME';
 export type KindTotal = { kind: Kind; titles: number; funded: number; percent: number };
 export type TotalGoal = { titles: number; funded: number; percent: number; kinds: KindTotal[] };
 
-const KINDS: Kind[] = ['MOVIE', 'SERIES', 'FRANCHISE'];
+const KINDS: Kind[] = ['MOVIE', 'SERIES', 'FRANCHISE', 'ANIME'];
 
 /** floor, capped 0–100; an empty board counts as 0 %. */
 export const pct = (current: number, target: number) =>
@@ -44,14 +45,13 @@ export function titleGoal(r: Row): { target: number; current: number; funded: bo
       return { target, current, funded: r.status === 'FUNDED' || current >= target };
     }
     // no campaign opened yet: the formula goal, nothing raised
-    const target =
-      r.kind === 'SERIES'
-        ? r.seasonCount
-          ? seriesGoalCents(r.seasonCount)
-          : null
-        : r.franchiseEntries.length
-          ? franchiseGoalCents(r.franchiseEntries)
-          : null;
+    const target = isEpisodic(r.kind)
+      ? r.seasonCount
+        ? seriesGoalCents(r.seasonCount)
+        : null
+      : r.franchiseEntries.length
+        ? franchiseGoalCents(r.franchiseEntries)
+        : null;
     return target ? { target, current: 0, funded: false } : null;
   } catch {
     return null; // out-of-range data never breaks the overlay
@@ -84,7 +84,8 @@ export function sumTotals(rows: Row[]): TotalGoal {
     titles: all.titles,
     funded: all.funded,
     percent: pct(all.current, all.target),
-    kinds: KINDS.map((k) => ({
+    // animes (2026-11-09) get their bar once there is one on the boards
+    kinds: KINDS.filter((k) => k !== 'ANIME' || acc[k].titles > 0).map((k) => ({
       kind: k,
       titles: acc[k].titles,
       funded: acc[k].funded,

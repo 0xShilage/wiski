@@ -16,6 +16,7 @@ function split(by: PerKind, fmt: (n: number) => string) {
     ['Filmes', by.MOVIE],
     ['Séries', by.SERIES],
     ['Franquias', by.FRANCHISE],
+    ['Animes', by.ANIME],
   ].map(([label, n]) => (
     <li key={label as string}>
       <span>{label}</span> <strong>{fmt(n as number)}</strong>

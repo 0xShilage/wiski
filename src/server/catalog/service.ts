@@ -1,7 +1,7 @@
 import 'server-only';
 import type { CatalogItem, Prisma, Role } from '@/generated/prisma/client';
 import type { ItemKind, MediaRole } from '@/generated/prisma/enums';
-import { LIVE_STATUSES } from '@/lib/catalog/kinds';
+import { isEpisodic, KIND_LABEL, LIVE_STATUSES } from '@/lib/catalog/kinds';
 import { LIVE_LIMIT, MOVIE_MAX_RUNTIME } from '@/lib/catalog/pricing';
 import { slugify } from '@/lib/catalog/slug';
 import { audit } from '../audit/audit';
@@ -38,7 +38,7 @@ export const CatalogProblems = {
     new HttpError(
       409,
       'CATALOG_FULL',
-      `O limite de ${LIVE_LIMIT[kind]} ${kind === 'MOVIE' ? 'filmes' : kind === 'SERIES' ? 'séries' : 'franquias'} no ar foi atingido. Substitua um título antes.`,
+      `O limite de ${LIVE_LIMIT[kind]} ${KIND_LABEL[kind].many.toLowerCase()} no ar foi atingido. Substitua um título antes.`,
     ),
   slotTaken: () => new HttpError(409, 'SLOT_TAKEN', 'Esta vaga já está ocupada.'),
   invalidState: (detail: string) => new HttpError(409, 'INVALID_STATE', detail),
@@ -85,7 +85,7 @@ async function checkKindFields(t: Tx, kind: ItemKind, f: ItemFieldsInput): Promi
   if (f.manualPriceCents !== undefined && f.manualPriceCents !== null && kind !== 'MOVIE') {
     errors.push({ path: 'manualPriceCents', message: 'Só para filmes.' });
   }
-  if (kind !== 'SERIES') {
+  if (!isEpisodic(kind)) {
     for (const k of ['seasonsLabel', 'seasonCount', 'episodeCount'] as const) {
       if (f[k] !== undefined && f[k] !== null) errors.push({ path: k, message: 'Só para séries.' });
     }
@@ -314,7 +314,7 @@ export function missingForPublish(item: CatalogItem, entries: number): ProblemFi
   need(item.genres.length, 'genres', 'Adicione pelo menos um gênero.');
   need(item.posterId, 'posterId', 'Envie o pôster (2:3).');
   need(item.backdropId, 'backdropId', 'Envie a imagem de fundo (16:9).');
-  if (item.kind === 'SERIES') {
+  if (isEpisodic(item.kind)) {
     need(item.seasonCount, 'seasonCount', 'Informe quantas temporadas estão incluídas.');
     need(item.seasonsLabel, 'seasonsLabel', 'Descreva as temporadas (ex.: "Temporadas 1–3").');
   }

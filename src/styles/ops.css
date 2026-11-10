@@ -1401,6 +1401,10 @@ html:has(.wf-overlay) .skip-link {
     .wf-seen__filter {
       gap: 2px;
       padding: 3px;
+      /* five kinds since Animes (2026-11-09): scroll inside the control, never the page */
+      max-width: 100%;
+      overflow-x: auto;
+      scrollbar-width: none;
     }
     .wf-seen__filter a {
       padding: 0 9px;
@@ -1507,6 +1511,37 @@ html:has(.wf-overlay) .skip-link {
   .wf-fila__now {
     color: var(--color-lavender);
     font-weight: 600;
+  }
+
+  /* Jogos (2026-11-09): the status on the cover, the VOD link */
+  .wf-games .wf-seen__poster {
+    position: relative;
+  }
+  .wf-games__status {
+    position: absolute;
+    left: 8px;
+    bottom: 8px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    background: rgb(26 18 38 / 0.85);
+    border: 1px solid rgb(169 157 224 / 0.5);
+    color: #f7f2fb;
+  }
+  .wf-games__status--playing {
+    border-color: var(--color-lavender);
+    color: var(--color-lavender);
+  }
+  .wf-games__vod {
+    font-size: 13px;
+    color: var(--color-lavender);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    justify-self: start;
+  }
+  .wf-game-form__cover .wf-drop--poster {
+    width: 132px;
   }
 
   /* Tabs (2026-11-09): the page fades in when a tab is opened — desktop only, never with

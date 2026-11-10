@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { hoursMinutes } from '@/components/live/ProgressBlock';
 import { MediaPicture } from '@/components/media/MediaPicture';
 import { IconSearch } from '@/components/ui/icons';
-import { KIND_PATH } from '@/lib/catalog/kinds';
+import { KIND_ONE, KIND_PATH } from '@/lib/catalog/kinds';
 import { SEARCH_MAX, searchTerms } from '@/lib/search';
 import { watchProgress } from '@/server/catalog/progress';
 import { watchedTitles } from '@/server/catalog/read';
@@ -18,8 +18,9 @@ const FILTERS = [
   { tipo: 'filmes', label: 'Filmes', kind: 'MOVIE' },
   { tipo: 'series', label: 'Séries', kind: 'SERIES' },
   { tipo: 'franquias', label: 'Franquias', kind: 'FRANCHISE' },
+  { tipo: 'animes', label: 'Animes', kind: 'ANIME' },
 ] as const;
-const KIND_PT = { MOVIE: 'Filme', SERIES: 'Série', FRANCHISE: 'Franquia' } as const;
+const KIND_PT = KIND_ONE;
 const date = new Intl.DateTimeFormat('pt-BR', {
   day: '2-digit',
   month: '2-digit',

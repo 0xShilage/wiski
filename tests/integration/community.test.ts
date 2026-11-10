@@ -339,9 +339,9 @@ describe('progress block', () => {
   it('watched (archived too), runtime minutes and the queue, split by kind', async () => {
     const empty = await watchProgress();
     expect(empty).toEqual({
-      watched: { total: 0, byKind: { MOVIE: 0, SERIES: 0, FRANCHISE: 0 } },
-      minutes: { total: 0, byKind: { MOVIE: 0, SERIES: 0, FRANCHISE: 0 } },
-      queued: { total: 0, byKind: { MOVIE: 0, SERIES: 0, FRANCHISE: 0 } },
+      watched: { total: 0, byKind: { MOVIE: 0, SERIES: 0, FRANCHISE: 0, ANIME: 0 } },
+      minutes: { total: 0, byKind: { MOVIE: 0, SERIES: 0, FRANCHISE: 0, ANIME: 0 } },
+      queued: { total: 0, byKind: { MOVIE: 0, SERIES: 0, FRANCHISE: 0, ANIME: 0 } },
     });
     await makeItem({ kind: 'MOVIE', status: 'WATCHED', slot: 1, runtimeMinutes: 120 });
     const archived = await makeItem({ kind: 'MOVIE', status: 'ARCHIVED', runtimeMinutes: 90 });
@@ -358,9 +358,9 @@ describe('progress block', () => {
     await fundedCampaign();
 
     expect(await watchProgress()).toEqual({
-      watched: { total: 3, byKind: { MOVIE: 2, SERIES: 1, FRANCHISE: 0 } },
-      minutes: { total: 810, byKind: { MOVIE: 210, SERIES: 600, FRANCHISE: 0 } },
-      queued: { total: 3, byKind: { MOVIE: 2, SERIES: 1, FRANCHISE: 0 } },
+      watched: { total: 3, byKind: { MOVIE: 2, SERIES: 1, FRANCHISE: 0, ANIME: 0 } },
+      minutes: { total: 810, byKind: { MOVIE: 210, SERIES: 600, FRANCHISE: 0, ANIME: 0 } },
+      queued: { total: 3, byKind: { MOVIE: 2, SERIES: 1, FRANCHISE: 0, ANIME: 0 } },
     });
     // leave no planned live behind for the other suites
     await clearCatalog();

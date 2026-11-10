@@ -5,7 +5,12 @@ import type { ManualCandidateView } from '@/lib/admin/types';
 import { adminFetch } from '@/lib/passkey-client';
 import { centsToReais, reaisToCents } from './types';
 
-const KIND_GROUP = { MOVIE: 'Filmes', SERIES: 'Séries', FRANCHISE: 'Franquias' } as const;
+const KIND_GROUP = {
+  MOVIE: 'Filmes',
+  SERIES: 'Séries',
+  FRANCHISE: 'Franquias',
+  ANIME: 'Animes',
+} as const;
 
 /**
  * "Já pago" (2026-11-02; moderators too since 2026-11-08): register a payment received outside the site. The title
@@ -102,7 +107,7 @@ export function ManualPaymentForm({ onDone }: { onDone: (text: string, ok: boole
     );
   }
 
-  const groups = (['MOVIE', 'SERIES', 'FRANCHISE'] as const)
+  const groups = (['MOVIE', 'SERIES', 'ANIME', 'FRANCHISE'] as const)
     .map((k) => ({ k, items: (list ?? []).filter((c) => c.kind === k) }))
     .filter((g) => g.items.length);
 

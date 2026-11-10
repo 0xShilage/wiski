@@ -14,7 +14,7 @@ export type WatchProgress = {
   queued: { total: number; byKind: PerKind };
 };
 
-const zero = (): PerKind => ({ MOVIE: 0, SERIES: 0, FRANCHISE: 0 });
+const zero = (): PerKind => ({ MOVIE: 0, SERIES: 0, FRANCHISE: 0, ANIME: 0 });
 const sum = (k: PerKind) => k.MOVIE + k.SERIES + k.FRANCHISE;
 
 export async function watchProgress(): Promise<WatchProgress> {

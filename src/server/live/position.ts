@@ -9,7 +9,7 @@ import { entryDone, queue, sessionWithEntries } from './schedule';
  * still waiting for a date. Read-only: never changes an order or a session.
  */
 export async function titleQueueStatus(
-  item: { id: string; kind: 'MOVIE' | 'SERIES' | 'FRANCHISE' },
+  item: { id: string; kind: 'MOVIE' | 'SERIES' | 'FRANCHISE' | 'ANIME' },
   now = new Date(),
 ): Promise<TitleQueueStatus | null> {
   const entry =

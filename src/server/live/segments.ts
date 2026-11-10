@@ -1,4 +1,5 @@
 import 'server-only';
+import { isEpisodic } from '@/lib/catalog/kinds';
 import type { LiveSegment, Prisma } from '@/generated/prisma/client';
 import { episodesLabel, filmLabel } from '@/lib/live/segments';
 import { audit } from '../audit/audit';
@@ -116,7 +117,7 @@ export async function addPart(ctx: Ctx, input: PartInput) {
       Prisma.LiveSegmentUncheckedCreateInput,
       'label' | 'seasonNumber' | 'episodeFrom' | 'episodeTo' | 'franchisePosition'
     >;
-    if (item.kind === 'SERIES') {
+    if (isEpisodic(item.kind)) {
       if (input.film !== undefined) {
         throw Problems.validation([
           { path: 'film', message: 'Séries são agendadas por episódio.' },

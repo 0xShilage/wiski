@@ -37,7 +37,7 @@ export async function makeItem(
       synopsis: 'Sinopse de teste.',
       genres: [],
       cast: [],
-      ...(kind === 'SERIES'
+      ...(kind === 'SERIES' || kind === 'ANIME'
         ? { seasonCount: over.seasonCount ?? 2, seasonsLabel: 'Temporadas 1–2' }
         : {}),
       createdById: await creator(),

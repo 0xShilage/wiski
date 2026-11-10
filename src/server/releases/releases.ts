@@ -1,4 +1,5 @@
 import 'server-only';
+import { isEpisodic } from '@/lib/catalog/kinds';
 import type { Role } from '@/generated/prisma/client';
 import { type Picture, pictureFrom } from '@/lib/media';
 import { audit } from '../audit/audit';
@@ -152,7 +153,7 @@ function toAdmin(r: {
 export async function linkableSeries() {
   return db().catalogItem.findMany({
     where: {
-      kind: 'SERIES',
+      kind: { in: ['SERIES', 'ANIME'] }, // animes too (2026-11-09)
       OR: [{ status: { not: 'ARCHIVED' } }, { watchedAt: { not: null } }],
     },
     orderBy: { title: 'asc' },
@@ -177,7 +178,7 @@ async function seriesTitle(itemId: string): Promise<string> {
     where: { id: itemId },
     select: { kind: true, title: true },
   });
-  if (!item || item.kind !== 'SERIES') {
+  if (!item || !isEpisodic(item.kind)) {
     throw Problems.validation([{ path: 'itemId', message: 'Escolha uma série do catálogo.' }]);
   }
   return item.title;

@@ -1,4 +1,5 @@
 import 'server-only';
+import { isEpisodic } from '@/lib/catalog/kinds';
 import type { Campaign, CatalogItem } from '@/generated/prisma/client';
 import { DEFAULT_CAMPAIGN_DAYS, franchiseGoalCents, seriesGoalCents } from '@/lib/catalog/pricing';
 import { audit } from '../audit/audit';
@@ -28,7 +29,7 @@ export const CampaignProblems = {
 };
 
 export async function formulaGoal(item: CatalogItem): Promise<number | null> {
-  if (item.kind === 'SERIES') return item.seasonCount ? seriesGoalCents(item.seasonCount) : null;
+  if (isEpisodic(item.kind)) return item.seasonCount ? seriesGoalCents(item.seasonCount) : null;
   if (item.kind === 'FRANCHISE') {
     const entries = await db().franchiseEntry.findMany({ where: { franchiseId: item.id } });
     return entries.length ? franchiseGoalCents(entries) : null;
@@ -66,7 +67,7 @@ export async function openCampaign(
   if (!goalCents || !formula) {
     throw CatalogProblems.incomplete([
       {
-        path: item.kind === 'SERIES' ? 'seasonCount' : 'franchiseEntries',
+        path: isEpisodic(item.kind) ? 'seasonCount' : 'franchiseEntries',
         message: 'Sem dados para calcular a meta.',
       },
     ]);

@@ -56,7 +56,9 @@ async function heroMetrics(page: Page) {
       titleX: r('.wf-hero__title').left,
       logoX: r('.wf-header__inner a').left,
       activeCentre: active.left + active.width / 2,
-      nav: [...document.querySelectorAll('.wf-header nav a')].map((a) => a.textContent?.trim()),
+      nav: [...document.querySelectorAll('.wf-header .wf-nav > a')].map((a) =>
+        a.textContent?.trim(),
+      ),
     };
   });
 }
@@ -73,18 +75,15 @@ for (const [w, h, margin] of [
     expect(Math.round(m.logoX)).toBe(margin);
     expect(Math.abs(m.activeCentre - m.W / 2)).toBeLessThan(2);
     // Cronograma (2026-10-31), Sugestões and Links (Phase 6), Assistidos (2026-11-01) and
-    // Roleta (2026-11-04) and Fila (2026-11-09) are additions to the Figma header
+    // Roleta (2026-11-04), Animes, Jogos and Fila (2026-11-09) are additions to the Figma header
+    // 2026-11-09: the less used tabs moved to "Mais ▾"
     expect(m.nav).toEqual([
       'Filmes',
       'Séries',
       'Franquias',
+      'Animes',
       'Fila',
       'Cronograma',
-      'Assistidos',
-      'Avaliações',
-      'Sugestões',
-      'Roleta',
-      'Links',
       'Perfil',
     ]);
     await sideBySide(page, `r1-filmes-${w}`);

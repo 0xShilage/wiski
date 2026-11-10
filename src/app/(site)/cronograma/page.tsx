@@ -15,6 +15,7 @@ const KIND_PT = {
   MOVIE: 'Filme',
   SERIES: 'Série',
   FRANCHISE: 'Franquia',
+  ANIME: 'Anime',
   EVENT: 'Na live',
 } as const;
 const dayFmt = new Intl.DateTimeFormat('pt-BR', {

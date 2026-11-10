@@ -25,7 +25,7 @@ export type PublicTitle = {
   title: string;
   part: string | null;
   note: string | null;
-  kind: 'MOVIE' | 'SERIES' | 'FRANCHISE' | 'EVENT';
+  kind: 'MOVIE' | 'SERIES' | 'FRANCHISE' | 'ANIME' | 'EVENT';
   slug: string | null;
   sponsor: string | null;
   jumped: boolean;
@@ -214,7 +214,7 @@ export async function nextUpAnswer(now = new Date()): Promise<string> {
 export type FilaEntry = {
   key: string;
   title: string;
-  kind: 'MOVIE' | 'SERIES' | 'FRANCHISE';
+  kind: 'MOVIE' | 'SERIES' | 'FRANCHISE' | 'ANIME';
   slug: string;
   year: number | null;
   poster: Picture | null;

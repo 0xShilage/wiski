@@ -21,6 +21,10 @@ export const PAGES: PageCase[] = [
   { name: 'franquia-detalhe', path: '/franquias/saga-rabinho-4-filmes' },
   { name: 'avaliacoes', path: '/avaliacoes' },
   { name: 'cronograma', path: '/cronograma' },
+  // 2026-11-09: Fila, Animes, Jogos
+  { name: 'fila', path: '/fila' },
+  { name: 'animes', path: '/animes' },
+  { name: 'jogos', path: '/jogos' },
   { name: 'filme-assistido', path: '/filmes/a-primeira-live' },
   { name: 'filme-assistido-logado', path: '/filmes/a-primeira-live', auth: 'user' },
   { name: 'perfil-publico-avaliacoes', path: '/u/bia_cine' },
@@ -60,6 +64,7 @@ export const PAGES: PageCase[] = [
   { name: 'sugestoes', path: '/sugestoes', auth: 'user' },
   { name: 'sugestoes-admin', path: '/admin/sugestoes', auth: 'admin', shell: false },
   { name: 'links-admin', path: '/admin/links', auth: 'streamer', shell: false },
+  { name: 'jogos-admin', path: '/admin/jogos', auth: 'admin', shell: false },
   // 2026-11-01: Assistidos, season releases
   { name: 'assistidos', path: '/assistidos' },
   { name: 'assistidos-series', path: '/assistidos?tipo=series' },

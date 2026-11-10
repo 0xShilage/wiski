@@ -23,7 +23,7 @@ test('home: "Nosso progresso" with totals and the per-kind split', async ({ page
     await expect(tile).toBeVisible();
     await expect(
       tile.getByRole('list', { name: `${label} por tipo` }).getByRole('listitem'),
-    ).toHaveCount(3);
+    ).toHaveCount(4); // Filmes, Séries, Franquias, Animes (2026-11-09)
   }
   // the dev seed has watched titles and paid movies waiting
   await expect(
@@ -243,7 +243,7 @@ test('links editor: the streamer adds, moves and hides a link', async ({ browser
   await ctx.close();
 });
 
-test('phone: the bar has five tabs + "Mais", which opens Fila, Assistidos, Avaliações, Sugestões, Roleta and Links', async ({
+test('phone: the bar has five tabs + "Mais", which opens Animes, Jogos, Fila, Assistidos, Avaliações, Sugestões, Roleta and Links', async ({
   page,
 }, info) => {
   test.skip(!info.project.name.startsWith('mobile'), 'touch only');
@@ -261,6 +261,8 @@ test('phone: the bar has five tabs + "Mais", which opens Fila, Assistidos, Avali
   const menu = page.getByRole('list', { name: 'Mais páginas' });
   await expect(menu).toBeVisible();
   await expect(menu.getByRole('link')).toHaveText([
+    'Animes',
+    'Jogos',
     'Fila',
     'Assistidos',
     'Avaliações',

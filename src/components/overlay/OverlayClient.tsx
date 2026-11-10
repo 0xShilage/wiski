@@ -27,7 +27,7 @@ type Ev =
       titles: number;
       funded: number;
       kinds: {
-        kind: 'MOVIE' | 'SERIES' | 'FRANCHISE';
+        kind: 'MOVIE' | 'SERIES' | 'FRANCHISE' | 'ANIME';
         titles: number;
         funded: number;
         percent: number;
@@ -95,11 +95,17 @@ const LABEL = {
   patrocinio: 'Novo patrocínio!',
   subathon: 'Subathon',
 } as const;
-const KIND_LABEL = { MOVIE: 'Filmes', SERIES: 'Séries', FRANCHISE: 'Franquias' } as const;
+const KIND_LABEL = {
+  MOVIE: 'Filmes',
+  SERIES: 'Séries',
+  FRANCHISE: 'Franquias',
+  ANIME: 'Animes',
+} as const;
 const KIND_ICON: Record<keyof typeof KIND_LABEL, GoalIcon> = {
   MOVIE: 'film',
   SERIES: 'tv',
   FRANCHISE: 'stack',
+  ANIME: 'tv',
 };
 const METRIC_ICON: Record<string, GoalIcon> = {
   SPONSORSHIP_COUNT: 'heart',

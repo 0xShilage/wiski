@@ -302,11 +302,25 @@ export const linkUpdateInput = z
   .strict();
 export const linkOrderInput = z.object({ ids: z.array(z.uuid()).max(30) }).strict();
 
+// ── Jogos (2026-11-09) ──
+const gameFields = {
+  title: oneLine(1, 120, 'Use de 1 a 120 caracteres.'),
+  platform: oneLine(1, 40, 'Use até 40 caracteres.').nullable().optional(),
+  year: z.int().min(1950).max(2100).nullable().optional(),
+  status: z.enum(['PLAYING', 'FINISHED', 'DROPPED']),
+  note: oneLine(1, 140, 'Use até 140 caracteres.').nullable().optional(),
+  vodUrl: z.string().max(600).nullable().optional(),
+  finishedOn: z.iso.date().nullable().optional(),
+  coverId: z.uuid().nullable().optional(),
+};
+export const gameInput = z.object(gameFields).strict();
+export const gameUpdateInput = z.object({ ...gameFields, expectedVersion: version }).strict();
+
 // ── Phase 6: suggestions ──
 const suggestionStatus = z.enum(['NEW', 'ACCEPTED', 'DISMISSED']);
 export const suggestionInput = z
   .object({
-    kind: z.enum(['MOVIE', 'SERIES', 'FRANCHISE']),
+    kind: z.enum(['MOVIE', 'SERIES', 'FRANCHISE', 'ANIME']),
     title: z.string().max(600),
     year: z.int().min(1888).max(2100).nullable().optional(),
     note: z.string().max(1_400).nullable().optional(),

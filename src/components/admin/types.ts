@@ -1,4 +1,5 @@
 import { LIVE_LIMIT } from '@/lib/catalog/pricing';
+import { isEpisodic } from '@/lib/catalog/kinds';
 import { AGE_RATINGS, type AgeRatingCode } from '@/lib/catalog/age-rating';
 import type { ItemKindCode } from '@/lib/catalog/kinds';
 import type { AdminItem, AdminListItem } from '@/server/catalog/read';
@@ -131,7 +132,7 @@ export function fieldsFrom(form: Form, kind: Kind, draft: boolean): Record<strin
     const r = int(form.runtimeMinutes);
     if (r) out.runtimeMinutes = r;
   }
-  if (kind === 'SERIES') {
+  if (isEpisodic(kind)) {
     out.seasonsLabel = form.seasonsLabel || null;
     out.seasonCount = int(form.seasonCount);
     out.episodeCount = int(form.episodeCount);
@@ -171,4 +172,5 @@ export const KIND_UI: Record<Kind, { many: string; one: string; nova: string; ti
   MOVIE: { many: 'Filmes', one: 'filme', nova: 'Novo filme', tipo: 'filmes' },
   SERIES: { many: 'Séries', one: 'série', nova: 'Nova série', tipo: 'series' },
   FRANCHISE: { many: 'Franquias', one: 'franquia', nova: 'Nova franquia', tipo: 'franquias' },
+  ANIME: { many: 'Animes', one: 'anime', nova: 'Novo anime', tipo: 'animes' },
 };

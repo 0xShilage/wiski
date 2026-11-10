@@ -78,6 +78,7 @@ model User {
   reportsResolved    ReviewReport[]      @relation("ReportResolver")
   refundsRequested   Refund[]            @relation("RefundRequester")
   catalogItems       CatalogItem[]       @relation("ItemCreator")
+  games              Game[]              @relation("GameCreator")
   catalogRevisions   CatalogRevision[]   @relation("RevisionEditor")
   mediaUploads       MediaAsset[]        @relation("MediaUploader")
   campaignsOpened    Campaign[]          @relation("CampaignOpener")
@@ -201,6 +202,8 @@ enum ItemKind {
   MOVIE
   SERIES
   FRANCHISE
+  /// 2026-11-09: like a series (seasons, episodes, crowdfunded goal), on its own tab
+  ANIME
 }
 
 /// MOVIE:  DRAFT → ACTIVE → SPONSORED → WATCHED → ARCHIVED
@@ -336,6 +339,7 @@ model MediaAsset {
   logoOf          CatalogItem[]   @relation("ItemLogo")
   posterOfRelease SeasonRelease[] @relation("ReleasePoster")
   posterOfSegment LiveSegment[]   @relation("SegmentPoster")
+  coverOfGame     Game[]          @relation("GameCover")
 
   @@index([unusedSince])
 }
@@ -1184,4 +1188,37 @@ model RoletaSpin {
   @@index([status, createdAt])
   @@index([prize, createdAt])
   @@index([deliveredById])
+}
+
+// ═══════════════════════════ Jogos (2026-11-09) ═══════════════════════════════
+
+enum GameStatus {
+  PLAYING // "Jogando"
+  FINISHED // "Zerado"
+  DROPPED // "Dropado"
+}
+
+/// A game played on stream: a showcase on /jogos (no sponsorship). Added by hand in the dashboard.
+/// Text is sanitised plain text; the VOD link is a Twitch or YouTube https URL (CHECK).
+model Game {
+  id          String     @id @default(uuid(7)) @db.Uuid
+  title       String
+  platform    String?
+  year        Int?
+  status      GameStatus @default(PLAYING)
+  note        String?
+  vodUrl      String?
+  coverId     String?    @db.Uuid
+  /// "Zerado em" / "Dropado em": a calendar day, optional
+  finishedOn  DateTime?  @db.Date
+  version     Int        @default(0)
+  createdById String     @db.Uuid
+  createdAt   DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime   @updatedAt @db.Timestamptz(3)
+
+  cover     MediaAsset? @relation("GameCover", fields: [coverId], references: [id], onDelete: Restrict)
+  createdBy User        @relation("GameCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([status, updatedAt])
+  @@index([coverId])
 }

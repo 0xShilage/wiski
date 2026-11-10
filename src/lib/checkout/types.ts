@@ -31,7 +31,7 @@ export type OrderView = {
     code: string;
     kind: 'MOVIE' | 'CONTRIBUTION';
     status: OrderStatus;
-    item: { kind: 'MOVIE' | 'SERIES' | 'FRANCHISE'; slug: string; title: string };
+    item: { kind: 'MOVIE' | 'SERIES' | 'FRANCHISE' | 'ANIME'; slug: string; title: string };
     breakdown: BreakdownLine[];
     totalCents: number;
     createdAt: string;

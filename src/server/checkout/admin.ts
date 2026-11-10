@@ -322,7 +322,7 @@ export async function acceptOrder(ctx: Ctx, id: string, expectedVersion: number,
  */
 export type ManualCandidate = {
   itemId: string;
-  kind: 'MOVIE' | 'SERIES' | 'FRANCHISE';
+  kind: 'MOVIE' | 'SERIES' | 'FRANCHISE' | 'ANIME';
   title: string;
   slot: number | null;
   /** movie: its price (manual or by runtime); campaign: what is left to raise */
@@ -389,7 +389,7 @@ export async function manualCandidates(now = new Date()): Promise<ManualCandidat
       },
     }),
   ]);
-  const order = { MOVIE: 0, SERIES: 1, FRANCHISE: 2 } as const;
+  const order = { MOVIE: 0, SERIES: 1, ANIME: 2, FRANCHISE: 3 } as const;
   return [
     ...movies.map((m) => ({
       itemId: m.id,

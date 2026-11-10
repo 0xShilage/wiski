@@ -25,7 +25,7 @@ export function CampaignGrid({
 }: {
   items: PublicItem[];
   featuredId: string | null;
-  kindPath: 'series' | 'franquias';
+  kindPath: 'series' | 'franquias' | 'animes';
   title: string;
   initialFilter: CatalogFilter;
 }) {
@@ -35,7 +35,11 @@ export function CampaignGrid({
   const pool = filtering ? items : items.filter((i) => i.id !== featuredId);
   const shown = filterCatalog(pool, filter);
   const noun: [string, string] =
-    kindPath === 'series' ? ['série', 'séries'] : ['franquia', 'franquias'];
+    kindPath === 'series'
+      ? ['série', 'séries']
+      : kindPath === 'animes'
+        ? ['anime', 'animes']
+        : ['franquia', 'franquias'];
   return (
     <section className="wf-campaign-grid" aria-label={`Campanhas de ${title.toLowerCase()}`}>
       <CatalogFilterBar
@@ -81,7 +85,8 @@ export function CampaignGrid({
         </ul>
       ) : filtering ? (
         <p className="wf-filters__empty">
-          Nenhuma {noun[0]} com esses filtros. Tente outro gênero ou limpe a busca.
+          {kindPath === 'animes' ? 'Nenhum' : 'Nenhuma'} {noun[0]} com esses filtros. Tente outro
+          gênero ou limpe a busca.
         </p>
       ) : null}
     </section>

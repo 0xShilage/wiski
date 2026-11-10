@@ -248,3 +248,9 @@ Fix (PR "fix-prefetch-burst"): no prefetch on the header tabs, the phone bar, th
 - `tests/integration/queue-tab.test.ts` (5): a sponsored movie leaves Filmes, keeps its page and frees its slot for a new movie on a full board; a funded series leaves Séries and is on /fila; back to ACTIVE takes the lowest free slot, or comes back as a draft with the board full; a draft can't be published onto a full board and a paid title can't keep a slot; /fila order (on screen, by date, Prioridade, by payment) and public sponsor names.
 - `db-constraints-r1.test.ts` and `catalog.test.ts` updated to the new rules (slot cleared on leaving ACTIVE, assigned on coming back; paid and watched titles don't count; Substituir on a watched title).
 - Integration 1150/1150.
+
+## Addendum — Animes and Jogos (2026-11-09)
+
+- `tests/integration/animes-games.test.ts` (4): a board of 20 animes (21st refused), season fields on an anime but not a movie, its own tab and title pages; a funded anime on /fila and booked by episodes; games added, ordered (Jogando, Zerado newest first, Dropado), edited (version checked), removed, audited; VOD links only https Twitch/YouTube (http, other hosts, credentials and script URLs refused; DB CHECK as backstop); the cover must be a poster; "Zerado em" refused on a game still being played.
+- Updated: nav lists (unit and e2e), the progress block and "Meta total" with ANIME, authz rows for the game routes, `/fila`, `/animes`, `/jogos`, `/admin/jogos` in the CSP/a11y page list.
+- Unit 380/380, integration 1170/1170.

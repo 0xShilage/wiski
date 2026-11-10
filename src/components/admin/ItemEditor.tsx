@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { isEpisodic } from '@/lib/catalog/kinds';
 import { HeroCarousel } from '@/components/catalog/HeroCarousel';
 import { IconClose } from '@/components/ui/icons';
 import { AGE_LABEL, AGE_RATINGS } from '@/lib/catalog/age-rating';
@@ -130,7 +131,7 @@ export function ItemEditor({
           return { label: 'Preço manual', cents: manualCents };
         return { label: 'Preço calculado', cents: moviePriceCents(runtime) };
       }
-      if (kind === 'SERIES')
+      if (isEpisodic(kind))
         return { label: 'Meta pela fórmula', cents: seriesGoalCents(Number(form.seasonCount)) };
       const films = form.films
         .filter((f) => f.title.trim())
@@ -543,7 +544,7 @@ export function ItemEditor({
           </p>
         ) : null}
 
-        {kind === 'SERIES' ? (
+        {isEpisodic(kind) ? (
           <>
             <label className="wf-field">
               Temporadas incluídas

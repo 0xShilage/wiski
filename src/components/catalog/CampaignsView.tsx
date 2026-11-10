@@ -21,7 +21,7 @@ export function CampaignsView({
 }: {
   title: string;
   lead: string;
-  kindPath: 'series' | 'franquias';
+  kindPath: 'series' | 'franquias' | 'animes';
   items: PublicItem[];
   initialFilter: CatalogFilter;
 }) {

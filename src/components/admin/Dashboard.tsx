@@ -10,7 +10,7 @@ import { SlotBoard } from './SlotBoard';
 import { type AdminItem, type AdminListItem, KIND_UI, type Kind, LIMIT, tileState } from './types';
 
 type Counts = Record<Kind, number>;
-const KINDS: Kind[] = ['MOVIE', 'SERIES', 'FRANCHISE'];
+const KINDS: Kind[] = ['MOVIE', 'SERIES', 'FRANCHISE', 'ANIME'];
 const ROLE_LABEL = { MODERATOR: 'Moderação', STREAMER: 'Streamer', USER: '' } as const;
 
 /**

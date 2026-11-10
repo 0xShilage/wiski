@@ -409,6 +409,13 @@ export const MATRIX: Row[] = [
   R('/api/v1/admin/contact/[id]', 'DELETE', 'moderator', { params: { id: NO_ID } }),
   R('/api/v1/admin/audit', 'GET', 'moderator'),
   R('/api/v1/admin/audit/export', 'GET', 'moderator'),
+  R('/api/v1/admin/games', 'GET', 'moderator'),
+  R('/api/v1/admin/games', 'POST', 'moderator', { body: { title: 'Matriz', status: 'PLAYING' } }),
+  R('/api/v1/admin/games/[id]', 'PATCH', 'moderator', {
+    params: { id: NO_ID },
+    body: { title: 'Matriz', status: 'PLAYING', expectedVersion: 0 },
+  }),
+  R('/api/v1/admin/games/[id]', 'DELETE', 'moderator', { params: { id: NO_ID } }),
   R('/api/v1/admin/alerts', 'GET', 'moderator'),
   R('/api/v1/admin/alerts', 'PUT', 'moderator', {
     body: { voice: true, voiceName: 'pt-BR-Neural2-A', chat: true },

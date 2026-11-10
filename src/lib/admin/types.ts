@@ -1,7 +1,7 @@
 /** Client-safe shapes of the Phase 4 dashboard data (dates as ISO strings). */
 import type { Picture } from '@/lib/media';
 
-export type Kind = 'MOVIE' | 'SERIES' | 'FRANCHISE';
+export type Kind = 'MOVIE' | 'SERIES' | 'FRANCHISE' | 'ANIME';
 
 export type AgendaEntry = {
   kind: 'ORDER' | 'CAMPAIGN' | 'SEGMENT';

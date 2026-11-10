@@ -12,7 +12,12 @@ export function uuidParam(value: unknown): string {
   return r.data;
 }
 
-const API_KIND = { movies: 'MOVIE', series: 'SERIES', franchises: 'FRANCHISE' } as const;
+const API_KIND = {
+  movies: 'MOVIE',
+  series: 'SERIES',
+  franchises: 'FRANCHISE',
+  animes: 'ANIME',
+} as const;
 
 export function apiKindParam(value: unknown): (typeof ITEM_KINDS)[number] {
   if (typeof value === 'string' && Object.hasOwn(API_KIND, value)) {

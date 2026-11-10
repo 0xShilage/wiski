@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { MediaPicture } from '@/components/media/MediaPicture';
-import { KIND_PATH } from '@/lib/catalog/kinds';
+import { KIND_ONE as KIND_PT, KIND_PATH } from '@/lib/catalog/kinds';
 import { publicQueue } from '@/server/live/public';
 
 export const metadata: Metadata = {
@@ -9,7 +9,6 @@ export const metadata: Metadata = {
   description: 'Os filmes, séries e franquias já pagos esperando a vez na live do Wiski.',
 };
 
-const KIND_PT = { MOVIE: 'Filme', SERIES: 'Série', FRANCHISE: 'Franquia' } as const;
 const when = new Intl.DateTimeFormat('pt-BR', {
   weekday: 'short',
   day: '2-digit',

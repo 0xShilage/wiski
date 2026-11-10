@@ -39,7 +39,7 @@ export type AnalyticsView = {
   refunds: { count: number; cents: number };
   topTitles: {
     title: string;
-    kind: 'MOVIE' | 'SERIES' | 'FRANCHISE';
+    kind: 'MOVIE' | 'SERIES' | 'FRANCHISE' | 'ANIME';
     cents: number;
     orders: number;
   }[];

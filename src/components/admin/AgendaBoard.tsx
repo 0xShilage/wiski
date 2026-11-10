@@ -1,5 +1,6 @@
 'use client';
 import { useId, useState } from 'react';
+import { isEpisodic } from '@/lib/catalog/kinds';
 import { MediaPicture } from '@/components/media/MediaPicture';
 import type { Picture } from '@/lib/media';
 import { adminFetch } from '@/lib/passkey-client';
@@ -61,7 +62,7 @@ type EventForm = {
 function nextPart(e: AgendaEntry, sessionId: string): PartForm {
   const plan = e.plan;
   const parts = e.parts ?? [];
-  const isSeries = e.item?.kind === 'SERIES';
+  const isSeries = isEpisodic(e.item?.kind);
   let season = 1;
   let from = 1;
   let film = plan?.films[0]?.position ?? 1;
@@ -92,7 +93,7 @@ function nextPart(e: AgendaEntry, sessionId: string): PartForm {
 function guessMinutes(e: AgendaEntry, p: { from: number; to: number; film: number }): number {
   const plan = e.plan;
   if (!plan) return 60;
-  if (e.item?.kind === 'SERIES') {
+  if (isEpisodic(e.item?.kind)) {
     const n = Math.max(1, p.to - p.from + 1);
     return Math.min(1440, n * minutesPerEpisode(plan));
   }
@@ -215,7 +216,7 @@ export function AgendaBoard({ initial }: { initial: Data; role: 'MODERATOR' | 'S
     const parts = e.parts ?? [];
     const done = parts.filter((p) => p.status === 'DONE');
     const booked = parts.filter((p) => p.status !== 'DONE');
-    const series = e.item?.kind === 'SERIES';
+    const series = isEpisodic(e.item?.kind);
     const noun = series ? 'episódios' : 'filme';
     const noFilms = !series && !e.plan?.films.length;
     return (
@@ -223,7 +224,8 @@ export function AgendaBoard({ initial }: { initial: Data; role: 'MODERATOR' | 'S
         <div className="wf-ops-row__main">
           <span className="wf-ops-row__title">{titleOf(e)}</span>
           <span className="wf-muted text-xs">
-            {series ? 'Série' : 'Franquia'} · meta atingida · fica na fila até o fim
+            {series ? (e.item?.kind === 'ANIME' ? 'Anime' : 'Série') : 'Franquia'} · meta atingida ·
+            fica na fila até o fim
           </span>
           {done.length ? (
             <span className="text-xs">Já foi: {done.map((p) => p.label).join(', ')}</span>
@@ -252,7 +254,7 @@ export function AgendaBoard({ initial }: { initial: Data; role: 'MODERATOR' | 'S
   }
 
   function partForm(e: AgendaEntry, f: PartForm) {
-    const series = e.item?.kind === 'SERIES';
+    const series = isEpisodic(e.item?.kind);
     const films = e.plan?.films ?? [];
     const set = (patch: Partial<PartForm>) => {
       const next = { ...f, ...patch };
@@ -500,7 +502,8 @@ export function AgendaBoard({ initial }: { initial: Data; role: 'MODERATOR' | 'S
     const playing = e.status === 'PLAYING';
     const done = e.status === 'DONE';
     const isPart = g.kind === 'PART';
-    const series = e.item?.kind === 'SERIES';
+    const series = isEpisodic(e.item?.kind);
+    const anime = e.item?.kind === 'ANIME';
     return (
       <li key={`${e.kind}:${e.id}`} className={playing ? 'wf-ops-row is-now' : 'wf-ops-row'}>
         {orderButtons(e, s, i)}
@@ -566,12 +569,20 @@ export function AgendaBoard({ initial }: { initial: Data; role: 'MODERATOR' | 'S
                     if (
                       window.confirm(
                         `Era a última parte de “${e.item?.title ?? ''}”? ${
-                          series ? 'A série' : 'A franquia'
-                        } fica como assistida, sai da fila e as avaliações abrem.`,
+                          series
+                            ? anime
+                              ? 'O anime fica como assistido'
+                              : 'A série fica como assistida'
+                            : 'A franquia fica como assistida'
+                        }, sai da fila e as avaliações abrem.`,
                       )
                     ) {
                       void run(
-                        series ? 'Série concluída' : 'Franquia concluída',
+                        series
+                          ? anime
+                            ? 'Anime concluído'
+                            : 'Série concluída'
+                          : 'Franquia concluída',
                         SCHEDULE,
                         'POST',
                         {
@@ -583,7 +594,11 @@ export function AgendaBoard({ initial }: { initial: Data; role: 'MODERATOR' | 'S
                     }
                   }}
                 >
-                  {series ? 'Concluído · fim da série' : 'Concluído · fim da franquia'}
+                  {series
+                    ? anime
+                      ? 'Concluído · fim do anime'
+                      : 'Concluído · fim da série'
+                    : 'Concluído · fim da franquia'}
                 </button>
               ) : null}
               {e.status === 'SCHEDULED' ? (

@@ -263,3 +263,9 @@ Fix (PR "fix-prefetch-burst"): no prefetch on the header tabs, the phone bar, th
 
 - e2e `community.spec.ts` "desktop: Mais opens a full-height drawer…": both lists and their order, fully opaque after the fade, flush with the right edge and as tall as the window, the ✕ where the button is, closed by Esc, ✕ and a click on the veil, a link navigates and closes it, the button then says "você está em Jogos" and the drawer marks it. Screenshot `test-results/drawer/mais-1280.png`.
 - `viewports.spec.ts` (header on one line at 761–1280 px) and `headers.spec.ts` unchanged and green; unit 380 passed.
+
+## Addendum — design batch (2026-11-10)
+
+- Integration `design-batch.test.ts` (3+1): `/api/v1/live` off / on / on with the title on screen; ticket seat = place in the Fila, public names (user, guest, anonymous), none before payment, watched → no seat, the ticket in the owner's order data with exactly `name, poster, seat, watched`. Authz matrix: `GET /api/v1/live` public.
+- e2e `design-batch.spec.ts` (both projects): the "AO VIVO" bar on two pages with the title and the Twitch link, header pushed below it, dot on the logo, gone after the live ends (visibility check); neon flicker on a first visit and the cookie, none after a reload; 404 status, copy and links; a paid order's ticket (name, seat, code), the 16-piece burst, and on desktop the downloaded 1080×1920 PNG. `reviews.spec.ts`: the 7-piece burst on a like.
+- Screenshots: `test-results/design-batch/`.

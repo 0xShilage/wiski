@@ -162,6 +162,9 @@ test('a signed-in viewer likes and reports a review', async ({ page, context }) 
   await like.click();
   await expect(like).toHaveAttribute('aria-pressed', 'true');
   await expect(like).toContainText('1');
+  // a small popcorn burst from the button (2026-11-10), decorative only
+  await expect(like.locator('.wf-pop--sm .wf-pop__p')).toHaveCount(7);
+  await expect(like).toHaveAccessibleName(/Remover curtida/);
   await page.reload();
   await expect(
     page

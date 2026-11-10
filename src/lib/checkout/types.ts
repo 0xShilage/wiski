@@ -1,3 +1,5 @@
+import type { Picture } from '@/lib/media';
+
 /** Client-safe checkout types (shared by server props and the client forms). */
 export type CheckoutProps = {
   open: boolean;
@@ -26,6 +28,15 @@ export type OrderStatus =
   | 'REFUND_PENDING'
   | 'REFUNDED';
 
+/** Cinema ticket on a paid order (2026-11-10). `seat` = place in the Fila tab (1 = next). */
+export type OrderTicket = {
+  poster: Picture | null;
+  /** the public name (@username or the guest name); null = anonymous */
+  name: string | null;
+  seat: number | null;
+  watched: boolean;
+};
+
 export type OrderView = {
   order: {
     code: string;
@@ -47,6 +58,8 @@ export type OrderView = {
     guest: boolean;
     session: { startsAt: string; status: 'PLANNED' | 'LIVE' | 'DONE' | 'CANCELLED' } | null;
     rescheduleLeft: number;
+    /** the cinema ticket (2026-11-10): paid orders that still count, else null */
+    ticket: OrderTicket | null;
   };
   canReschedule: boolean;
   canClaim: boolean;

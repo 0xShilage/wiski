@@ -1,8 +1,11 @@
 'use client';
 
 import './globals.css';
+import Link from 'next/link';
+import { Oops } from '@/components/brand/Oops';
+import { fontVariables } from './fonts';
 
-/** Last-resort boundary (replaces the root layout). */
+/** Last-resort boundary (replaces the root layout). 2026-11-10: the squirrel, lying down. */
 export default function GlobalError({
   reset,
 }: {
@@ -10,18 +13,26 @@ export default function GlobalError({
   reset: () => void;
 }) {
   return (
-    <html lang="pt-BR">
-      <body className="grid min-h-dvh place-items-center bg-bg p-6 text-center font-sans text-fg">
-        <main className="space-y-4">
-          <h1 className="text-2xl font-semibold">Algo deu errado</h1>
-          <p>Tente de novo em instantes.</p>
-          <button
-            type="button"
-            className="rounded-pill bg-accent px-5 py-2.5 font-semibold text-accent-fg"
-            onClick={reset}
+    <html lang="pt-BR" className={fontVariables}>
+      <body className="min-h-dvh bg-bg font-sans text-fg">
+        <main className="wf-page">
+          <Oops
+            code="500"
+            pose={3}
+            title="O esquilo precisa de um minuto"
+            actions={
+              <>
+                <button type="button" className="wf-btn wf-btn--neon" onClick={reset}>
+                  Tentar de novo
+                </button>
+                <Link href="/" className="wf-btn wf-btn--ghost">
+                  Voltar para o início
+                </Link>
+              </>
+            }
           >
-            Tentar de novo
-          </button>
+            Algo deu errado do nosso lado. Tente de novo em instantes.
+          </Oops>
         </main>
       </body>
     </html>

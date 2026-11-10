@@ -1,8 +1,9 @@
 'use client';
 
-import { button, container, heading } from '@/components/ui/styles';
+import Link from 'next/link';
+import { Oops } from '@/components/brand/Oops';
 
-/** Error boundary (500). Never shows error details to the visitor. */
+/** Error boundary (500). Never shows error details to the visitor. 2026-11-10: the squirrel. */
 export default function ErrorPage({
   reset,
 }: {
@@ -10,16 +11,25 @@ export default function ErrorPage({
   reset: () => void;
 }) {
   return (
-    <main id="conteudo" className={`${container} grid flex-1 place-items-center py-16 text-center`}>
-      <div className="space-y-6">
-        <h1 className={heading.h1}>Algo deu errado</h1>
-        <p className="text-fg/90">
-          Tivemos um problema ao carregar esta página. Tente de novo em instantes.
-        </p>
-        <button type="button" className={button.primary} onClick={reset}>
-          Tentar de novo
-        </button>
-      </div>
+    <main id="conteudo" className="wf-page flex-1">
+      <Oops
+        code="500"
+        pose={2}
+        title="O esquilo tropeçou no cabo da live"
+        actions={
+          <>
+            <button type="button" className="wf-btn wf-btn--neon" onClick={reset}>
+              Tentar de novo
+            </button>
+            <Link href="/" className="wf-btn wf-btn--ghost">
+              Voltar para o início
+            </Link>
+          </>
+        }
+      >
+        Tivemos um problema ao carregar esta página. Tente de novo em instantes — se continuar,
+        avise a gente pela página de Contato.
+      </Oops>
     </main>
   );
 }

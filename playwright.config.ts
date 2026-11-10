@@ -28,6 +28,24 @@ export default defineConfig({
   use: {
     baseURL,
     ignoreHTTPSErrors: true,
+    // The neon logo flickers on a browser's first visit (2026-11-10); every test starts as a
+    // returning visitor so screenshots and layout checks see the logo lit. design-batch.spec.ts
+    // clears it to test the flicker.
+    storageState: {
+      cookies: [
+        {
+          name: '__Host-wf_neon',
+          value: '1',
+          domain: 'localhost',
+          path: '/',
+          expires: -1,
+          httpOnly: false,
+          secure: true,
+          sameSite: 'Lax',
+        },
+      ],
+      origins: [],
+    },
     trace: 'retain-on-failure',
     locale: 'pt-BR',
     timezoneId: 'America/Sao_Paulo',

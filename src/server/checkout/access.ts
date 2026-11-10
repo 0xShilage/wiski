@@ -12,6 +12,7 @@ import { safeEqual, sha256Bytes } from '../security/crypto';
 import { CSRF_HEADER } from '../security/csrf';
 import { PUBLIC_CODE } from './buyer';
 import { releaseHolds } from './holds';
+import { ticketOf } from './ticket';
 import {
   isValidOrderCsrf,
   orderCsrfToken,
@@ -110,6 +111,7 @@ export async function orderView(
         ? { startsAt: session.startsAt.toISOString(), status: session.status }
         : null,
       rescheduleLeft: order.kind === 'MOVIE' ? Math.max(0, 2 - (order.rescheduleCount ?? 0)) : 0,
+      ticket: await ticketOf(order),
     },
     canReschedule: viewer.kind === 'owner' && order.status === 'SCHEDULED',
     canClaim: Boolean(user) && order.userId === null && viewer.kind === 'cookie',

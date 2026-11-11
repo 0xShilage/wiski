@@ -1,0 +1,232 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Admin › Chat da live (2026-11-11): write to the Twitch chat as the StreamElements bot.
+   ───────────────────────────────────────────────────────────────────────────── */
+@layer components {
+  .wf-chat-status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 14px;
+  }
+  .wf-chat-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid rgb(169 157 224 / 0.35);
+    background: rgb(46 33 65 / 0.7);
+    color: var(--color-lilac);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+  .wf-chat-pill.is-ok {
+    border-color: rgb(127 214 164 / 0.55);
+    color: var(--color-success);
+  }
+  .wf-chat-pill.is-off {
+    border-color: rgb(255 143 154 / 0.55);
+    color: var(--color-danger);
+  }
+  .wf-chat-pill.is-live {
+    border-color: var(--color-danger);
+    color: #fff;
+    background: rgb(214 32 42 / 0.35);
+  }
+  .wf-chat-pill.is-live::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--color-danger);
+    box-shadow: 0 0 8px var(--color-danger);
+  }
+
+  .wf-chat-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+    margin-top: 14px;
+  }
+  .wf-chat-col {
+    display: grid;
+    gap: 20px;
+    min-width: 0;
+  }
+  @media (max-width: 1000px) {
+    .wf-chat-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .wf-chat-count {
+    font-variant-numeric: tabular-nums;
+    color: var(--fg-70);
+  }
+  .wf-chat-count.is-near {
+    color: var(--color-warning);
+  }
+  .wf-chat-count.is-over {
+    color: var(--color-danger);
+    font-weight: 700;
+  }
+
+  .wf-chat-insert {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .wf-chat-chip {
+    display: inline-grid;
+    justify-items: start;
+    gap: 1px;
+    min-height: 40px;
+    padding: 5px 10px;
+    border-radius: 10px;
+    border: 1px dashed rgb(169 157 224 / 0.55);
+    background: rgb(46 33 65 / 0.6);
+    color: var(--color-lavender);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    max-width: 100%;
+  }
+  .wf-chat-chip small {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--fg-70);
+    font-size: 11px;
+    font-weight: 400;
+  }
+  .wf-chat-chip:hover {
+    border-style: solid;
+    background: rgb(79 61 114 / 0.6);
+  }
+  .wf-chat-help {
+    margin: 0;
+    font-size: 12px;
+    color: var(--fg-70);
+  }
+  .wf-chat-warn {
+    margin: 0;
+    font-size: 13px;
+    color: var(--color-warning);
+  }
+
+  /* the line as Twitch will show it */
+  .wf-chat-preview {
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #0e0e10;
+    border: 1px solid rgb(255 255 255 / 0.08);
+    color: #efeff1;
+    font-size: 14px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+  .wf-chat-preview__who {
+    font-weight: 700;
+    color: #8f8ffa;
+  }
+  .wf-chat-preview__badge {
+    display: inline-grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    margin-right: 4px;
+    border-radius: 3px;
+    background: #00ad03;
+    color: #fff;
+    font-size: 10px;
+    vertical-align: -2px;
+  }
+  .wf-chat-preview__empty {
+    color: #adadb8;
+    font-style: italic;
+  }
+  .wf-chat-token {
+    padding: 0 3px;
+    border-radius: 4px;
+    background: rgb(169 157 224 / 0.22);
+    color: inherit;
+  }
+  .wf-chat-token--missing {
+    background: rgb(242 196 109 / 0.22);
+    color: var(--color-warning);
+  }
+
+  .wf-chat-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .wf-chat-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .wf-chat-edit {
+    display: grid;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid rgb(169 157 224 / 0.35);
+    background: rgb(27 18 37 / 0.6);
+  }
+  .wf-chat-preset__text {
+    font-size: 13px;
+    color: var(--fg-78);
+    overflow-wrap: anywhere;
+  }
+  .wf-chat-preset__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .wf-chat-del {
+    color: var(--color-danger);
+  }
+
+  .wf-chat-log {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  .wf-chat-log__row {
+    display: grid;
+    gap: 6px;
+    justify-items: start;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgb(46 33 65 / 0.7);
+  }
+  .wf-chat-log__row.is-failed {
+    outline: 1px solid rgb(255 143 154 / 0.45);
+  }
+  .wf-chat-log__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    font-size: 12px;
+    color: var(--fg-70);
+  }
+  .wf-chat-log__text {
+    margin: 0;
+    color: #f7f2fb;
+    overflow-wrap: anywhere;
+  }
+}

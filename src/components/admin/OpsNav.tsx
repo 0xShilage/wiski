@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 export type OpsSection =
   | 'agenda'
+  | 'chat'
   | 'pedidos'
   | 'moderacao'
   | 'pessoas'
@@ -31,6 +32,7 @@ export type OpsCounts = {
 
 const OPS: { id: OpsSection; label: string; badge?: (c: OpsCounts) => number }[] = [
   { id: 'agenda', label: 'Agenda da live' },
+  { id: 'chat', label: 'Chat da live' },
   { id: 'pedidos', label: 'Pedidos', badge: (c) => c.attention },
   { id: 'moderacao', label: 'Moderação', badge: (c) => c.waiting },
   { id: 'pessoas', label: 'Pessoas' },

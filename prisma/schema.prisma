@@ -332,6 +332,9 @@ model MediaAsset {
   width        Int
   height       Int
   variants     Json // [{ w, h, format: 'avif' | 'webp', path, bytes }]
+  /// POSTER (2026-11-11): the accent colour for the title page's ambient glow, #rrggbb (CHECK);
+  /// null until worked out (older assets are filled in the first time their page is opened)
+  accent       String?
   uploadedById String    @db.Uuid
   createdAt    DateTime  @default(now()) @db.Timestamptz(3)
   unusedSince  DateTime? @db.Timestamptz(3) // GC after 30 days

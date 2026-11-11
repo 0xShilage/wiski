@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { FlapBoard } from '@/components/live/FlapBoard';
 import { nextLive, SoonTeaser } from '@/components/live/SoonTeaser';
 import { MediaPicture } from '@/components/media/MediaPicture';
 import { KIND_PATH } from '@/lib/catalog/kinds';
+import { departures } from '@/lib/live/flapboard';
 import { cronogramaAt } from '@/server/live/public';
 import { publicReleases } from '@/server/releases/releases';
 
@@ -43,11 +45,12 @@ const timeFmt = new Intl.DateTimeFormat('pt-BR', {
  * included (2026-11-04). Titles paid for but not yet given a date are not listed.
  * Each title shows its poster (2026-11-01); "Próximas temporadas" sits beside the lives on wide
  * screens and below them on phones. "Em breve" (2026-11-11) opens the page with the next live's
- * titles and a countdown to it.
+ * titles and a countdown to it; below it, the split-flap "Painel de sessões" (2026-11-11).
  */
 export default async function CronogramaPage() {
   const [{ now, days }, releases] = await Promise.all([cronogramaAt(), publicReleases()]);
   const next = nextLive(days);
+  const board = departures(days.flatMap((d) => d.sessions));
   return (
     <div className="wf-page wf-cron">
       <h1 className="wf-h1">Cronograma</h1>
@@ -56,6 +59,14 @@ export default async function CronogramaPage() {
         ainda não aparece? Ele entra aqui assim que a moderação escolher a sessão.
       </p>
       {next ? <SoonTeaser session={next} now={now} /> : null}
+      {board.length ? (
+        <section className="wf-flap-wrap" aria-labelledby="painel-sessoes">
+          <h2 id="painel-sessoes" className="wf-flap-wrap__title">
+            Painel de sessões
+          </h2>
+          <FlapBoard rows={board} />
+        </section>
+      ) : null}
       <div className="wf-cron__layout">
         <div className="wf-cron__main">
           {days.length === 0 ? (

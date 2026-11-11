@@ -267,48 +267,6 @@
     margin-top: 0;
   }
 
-  /* Perfil → Meus pedidos */
-  .wf-myorders {
-    list-style: none;
-    margin: 12px 0 0;
-    padding: 0;
-    display: grid;
-    gap: 8px;
-  }
-  .wf-myorders li {
-    display: flex;
-    justify-content: space-between;
-    gap: 16px;
-    align-items: center;
-    padding: 12px 14px;
-    border-radius: 10px;
-    background: rgb(46 33 65 / 0.6);
-  }
-  .wf-myorders__main {
-    display: grid;
-    gap: 2px;
-    min-width: 0;
-    text-decoration: none;
-    color: inherit;
-  }
-  .wf-myorders__main:hover .wf-myorders__title {
-    text-decoration: underline;
-  }
-  .wf-myorders__title {
-    font-weight: 600;
-    color: #f7f2fb;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .wf-myorders__side {
-    display: grid;
-    justify-items: end;
-    gap: 2px;
-    flex: none;
-    font-variant-numeric: tabular-nums;
-  }
-
   @media (max-width: 900px) {
     .wf-order-grid {
       grid-template-columns: 1fr;

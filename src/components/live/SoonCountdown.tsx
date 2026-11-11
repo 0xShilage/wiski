@@ -32,7 +32,14 @@ export function SoonCountdown({ target, serverNow }: { target: string; serverNow
     <div className="wf-countdown" role="timer" aria-label={countdownSentence(p)}>
       {UNITS.map(([key, label]) => (
         <span key={key} className="wf-countdown__unit" aria-hidden="true">
-          <span className="wf-countdown__n">{key === 'days' ? p.days : pad2(p[key])}</span>
+          <span className="wf-countdown__n">
+            {/* split-flap digits (2026-11-11): a digit is remounted when it changes, so it flips */}
+            {[...String(key === 'days' ? p.days : pad2(p[key]))].map((d, i) => (
+              <span key={`${i}:${d}`} className="wf-countdown__d">
+                {d}
+              </span>
+            ))}
+          </span>
           <span className="wf-countdown__l">{label}</span>
         </span>
       ))}

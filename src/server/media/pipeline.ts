@@ -16,6 +16,7 @@ import { PG, pgErrorCode } from '../db-errors';
 import { mediaDir } from '../env';
 import { HttpError, Problems } from '../http/problem';
 import { logger } from '../log';
+import { accentOf } from './accent';
 import { type ImageFormat, SNIFF_BYTES, sniffImage } from './sniff';
 
 /**
@@ -172,6 +173,8 @@ type Processed = {
   width: number;
   height: number;
   outputs: { w: number; h: number; format: 'avif' | 'webp'; data: Buffer }[];
+  /** POSTER: ambient glow colour (2026-11-11), from the smallest re-encoded WebP */
+  accent: string | null;
 };
 
 async function processImage(file: string, role: MediaRole): Promise<Processed> {
@@ -214,7 +217,9 @@ async function processImage(file: string, role: MediaRole): Promise<Processed> {
         .toBuffer({ resolveWithObject: true });
       outputs.push({ ...size, h: webp.info.height, format: 'webp', data: webp.data });
     }
-    return { sha256: sha, width: largest.w, height: outputs.at(-1)!.h, outputs };
+    const smallestWebp = outputs.find((o) => o.format === 'webp')!;
+    const accent = role === 'POSTER' ? await accentOf(smallestWebp.data) : null;
+    return { sha256: sha, width: largest.w, height: outputs.at(-1)!.h, outputs, accent };
   } catch (err) {
     if (err instanceof HttpError) throw err;
     logger.warn(
@@ -270,6 +275,7 @@ export async function ingestFile(
           width: processed.width,
           height: processed.height,
           variants,
+          accent: processed.accent,
           uploadedById,
         },
       });

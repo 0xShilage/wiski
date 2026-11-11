@@ -5,6 +5,7 @@ import type { PublicItem, PublicState } from '@/lib/catalog/types';
 import { LIVE_STATUSES, PUBLIC_STATUSES, QUEUE_STATUSES } from '@/lib/catalog/kinds';
 import { moviePriceCents, movieListPriceCents } from '@/lib/catalog/pricing';
 import { pictureFrom } from '@/lib/media';
+import { ensureAccent } from '../media/accent';
 import { matchesSearch, searchTerms } from '@/lib/search';
 import { db } from '../db';
 import { campaignState, formulaGoal } from './campaigns';
@@ -16,6 +17,10 @@ export type { PublicCampaign, PublicItem, PublicState } from '@/lib/catalog/type
  *  users, order data, or anything the visitor shouldn't see. */
 
 const mediaSelect = { select: { width: true, height: true, variants: true } } as const;
+/** the detail page also needs the poster's accent (and its id, to fill it in once) */
+const posterSelect = {
+  select: { id: true, accent: true, width: true, height: true, variants: true },
+} as const;
 const SPONSOR_ORDER_STATUSES = ['PAID', 'SCHEDULED', 'WATCHING', 'COMPLETED'] as const;
 
 const publicInclude = {
@@ -89,6 +94,7 @@ function toPublic(row: PublicRow, now: Date): PublicItem {
     trailerYoutubeId: row.trailerYoutubeId,
     posterTitle: row.posterTitle,
     poster: pictureFrom(row.poster),
+    accent: null,
     backdrop: pictureFrom(row.backdrop),
     logo: pictureFrom(row.logo),
     state,
@@ -130,9 +136,12 @@ export async function getPublic(kind: ItemKind, slug: string, now = new Date()) 
         { status: 'ARCHIVED', watchedAt: { not: null } },
       ],
     },
-    include: publicInclude,
+    include: { ...publicInclude, poster: posterSelect },
   });
-  return row ? toPublic(row, now) : null;
+  if (!row) return null;
+  // the ambient glow (2026-11-11): older posters get their colour the first time it's needed
+  const accent = row.poster ? await ensureAccent(row.poster) : null;
+  return { ...toPublic(row, now), accent };
 }
 
 /** Watched titles for Avaliações (newest first). */

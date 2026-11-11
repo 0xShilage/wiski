@@ -6,13 +6,12 @@ import { AchievementBadges } from '@/components/community/AchievementBadges';
 import { AchievementsToggle } from '@/components/community/AchievementsToggle';
 import { LogoutButton } from '@/components/account/LogoutButton';
 import { MemberCard } from '@/components/account/MemberCard';
+import { TicketStubs } from '@/components/account/TicketStubs';
 import { ProfileForm } from '@/components/account/ProfileForm';
 import { Mascote } from '@/components/brand/Mascote';
 import { button, card, heading } from '@/components/ui/styles';
 import { resolveAvatarKey } from '@/lib/avatars';
 import { formatDate } from '@/lib/format';
-import { formatBRL } from '@/lib/catalog/pricing';
-import { ORDER_STATUS_LABEL } from '@/lib/checkout/types';
 import { nextUsernameChange } from '@/server/auth/accounts';
 import { myOrders } from '@/server/checkout/access';
 import { achievementsFor } from '@/server/community/achievements';
@@ -180,23 +179,7 @@ export default async function PerfilPage({ searchParams }: Props) {
             Comprou sem login? Abra o link do pedido e toque em “Vincular à minha conta”.
           </p>
         ) : (
-          <ul className="wf-myorders">
-            {orders.map((o) => (
-              <li key={o.code}>
-                <Link href={`/pedido/${o.code}`} className="wf-myorders__main">
-                  <span className="wf-myorders__title">{o.item.title}</span>
-                  <span className="wf-co__muted text-sm">
-                    {o.kind === 'MOVIE' ? 'Patrocínio' : 'Contribuição'} · {o.code} ·{' '}
-                    {formatDate(new Date(o.createdAt))}
-                  </span>
-                </Link>
-                <span className="wf-myorders__side">
-                  <b>{formatBRL(o.totalCents)}</b>
-                  <span className="text-sm">{ORDER_STATUS_LABEL[o.status]}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
+          <TicketStubs orders={orders} />
         )}
       </section>
 

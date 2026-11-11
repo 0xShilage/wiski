@@ -344,6 +344,7 @@ export function ItemEditor({
     trailerYoutubeId: ytId,
     posterTitle: kind !== 'MOVIE' || form.posterTitle,
     poster: pics.poster,
+    accent: null,
     backdrop: pics.backdrop,
     logo: pics.logo,
     state: 'ACTIVE',

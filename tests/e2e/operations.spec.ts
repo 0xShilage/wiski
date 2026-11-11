@@ -311,6 +311,30 @@ test('agenda: ↑/↓ reorder a session and "Limpar encerradas e canceladas" hid
   await ctx.close();
 });
 
+test('agenda: the Fila can be sorted A→Z and Z→A by title', async ({ browser }) => {
+  const mod = await seedUser({ role: 'MODERATOR', passkeyVerified: true });
+  const ctx = await browser.newContext();
+  await signIn(ctx, mod.token);
+  const admin = await ctx.newPage();
+  await admin.goto('/admin/agenda');
+
+  const fila = admin.getByRole('region', { name: /Fila/ });
+  const titles = fila.locator('.wf-ops-row__title');
+  test.skip((await titles.count()) < 2, 'the dev seed queue needs two entries to test ordering');
+  const cmp = (a: string, b: string) =>
+    a.localeCompare(b, 'pt-BR', { sensitivity: 'base', numeric: true });
+
+  await fila.getByLabel('Ordenar').selectOption('az');
+  const az = await titles.allTextContents();
+  expect(az).toEqual([...az].sort(cmp));
+
+  await fila.getByLabel('Ordenar').selectOption('za');
+  const za = await titles.allTextContents();
+  expect(za).toEqual([...za].sort((a, b) => cmp(b, a)));
+
+  await ctx.close();
+});
+
 test('pedidos: the streamer registers a movie as "Já pago" (it enters the queue) and undoes it', async ({
   browser,
 }) => {

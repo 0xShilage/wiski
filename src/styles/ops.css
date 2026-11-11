@@ -89,6 +89,22 @@
     gap: 8px;
     align-items: center;
   }
+  /* "Ordenar" on the Fila (2026-11-10): a label beside the select, right-aligned. */
+  .wf-ops-sort {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 12px;
+  }
+  .wf-field--inline {
+    grid-auto-flow: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .wf-field--inline .wf-input {
+    width: auto;
+    min-height: 36px;
+    font-size: 13px;
+  }
   .wf-ops-form {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { Role } from '@/generated/prisma/client';
 import { chatSafe } from '@/lib/stream-safe';
 import { audit } from '../audit/audit';
+import { botSay } from '../chat/bot';
 import { db } from '../db';
 import { getEnv } from '../env';
 import { logger } from '../log';
@@ -144,9 +145,6 @@ export async function voiceOf(alertId: string): Promise<Buffer | null> {
 
 // ── the chat ─────────────────────────────────────────────────────────────────
 
-const SE_API = 'https://api.streamelements.com/kappa/v2';
-const CHANNEL_CACHE = 'wf:se:channel';
-
 /** "Tia Lu patrocinou Duna! Muito obrigada por seu apoio 🍿🎥" */
 export function chatLine(p: { sponsor: string | null; title: string }): string {
   return chatSafe(
@@ -154,60 +152,18 @@ export function chatLine(p: { sponsor: string | null; title: string }): string {
   );
 }
 
-/** The StreamElements channel id: from the JWT's `channel` claim, else GET /channels/me. */
-async function channelId(jwt: string): Promise<string | null> {
-  try {
-    const claim = JSON.parse(Buffer.from(jwt.split('.')[1]!, 'base64url').toString('utf8')) as {
-      channel?: unknown;
-    };
-    if (typeof claim.channel === 'string' && /^[a-f0-9]{24}$/.test(claim.channel)) {
-      return claim.channel;
-    }
-  } catch {
-    /* not a readable JWT payload: ask the API */
-  }
-  const cached = await redis()
-    .get(CHANNEL_CACHE)
-    .catch(() => null);
-  if (cached) return cached;
-  const res = await fetch(`${SE_API}/channels/me`, {
-    headers: { authorization: `Bearer ${jwt}`, accept: 'application/json' },
-    signal: AbortSignal.timeout(5_000),
-  });
-  if (!res.ok) return null;
-  const me = (await res.json()) as { _id?: unknown };
-  if (typeof me._id !== 'string' || !/^[a-f0-9]{24}$/.test(me._id)) return null;
-  await redis()
-    .set(CHANNEL_CACHE, me._id, 'EX', 86_400)
-    .catch(() => {});
-  return me._id;
-}
-
 /**
  * Posts one line through the StreamElements bot, once per `dedupeKey` (a webhook retried, or the
  * worker and the app both noticing the same payment, never thanks twice).
  */
 export async function sayInChat(dedupeKey: string, line: string): Promise<boolean> {
-  const jwt = getEnv().STREAMELEMENTS_JWT;
-  if (!jwt || !line) return false;
+  if (!getEnv().STREAMELEMENTS_JWT || !line) return false;
   try {
     const first = await redis().set(`wf:se:said:${dedupeKey}`, '1', 'EX', 86_400, 'NX');
     if (first !== 'OK') return false;
-    const channel = await channelId(jwt);
-    if (!channel) {
-      logger.warn('chat announce: no StreamElements channel id');
-      return false;
-    }
-    const res = await fetch(`${SE_API}/bot/${channel}/say`, {
-      method: 'POST',
-      headers: { authorization: `Bearer ${jwt}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ message: line }),
-      signal: AbortSignal.timeout(5_000),
-    });
-    if (!res.ok) logger.warn({ status: res.status }, 'chat announce failed');
-    return res.ok;
   } catch (err) {
     logger.warn({ err: err instanceof Error ? err.name : 'unknown' }, 'chat announce failed');
     return false;
   }
+  return (await botSay(line)).ok;
 }

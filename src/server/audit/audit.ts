@@ -364,6 +364,16 @@ export const AUDIT_ACTIONS = {
   'audit.export': z.object({ rows: z.int().nonnegative() }).strict(),
   // ── Phase 6 ──
   'link.create': z.object({ visible: z.boolean() }).strict(),
+  /** Chat da live (2026-11-11): the line as it went to the public chat, and whether it got there */
+  'chat.say': z
+    .object({
+      text: z.string().min(1).max(500),
+      ok: z.boolean(),
+      reason: z.enum(['not-configured', 'no-channel', 'unreachable', 'rejected']).nullable(),
+      status: z.int().min(100).max(599).nullable(),
+    })
+    .strict(),
+  'chat.presets.update': z.object({ count: z.int().min(0).max(20) }).strict(),
   'link.update': z
     .object({ fields: z.array(z.enum(['label', 'note', 'url', 'visible'])).max(4) })
     .strict(),

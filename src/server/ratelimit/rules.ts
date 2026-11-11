@@ -137,6 +137,12 @@ export const RL = {
   overlaySession: { name: 'overlay-session', perIp: { limit: 60, windowMs: MIN } },
   // subathon chat command (2026-11-04): StreamElements' customapi calls it from its proxy
   subathonCommand: { name: 'subathon-command', perIp: { limit: 30, windowMs: MIN } },
+  /** Chat da live (2026-11-11): messages to the Twitch chat as the bot; a human pace, never a flood. */
+  chatSay: {
+    name: 'chat-say',
+    perIp: { limit: 20, windowMs: MIN },
+    perUser: { limit: 12, windowMs: MIN },
+  },
   overlayStream: { name: 'overlay-stream', perIp: { limit: 240, windowMs: MIN } },
   contact: { name: 'contact', perIp: { limit: 5, windowMs: HOUR } },
   contactDaily: { name: 'contact-day', perIp: { limit: 20, windowMs: 24 * HOUR } },

@@ -16,6 +16,7 @@ import {
   campaignSubtitle,
 } from './CampaignBits';
 import { MetaRow } from './MetaRow';
+import { SeatMap } from './SeatMap';
 import { PriceLine, SponsorCta } from './SponsorLine';
 import { TrailerButton } from './TrailerButton';
 
@@ -28,6 +29,9 @@ const dateFmt = new Intl.DateTimeFormat('pt-BR', {
  * Shareable detail page for a movie, series or franchise (11 §3); checkout lives in the aside, and
  * — for a paid or funded title — where it stands in the queue (2026-11-04).
  */
+/** 1–4: which slow pan the backdrop gets (stable per title, varied between titles). */
+const kenBurns = (slug: string) => 1 + ([...slug].reduce((n, ch) => n + ch.charCodeAt(0), 0) % 4);
+
 export function ItemDetail({
   item,
   checkout,
@@ -43,7 +47,8 @@ export function ItemDetail({
   const back = item.kind === 'MOVIE' ? '/' : `/${kindPath}`;
   return (
     <article className="wf-detail" aria-labelledby="titulo">
-      <div className="wf-detail__art" aria-hidden="true">
+      {/* Ken Burns (2026-11-11): one of four slow pans, picked by the slug so it stays the same */}
+      <div className="wf-detail__art" aria-hidden="true" data-kb={kenBurns(item.slug)}>
         <MediaPicture picture={item.backdrop} alt="" sizes="100vw" priority />
       </div>
       <div className="wf-detail__shade" aria-hidden="true" />
@@ -155,6 +160,7 @@ export function ItemDetail({
             ) : item.campaign ? (
               <div className="wf-panel" id="contribuir">
                 <h2>Campanha coletiva</h2>
+                <SeatMap campaign={item.campaign} />
                 <CampaignProgress c={item.campaign} />
                 <CampaignStatus c={item.campaign} />
                 <CampaignChips c={item.campaign} />

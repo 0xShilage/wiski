@@ -1,0 +1,206 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Theater (2026-11-11): the Ken Burns backdrop on title pages and the campaign seat map.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* ── Ken Burns: the backdrop pans and zooms very slowly, back and forth. Four pans, chosen per
+   title (ItemDetail sets data-kb 1–4). Scale never drops below 1.06 and the translate stays inside
+   the overflow it buys, so no edge of the picture ever shows. Still with "reduce motion". ── */
+@layer components {
+  @media (prefers-reduced-motion: no-preference) {
+    .wf-detail__art img {
+      transform-origin: center;
+      animation: wf-kb-1 34s ease-in-out infinite alternate;
+      will-change: transform;
+    }
+    .wf-detail__art[data-kb='2'] img {
+      animation-name: wf-kb-2;
+    }
+    .wf-detail__art[data-kb='3'] img {
+      animation-name: wf-kb-3;
+    }
+    .wf-detail__art[data-kb='4'] img {
+      animation-name: wf-kb-4;
+    }
+  }
+  /* drift in toward the upper left */
+  @keyframes wf-kb-1 {
+    from {
+      scale: 1.06;
+      translate: 0 0;
+    }
+    to {
+      scale: 1.16;
+      translate: -3% -2%;
+    }
+  }
+  /* pull back, drifting right */
+  @keyframes wf-kb-2 {
+    from {
+      scale: 1.16;
+      translate: -2% 0;
+    }
+    to {
+      scale: 1.06;
+      translate: 2% 1%;
+    }
+  }
+  /* in, sliding across to the left and down */
+  @keyframes wf-kb-3 {
+    from {
+      scale: 1.08;
+      translate: 2% -1%;
+    }
+    to {
+      scale: 1.17;
+      translate: -2% 1.5%;
+    }
+  }
+  /* out, rising */
+  @keyframes wf-kb-4 {
+    from {
+      scale: 1.15;
+      translate: 0 2%;
+    }
+    to {
+      scale: 1.07;
+      translate: 0 -1.5%;
+    }
+  }
+}
+
+/* ── Seat map ("A sala"): the campaign as a cinema. Seats are <use> of one shape; their fill comes
+   from these classes (the shape's paths have none of their own). ── */
+@layer components {
+  .wf-seatmap {
+    margin: 4px 0 14px;
+  }
+  .wf-seatmap__room {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+  .wf-seatmap__beam {
+    opacity: 0.35;
+    filter: blur(3px);
+  }
+  .wf-seatmap__screen {
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.4em;
+    fill: var(--color-lilac);
+  }
+  .wf-seat {
+    fill: rgb(79 61 114 / 0.55);
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .wf-seat--taken {
+    fill: var(--color-lavender);
+    filter: drop-shadow(0 0 3px rgb(169 157 224 / 0.55));
+  }
+  .wf-seat--held {
+    fill: rgb(169 157 224 / 0.3);
+    stroke: var(--color-lavender);
+    stroke-width: 1;
+    stroke-dasharray: 2 2;
+  }
+  .wf-seat--mine {
+    fill: #f2c46d;
+    filter: drop-shadow(0 0 4px rgb(242 196 109 / 0.85));
+  }
+
+  .wf-seatmap__caption {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px 14px;
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--fg-78);
+  }
+  .wf-seatmap__pct strong {
+    color: #f7f2fb;
+  }
+  .wf-seatmap__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    font-size: 12px;
+  }
+  .wf-seatmap__key::before {
+    content: '';
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 5px;
+    border-radius: 3px;
+    vertical-align: -1px;
+    background: rgb(79 61 114 / 0.55);
+  }
+  .wf-seatmap__key--taken::before {
+    background: var(--color-lavender);
+    box-shadow: 0 0 6px rgb(169 157 224 / 0.6);
+  }
+  .wf-seatmap__key--held::before {
+    background: rgb(169 157 224 / 0.3);
+    outline: 1px dashed var(--color-lavender);
+    outline-offset: -1px;
+  }
+  .wf-seatmap__key--mine::before {
+    background: #f2c46d;
+    box-shadow: 0 0 6px rgb(242 196 109 / 0.8);
+  }
+
+  /* the seats come in, best seats first, in ten waves; "seu lugar" breathes */
+  @media (prefers-reduced-motion: no-preference) {
+    .wf-seat--taken,
+    .wf-seat--held {
+      animation: wf-seat-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1.2) both;
+    }
+    .wf-seat--w1 {
+      animation-delay: 60ms;
+    }
+    .wf-seat--w2 {
+      animation-delay: 120ms;
+    }
+    .wf-seat--w3 {
+      animation-delay: 180ms;
+    }
+    .wf-seat--w4 {
+      animation-delay: 240ms;
+    }
+    .wf-seat--w5 {
+      animation-delay: 300ms;
+    }
+    .wf-seat--w6 {
+      animation-delay: 360ms;
+    }
+    .wf-seat--w7 {
+      animation-delay: 420ms;
+    }
+    .wf-seat--w8 {
+      animation-delay: 480ms;
+    }
+    .wf-seat--w9 {
+      animation-delay: 540ms;
+    }
+    .wf-seat--mine {
+      animation:
+        wf-seat-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1.2) both,
+        wf-seat-mine 2.6s ease-in-out 1s infinite;
+    }
+  }
+  @keyframes wf-seat-in {
+    from {
+      opacity: 0;
+      scale: 0.4;
+    }
+  }
+  @keyframes wf-seat-mine {
+    50% {
+      filter: drop-shadow(0 0 9px rgb(242 196 109 / 1));
+    }
+  }
+}

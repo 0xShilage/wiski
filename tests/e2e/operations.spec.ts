@@ -321,7 +321,8 @@ test('agenda: the Fila can be sorted A→Z and Z→A by title', async ({ browser
   const fila = admin.getByRole('region', { name: /Fila/ });
   const titles = fila.locator('.wf-ops-row__title');
   test.skip((await titles.count()) < 2, 'the dev seed queue needs two entries to test ordering');
-  const cmp = (a: string, b: string) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base', numeric: true });
+  const cmp = (a: string, b: string) =>
+    a.localeCompare(b, 'pt-BR', { sensitivity: 'base', numeric: true });
 
   await fila.getByLabel('Ordenar').selectOption('az');
   const az = await titles.allTextContents();

@@ -1,38 +1,29 @@
 /**
- * "Novo patrocínio" sound (2026-11-09): a short chime made with the Web Audio API (no file to
- * load), then the spoken version from the server, if there is one. OBS plays it when "Control
- * audio via OBS" is ticked on the browser source; a normal browser may block it until a click.
+ * "Novo patrocínio" sound (2026-11-10): the chime is an mp3 served from the site (/sounds/chime.mp3),
+ * then the spoken version from the server, if there is one. OBS plays it when "Control audio via
+ * OBS" is ticked on the browser source; for Iara to hear it herself, the source's audio monitoring
+ * must be "Monitor and Output" in OBS. A normal browser may block it until a click.
  */
-let ctx: AudioContext | null = null;
+const CHIME_URL = '/sounds/chime.mp3';
 
-function audio(): AudioContext | null {
-  if (typeof window === 'undefined' || !('AudioContext' in window)) return null;
-  ctx ??= new AudioContext();
-  if (ctx.state === 'suspended') void ctx.resume().catch(() => {});
-  return ctx;
-}
-
-/** Three bell-like notes (C6, E6, G6), about 1.2 s. */
-export function chime(): void {
-  const a = audio();
-  if (!a) return;
-  const t0 = a.currentTime + 0.02;
-  [1046.5, 1318.5, 1568].forEach((freq, i) => {
-    const start = t0 + i * 0.14;
-    for (const [mult, level] of [
-      [1, 0.22],
-      [2.01, 0.05],
-    ] as const) {
-      const osc = a.createOscillator();
-      const gain = a.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = freq * mult;
-      gain.gain.setValueAtTime(0, start);
-      gain.gain.linearRampToValueAtTime(level, start + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + 1.1);
-      osc.connect(gain).connect(a.destination);
-      osc.start(start);
-      osc.stop(start + 1.15);
+/** Plays the chime once; resolves when it ends, fails, or after `maxMs`. */
+export function chime(maxMs = 6_000): Promise<void> {
+  if (typeof Audio === 'undefined') return Promise.resolve();
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      resolve();
+    };
+    try {
+      const el = new Audio(CHIME_URL);
+      el.addEventListener('ended', finish);
+      el.addEventListener('error', finish);
+      void el.play().catch(finish);
+      setTimeout(finish, maxMs);
+    } catch {
+      finish();
     }
   });
 }
@@ -66,9 +57,9 @@ export async function playAlert(
   minMs: number,
 ): Promise<void> {
   const started = Date.now();
-  chime();
+  void chime();
   if (a.voice && a.id) {
-    await wait(900);
+    await wait(1_300); // let the chime mostly ring out before the voice
     await speak(`/api/v1/overlay/tts?id=${encodeURIComponent(a.id)}`);
     await wait(1_500);
   }

@@ -42,6 +42,8 @@ export type PublicItem = {
   state: PublicState;
   /** when it was watched on stream (WATCHED items; null otherwise) */
   watchedAt: string | null;
+  /** watched by Iara off-stream and logged by hand (2026-11-10) */
+  offStream: boolean;
   /** MOVIE: full sponsorship price */
   priceCents: number | null;
   /** MOVIE: the streamer set this price by hand (no per-minute rule to explain) */

@@ -81,8 +81,17 @@ describe('!fila', () => {
   it('shows "Próximos da fila" and answers with the next three titles', async () => {
     const key = await createCommandKey(await ctx());
     expect(await (await run('fila', key)).text()).toBe('A fila está vazia por enquanto.');
+    // "Próximos da fila" follows the cronograma (2026-11-10): schedule the titles on a session
+    const s = await makeSession({ inHours: 0 });
     for (const title of ['Primeiro', 'Segundo', 'Terceiro', 'Quarto']) {
-      await paidMovie({ title, paidAt: new Date(Date.now() - 60_000 * (10 - title.length)) });
+      const { order } = await paidMovie({
+        title,
+        paidAt: new Date(Date.now() - 60_000 * (10 - title.length)),
+      });
+      await db().order.update({
+        where: { id: order.id },
+        data: { status: 'SCHEDULED', sessionId: s.id, scheduledAt: new Date() },
+      });
     }
     let res: Response | null = null;
     const events = await published('fila', async () => {

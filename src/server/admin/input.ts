@@ -330,7 +330,7 @@ export const gameInput = z.object(gameFields).strict();
 export const gameUpdateInput = z.object({ ...gameFields, expectedVersion: version }).strict();
 
 // ── Phase 6: suggestions ──
-const suggestionStatus = z.enum(['NEW', 'ACCEPTED', 'DISMISSED']);
+const suggestionStatus = z.enum(['NEW', 'ACCEPTED', 'DISMISSED', 'WATCHED']);
 export const suggestionInput = z
   .object({
     kind: z.enum(['MOVIE', 'SERIES', 'FRANCHISE', 'ANIME']),

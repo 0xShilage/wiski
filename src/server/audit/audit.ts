@@ -119,7 +119,7 @@ export const AUDIT_ACTIONS = {
   'catalog.replace': z
     .object({ kind: itemKind, slot: z.int().nullable(), replacementId: z.uuid().nullable() })
     .strict(),
-  'catalog.watched': z.object({ kind: itemKind }).strict(),
+  'catalog.watched': z.object({ kind: itemKind, offStream: z.boolean().optional() }).strict(),
   'catalog.unwatched': z
     .object({ kind: itemKind, status: z.enum(['ACTIVE', 'SPONSORED', 'FUNDED', 'DRAFT']) })
     .strict(),
@@ -383,8 +383,8 @@ export const AUDIT_ACTIONS = {
   'release.delete': z.object({}).strict(),
   'suggestion.status': z
     .object({
-      from: z.enum(['NEW', 'ACCEPTED', 'DISMISSED']),
-      to: z.enum(['NEW', 'ACCEPTED', 'DISMISSED']),
+      from: z.enum(['NEW', 'ACCEPTED', 'DISMISSED', 'WATCHED']),
+      to: z.enum(['NEW', 'ACCEPTED', 'DISMISSED', 'WATCHED']),
     })
     .strict(),
   // ── Roleta (2026-11-04): what was won, never the coupon code ──

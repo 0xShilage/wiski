@@ -263,6 +263,9 @@ model CatalogItem {
   version          Int        @default(0) // optimistic concurrency; = latest CatalogRevision.version
   publishedAt      DateTime?  @db.Timestamptz(3)
   watchedAt        DateTime?  @db.Timestamptz(3)
+  /// true: watched by Iara off-stream and logged by hand (2026-11-10); kept out of the live
+  /// progress counts and tagged "fora da live" on Assistidos.
+  offStream        Boolean    @default(false)
   archivedAt       DateTime?  @db.Timestamptz(3)
   createdById      String     @db.Uuid
   createdAt        DateTime   @default(now()) @db.Timestamptz(3)
@@ -1001,6 +1004,7 @@ enum SuggestionStatus {
   NEW
   ACCEPTED
   DISMISSED
+  WATCHED // "Já assistido" — Iara already watched this title (2026-11-10)
 }
 
 /// A title a signed-in viewer would like to see on stream. Seen only by moderators and the streamer.

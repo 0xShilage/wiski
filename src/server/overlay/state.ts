@@ -77,91 +77,95 @@ export async function nowPlayingSnapshot(): Promise<OverlayEvent> {
   });
 }
 
-/** Next 5: what's scheduled on the live (or next planned) session, then the unscheduled queue. */
+type QueueItem = {
+  title: string;
+  sponsor: string | null;
+  jumped: boolean;
+  rank: number;
+  at: number;
+};
+
+const queueRank = (tier: string | null) => (tier === 'topo' ? 0 : tier === 'prioridade' ? 1 : 2);
+const queueOrderSel = {
+  queueJumpTierId: true,
+  paidAt: true,
+  item: { select: { title: true } },
+  ...sponsorSelect,
+} as const;
+
+/** The titles scheduled on one session, in schedule order (what is at the start first). */
+async function scheduledOn(sessionId: string): Promise<QueueItem[]> {
+  const [orders, campaigns, segments] = await Promise.all([
+    db().order.findMany({
+      where: { sessionId, status: 'SCHEDULED' },
+      select: queueOrderSel,
+      take: 10,
+    }),
+    db().campaign.findMany({
+      where: { sessionId, status: 'SCHEDULED' },
+      select: { fundedAt: true, item: { select: { title: true } } },
+      take: 5,
+    }),
+    db().liveSegment.findMany({
+      where: { sessionId, status: 'SCHEDULED' },
+      select: { ...segmentTitleSelect, atStart: true, createdAt: true },
+      take: 10,
+    }),
+  ]);
+  const items: QueueItem[] = [
+    ...orders.map((o) => ({
+      title: o.item.title,
+      sponsor: publicSponsor(o),
+      jumped: !!o.queueJumpTierId,
+      rank: queueRank(o.queueJumpTierId),
+      at: o.paidAt?.getTime() ?? 0,
+    })),
+    ...campaigns.map((c) => ({
+      title: c.item.title,
+      sponsor: null,
+      jumped: false,
+      rank: 2,
+      at: c.fundedAt?.getTime() ?? 0,
+    })),
+    ...segments.map((g) => ({
+      title: segmentTitle(g),
+      sponsor: null,
+      jumped: false,
+      rank: g.atStart ? -1 : 2,
+      at: g.createdAt.getTime(),
+    })),
+  ];
+  return items.sort((a, b) => a.rank - b.rank || a.at - b.at);
+}
+
+/**
+ * "Próximos da fila" (2026-11-10): the next 5 titles on the agenda da live (cronograma) — the live
+ * session's scheduled titles first, then the next planned sessions', in schedule order. It follows
+ * the schedule, not the unscheduled queue (the Fila tab).
+ */
 export async function queueSnapshot(now = new Date()): Promise<OverlayEvent> {
-  const session =
-    (await db().streamSession.findFirst({ where: { status: 'LIVE' } })) ??
-    (await db().streamSession.findFirst({
-      where: { status: 'PLANNED', startsAt: { gte: new Date(now.getTime() - 6 * 3_600_000) } },
-      orderBy: { startsAt: 'asc' },
-    }));
-  const items: {
-    title: string;
-    sponsor: string | null;
-    jumped: boolean;
-    rank: number;
-    at: number;
-  }[] = [];
-  const rank = (tier: string | null) => (tier === 'topo' ? 0 : tier === 'prioridade' ? 1 : 2);
-  const orderSel = {
-    queueJumpTierId: true,
-    paidAt: true,
-    item: { select: { title: true } },
-    ...sponsorSelect,
-  } as const;
-  if (session) {
-    const [orders, campaigns, segments] = await Promise.all([
-      db().order.findMany({
-        where: { sessionId: session.id, status: 'SCHEDULED' },
-        select: orderSel,
-        take: 10,
-      }),
-      db().campaign.findMany({
-        where: { sessionId: session.id, status: 'SCHEDULED' },
-        select: { fundedAt: true, item: { select: { title: true } } },
-        take: 5,
-      }),
-      db().liveSegment.findMany({
-        where: { sessionId: session.id, status: 'SCHEDULED' },
-        select: { ...segmentTitleSelect, atStart: true, createdAt: true },
-        take: 10,
-      }),
-    ]);
-    for (const o of orders) {
-      items.push({
-        title: o.item.title,
-        sponsor: publicSponsor(o),
-        jumped: !!o.queueJumpTierId,
-        rank: rank(o.queueJumpTierId),
-        at: o.paidAt?.getTime() ?? 0,
-      });
-    }
-    for (const c of campaigns) {
-      items.push({
-        title: c.item.title,
-        sponsor: null,
-        jumped: false,
-        rank: 2,
-        at: c.fundedAt?.getTime() ?? 0,
-      });
-    }
-    for (const g of segments) {
-      items.push({
-        title: segmentTitle(g),
-        sponsor: null,
-        jumped: false,
-        rank: g.atStart ? -1 : 2,
-        at: g.createdAt.getTime(),
-      });
-    }
-  }
-  items.sort((a, b) => a.rank - b.rank || a.at - b.at);
-  if (items.length < 5) {
-    const queued = await db().order.findMany({
-      where: { kind: 'MOVIE', status: 'PAID' },
-      select: orderSel,
-      take: 20,
-    });
-    const rest = queued
-      .map((o) => ({
-        title: o.item.title,
-        sponsor: publicSponsor(o),
-        jumped: !!o.queueJumpTierId,
-        rank: rank(o.queueJumpTierId),
-        at: o.paidAt?.getTime() ?? 0,
-      }))
-      .sort((a, b) => a.rank - b.rank || a.at - b.at);
-    items.push(...rest);
+  const sessions = await db().streamSession.findMany({
+    where: {
+      hiddenAt: null,
+      OR: [
+        { status: 'LIVE' },
+        { status: 'PLANNED', startsAt: { gte: new Date(now.getTime() - 6 * 3_600_000) } },
+      ],
+    },
+    orderBy: { startsAt: 'asc' },
+    select: { id: true, status: true, startsAt: true },
+    take: 6,
+  });
+  // the live session first, then the planned ones by date
+  sessions.sort(
+    (a, b) =>
+      (a.status === 'LIVE' ? 0 : 1) - (b.status === 'LIVE' ? 0 : 1) ||
+      a.startsAt.getTime() - b.startsAt.getTime(),
+  );
+  const items: QueueItem[] = [];
+  for (const session of sessions) {
+    if (items.length >= 5) break;
+    items.push(...(await scheduledOn(session.id)));
   }
   return queueEvent(items.slice(0, 5));
 }

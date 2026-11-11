@@ -77,6 +77,7 @@ export function ItemEditor({
   const [goal, setGoal] = useState('');
   const [days, setDays] = useState(String(DEFAULT_CAMPAIGN_DAYS));
   const [replaceWith, setReplaceWith] = useState('');
+  const [offDate, setOffDate] = useState('');
   /** "Já pago" (2026-11-02): amount and public name typed in the "No ar" panel; null = closed */
   const [paid, setPaid] = useState<{ amount: string; name: string } | null>(null);
   const preview = useRef<HTMLDialogElement>(null);
@@ -347,6 +348,7 @@ export function ItemEditor({
     logo: pics.logo,
     state: 'ACTIVE',
     watchedAt: null,
+    offStream: false,
     priceCents: kind === 'MOVIE' && money ? money.cents : null,
     manualPrice: kind === 'MOVIE' && manualCents !== null && manualValid,
     sponsorName: null,
@@ -923,6 +925,48 @@ export function ItemEditor({
               {paidForm ? <div className="full">{paidForm}</div> : null}
             </div>
           </>
+        </section>
+      ) : null}
+
+      {/* A title Iara watched by herself, off stream (2026-11-10): straight to Assistidos. */}
+      {item && isDraft ? (
+        <section className="wf-history" aria-labelledby="fora-live">
+          <h3 id="fora-live" className="text-base font-semibold">
+            Já assistiu fora da live?
+          </h3>
+          <p className="wf-muted m-0 text-sm">
+            Registra este título direto em Assistidos, sem vaga nem patrocínio. Aparece com a marca
+            “fora da live”.
+          </p>
+          <div className="wf-form mt-3">
+            <label className="wf-field">
+              Quando assistiu (opcional)
+              <input
+                type="date"
+                className="wf-input"
+                value={offDate}
+                max={new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })}
+                onChange={(e) => setOffDate(e.target.value)}
+              />
+            </label>
+            <div className="full">
+              <button
+                type="button"
+                className="wf-btn wf-btn--ghost"
+                disabled={busy}
+                onClick={() =>
+                  void simple(
+                    `/api/v1/admin/catalog/items/${item.id}/watched-offstream`,
+                    { expectedVersion: item.version, watchedOn: offDate || null },
+                    'Registrado em Assistidos (fora da live).',
+                    `Registrar “${item.fields.title}” como assistido fora da live? Vai direto para Assistidos.`,
+                  )
+                }
+              >
+                Registrar como assistido
+              </button>
+            </div>
+          </div>
         </section>
       ) : null}
 

@@ -28,7 +28,13 @@ function useAct() {
   return { busy, act, view };
 }
 
-const KIND_PT = { MOVIE: 'Filme', SERIES: 'Série', FRANCHISE: 'Franquia', ANIME: 'Anime' } as const;
+const KIND_PT = {
+  MOVIE: 'Filme',
+  SERIES: 'Série',
+  FRANCHISE: 'Franquia',
+  ANIME: 'Anime',
+  GAME: 'Jogo',
+} as const;
 
 // ── Links ─────────────────────────────────────────────────────────────────────
 
@@ -276,7 +282,7 @@ export function LinksPanel({ initial }: { initial: AdminLink[] }) {
 type Status = 'NEW' | 'ACCEPTED' | 'DISMISSED' | 'WATCHED';
 export type AdminSuggestion = {
   id: string;
-  kind: 'MOVIE' | 'SERIES' | 'FRANCHISE' | 'ANIME';
+  kind: 'MOVIE' | 'SERIES' | 'FRANCHISE' | 'ANIME' | 'GAME';
   title: string;
   year: number | null;
   note: string | null;

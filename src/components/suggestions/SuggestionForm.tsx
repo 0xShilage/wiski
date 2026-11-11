@@ -2,7 +2,7 @@
 import { useId, useState } from 'react';
 import { apiFetch, type Problem } from '@/lib/api-fetch';
 
-type Kind = 'MOVIE' | 'SERIES' | 'FRANCHISE' | 'ANIME';
+type Kind = 'MOVIE' | 'SERIES' | 'FRANCHISE' | 'ANIME' | 'GAME';
 type Status = 'NEW' | 'ACCEPTED' | 'DISMISSED' | 'WATCHED';
 export type Mine = {
   id: string;
@@ -18,6 +18,7 @@ const KIND_PT: Record<Kind, string> = {
   SERIES: 'Série',
   FRANCHISE: 'Franquia',
   ANIME: 'Anime',
+  GAME: 'Jogo',
 };
 const STATUS_PT: Record<Status, string> = {
   NEW: 'Esperando',

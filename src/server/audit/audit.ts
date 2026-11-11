@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { Role } from '@/generated/prisma/enums';
 import type { Prisma, PrismaClient } from '@/generated/prisma/client';
 import { avatarKeySchema } from '@/lib/avatars';
+import { SEASONS } from '@/lib/season';
 import { USERNAME_PATTERN } from '@/lib/username';
 import { db } from '../db';
 
@@ -336,7 +337,7 @@ export const AUDIT_ACTIONS = {
   'game.delete': z.object({}).strict(),
   'season.update': z
     .object({
-      theme: z.enum(['none', 'natal', 'halloween', 'aniversario']),
+      theme: z.enum(['none', ...SEASONS]),
       until: z.iso.date().nullable(),
     })
     .strict(),

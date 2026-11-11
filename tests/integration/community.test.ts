@@ -179,6 +179,16 @@ describe('suggestions', () => {
     expect((await suggest(v, { kind: 'MOVIE', title: 'Ok', year: 1700 })).res.status).toBe(422);
   });
 
+  it('a viewer can suggest a game (Jogos is one of the suggestion kinds)', async () => {
+    const v = await as('USER');
+    const r = await suggest(v, { kind: 'GAME', title: 'Hollow Knight: Silksong', year: 2025 });
+    expect(r.res.status).toBe(201);
+    const row = await db().suggestion.findFirstOrThrow({ where: { userId: v.user.id } });
+    expect(row.kind).toBe('GAME');
+    // an unknown kind is still rejected by the strict schema
+    expect((await suggest(v, { kind: 'BOARDGAME', title: 'Catan' })).res.status).toBe(422);
+  });
+
   it('5 a day per account; at most 10 waiting; suspended and not-yet-onboarded viewers refused', async () => {
     const v = await as('USER');
     const s: number[] = [];

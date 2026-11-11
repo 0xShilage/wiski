@@ -333,7 +333,7 @@ export const gameUpdateInput = z.object({ ...gameFields, expectedVersion: versio
 const suggestionStatus = z.enum(['NEW', 'ACCEPTED', 'DISMISSED', 'WATCHED']);
 export const suggestionInput = z
   .object({
-    kind: z.enum(['MOVIE', 'SERIES', 'FRANCHISE', 'ANIME']),
+    kind: z.enum(['MOVIE', 'SERIES', 'FRANCHISE', 'ANIME', 'GAME']),
     title: z.string().max(600),
     year: z.int().min(1888).max(2100).nullable().optional(),
     note: z.string().max(1_400).nullable().optional(),

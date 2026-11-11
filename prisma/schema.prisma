@@ -1007,11 +1007,20 @@ enum SuggestionStatus {
   WATCHED // "Já assistido" — Iara already watched this title (2026-11-10)
 }
 
+/// What a viewer can suggest: the catalog kinds plus GAME (Jogos is its own model, 2026-11-11).
+enum SuggestionKind {
+  MOVIE
+  SERIES
+  FRANCHISE
+  ANIME
+  GAME
+}
+
 /// A title a signed-in viewer would like to see on stream. Seen only by moderators and the streamer.
 model Suggestion {
   id           String           @id @default(uuid(7)) @db.Uuid
   userId       String           @db.Uuid
-  kind         ItemKind
+  kind         SuggestionKind
   title        String // ≤ 120 chars, sanitised plain text
   /// lower-case, accents and punctuation removed: groups the same title across viewers, and one
   /// open suggestion per viewer per title (partial unique)

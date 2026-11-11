@@ -7,6 +7,9 @@
    ───────────────────────────────────────────────────────────────────────────── */
 html[data-season='natal']:not(:has(.wf-overlay)) {
   --season-tile: url('/seasonal/natal.svg');
+  --season-wash:
+    radial-gradient(120% 70% at 50% 0%, rgb(80 200 140 / 0.14), transparent 62%),
+    radial-gradient(120% 60% at 90% 8%, rgb(255 120 135 / 0.12), transparent 55%);
   --season-logo: #fff4ef;
   --glow-sm: 0 0 6px rgb(255 120 135 / 0.85), 0 0 16px rgb(80 200 140 / 0.5);
   --glow:
@@ -20,6 +23,9 @@ html[data-season='natal']:not(:has(.wf-overlay)) {
 }
 html[data-season='halloween']:not(:has(.wf-overlay)) {
   --season-tile: url('/seasonal/halloween.svg');
+  --season-wash:
+    radial-gradient(120% 70% at 50% 0%, rgb(255 160 70 / 0.15), transparent 62%),
+    radial-gradient(120% 60% at 90% 8%, rgb(150 90 210 / 0.14), transparent 55%);
   --season-logo: #ffd2a1;
   --glow-sm: 0 0 6px rgb(255 160 70 / 0.85), 0 0 16px rgb(150 90 210 / 0.55);
   --glow:
@@ -33,6 +39,9 @@ html[data-season='halloween']:not(:has(.wf-overlay)) {
 }
 html[data-season='aniversario']:not(:has(.wf-overlay)) {
   --season-tile: url('/seasonal/aniversario.svg');
+  --season-wash:
+    radial-gradient(120% 70% at 50% 0%, rgb(255 140 200 / 0.15), transparent 62%),
+    radial-gradient(120% 60% at 90% 8%, rgb(255 210 110 / 0.12), transparent 55%);
   --season-logo: #ffe6a6;
   --glow-sm: 0 0 6px rgb(255 140 200 / 0.85), 0 0 16px rgb(255 210 110 / 0.5);
   --glow:
@@ -44,18 +53,49 @@ html[data-season='aniversario']:not(:has(.wf-overlay)) {
     drop-shadow(0 0 16px rgb(255 210 110 / 0.6));
   --text-glow: 0 0 22px rgb(255 140 200 / 0.35);
 }
+html[data-season='namorados']:not(:has(.wf-overlay)) {
+  --season-tile: url('/seasonal/valentine.svg');
+  --season-wash:
+    radial-gradient(120% 70% at 50% 0%, rgb(255 94 138 / 0.16), transparent 62%),
+    radial-gradient(120% 60% at 90% 8%, rgb(255 150 120 / 0.13), transparent 55%);
+  --season-logo: #ffe0ea;
+  --glow-sm: 0 0 6px rgb(255 94 138 / 0.85), 0 0 16px rgb(255 150 120 / 0.5);
+  --glow:
+    0 0 8px rgb(255 94 138 / 0.9), 0 0 22px rgb(255 94 138 / 0.5), 0 0 48px rgb(255 150 120 / 0.4);
+  --glow-strong:
+    0 0 10px rgb(255 224 234 / 0.95), 0 0 28px rgb(255 94 138 / 0.7),
+    0 0 64px rgb(255 150 120 / 0.55);
+  --logo-glow: drop-shadow(0 0 5px rgb(255 94 138 / 0.85))
+    drop-shadow(0 0 16px rgb(255 150 120 / 0.6));
+  --text-glow: 0 0 22px rgb(255 94 138 / 0.35);
+}
 
-/* the pattern: on the page canvas (the body's own colour is cleared so the canvas shows; cards,
-   the hero and panels keep their backgrounds and cover it) */
+/* The pattern (2026-11-11): a fixed layer painted BEHIND every page, so it survives the opaque
+   surfaces (the hero, cards and panels keep their own backgrounds and sit over it) and shows in the
+   gutters and gaps — a plain `background-attachment: fixed` on <html> was hidden under those
+   surfaces on the desktop. `--season-wash` tints it in the season's colours so the change reads even
+   where the ink-on-ink tile is subtle; the body's own colour is cleared so the layer shows. */
 html[data-season]:not(:has(.wf-overlay)) {
   background-color: var(--color-ink);
-  background-image: var(--season-tile);
-  background-size: 260px 260px;
-  background-repeat: repeat;
-  background-attachment: fixed;
 }
 html[data-season]:not(:has(.wf-overlay)) body {
   background-color: transparent;
+}
+html[data-season]:not(:has(.wf-overlay))::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: var(--color-ink);
+  background-image: var(--season-wash, none), var(--season-tile);
+  background-repeat: no-repeat, repeat;
+  background-position:
+    center top,
+    top left;
+  background-size:
+    100% 100%,
+    260px 260px;
 }
 
 @layer components {

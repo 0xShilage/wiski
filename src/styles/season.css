@@ -70,32 +70,40 @@ html[data-season='namorados']:not(:has(.wf-overlay)) {
   --text-glow: 0 0 22px rgb(255 94 138 / 0.35);
 }
 
-/* The pattern (2026-11-11): a fixed layer painted BEHIND every page, so it survives the opaque
-   surfaces (the hero, cards and panels keep their own backgrounds and sit over it) and shows in the
+/* The pattern (2026-11-11): two fixed layers painted BEHIND every page, so they survive the opaque
+   surfaces (the hero, cards and panels keep their own backgrounds and sit over them) and show in the
    gutters and gaps — a plain `background-attachment: fixed` on <html> was hidden under those
-   surfaces on the desktop. `--season-wash` tints it in the season's colours so the change reads even
-   where the ink-on-ink tile is subtle; the body's own colour is cleared so the layer shows. */
+   surfaces on the desktop. The tile and the wash get their OWN pseudo-element so neither one's
+   repeat/size can cycle onto the other: ::before tiles the pattern, ::after lays the season's colour
+   wash over it (so the change reads even where the ink-on-ink tile is subtle). `--season-wash` may
+   be several gradients; on its own element one `no-repeat`/`100% 100%` covers them all. The body's
+   own colour is cleared so the layers show. */
 html[data-season]:not(:has(.wf-overlay)) {
   background-color: var(--color-ink);
 }
 html[data-season]:not(:has(.wf-overlay)) body {
   background-color: transparent;
 }
-html[data-season]:not(:has(.wf-overlay))::before {
+html[data-season]:not(:has(.wf-overlay))::before,
+html[data-season]:not(:has(.wf-overlay))::after {
   content: '';
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
+}
+html[data-season]:not(:has(.wf-overlay))::before {
   background-color: var(--color-ink);
-  background-image: var(--season-wash, none), var(--season-tile);
-  background-repeat: no-repeat, repeat;
-  background-position:
-    center top,
-    top left;
-  background-size:
-    100% 100%,
-    260px 260px;
+  background-image: var(--season-tile);
+  background-repeat: repeat;
+  background-position: top left;
+  background-size: 260px 260px;
+}
+html[data-season]:not(:has(.wf-overlay))::after {
+  background-image: var(--season-wash, none);
+  background-repeat: no-repeat;
+  background-position: center top;
+  background-size: 100% 100%;
 }
 
 @layer components {

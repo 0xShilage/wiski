@@ -1,5 +1,5 @@
 import 'server-only';
-import type { ItemKind, Role, SuggestionStatus, User } from '@/generated/prisma/client';
+import type { Role, SuggestionKind, SuggestionStatus, User } from '@/generated/prisma/client';
 import { audit } from '../audit/audit';
 import { db } from '../db';
 import { pgErrorCode, PG } from '../db-errors';
@@ -66,7 +66,7 @@ function clean(raw: string | null | undefined, path: string, max: number, requir
 
 export type MySuggestion = {
   id: string;
-  kind: ItemKind;
+  kind: SuggestionKind;
   title: string;
   year: number | null;
   status: SuggestionStatus;
@@ -85,7 +85,12 @@ export async function mySuggestions(userId: string): Promise<MySuggestion[]> {
 
 export async function submitSuggestion(
   user: Pick<User, 'id' | 'username' | 'status'>,
-  input: { kind: ItemKind; title: string; year?: number | null | undefined; note?: string | null },
+  input: {
+    kind: SuggestionKind;
+    title: string;
+    year?: number | null | undefined;
+    note?: string | null;
+  },
 ): Promise<{ mine: MySuggestion[] }> {
   if (!user.username) throw SuggestionProblems.onboarding();
   if (user.status !== 'ACTIVE') throw SuggestionProblems.suspended();
@@ -121,7 +126,7 @@ export async function submitSuggestion(
 
 export type StaffSuggestion = {
   id: string;
-  kind: ItemKind;
+  kind: SuggestionKind;
   title: string;
   year: number | null;
   note: string | null;

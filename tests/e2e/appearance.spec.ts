@@ -48,13 +48,16 @@ test('seasonal theme: switched on in Aparência, the whole site repaints, switch
         .evaluate((p) => getComputedStyle(p).fill),
     ).toBe('rgb(255, 244, 239)');
     await page.waitForTimeout(600);
+    // the tile is painted on a fixed layer behind the page (html::before), tinted by the wash
     expect(
-      await page.evaluate(() => getComputedStyle(document.documentElement).backgroundImage),
+      await page.evaluate(
+        () => getComputedStyle(document.documentElement, '::before').backgroundImage,
+      ),
     ).toContain('/seasonal/natal.svg');
     await page.screenshot({ path: `${SHOTS}/natal-${info.project.name}.png` });
 
-    // the other two, straight in the database, for the previews
-    for (const theme of ['halloween', 'aniversario'] as const) {
+    // the others, straight in the database, for the previews
+    for (const theme of ['halloween', 'aniversario', 'namorados'] as const) {
       await putSetting('season', { theme, until: null });
       await page.goto('/cronograma');
       await expect(html).toHaveAttribute('data-season', theme);
@@ -62,10 +65,12 @@ test('seasonal theme: switched on in Aparência, the whole site repaints, switch
       await page.waitForTimeout(600); // the tab fade-in
       await page.screenshot({ path: `${SHOTS}/${theme}-${info.project.name}.png` });
     }
-    // OBS overlays keep their look
+    // OBS overlays keep their look: no seasonal layer (:not(:has(.wf-overlay)))
     await page.goto('/overlay/fila');
     expect(
-      await page.evaluate(() => getComputedStyle(document.documentElement).backgroundImage),
+      await page.evaluate(
+        () => getComputedStyle(document.documentElement, '::before').backgroundImage,
+      ),
     ).toBe('none');
 
     await page.goto('/admin/aparencia');

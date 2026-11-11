@@ -4,19 +4,21 @@ import type { Picture } from './media';
  * Seasonal themes (2026-11-10), client-safe: the ids, their names in the admin panel and what the
  * small piece next to the logo is called (screen readers skip it; it is decoration).
  */
-export const SEASONS = ['natal', 'halloween', 'aniversario'] as const;
+export const SEASONS = ['natal', 'halloween', 'aniversario', 'namorados'] as const;
 export type Season = (typeof SEASONS)[number];
 
 export const SEASON_LABEL: Record<Season, string> = {
   natal: 'Natal',
   halloween: 'Halloween',
   aniversario: 'Aniversário da Iara',
+  namorados: 'Dia dos Namorados',
 };
 
 export const SEASON_HINT: Record<Season, string> = {
   natal: 'Flocos de neve no fundo, brilho vermelho e verde, gorro do Papai Noel ao lado do logo.',
   halloween: 'Morcegos e luas no fundo, brilho laranja, abóbora ao lado do logo.',
   aniversario: 'Confete no fundo, brilho rosa e dourado, balões ao lado do logo.',
+  namorados: 'Coraçõezinhos no fundo, brilho rosa e vermelho, um coração ao lado do logo.',
 };
 
 /** The home pop-up as the home page gets it (2026-11-10). */

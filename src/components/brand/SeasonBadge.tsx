@@ -1,14 +1,36 @@
 import type { Season } from '@/lib/season';
 
 /**
- * The little seasonal piece next to the header logo (2026-11-10): a Santa hat, a jack-o'-lantern
- * or two balloons. Plain SVG shapes (no <style>, the CSP has no 'unsafe-inline'); decoration only.
+ * The little seasonal piece next to the header logo (2026-11-10): a Santa hat, a jack-o'-lantern,
+ * two balloons or a heart. Plain SVG shapes (no <style>, the CSP has no 'unsafe-inline');
+ * decoration only.
  */
 export function SeasonBadge({ season }: { season: Season }) {
   return (
     <span className={`wf-season-badge wf-season-badge--${season}`} aria-hidden="true">
-      {season === 'natal' ? <Hat /> : season === 'halloween' ? <Pumpkin /> : <Balloons />}
+      {season === 'natal' ? (
+        <Hat />
+      ) : season === 'halloween' ? (
+        <Pumpkin />
+      ) : season === 'namorados' ? (
+        <Heart />
+      ) : (
+        <Balloons />
+      )}
     </span>
+  );
+}
+
+function Heart() {
+  return (
+    <svg viewBox="0 0 48 48" focusable="false">
+      <path
+        d="M24 41 C9 31 5 23 5 17 C5 11 9 7 15 7 C19 7 22 9 24 13 C26 9 29 7 33 7 C39 7 43 11 43 17 C43 23 39 31 24 41 Z"
+        fill="#ff5e8a"
+      />
+      <path d="M24 13 C22 9 19 7 15 7 C9 7 5 11 5 17 C5 23 9 31 24 41 Z" fill="#ff86a9" />
+      <ellipse cx="15" cy="17" rx="3" ry="4.5" fill="#fff" opacity="0.5" />
+    </svg>
   );
 }
 

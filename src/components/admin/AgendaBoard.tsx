@@ -12,6 +12,7 @@ import {
   type AgendaEntry,
   type AgendaSession,
 } from '@/lib/admin/types';
+import { sortQueue, type QueueSort } from '@/lib/admin/agenda-sort';
 import { formatRuntime } from '@/lib/catalog/pricing';
 import { episodesLabel, minutesPerEpisode } from '@/lib/live/segments';
 
@@ -116,6 +117,7 @@ export function AgendaBoard({ initial }: { initial: Data; role: 'MODERATOR' | 'S
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null);
   const [pick, setPick] = useState<Record<string, string>>({});
+  const [sort, setSort] = useState<QueueSort>('fila');
   const [form, setForm] = useState(() => ({ startsAt: tomorrowAt20(), capacity: '240', note: '' }));
   const [part, setPart] = useState<{ entry: AgendaEntry; form: PartForm } | null>(null);
   const [event, setEvent] = useState<{ sessionId: string; form: EventForm } | null>(null);
@@ -918,7 +920,26 @@ export function AgendaBoard({ initial }: { initial: Data; role: 'MODERATOR' | 'S
             um filme por vez: elas ficam aqui até você marcar o fim.
           </p>
           {data.queue.length ? (
-            <ul className="wf-ops-list">{data.queue.map((e) => entryRow(e, null))}</ul>
+            <div className="wf-ops-sort">
+              <label className="wf-field wf-field--inline" htmlFor={`${id}-sort`}>
+                <span>Ordenar</span>
+                <select
+                  id={`${id}-sort`}
+                  className="wf-input"
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value as QueueSort)}
+                >
+                  <option value="fila">Ordem da fila</option>
+                  <option value="az">Título A → Z</option>
+                  <option value="za">Título Z → A</option>
+                </select>
+              </label>
+            </div>
+          ) : null}
+          {data.queue.length ? (
+            <ul className="wf-ops-list">
+              {sortQueue(data.queue, sort).map((e) => entryRow(e, null))}
+            </ul>
           ) : (
             <p className="wf-muted">Nada na fila.</p>
           )}

@@ -407,3 +407,9 @@ The sidebar shows the former "Streamer" group as "Canal" to everyone on staff; t
 - **Off-stream watched** (`registerWatchedOffStream`, `POST /api/v1/admin/catalog/items/[id]/watched-offstream` `{expectedVersion, watchedOn}`, moderator, audited `catalog.watched {offStream:true}`): in the catalog editor, a DRAFT shows "Já assistiu fora da live?" — an optional date and "Registrar como assistido". The title goes straight to Assistidos (status WATCHED, `offStream=true`, no slot, no order) tagged "Fora da live". New `CatalogItem.offStream` keeps these out of the home progress counts (`watchProgress`); they still carry reviews like any watched title.
 - **Suggestions "Já assistido"**: new `SuggestionStatus.WATCHED`. Admin › Sugestões has a "Já assistido" button and a "Já assistidas" filter; the viewer's own list shows "Já assistida". Same compare-and-set and audit as accept/dismiss.
 - Migration `20261119120000_offstream_and_suggestion_watched` (column `CatalogItem.offStream`, enum value `SuggestionStatus.WATCHED`).
+
+## 27. Sort the Fila alphabetically (2026-11-10)
+
+- **"Ordenar" on the agenda da live**: the Fila (Admin › Agenda) now has a select — "Ordem da fila" (default), "Título A → Z", "Título Z → A". It reorders only the display of the already-loaded queue; it does not touch the real booking order (Topo da fila, Prioridade, data de pagamento) nor the server.
+- Pure helper `sortQueue(entries, mode)` (`lib/admin/agenda-sort.ts`): a pt-BR `Intl.Collator` with `sensitivity: 'base'` (ignores case and accents) and `numeric: true`; 'fila' returns the input untouched, 'az'/'za' return a new sorted array. Unit-tested (`tests/unit/agenda-sort.test.ts`); e2e asserts the control reorders the Fila (`tests/e2e/operations.spec.ts`).
+- No new endpoint, migration or audit: client-side only.

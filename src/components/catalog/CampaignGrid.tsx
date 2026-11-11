@@ -61,7 +61,12 @@ export function CampaignGrid({
         >
           {shown.map((item) => (
             <li key={item.id} className="flex">
-              <Link href={`/${kindPath}/${item.slug}`} className="wf-scard w-full" prefetch={false}>
+              <Link
+                href={`/${kindPath}/${item.slug}`}
+                className="wf-scard w-full"
+                prefetch={false}
+                data-tilt
+              >
                 <div className="wf-scard__poster">
                   <MediaPicture
                     picture={item.poster}

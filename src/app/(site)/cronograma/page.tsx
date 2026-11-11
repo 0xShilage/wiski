@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { nextLive, SoonTeaser } from '@/components/live/SoonTeaser';
 import { MediaPicture } from '@/components/media/MediaPicture';
 import { KIND_PATH } from '@/lib/catalog/kinds';
-import { cronograma } from '@/server/live/public';
+import { cronogramaAt } from '@/server/live/public';
 import { publicReleases } from '@/server/releases/releases';
 
 export const metadata: Metadata = {
@@ -41,10 +42,12 @@ const timeFmt = new Intl.DateTimeFormat('pt-BR', {
  * watched in the last two days — episodes of a series, films of a franchise and custom events
  * included (2026-11-04). Titles paid for but not yet given a date are not listed.
  * Each title shows its poster (2026-11-01); "Próximas temporadas" sits beside the lives on wide
- * screens and below them on phones.
+ * screens and below them on phones. "Em breve" (2026-11-11) opens the page with the next live's
+ * titles and a countdown to it.
  */
 export default async function CronogramaPage() {
-  const [days, releases] = await Promise.all([cronograma(), publicReleases()]);
+  const [{ now, days }, releases] = await Promise.all([cronogramaAt(), publicReleases()]);
+  const next = nextLive(days);
   return (
     <div className="wf-page wf-cron">
       <h1 className="wf-h1">Cronograma</h1>
@@ -52,6 +55,7 @@ export default async function CronogramaPage() {
         O que já está marcado nas próximas lives. Horários de Brasília. Patrocinou um filme e ele
         ainda não aparece? Ele entra aqui assim que a moderação escolher a sessão.
       </p>
+      {next ? <SoonTeaser session={next} now={now} /> : null}
       <div className="wf-cron__layout">
         <div className="wf-cron__main">
           {days.length === 0 ? (

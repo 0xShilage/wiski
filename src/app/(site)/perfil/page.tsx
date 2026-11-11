@@ -1,21 +1,22 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { Avatar } from '@/components/Avatar';
 import { DataTools } from '@/components/account/DataTools';
 import { AchievementBadges } from '@/components/community/AchievementBadges';
 import { AchievementsToggle } from '@/components/community/AchievementsToggle';
 import { LogoutButton } from '@/components/account/LogoutButton';
+import { MemberCard } from '@/components/account/MemberCard';
 import { ProfileForm } from '@/components/account/ProfileForm';
 import { Mascote } from '@/components/brand/Mascote';
 import { button, card, heading } from '@/components/ui/styles';
 import { resolveAvatarKey } from '@/lib/avatars';
-import { formatDate, formatMonthYear } from '@/lib/format';
+import { formatDate } from '@/lib/format';
 import { formatBRL } from '@/lib/catalog/pricing';
 import { ORDER_STATUS_LABEL } from '@/lib/checkout/types';
 import { nextUsernameChange } from '@/server/auth/accounts';
 import { myOrders } from '@/server/checkout/access';
 import { achievementsFor } from '@/server/community/achievements';
+import { memberStats } from '@/server/community/member-card';
 import { getCurrentSession } from '@/server/auth/current';
 import { isGoogleLoginConfigured } from '@/server/env';
 import { safeReturnTo } from '@/server/security/return-to';
@@ -30,8 +31,6 @@ const ERRORS: Record<string, string> = {
   indisponivel: 'O login está indisponível no momento. Tente mais tarde.',
   falha: 'Não foi possível concluir o login. Tente de novo.',
 };
-
-const ROLE_LABEL = { USER: null, MODERATOR: 'Moderação', STREAMER: 'Streamer' } as const;
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
@@ -93,28 +92,29 @@ export default async function PerfilPage({ searchParams }: Props) {
   if (!user.username) redirect('/bem-vindo?next=%2Fperfil');
   const nextChange = nextUsernameChange(user);
   const privileged = user.role !== 'USER';
-  const [orders, badges] = await Promise.all([myOrders(user), achievementsFor(user)]);
+  const [orders, badges, stats] = await Promise.all([
+    myOrders(user),
+    achievementsFor(user),
+    memberStats(user.id),
+  ]);
   const earnedCount = badges.filter((b) => b.earned).length;
 
   return (
     <div className="wf-page wf-page--narrow space-y-8">
       <h1 className="sr-only">Perfil</h1>
-      <section
-        className={`${card} flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between`}
-      >
-        <div className="flex items-center gap-4">
-          <Avatar avatarKey={user.avatarKey} size={64} />
-          <div>
-            <p className="text-h2 font-semibold text-lilac">@{user.username}</p>
-            <p className="text-sm text-fg-muted">Membro desde {formatMonthYear(user.createdAt)}</p>
-            {ROLE_LABEL[user.role] ? (
-              <p className="mt-1 inline-block rounded-pill bg-accent/20 px-2.5 py-0.5 text-xs font-semibold text-accent">
-                {ROLE_LABEL[user.role]}
-              </p>
-            ) : null}
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-3">
+      <section aria-label="Carteirinha de sócio" className="wf-member-wrap">
+        <MemberCard
+          user={{
+            id: user.id,
+            username: user.username,
+            avatarKey: user.avatarKey,
+            createdAt: user.createdAt,
+            role: user.role,
+            isVip: user.isVip,
+          }}
+          stats={stats}
+        />
+        <div className="wf-member-actions">
           <Link href={`/u/${user.username}`} className={button.secondary}>
             Perfil público
           </Link>

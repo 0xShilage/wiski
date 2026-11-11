@@ -57,14 +57,11 @@
 }
 
 /* ── Assistidos: the poster wall of fame ──
-   The header keeps the page width (.wf-seen--wall-head); the wall is its sibling in <main>, so it
-   spans the whole window with a small gutter — width 100%, never 100vw (no scrollbar overflow).
-   The tilt adds at most ~3 px at the edges, well inside the gutter. */
+   A dense grid of posters inside the page column (it was edge-to-edge for a day; the column reads
+   better). Own prefix `wf-fame`: `wf-wall` is the supporters' wall on /apoiadores (ops.css), and
+   sharing it broke that page (2026-11-11). */
 @layer components {
-  .wf-seen--wall-head {
-    padding-bottom: clamp(20px, 3vh, 28px);
-  }
-  .wf-wall__stat {
+  .wf-fame__stat {
     margin: 0;
     display: flex;
     flex-wrap: wrap;
@@ -73,7 +70,7 @@
     font-size: clamp(17px, 0.8vw + 12px, 22px);
     color: var(--fg-78);
   }
-  .wf-wall__stat strong {
+  .wf-fame__stat strong {
     font-family: var(--font-display);
     font-weight: 400;
     font-size: clamp(34px, 2.4vw + 18px, 56px);
@@ -82,19 +79,19 @@
     color: #f7f2fb;
     text-shadow: var(--text-glow);
   }
-  .wf-wall__dot {
+  .wf-fame__dot {
     color: var(--color-violet);
   }
 
-  .wf-wall {
+  .wf-fame {
     list-style: none;
-    margin: 0;
-    padding: 0 clamp(8px, 1.2vw, 20px) clamp(48px, 7vh, 80px);
+    margin: 4px 0 0;
+    padding: 0;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(clamp(96px, 9vw, 150px), 1fr));
-    gap: clamp(4px, 0.45vw, 8px);
+    grid-template-columns: repeat(auto-fill, minmax(clamp(104px, 11vw, 168px), 1fr));
+    gap: clamp(6px, 0.7vw, 12px);
   }
-  .wf-wall__tile {
+  .wf-fame__tile {
     display: block;
     border-radius: 8px;
     color: inherit;
@@ -102,13 +99,13 @@
   }
   /* a definite width: without it the grid row's first sizing pass handed the poster a height and
      aspect-ratio worked backwards from it (120 px columns, 72 px posters) */
-  .wf-wall .wf-wall__poster {
+  .wf-fame .wf-fame__poster {
     width: 100%;
     margin: 0;
     border-radius: 8px;
     border-color: rgb(169 157 224 / 0.16);
   }
-  .wf-wall__noposter {
+  .wf-fame__noposter {
     display: grid;
     place-items: center;
     height: 100%;
@@ -128,7 +125,7 @@
   }
 
   /* the caption, over the bottom of the poster */
-  .wf-wall__cap {
+  .wf-fame__cap {
     position: absolute;
     inset: auto 0 0;
     z-index: 1;
@@ -144,7 +141,7 @@
     );
     pointer-events: none;
   }
-  .wf-wall .wf-seen__title {
+  .wf-fame .wf-seen__title {
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
@@ -152,72 +149,72 @@
     font-size: 13px;
     line-height: 1.2;
   }
-  .wf-wall .wf-seen__meta {
+  .wf-fame .wf-seen__meta {
     font-size: 11px;
     color: var(--color-lilac);
   }
-  .wf-wall .wf-seen__off {
+  .wf-fame .wf-seen__off {
     justify-self: start;
     padding: 1px 6px;
     font-size: 10px;
   }
   /* a mouse: the caption rises on hover or keyboard focus */
   @media (hover: hover) and (pointer: fine) {
-    .wf-wall__cap {
+    .wf-fame__cap {
       opacity: 0;
       translate: 0 6px;
       transition:
         opacity 0.25s,
         translate 0.25s;
     }
-    .wf-wall__tile:hover .wf-wall__cap,
-    .wf-wall__tile:focus-visible .wf-wall__cap {
+    .wf-fame__tile:hover .wf-fame__cap,
+    .wf-fame__tile:focus-visible .wf-fame__cap {
       opacity: 1;
       translate: 0 0;
     }
   }
   /* touch: just the title, always on */
   @media not ((hover: hover) and (pointer: fine)) {
-    .wf-wall__cap {
+    .wf-fame__cap {
       padding: 22px 7px 6px;
     }
-    .wf-wall__cap .wf-seen__meta,
-    .wf-wall__cap .wf-seen__off {
+    .wf-fame__cap .wf-seen__meta,
+    .wf-fame__cap .wf-seen__off {
       display: none;
     }
-    .wf-wall .wf-seen__title {
+    .wf-fame .wf-seen__title {
       font-size: 11px;
     }
   }
 
   /* a short wave as the wall comes in */
   @media (prefers-reduced-motion: no-preference) {
-    .wf-wall > li {
-      animation: wf-wall-in 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    .wf-fame > li {
+      animation: wf-fame-in 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
     }
-    .wf-wall > li:nth-child(8n + 2) {
+    .wf-fame > li:nth-child(8n + 2) {
       animation-delay: 30ms;
     }
-    .wf-wall > li:nth-child(8n + 3) {
+    .wf-fame > li:nth-child(8n + 3) {
       animation-delay: 60ms;
     }
-    .wf-wall > li:nth-child(8n + 4) {
+    .wf-fame > li:nth-child(8n + 4) {
       animation-delay: 90ms;
     }
-    .wf-wall > li:nth-child(8n + 5) {
+    .wf-fame > li:nth-child(8n + 5) {
       animation-delay: 120ms;
     }
-    .wf-wall > li:nth-child(8n + 6) {
+    .wf-fame > li:nth-child(8n + 6) {
       animation-delay: 150ms;
     }
-    .wf-wall > li:nth-child(8n + 7) {
+    .wf-fame > li:nth-child(8n + 7) {
       animation-delay: 180ms;
     }
-    .wf-wall > li:nth-child(8n + 8) {
+    .wf-fame > li:nth-child(8n + 8) {
       animation-delay: 210ms;
     }
   }
-  @keyframes wf-wall-in {
+  @keyframes wf-fame-in {
     from {
       opacity: 0;
       translate: 0 10px;

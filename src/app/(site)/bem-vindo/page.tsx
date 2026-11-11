@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { OnboardingForm } from '@/components/account/OnboardingForm';
-import { card, container, heading } from '@/components/ui/styles';
+import { card, heading } from '@/components/ui/styles';
 import { getCurrentSession } from '@/server/auth/current';
 import { safeReturnTo } from '@/server/security/return-to';
 
@@ -17,7 +17,7 @@ export default async function BemVindoPage({ searchParams }: Props) {
   if (ctx.user.username) redirect(next);
 
   return (
-    <div className={`${container} py-10 md:py-16`}>
+    <div className="wf-page wf-page--narrow">
       <div className={`${card} mx-auto max-w-2xl space-y-6`}>
         <h1 className={heading.h1}>Bem-vindo!</h1>
         <p className="text-fg/90">

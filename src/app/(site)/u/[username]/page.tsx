@@ -5,7 +5,7 @@ import { Avatar } from '@/components/Avatar';
 import { AchievementBadges } from '@/components/community/AchievementBadges';
 import { RabinhoViolet } from '@/components/brand/generated';
 import { ReviewList } from '@/components/reviews/ReviewList';
-import { card, container, heading } from '@/components/ui/styles';
+import { card, heading } from '@/components/ui/styles';
 import { formatMonthYear } from '@/lib/format';
 import { getCurrentSession } from '@/server/auth/current';
 import { achievementsFor } from '@/server/community/achievements';
@@ -28,7 +28,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 /**
  * Public profile (03 §5.4): username, avatar, joined month, badges (2026-11-04, unless the viewer
- * turned them off) and visible reviews — never e-mail.
+ * turned them off) and visible reviews — never e-mail. Same column as /perfil (`wf-page--narrow`,
+ * 2026-11-11): the page clears the floating header and lines up with the rest of the site.
  */
 export default async function PerfilPublicoPage({ params }: Props) {
   const raw = (await params).username;
@@ -43,9 +44,9 @@ export default async function PerfilPublicoPage({ params }: Props) {
   const earned = badges.filter((b) => b.earned);
 
   return (
-    <div className={`${container} py-10 md:py-14`}>
+    <div className="wf-page wf-page--narrow space-y-8">
       <section
-        className={`${card} mx-auto flex max-w-3xl flex-col items-center gap-4 text-center sm:flex-row sm:text-left`}
+        className={`${card} flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left`}
       >
         <Avatar avatarKey={profile.avatarKey} size={96} alt={`Avatar de @${profile.username}`} />
         <div>
@@ -57,7 +58,7 @@ export default async function PerfilPublicoPage({ params }: Props) {
         </div>
       </section>
       {earned.length ? (
-        <section aria-labelledby="conquistas" className="mx-auto mt-8 max-w-3xl">
+        <section aria-labelledby="conquistas">
           <div className="flex flex-wrap items-baseline justify-between gap-3">
             <h2 id="conquistas" className={heading.h2}>
               Conquistas
@@ -72,7 +73,7 @@ export default async function PerfilPublicoPage({ params }: Props) {
           <AchievementBadges items={earned} labelledBy="conquistas" />
         </section>
       ) : null}
-      <section aria-labelledby="avaliacoes" className="mx-auto mt-8 max-w-3xl">
+      <section aria-labelledby="avaliacoes">
         <h2 id="avaliacoes" className={`${heading.h2} mb-4 flex items-center gap-3`}>
           <RabinhoViolet aria-hidden className="h-8 w-auto" />
           Avaliações

@@ -4,7 +4,7 @@
  */
 import { mkdirSync } from 'node:fs';
 import { expect, type Page, test } from '@playwright/test';
-import { seedUser, signIn } from './support/seed';
+import { seedUser, signIn, withDb } from './support/seed';
 
 const SHOTS = 'test-results/showcase';
 mkdirSync(SHOTS, { recursive: true });
@@ -63,29 +63,31 @@ test('tilt: a catalog card leans toward the mouse and settles back (never on tou
   expect(problems).toEqual([]);
 });
 
-test('assistidos: an edge-to-edge poster wall with the title on hover (always on touch)', async ({
+test('assistidos: a poster wall inside the page column, title on hover (always on touch)', async ({
   page,
 }, info) => {
   await page.goto('/assistidos');
-  await expect(page.locator('.wf-wall__stat strong').first()).toHaveText(/^\d[\d.]*$/);
-  await expect(page.locator('.wf-wall__stat')).toContainText('títulos');
-  await expect(page.locator('.wf-wall__stat')).toContainText('juntos na live');
+  await expect(page.locator('.wf-fame__stat strong').first()).toHaveText(/^\d[\d.]*$/);
+  await expect(page.locator('.wf-fame__stat')).toContainText('títulos');
+  await expect(page.locator('.wf-fame__stat')).toContainText('juntos na live');
   const wall = page.getByRole('list', { name: 'Parede de pôsteres dos títulos assistidos' });
   await expect(wall).toBeVisible();
-  const tile = wall.locator('.wf-wall__tile').first();
-  const cap = tile.locator('.wf-wall__cap');
+  const tile = wall.locator('.wf-fame__tile').first();
+  const cap = tile.locator('.wf-fame__cap');
   await expect(tile.locator('img')).toHaveAttribute('src', /^\/media\//);
   // the poster fills its column at 2:3 (an aspect-ratio box once shrank to the row's height)
   const size = await tile.evaluate((t) => {
-    const p = t.querySelector('.wf-wall__poster')!.getBoundingClientRect();
+    const p = t.querySelector('.wf-fame__poster')!.getBoundingClientRect();
     return { tile: t.getBoundingClientRect().width, w: p.width, h: p.height };
   });
   expect(size.w).toBeGreaterThan(size.tile - 2);
   expect(size.h / size.w).toBeCloseTo(1.5, 1);
-  const viewport = page.viewportSize()!;
+  // inside the page column: lines up with the title above it, never wider than the column
   const wallBox = (await wall.boundingBox())!;
-  // spans the window, wider than the page column above it
-  expect(wallBox.width).toBeGreaterThan(viewport.width - 64);
+  const h1 = (await page.getByRole('heading', { level: 1, name: 'Assistidos' }).boundingBox())!;
+  const column = (await page.locator('.wf-page').boundingBox())!;
+  expect(Math.abs(wallBox.x - h1.x)).toBeLessThan(2);
+  expect(wallBox.x + wallBox.width).toBeLessThanOrEqual(column.x + column.width + 1);
   if (isPhone(info.project.name)) {
     await expect(cap.locator('.wf-seen__title')).toBeVisible();
     await expect(cap.locator('.wf-seen__meta').first()).toBeHidden();
@@ -150,4 +152,58 @@ test('perfil: the membership card with tier, numbers and member number', async (
   } finally {
     await ctx.close();
   }
+});
+
+/**
+ * Regressions of 2026-11-11. /apoiadores: the Assistidos wall once took over its `wf-wall` classes
+ * and squeezed each card into a 120 px column (one letter per line) — the seed has no opted-in
+ * sponsor, so nothing caught it. /u/<name>: the page sat under the floating header, off the column.
+ */
+test('apoiadores: a supporter card keeps its layout (poster beside the text, names in a row)', async ({
+  page,
+}, info) => {
+  const id = await withDb(async (c) => {
+    const r = await c.query<{ id: string }>(
+      `UPDATE "Order" SET "wallOptIn" = true WHERE id = (
+         SELECT id FROM "Order" WHERE "showSponsorName" AND "userId" IS NOT NULL
+           AND status IN ('PAID','SCHEDULED','WATCHING','COMPLETED') ORDER BY "paidAt" LIMIT 1)
+       RETURNING id`,
+    );
+    return r.rows[0]!.id;
+  });
+  try {
+    await page.goto('/apoiadores');
+    const card = page.locator('.wf-wall__card').first();
+    await expect(card).toBeVisible();
+    const box = await card.evaluate((el) => {
+      const r = (s: string) => el.querySelector(s)!.getBoundingClientRect();
+      return {
+        card: el.getBoundingClientRect().width,
+        title: r('.wf-wall__title'),
+        name: r('.wf-wall__names li'),
+      };
+    });
+    // the text column is a real column, not a sliver
+    expect(box.title.width).toBeGreaterThan(100); // was ~10-20 px when broken
+    // a name chip is wider than tall: letters run left to right
+    expect(box.name.width).toBeGreaterThan(box.name.height);
+    await page.screenshot({ path: `${SHOTS}/apoiadores-${info.project.name}.png` });
+  } finally {
+    await withDb((c) => c.query(`UPDATE "Order" SET "wallOptIn" = false WHERE id = $1`, [id]));
+  }
+});
+
+test('public profile: clears the header and uses the same column as /perfil', async ({
+  page,
+}, info) => {
+  const v = await seedUser();
+  await page.goto(`/u/${v.username}`);
+  const name = page.getByRole('heading', { level: 1, name: `@${v.username}` });
+  await expect(name).toBeVisible();
+  const header = (await page.locator('.wf-header__inner').boundingBox())!;
+  const card = (await page.locator('.wf-page > section').first().boundingBox())!;
+  // below the floating header, not under it
+  expect(card.y).toBeGreaterThan(header.y + header.height);
+  await expect(page.locator('.wf-page.wf-page--narrow')).toHaveCount(1);
+  await page.screenshot({ path: `${SHOTS}/public-profile-${info.project.name}.png` });
 });

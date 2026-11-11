@@ -46,10 +46,9 @@ function hrefFor(tipo: string | null, q: string): string {
  * /assistidos (2026-11-01): everything already watched on stream, newest first, with a filter
  * per kind (plain links, no script) and (2026-11-03) a search by name — a plain GET form, so it
  * works without JavaScript. Each card opens the title's page, where the reviews are.
- * Poster wall of fame (2026-11-11): the titles are a dense, edge-to-edge mosaic of posters under a
- * "N títulos · X h juntos na live" headline; the title, kind and date show over the poster on hover
- * or keyboard focus (on touch screens the title is always on it). The header keeps the page
- * width; the wall is its sibling so it can span the whole window without 100vw overflow.
+ * Poster wall of fame (2026-11-11): the titles are a dense grid of posters, inside the page column,
+ * under a "N títulos · X h juntos na live" headline; the title, kind and date show over the poster
+ * on hover or keyboard focus (on touch screens the title is always on it).
  */
 export default async function AssistidosPage({ searchParams }: Props) {
   const params = await searchParams;
@@ -61,112 +60,110 @@ export default async function AssistidosPage({ searchParams }: Props) {
     watchProgress(),
   ]);
   return (
-    <>
-      <div className="wf-page wf-seen wf-seen--wall-head">
-        <h1 className="wf-h1">Assistidos</h1>
-        <p className="wf-wall__stat">
-          <span>
-            <strong>{num.format(progress.watched.total)}</strong>{' '}
-            {progress.watched.total === 1 ? 'título' : 'títulos'}
-          </span>
-          <span aria-hidden="true" className="wf-wall__dot">
-            ·
-          </span>
-          <span>
-            <strong>{hoursMinutes(progress.minutes.total)}</strong> juntos na live
-          </span>
-        </p>
-        <p className="wf-seen__intro">
-          A nossa parede da fama: tudo o que já passou na live. Os marcados “fora da live” a Iara
-          assistiu por conta própria. Abra um pôster para ler as avaliações ou deixar a sua.
-        </p>
-        <form className="wf-seen__search" role="search" action="/assistidos" method="get">
-          {filter.tipo ? <input type="hidden" name="tipo" value={filter.tipo} /> : null}
-          <div className="wf-searchbar">
-            <label className="sr-only" htmlFor="busca-assistidos">
-              Buscar nos assistidos
-            </label>
-            <input
-              id="busca-assistidos"
-              className="wf-searchbar__input"
-              type="search"
-              name="q"
-              defaultValue={q}
-              placeholder="Buscar…"
-              maxLength={SEARCH_MAX}
-              autoComplete="off"
-              enterKeyHint="search"
-            />
-            <button type="submit" className="wf-searchbar__go">
-              <IconSearch />
-              <span className="sr-only">Buscar</span>
-            </button>
-          </div>
-          {searching ? (
-            <Link href={hrefFor(filter.tipo, '')} className="wf-btn wf-btn--ghost wf-btn--sm">
-              Limpar
-            </Link>
-          ) : null}
-        </form>
-        <nav className="wf-seg wf-seen__filter" aria-label="Filtrar por tipo">
-          {FILTERS.map((f) => (
-            <Link
-              key={f.label}
-              href={hrefFor(f.tipo, searching ? q : '')}
-              className={f === filter ? 'is-on' : ''}
-              aria-current={f === filter ? 'page' : undefined}
-            >
-              {f.label}
-            </Link>
-          ))}
-        </nav>
+    <div className="wf-page wf-seen">
+      <h1 className="wf-h1">Assistidos</h1>
+      <p className="wf-fame__stat">
+        <span>
+          <strong>{num.format(progress.watched.total)}</strong>{' '}
+          {progress.watched.total === 1 ? 'título' : 'títulos'}
+        </span>
+        <span aria-hidden="true" className="wf-fame__dot">
+          ·
+        </span>
+        <span>
+          <strong>{hoursMinutes(progress.minutes.total)}</strong> juntos na live
+        </span>
+      </p>
+      <p className="wf-seen__intro">
+        A nossa parede da fama: tudo o que já passou na live. Os marcados “fora da live” a Iara
+        assistiu por conta própria. Abra um pôster para ler as avaliações ou deixar a sua.
+      </p>
+      <form className="wf-seen__search" role="search" action="/assistidos" method="get">
+        {filter.tipo ? <input type="hidden" name="tipo" value={filter.tipo} /> : null}
+        <div className="wf-searchbar">
+          <label className="sr-only" htmlFor="busca-assistidos">
+            Buscar nos assistidos
+          </label>
+          <input
+            id="busca-assistidos"
+            className="wf-searchbar__input"
+            type="search"
+            name="q"
+            defaultValue={q}
+            placeholder="Buscar…"
+            maxLength={SEARCH_MAX}
+            autoComplete="off"
+            enterKeyHint="search"
+          />
+          <button type="submit" className="wf-searchbar__go">
+            <IconSearch />
+            <span className="sr-only">Buscar</span>
+          </button>
+        </div>
         {searching ? (
-          <p className="wf-seen__count" role="status">
-            {items.length
-              ? `${items.length} ${items.length === 1 ? 'resultado' : 'resultados'} para “${q}”.`
-              : `Nenhum título assistido encontrado para “${q}”.`}
-          </p>
+          <Link href={hrefFor(filter.tipo, '')} className="wf-btn wf-btn--ghost wf-btn--sm">
+            Limpar
+          </Link>
         ) : null}
-        {items.length ? null : searching ? (
-          <p className="wf-seen__intro">
-            Confira a grafia ou{' '}
-            <Link href={hrefFor(filter.tipo, '')} className="underline">
-              limpe a busca
-            </Link>
-            .
-          </p>
-        ) : (
-          <p className="wf-seen__intro">
-            {filter.kind ? 'Nada deste tipo foi assistido ainda.' : 'Nada foi assistido ainda.'}{' '}
-            <Link href="/" className="underline">
-              Patrocine um filme
-            </Link>{' '}
-            para ele entrar na próxima live.
-          </p>
-        )}
-      </div>
+      </form>
+      <nav className="wf-seg wf-seen__filter" aria-label="Filtrar por tipo">
+        {FILTERS.map((f) => (
+          <Link
+            key={f.label}
+            href={hrefFor(f.tipo, searching ? q : '')}
+            className={f === filter ? 'is-on' : ''}
+            aria-current={f === filter ? 'page' : undefined}
+          >
+            {f.label}
+          </Link>
+        ))}
+      </nav>
+      {searching ? (
+        <p className="wf-seen__count" role="status">
+          {items.length
+            ? `${items.length} ${items.length === 1 ? 'resultado' : 'resultados'} para “${q}”.`
+            : `Nenhum título assistido encontrado para “${q}”.`}
+        </p>
+      ) : null}
+      {items.length ? null : searching ? (
+        <p className="wf-seen__intro">
+          Confira a grafia ou{' '}
+          <Link href={hrefFor(filter.tipo, '')} className="underline">
+            limpe a busca
+          </Link>
+          .
+        </p>
+      ) : (
+        <p className="wf-seen__intro">
+          {filter.kind ? 'Nada deste tipo foi assistido ainda.' : 'Nada foi assistido ainda.'}{' '}
+          <Link href="/" className="underline">
+            Patrocine um filme
+          </Link>{' '}
+          para ele entrar na próxima live.
+        </p>
+      )}
       {items.length ? (
-        <ul className="wf-wall" aria-label="Parede de pôsteres dos títulos assistidos">
+        <ul className="wf-fame" aria-label="Parede de pôsteres dos títulos assistidos">
           {items.map((it) => (
             <li key={it.id}>
               <Link
                 href={`/${KIND_PATH[it.kind]}/${it.slug}`}
-                className="wf-seen__card wf-wall__tile"
+                className="wf-seen__card wf-fame__tile"
                 prefetch={false}
                 data-tilt="6"
               >
-                <span className="wf-seen__poster wf-wall__poster" aria-hidden="true">
+                <span className="wf-seen__poster wf-fame__poster" aria-hidden="true">
                   {it.poster ? (
                     <MediaPicture
                       picture={it.poster}
                       alt=""
-                      sizes="(max-width: 480px) 33vw, (max-width: 1280px) 14vw, 160px"
+                      sizes="(max-width: 480px) 33vw, (max-width: 1280px) 15vw, 180px"
                     />
                   ) : (
-                    <span className="wf-wall__noposter">{it.title}</span>
+                    <span className="wf-fame__noposter">{it.title}</span>
                   )}
                 </span>
-                <span className="wf-wall__cap">
+                <span className="wf-fame__cap">
                   <span className="wf-seen__title">{it.title}</span>
                   <span className="wf-seen__meta">
                     {KIND_PT[it.kind]}
@@ -183,6 +180,6 @@ export default async function AssistidosPage({ searchParams }: Props) {
           ))}
         </ul>
       ) : null}
-    </>
+    </div>
   );
 }

@@ -57,6 +57,15 @@ test('ken burns: the backdrop slowly pans (one of four), and stays still with re
   const img = art.locator('img');
   await expect(img).toHaveCount(1);
   expect(await img.evaluate((el) => getComputedStyle(el).animationName)).toBe(`wf-kb-${kb}`);
+  // the zoomed picture is clipped to the backdrop box (an unclipped one showed a raw strip under
+  // the shade), and right below the box the page is the plain ink colour again
+  expect(await art.evaluate((el) => getComputedStyle(el).overflow)).toBe('hidden');
+  await page.waitForTimeout(1500);
+  const box = (await art.boundingBox())!;
+  await page.screenshot({
+    path: `${SHOTS}/kenburns-${test.info().project.name}.png`,
+    clip: { x: 0, y: 0, width: page.viewportSize()!.width, height: box.y + box.height + 80 },
+  });
   // the same title always gets the same pan
   await page.reload();
   expect(await art.getAttribute('data-kb')).toBe(kb);

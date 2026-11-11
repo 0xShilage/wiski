@@ -79,6 +79,7 @@ export default async function AvaliacoesPage() {
                       : '#assistidos'
                   }
                   className="wf-scard"
+                  data-tilt
                 >
                   <div className="wf-scard__poster">
                     <MediaPicture

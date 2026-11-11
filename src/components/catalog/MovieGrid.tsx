@@ -54,7 +54,12 @@ export function MovieGrid({
         <ul className="wf-grid wf-grid--movies list-none p-0">
           {shown.map((m) => (
             <li key={m.id} className="flex">
-              <Link href={`/filmes/${m.slug}`} className="wf-scard w-full" prefetch={false}>
+              <Link
+                href={`/filmes/${m.slug}`}
+                className="wf-scard w-full"
+                prefetch={false}
+                data-tilt
+              >
                 <div className="wf-scard__poster">
                   <MediaPicture
                     picture={m.poster}

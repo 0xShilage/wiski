@@ -163,6 +163,17 @@ export async function cronograma(now = new Date()): Promise<CronogramaDay[]> {
   return [...days.values()];
 }
 
+/**
+ * The Cronograma page's data and the clock it was computed at (2026-11-11): the "Em breve"
+ * countdown starts from this same instant, so the server's HTML and the browser's first render
+ * agree.
+ */
+export async function cronogramaAt(
+  now = new Date(),
+): Promise<{ now: number; days: CronogramaDay[] }> {
+  return { now: now.getTime(), days: await cronograma(now) };
+}
+
 const whenFmt = new Intl.DateTimeFormat('pt-BR', {
   timeZone: 'America/Sao_Paulo',
   weekday: 'short',

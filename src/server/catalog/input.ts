@@ -109,6 +109,11 @@ export const saveItemInput = z
   .object({ expectedVersion: z.int().min(0), fields: itemFieldsInput })
   .strict();
 
+/** "Registrar como assistido (fora da live)" (2026-11-10): a draft Iara watched by herself. */
+export const watchedOffStreamInput = z
+  .object({ expectedVersion: z.int().min(0), watchedOn: z.iso.date().nullable() })
+  .strict();
+
 export const versionInput = z.object({ expectedVersion: z.int().min(0) }).strict();
 
 export const publishInput = z

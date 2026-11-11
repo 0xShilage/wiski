@@ -93,6 +93,7 @@ function toPublic(row: PublicRow, now: Date): PublicItem {
     logo: pictureFrom(row.logo),
     state,
     watchedAt: row.watchedAt?.toISOString() ?? null,
+    offStream: row.offStream,
     priceCents:
       row.kind === 'MOVIE' ? movieListPriceCents(row.runtimeMinutes, row.manualPriceCents) : null,
     manualPrice: row.kind === 'MOVIE' && row.manualPriceCents !== null,

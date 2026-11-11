@@ -19,10 +19,11 @@ const sum = (k: PerKind) => k.MOVIE + k.SERIES + k.FRANCHISE;
 
 export async function watchProgress(): Promise<WatchProgress> {
   const [watchedRows, movieQueue, campaignQueue] = await Promise.all([
-    // watchedAt survives archiving (a replaced slot still counts as watched)
+    // watchedAt survives archiving (a replaced slot still counts as watched); titles Iara logged
+    // as watched off stream are not part of the live progress
     db().catalogItem.groupBy({
       by: ['kind'],
-      where: { watchedAt: { not: null } },
+      where: { watchedAt: { not: null }, offStream: false },
       _count: { _all: true },
       _sum: { runtimeMinutes: true },
     }),

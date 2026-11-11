@@ -1487,6 +1487,18 @@ html:has(.wf-overlay) .skip-link {
     font-size: 13px;
     color: var(--fg-78);
   }
+  /* "fora da live" (2026-11-10): titles Iara watched by herself, logged by hand */
+  .wf-seen__off {
+    align-self: start;
+    margin-top: 2px;
+    padding: 2px 8px;
+    border: 1px solid rgb(169 157 224 / 0.45);
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--color-lilac);
+  }
 
   /* Fila (2026-11-09): the position on the poster, "Passando agora" highlighted */
   .wf-fila .wf-seen__poster {

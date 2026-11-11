@@ -483,9 +483,28 @@ describe('payload sanitisation (exit criterion)', () => {
     ).toBe(false);
   });
 
-  it('queue snapshot never exceeds 5 items', async () => {
-    for (let i = 0; i < 7; i++) await paidMovie();
-    const e = (await queueSnapshot()) as { items: unknown[] };
+  it('queue snapshot follows the cronograma, not the unscheduled queue, capped at 5', async () => {
+    const s = await makeSession({ status: 'LIVE' });
+    // 7 scheduled on the live session → the 5 nearest show
+    for (let i = 0; i < 7; i++) {
+      const { order } = await paidMovie();
+      await db().order.update({
+        where: { id: order.id },
+        data: { status: 'SCHEDULED', sessionId: s.id, scheduledAt: new Date() },
+      });
+    }
+    // and two paid-but-unscheduled movies (the Fila tab) that must NOT appear
+    const loose = await paidMovie({ title: 'Solto na fila' });
+    await paidMovie({ title: 'Outro solto' });
+    const e = (await queueSnapshot()) as { items: { title: string }[] };
     expect(e.items).toHaveLength(5);
+    expect(e.items.map((i) => i.title)).not.toContain('Solto na fila');
+    expect(loose.order.status).toBe('PAID');
+  });
+
+  it('queue snapshot is empty when nothing is scheduled, even with a full queue', async () => {
+    for (let i = 0; i < 3; i++) await paidMovie();
+    const e = (await queueSnapshot()) as { items: unknown[] };
+    expect(e.items).toHaveLength(0);
   });
 });

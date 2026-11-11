@@ -273,7 +273,7 @@ export function LinksPanel({ initial }: { initial: AdminLink[] }) {
 
 // ── Suggestions ───────────────────────────────────────────────────────────────
 
-type Status = 'NEW' | 'ACCEPTED' | 'DISMISSED';
+type Status = 'NEW' | 'ACCEPTED' | 'DISMISSED' | 'WATCHED';
 export type AdminSuggestion = {
   id: string;
   kind: 'MOVIE' | 'SERIES' | 'FRANCHISE' | 'ANIME';
@@ -309,7 +309,9 @@ export function SuggestionsBoard({ initial }: { initial: Page }) {
         ? 'Sugestão aceita'
         : to === 'DISMISSED'
           ? 'Sugestão dispensada'
-          : 'Reaberta',
+          : to === 'WATCHED'
+            ? 'Marcada como já assistida'
+            : 'Reaberta',
       `/api/v1/admin/suggestions/${s.id}`,
       { method: 'PATCH', body: { status: to, expectedStatus: s.status } },
     );
@@ -324,6 +326,7 @@ export function SuggestionsBoard({ initial }: { initial: Page }) {
           [
             ['NEW', `Novas${page.waiting ? ` (${page.waiting})` : ''}`],
             ['ACCEPTED', 'Aceitas'],
+            ['WATCHED', 'Já assistidas'],
             ['DISMISSED', 'Dispensadas'],
           ] as const
         ).map(([v, l]) => (
@@ -371,6 +374,16 @@ export function SuggestionsBoard({ initial }: { initial: Page }) {
                   onClick={() => void decide(s, 'ACCEPTED')}
                 >
                   Aceitar
+                </button>
+              ) : null}
+              {s.status !== 'WATCHED' ? (
+                <button
+                  type="button"
+                  className="wf-btn wf-btn--sm wf-btn--ghost"
+                  disabled={busy}
+                  onClick={() => void decide(s, 'WATCHED')}
+                >
+                  Já assistido
                 </button>
               ) : null}
               {s.status !== 'DISMISSED' ? (

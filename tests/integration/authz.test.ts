@@ -127,6 +127,10 @@ export const MATRIX: Row[] = [
     params: { id: NO_ID },
     body: VERSION0,
   }),
+  R('/api/v1/admin/catalog/items/[id]/watched-offstream', 'POST', 'moderator', {
+    params: { id: NO_ID },
+    body: { expectedVersion: 0, watchedOn: null },
+  }),
   R('/api/v1/admin/catalog/slots', 'PUT', 'moderator', {
     body: { kind: 'MOVIE', slots: [{ id: NO_ID, slot: 1 }] },
   }),

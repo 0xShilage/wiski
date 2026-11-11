@@ -7,6 +7,8 @@ import { db } from '@/server/db';
 import { cleanLinkUrl, platformOf } from '@/lib/links';
 import { publicLinks } from '@/server/links/links';
 import { watchProgress } from '@/server/catalog/progress';
+import { watchedTitles } from '@/server/catalog/read';
+import { POST as watchedOffStreamRoute } from '@/app/api/v1/admin/catalog/items/[id]/watched-offstream/route';
 import { purgeSuggestions, titleKeyOf } from '@/server/suggestions/suggestions';
 import { eraseMyAccount, exportMyData } from '@/server/users/lgpd';
 import { GET as linksRoute, POST as linkCreateRoute } from '@/app/api/v1/admin/links/route';
@@ -280,6 +282,35 @@ describe('suggestions', () => {
     expect(accepted.json.suggestions).toEqual([]);
   });
 
+  it('a moderator can mark a suggestion "Já assistido"', async () => {
+    const mod = await as('MODERATOR');
+    const v = await as('USER');
+    await suggest(v, { kind: 'MOVIE', title: 'Carros 2' });
+    const rows = (await hit(suggestionsRoute, 'GET', '/api/v1/admin/suggestions', { who: mod }))
+      .json.suggestions as { id: string; title: string }[];
+    const target = rows.find((r) => r.title === 'Carros 2')!;
+    const r = await hit(suggestionPatchRoute, 'PATCH', '', {
+      who: mod,
+      params: { id: target.id },
+      body: { status: 'WATCHED', expectedStatus: 'NEW' },
+    });
+    expect(r.res.status).toBe(200);
+    expect(await db().suggestion.findUniqueOrThrow({ where: { id: target.id } })).toMatchObject({
+      status: 'WATCHED',
+      reviewedById: mod.user.id,
+    });
+    const log = await db().auditLog.findFirstOrThrow({
+      where: { action: 'suggestion.status', targetId: target.id },
+    });
+    expect(log.metadata).toMatchObject({ to: 'WATCHED' });
+    const watched = await hit(suggestionsRoute, 'GET', '/api/v1/admin/suggestions?status=WATCHED', {
+      who: mod,
+    });
+    expect((watched.json.suggestions as { title: string }[]).map((s) => s.title)).toContain(
+      'Carros 2',
+    );
+  });
+
   it('LGPD: export lists them, erase deletes them, decided ones go after 12 months', async () => {
     const v = await as('USER');
     await suggest(v, { kind: 'MOVIE', title: 'Coraline' });
@@ -365,5 +396,65 @@ describe('progress block', () => {
     // leave no planned live behind for the other suites
     await clearCatalog();
     await db().streamSession.delete({ where: { id: live.id } });
+  });
+});
+
+describe('off-stream watched (2026-11-10)', () => {
+  beforeEach(async () => {
+    await clearCatalog();
+    resetSlots();
+  });
+
+  it('registers a draft Iara watched by herself: it reaches Assistidos but not the live progress', async () => {
+    const mod = await as('MODERATOR');
+    const draft = await makeItem({
+      kind: 'MOVIE',
+      status: 'DRAFT',
+      title: 'Carros 2',
+      runtimeMinutes: 106,
+    });
+    const r = await hit(watchedOffStreamRoute, 'POST', '', {
+      who: mod,
+      params: { id: draft.id },
+      body: { expectedVersion: draft.version, watchedOn: '2026-10-20' },
+    });
+    expect(r.res.status).toBe(200);
+    const row = await db().catalogItem.findUniqueOrThrow({ where: { id: draft.id } });
+    expect(row).toMatchObject({ status: 'WATCHED', offStream: true });
+    expect(row.watchedAt).not.toBeNull();
+    expect(row.slot).toBeNull();
+    // shows in Assistidos, tagged "fora da live"
+    const seen = await watchedTitles(undefined, null);
+    expect(seen.find((t) => t.id === draft.id)).toMatchObject({
+      offStream: true,
+      title: 'Carros 2',
+    });
+    // but is kept out of the live progress counts
+    expect((await watchProgress()).watched.total).toBe(0);
+    // audited
+    const log = await db().auditLog.findFirstOrThrow({
+      where: { action: 'catalog.watched', targetId: draft.id },
+    });
+    expect(log.metadata).toMatchObject({ offStream: true });
+    await clearCatalog();
+  });
+
+  it('only a draft, and not with a future date', async () => {
+    const mod = await as('MODERATOR');
+    const active = await makeItem({ kind: 'MOVIE', status: 'ACTIVE', slot: 1 });
+    const bad = await hit(watchedOffStreamRoute, 'POST', '', {
+      who: mod,
+      params: { id: active.id },
+      body: { expectedVersion: active.version, watchedOn: null },
+    });
+    expect(bad.res.status).toBe(409); // INVALID_STATE: not a draft
+    const draft = await makeItem({ kind: 'MOVIE', status: 'DRAFT' });
+    const future = await hit(watchedOffStreamRoute, 'POST', '', {
+      who: mod,
+      params: { id: draft.id },
+      body: { expectedVersion: draft.version, watchedOn: '2099-01-01' },
+    });
+    expect(future.res.status).toBe(409); // INVALID_STATE: future date
+    await clearCatalog();
   });
 });

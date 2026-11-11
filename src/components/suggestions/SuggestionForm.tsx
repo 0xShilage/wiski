@@ -3,7 +3,7 @@ import { useId, useState } from 'react';
 import { apiFetch, type Problem } from '@/lib/api-fetch';
 
 type Kind = 'MOVIE' | 'SERIES' | 'FRANCHISE' | 'ANIME';
-type Status = 'NEW' | 'ACCEPTED' | 'DISMISSED';
+type Status = 'NEW' | 'ACCEPTED' | 'DISMISSED' | 'WATCHED';
 export type Mine = {
   id: string;
   kind: Kind;
@@ -22,6 +22,7 @@ const KIND_PT: Record<Kind, string> = {
 const STATUS_PT: Record<Status, string> = {
   NEW: 'Esperando',
   ACCEPTED: 'Aceita',
+  WATCHED: 'Já assistida',
   DISMISSED: 'Não desta vez',
 };
 const date = new Intl.DateTimeFormat('pt-BR', {
@@ -171,9 +172,11 @@ export function SuggestionForm({ initial }: { initial: Mine[] }) {
                   className={
                     m.status === 'ACCEPTED'
                       ? 'wf-pill wf-pill--ok'
-                      : m.status === 'DISMISSED'
-                        ? 'wf-pill'
-                        : 'wf-pill wf-pill--warn'
+                      : m.status === 'WATCHED'
+                        ? 'wf-pill wf-pill--ok'
+                        : m.status === 'DISMISSED'
+                          ? 'wf-pill'
+                          : 'wf-pill wf-pill--warn'
                   }
                 >
                   {STATUS_PT[m.status]}

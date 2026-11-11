@@ -558,6 +558,60 @@ export async function markWatched(ctx: Ctx, id: string, now = new Date()) {
 }
 
 /**
+ * "Registrar como assistido (fora da live)" (2026-11-10): a DRAFT title Iara watched by herself,
+ * off stream, goes straight to Assistidos — no slot, no order, no sponsor. `offStream` keeps it
+ * out of the live progress counts and tags it on the page. The watched date may be in the past.
+ */
+export async function registerWatchedOffStream(
+  ctx: Ctx,
+  id: string,
+  expectedVersion: number,
+  watchedOn: Date | null,
+  now = new Date(),
+) {
+  const item = await db().catalogItem.findUnique({
+    where: { id },
+    select: { kind: true, status: true, version: true, publishedAt: true },
+  });
+  if (!item) throw Problems.notFound();
+  if (item.status !== 'DRAFT') {
+    throw CatalogProblems.invalidState(
+      'Só um rascunho pode ser registrado como assistido fora da live.',
+    );
+  }
+  const at = watchedOn ?? now;
+  if (at.getTime() > now.getTime() + 60_000) {
+    throw CatalogProblems.invalidState('A data em que assistiu não pode ser no futuro.');
+  }
+  return tx(item.kind, async (t) => {
+    const res = await t.catalogItem.updateMany({
+      where: { id, version: expectedVersion, status: 'DRAFT' },
+      // the slot guard trigger clears any planned slot on the way to WATCHED; a never-published
+      // draft needs a publishedAt for the lifecycle-times check
+      data: {
+        status: 'WATCHED',
+        watchedAt: at,
+        offStream: true,
+        publishedAt: item.publishedAt ?? at,
+      },
+    });
+    if (res.count !== 1) throw CatalogProblems.versionConflict(item.version);
+    await audit(
+      {
+        action: 'catalog.watched',
+        actor: ctx.actor,
+        requestId: ctx.requestId,
+        targetType: 'CatalogItem',
+        targetId: id,
+        metadata: { kind: item.kind, offStream: true },
+      },
+      t,
+    );
+    return t.catalogItem.findUniqueOrThrow({ where: { id } });
+  });
+}
+
+/**
  * "Desmarcar assistido" (2026-11-09): the title goes back to where it was before it was marked
  * watched (its order or campaign back in the queue); see `uncompleteInTx`.
  */

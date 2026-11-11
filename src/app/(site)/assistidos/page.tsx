@@ -59,10 +59,10 @@ export default async function AssistidosPage({ searchParams }: Props) {
     <div className="wf-page wf-seen">
       <h1 className="wf-h1">Assistidos</h1>
       <p className="wf-seen__intro">
-        Tudo o que já passou na live: {progress.watched.total}{' '}
+        Já passaram na live {progress.watched.total}{' '}
         {progress.watched.total === 1 ? 'título' : 'títulos'},{' '}
-        {hoursMinutes(progress.minutes.total)} no total. Abra um título para ler as avaliações ou
-        deixar a sua.
+        {hoursMinutes(progress.minutes.total)} no total. Os marcados “fora da live” a Iara assistiu
+        por conta própria. Abra um título para ler as avaliações ou deixar a sua.
       </p>
       <form className="wf-seen__search" role="search" action="/assistidos" method="get">
         {filter.tipo ? <input type="hidden" name="tipo" value={filter.tipo} /> : null}
@@ -138,6 +138,7 @@ export default async function AssistidosPage({ searchParams }: Props) {
                   Assistido em{' '}
                   <time dateTime={it.watchedAt}>{date.format(new Date(it.watchedAt))}</time>
                 </span>
+                {it.offStream ? <span className="wf-seen__off">Fora da live</span> : null}
               </Link>
             </li>
           ))}

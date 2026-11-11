@@ -100,7 +100,10 @@
     color: inherit;
     text-decoration: none;
   }
+  /* a definite width: without it the grid row's first sizing pass handed the poster a height and
+     aspect-ratio worked backwards from it (120 px columns, 72 px posters) */
   .wf-wall .wf-wall__poster {
+    width: 100%;
     margin: 0;
     border-radius: 8px;
     border-color: rgb(169 157 224 / 0.16);
@@ -276,6 +279,9 @@
   .wf-soon__note {
     color: var(--fg-78);
   }
+  .wf-soon__note::before {
+    content: ' · ';
+  }
 
   .wf-countdown {
     display: flex;
@@ -410,6 +416,14 @@
   }
 
   @media (max-width: 760px) {
+    /* on a phone the note gets its own line, without the separator */
+    .wf-soon__note {
+      display: block;
+      margin-top: 2px;
+    }
+    .wf-soon__note::before {
+      content: none;
+    }
     .wf-countdown {
       gap: 6px;
       width: 100%;
@@ -700,6 +714,10 @@
     }
     .wf-member__barcode {
       width: 110px;
+    }
+    /* the name needs the room more than the chip does */
+    .wf-member__chip {
+      display: none;
     }
   }
 }

@@ -75,6 +75,13 @@ test('assistidos: an edge-to-edge poster wall with the title on hover (always on
   const tile = wall.locator('.wf-wall__tile').first();
   const cap = tile.locator('.wf-wall__cap');
   await expect(tile.locator('img')).toHaveAttribute('src', /^\/media\//);
+  // the poster fills its column at 2:3 (an aspect-ratio box once shrank to the row's height)
+  const size = await tile.evaluate((t) => {
+    const p = t.querySelector('.wf-wall__poster')!.getBoundingClientRect();
+    return { tile: t.getBoundingClientRect().width, w: p.width, h: p.height };
+  });
+  expect(size.w).toBeGreaterThan(size.tile - 2);
+  expect(size.h / size.w).toBeCloseTo(1.5, 1);
   const viewport = page.viewportSize()!;
   const wallBox = (await wall.boundingBox())!;
   // spans the window, wider than the page column above it

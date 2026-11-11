@@ -45,7 +45,7 @@ export function SoonTeaser({ session, now }: { session: Session; now: number }) 
           </h2>
           <p className="wf-soon__when">
             <time dateTime={session.startsAt}>{whenFmt.format(new Date(session.startsAt))}</time>
-            {session.note ? <span className="wf-soon__note"> · {session.note}</span> : null}
+            {session.note ? <span className="wf-soon__note">{session.note}</span> : null}
           </p>
         </div>
         <SoonCountdown target={session.startsAt} serverNow={now} />

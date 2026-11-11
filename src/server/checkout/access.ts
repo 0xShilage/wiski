@@ -1,6 +1,7 @@
 import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Order, Payment, User } from '@/generated/prisma/client';
+import { pictureFrom } from '@/lib/media';
 import { audit } from '../audit/audit';
 import { db } from '../db';
 import { HttpError, Problems } from '../http/problem';
@@ -277,13 +278,24 @@ export async function myOrders(user: User) {
     where: { userId: user.id },
     orderBy: { createdAt: 'desc' },
     take: 50,
-    include: { item: { select: { kind: true, slug: true, title: true } } },
+    include: {
+      item: {
+        select: {
+          kind: true,
+          slug: true,
+          title: true,
+          poster: { select: { width: true, height: true, variants: true } },
+        },
+      },
+    },
   });
   return rows.map((o) => ({
     code: o.publicCode,
     kind: o.kind,
     status: o.status,
-    item: o.item,
+    item: { kind: o.item.kind, slug: o.item.slug, title: o.item.title },
+    /** the ticket stubs on /perfil (2026-11-11) */
+    poster: pictureFrom(o.item.poster),
     totalCents: o.totalCents,
     createdAt: o.createdAt.toISOString(),
     paidAt: o.paidAt?.toISOString() ?? null,

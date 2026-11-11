@@ -15,6 +15,7 @@ import {
   ContributeCta,
   campaignSubtitle,
 } from './CampaignBits';
+import { AmbientGlow } from './AmbientGlow';
 import { MetaRow } from './MetaRow';
 import { SeatMap } from './SeatMap';
 import { PriceLine, SponsorCta } from './SponsorLine';
@@ -52,6 +53,8 @@ export function ItemDetail({
         <MediaPicture picture={item.backdrop} alt="" sizes="100vw" priority />
       </div>
       <div className="wf-detail__shade" aria-hidden="true" />
+      {/* ambient glow (2026-11-11): the poster's colour lighting the hero */}
+      <AmbientGlow color={item.accent} part="wash" />
       <div className="wf-page">
         <p>
           <Link href={back} className="text-sm text-fg-muted underline-offset-4 hover:underline">
@@ -59,8 +62,11 @@ export function ItemDetail({
           </Link>
         </p>
         <div className="wf-detail__grid">
-          <div className="wf-detail__poster">
-            <MediaPicture picture={item.poster} alt={`Pôster de ${item.title}`} sizes="300px" />
+          <div className="wf-detail__postercell">
+            <AmbientGlow color={item.accent} part="halo" />
+            <div className="wf-detail__poster">
+              <MediaPicture picture={item.poster} alt={`Pôster de ${item.title}`} sizes="300px" />
+            </div>
           </div>
 
           <div>

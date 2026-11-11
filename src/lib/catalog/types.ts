@@ -37,6 +37,8 @@ export type PublicItem = {
   /** MOVIE: draw the title over the poster in the carousel ("Adicionar texto?") */
   posterTitle: boolean;
   poster: Picture | null;
+  /** detail page only (2026-11-11): the poster's accent colour, #rrggbb, for the ambient glow */
+  accent: string | null;
   backdrop: Picture | null;
   logo: Picture | null;
   state: PublicState;

@@ -6,6 +6,11 @@
    title (ItemDetail sets data-kb 1–4). Scale never drops below 1.06 and the translate stays inside
    the overflow it buys, so no edge of the picture ever shows. Still with "reduce motion". ── */
 @layer components {
+  /* the zoom must stay inside the backdrop box: the shade below covers only that box, so anything
+     that spills past its bottom shows as an unshaded strip (it did, 2026-11-11) */
+  .wf-detail__art {
+    overflow: hidden;
+  }
   @media (prefers-reduced-motion: no-preference) {
     .wf-detail__art img {
       transform-origin: center;

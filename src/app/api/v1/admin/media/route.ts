@@ -4,10 +4,10 @@ import { route } from '@/server/http/route';
 import { ingestUpload, MAX_UPLOAD_BYTES } from '@/server/media/pipeline';
 import { RL } from '@/server/ratelimit/rules';
 
-const query = z.object({ role: z.enum(['POSTER', 'BACKDROP', 'LOGO']) }).strict();
+const query = z.object({ role: z.enum(['POSTER', 'BACKDROP', 'LOGO', 'PORTRAIT']) }).strict();
 
 /**
- * POST /api/v1/admin/media?role=POSTER|BACKDROP|LOGO — one image as the raw request body
+ * POST /api/v1/admin/media?role=POSTER|BACKDROP|LOGO|PORTRAIT — one image as the raw request body
  * (no multipart parser, no client file name). MODERATOR+ with a verified passkey; the session,
  * role, CSRF and passkey are checked BEFORE a single byte of the body is read (11 §9).
  * nginx: the only location with client_max_body_size 11m (docker/nginx/snippets/upload.conf).

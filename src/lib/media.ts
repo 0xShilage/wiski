@@ -24,6 +24,7 @@ export const MEDIA_WIDTHS = {
   POSTER: [240, 480, 960],
   BACKDROP: [960, 1440, 1920, 2560],
   LOGO: [480, 960],
+  PORTRAIT: [160, 320, 640],
 } as const;
 
 const SAFE_PATH = /^\/media\/[0-9a-f]{32}-\d{2,4}\.(?:avif|webp)$/;

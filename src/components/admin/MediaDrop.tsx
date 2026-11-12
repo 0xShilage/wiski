@@ -21,7 +21,7 @@ export function MediaDrop({
   onClear,
   className,
 }: {
-  role: 'POSTER' | 'BACKDROP' | 'LOGO';
+  role: 'POSTER' | 'BACKDROP' | 'LOGO' | 'PORTRAIT';
   label: string;
   hint: string;
   picture: Picture | null;

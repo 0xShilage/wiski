@@ -8,11 +8,13 @@ import {
   EPISODE_COUNT,
   ERAS,
   erasUnlocked,
+  allSlots,
   PEOPLE,
   peopleAt,
   peopleFor,
   PLACES,
   placesFor,
+  SPOILERS,
   stagedText,
 } from '@/lib/guides/dark-s1';
 import { guideFor } from '@/lib/guides';
@@ -92,5 +94,20 @@ describe('guideFor', () => {
     expect(guideFor({ kind: 'SERIES', title: 'Dark', originalTitle: 'Dark' })).not.toBeNull();
     expect(guideFor({ kind: 'MOVIE', title: 'Dark' })).toBeNull();
     expect(guideFor({ kind: 'SERIES', title: 'Dark Matter' })).toBeNull();
+  });
+});
+
+describe('photo slots and spoilers (2026-11-12)', () => {
+  it('one slot per person and era, in the shape the database accepts', () => {
+    const slots = allSlots();
+    expect(new Set(slots.map((s) => s.slot)).size).toBe(slots.length);
+    for (const s of slots) expect(s.slot).toMatch(/^[a-z0-9]+(?:-[a-z0-9]+)*:(?:19\d{2}|20\d{2})$/);
+    expect(slots.map((s) => s.slot)).toEqual(expect.arrayContaining(['jonas:2019', 'ulrich:1986']));
+  });
+  it('the spoilers are only in the spoiler list, never in the spoiler-free data', () => {
+    expect(SPOILERS.length).toBeGreaterThan(4);
+    const safe = JSON.stringify({ PEOPLE, PLACES });
+    for (const leak of ['Michael Kahnwald, o pai', 'Jonas, adulto', '2052', 'bunker', 'máquina'])
+      expect(safe.includes(leak), leak).toBe(false);
   });
 });

@@ -4,7 +4,7 @@
  * still decides everything (format sniffing, minimum size, crop, re-encode, 10 MB cap); this
  * only makes the file smaller. Anything the browser can't decode is sent as it is.
  */
-export type UploadRole = 'POSTER' | 'BACKDROP' | 'LOGO';
+export type UploadRole = 'POSTER' | 'BACKDROP' | 'LOGO' | 'PORTRAIT';
 
 /**
  * The largest box worth uploading per role: posters are shown at most 960 px wide, backdrops
@@ -15,6 +15,7 @@ export const UPLOAD_BOX: Record<UploadRole, { w: number; h: number; fit: 'cover'
   POSTER: { w: 1200, h: 1800, fit: 'cover' },
   BACKDROP: { w: 2560, h: 1440, fit: 'cover' },
   LOGO: { w: 1920, h: 1920, fit: 'inside' },
+  PORTRAIT: { w: 960, h: 1280, fit: 'cover' },
 };
 export const UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
 

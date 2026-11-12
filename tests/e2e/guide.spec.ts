@@ -3,6 +3,8 @@
  */
 import { mkdirSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
+import sharp from 'sharp';
+import { seedUser, signIn, withDb } from './support/seed';
 
 const SHOTS = 'test-results/guide';
 mkdirSync(SHOTS, { recursive: true });
@@ -75,4 +77,78 @@ test('guia de Winden: only what has been shown, era by era', async ({ page }, in
   await tabs.getByRole('tab', { name: '1986' }).click();
   await page.screenshot({ path: `${SHOTS}/guide-ep10-${info.project.name}.png`, fullPage: true });
   expect(problems).toEqual([]);
+});
+
+test('guia de Winden: spoilers behind a button, and the team adds a character photo', async ({
+  page,
+  browser,
+}, info) => {
+  await page.goto('/guias/dark');
+  const box = page.getByRole('region', { name: 'Com spoilers' });
+  const toggle = box.getByRole('button', { name: 'Mostrar spoilers' });
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  // closed: the revelations are not in the page at all
+  expect(await page.content()).not.toContain('Mikkel é Michael');
+  await toggle.click();
+  await expect(box.getByRole('button', { name: 'Esconder spoilers' })).toHaveAttribute(
+    'aria-expanded',
+    'true',
+  );
+  await expect(box.getByRole('heading', { name: 'Mikkel é Michael' })).toBeVisible();
+  await box.screenshot({ path: `${SHOTS}/spoilers-${info.project.name}.png` });
+  await box.getByRole('button', { name: 'Esconder spoilers' }).click();
+  await expect(box.getByRole('heading', { name: 'Mikkel é Michael' })).toHaveCount(0);
+  // closed again on the next visit
+  await page.reload();
+  await expect(
+    page
+      .getByRole('region', { name: 'Com spoilers' })
+      .getByRole('button', { name: 'Mostrar spoilers' }),
+  ).toBeVisible();
+
+  // without a photo, a character shows initials
+  const card = page.locator('#pessoa-jonas');
+  await expect(card.locator('.wf-face--initials')).toHaveText('JK');
+  if (!info.project.name.startsWith('desktop')) return;
+
+  // the team uploads a photo for Jonas (2019) from the dashboard
+  await withDb((c) => c.query(`DELETE FROM "GuidePortrait" WHERE guide = 'dark'`));
+  const mod = await seedUser({ role: 'MODERATOR', passkeyVerified: true });
+  const ctx = await browser.newContext();
+  await signIn(ctx, mod.token);
+  const admin = await ctx.newPage();
+  try {
+    await admin.goto('/admin/guias');
+    await expect(admin.getByRole('heading', { name: 'Guia de Winden', level: 1 })).toBeVisible();
+    const photo = await sharp({
+      create: { width: 600, height: 800, channels: 3, background: '#4f3d72' },
+    })
+      .jpeg()
+      .toBuffer();
+    const slot = admin
+      .getByRole('region', { name: /^2019/ })
+      .locator('li', { hasText: 'Jonas Kahnwald' });
+    await slot.locator('input[type=file]').setInputFiles({
+      name: 'jonas.jpg',
+      mimeType: 'image/jpeg',
+      buffer: photo,
+    });
+    await expect(admin.getByText('Foto de Jonas Kahnwald salva.')).toBeVisible({ timeout: 20_000 });
+    await expect(slot.locator('img')).toHaveCount(1);
+    await admin.screenshot({ path: `${SHOTS}/admin-portraits.png`, fullPage: true });
+
+    await page.reload();
+    const face = page.locator('#pessoa-jonas .wf-face img');
+    await expect(face).toHaveAttribute('alt', 'Foto de Jonas Kahnwald');
+    await expect(face).toHaveAttribute('src', /^\/media\/[0-9a-f]{32}-\d+\.webp$/);
+    await page.locator('#pessoa-jonas button').click();
+    await expect(page.locator('.wf-guide__panel .wf-face img')).toHaveCount(1);
+    await page.screenshot({
+      path: `${SHOTS}/guide-photo-${info.project.name}.png`,
+      fullPage: true,
+    });
+  } finally {
+    await withDb((c) => c.query(`DELETE FROM "GuidePortrait" WHERE guide = 'dark'`));
+    await ctx.close();
+  }
 });

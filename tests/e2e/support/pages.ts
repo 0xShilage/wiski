@@ -91,4 +91,7 @@ export const PAGES: PageCase[] = [
   { name: 'emblemas', path: '/emblemas' },
   { name: 'emblemas-logado', path: '/emblemas', auth: 'user' },
   { name: 'emblemas-admin', path: '/admin/emblemas', auth: 'admin', shell: false },
+  // 2026-11-12: Seu ano na Wiskiflix
+  { name: 'retrospectiva-entrar', path: '/retrospectiva' },
+  { name: 'retrospectiva', path: '/retrospectiva', auth: 'user' },
 ];

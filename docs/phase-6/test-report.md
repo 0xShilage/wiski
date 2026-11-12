@@ -284,3 +284,7 @@ Fix (PR "fix-prefetch-burst"): no prefetch on the header tabs, the phone bar, th
 
 - Integration `badges.test.ts` (10) and `media-badge.test.ts`: see README §38. Authz matrix: the five new endpoints. Full integration suite green (1 286 tests); unit green (navigation now fifteen tabs, "Emblemas" in "Mais").
 - e2e `emblemas.spec.ts` (dashboard flow on desktop; claim flow on both projects), `community.spec.ts` (the "Mais" lists), `community-catalog.spec.ts` (renamed switch), `csp.spec.ts` / `a11y-layout.spec.ts` (three new pages), `headers.spec.ts` green. Screenshots `test-results/emblemas/`.
+
+## Addendum — Seu ano na Wiskiflix (2026-11-12)
+
+- Unit `recap.test.ts` (5), integration `recap.test.ts` (3): see README §39. e2e `retrospectiva.spec.ts` (both projects), and `csp.spec.ts` / `a11y-layout.spec.ts` on the two new pages. Screenshots `test-results/retrospectiva/` (the shared image: `retrospectiva-imagem.png`).

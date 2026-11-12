@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { BadgeCallout } from '@/components/badges/BadgeCallout';
+import { RecapCallout } from '@/components/recap/RecapCallout';
 import { Mascote } from '@/components/brand/Mascote';
 import { HeroCarousel } from '@/components/catalog/HeroCarousel';
 import { MovieGrid } from '@/components/catalog/MovieGrid';
@@ -8,6 +9,7 @@ import { TwitchLive } from '@/components/live/TwitchLive';
 import { UpNext } from '@/components/live/UpNext';
 import { HomePopup } from '@/components/site/HomePopup';
 import { parseFilter } from '@/lib/catalog/filter';
+import { defaultRecapYear, isRecapSeason } from '@/lib/recap';
 import { openBadges } from '@/server/badges/badges';
 import { watchProgress } from '@/server/catalog/progress';
 import { listPublic } from '@/server/catalog/read';
@@ -39,6 +41,7 @@ export default async function FilmesPage({ searchParams }: Props) {
     homePopup(),
     openBadges(),
   ]);
+  const now = new Date();
   return (
     <>
       <h1 className="sr-only">Filmes — patrocine o próximo filme da live</h1>
@@ -62,6 +65,7 @@ export default async function FilmesPage({ searchParams }: Props) {
           </div>
         </section>
       )}
+      {isRecapSeason(now) ? <RecapCallout year={defaultRecapYear(now)} home /> : null}
       <BadgeCallout badges={emblems} />
       <MovieGrid items={movies} initialFilter={initialFilter} />
       <UpNext sessions={sessions} />

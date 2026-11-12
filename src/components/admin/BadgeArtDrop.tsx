@@ -10,6 +10,7 @@ const FPS = 12;
 const MAX_SECONDS = 8;
 const TILE = 256;
 const COLS = 8;
+const MAX_VIDEO_BYTES = 40 * 1024 * 1024;
 
 function once(el: HTMLMediaElement, ev: string): Promise<void> {
   return new Promise((ok, ko) => {
@@ -34,7 +35,10 @@ function once(el: HTMLMediaElement, ev: string): Promise<void> {
  * an animated WebP (src/server/media/pipeline.ts, `sprite`).
  */
 async function webmToSprite(file: File): Promise<{ blob: Blob; frames: number }> {
-  const url = URL.createObjectURL(file);
+  // the bytes only, re-wrapped as a WebM: nothing of the picked file (its name, its claimed type)
+  // reaches the element
+  const bytes = await file.arrayBuffer();
+  const url = URL.createObjectURL(new Blob([bytes], { type: 'video/webm' }));
   try {
     const video = document.createElement('video');
     video.muted = true;
@@ -106,6 +110,10 @@ export function BadgeArtDrop({
       let url = '/api/v1/admin/media?role=BADGE';
       let blob: Blob = file;
       if (file.type === 'video/webm' || /\.webm$/i.test(file.name)) {
+        if (file.size > MAX_VIDEO_BYTES) {
+          setError('Vídeo maior que 40 MB. Corte a animação antes de enviar.');
+          return;
+        }
         setBusy('Lendo o vídeo…');
         const s = await webmToSprite(file);
         blob = s.blob;

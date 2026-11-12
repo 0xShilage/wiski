@@ -7,6 +7,7 @@ import type { CheckoutProps } from '@/lib/checkout/types';
 import { KIND_LABEL, KIND_PATH } from '@/lib/catalog/kinds';
 import { formatRuntime } from '@/lib/catalog/pricing';
 import type { PublicItem } from '@/lib/catalog/types';
+import { guideFor } from '@/lib/guides';
 import type { TitleQueueStatus } from '@/lib/queue-position';
 import {
   CampaignChips,
@@ -45,6 +46,7 @@ export function ItemDetail({
   const watchedAt = item.watchedAt;
   const canPay = Boolean(checkout?.open && checkout.legal);
   const kindPath = KIND_PATH[item.kind];
+  const guide = guideFor(item);
   const back = item.kind === 'MOVIE' ? '/' : `/${kindPath}`;
   return (
     <article className="wf-detail" aria-labelledby="titulo">
@@ -127,6 +129,15 @@ export function ItemDetail({
 
           <aside className="wf-detail__aside">
             {queue ? <QueueCard status={queue} /> : null}
+            {guide ? (
+              <div className="wf-panel wf-guide-cta">
+                <h2>{guide.title}</h2>
+                <p className="wf-muted">{guide.blurb}</p>
+                <Link href={guide.href} className="wf-btn wf-btn--ghost">
+                  Abrir o guia sem spoilers
+                </Link>
+              </div>
+            ) : null}
             {item.state === 'WATCHED' ? (
               <div className="wf-panel">
                 <h2>Assistido na live</h2>

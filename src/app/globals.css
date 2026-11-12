@@ -23,6 +23,7 @@
 @import '../styles/theater.css';
 @import '../styles/lights.css';
 @import '../styles/chat.css';
+@import '../styles/guide.css';
 
 @theme {
   /* Reset Tailwind's default palette so only approved colours exist */

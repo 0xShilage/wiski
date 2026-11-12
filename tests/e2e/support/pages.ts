@@ -87,4 +87,8 @@ export const PAGES: PageCase[] = [
   { name: 'analise', path: '/admin/analise', auth: 'streamer', shell: false },
   { name: 'analise-12-meses', path: '/admin/analise?periodo=365', auth: 'streamer', shell: false },
   { name: 'analise-moderacao', path: '/admin/analise', auth: 'admin', shell: false },
+  // 2026-11-12: Emblemas
+  { name: 'emblemas', path: '/emblemas' },
+  { name: 'emblemas-logado', path: '/emblemas', auth: 'user' },
+  { name: 'emblemas-admin', path: '/admin/emblemas', auth: 'admin', shell: false },
 ];

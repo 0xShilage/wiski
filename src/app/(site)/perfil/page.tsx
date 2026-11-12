@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { DataTools } from '@/components/account/DataTools';
 import { AchievementBadges } from '@/components/community/AchievementBadges';
 import { AchievementsToggle } from '@/components/community/AchievementsToggle';
+import { BadgeShelf } from '@/components/badges/BadgeShelf';
 import { LogoutButton } from '@/components/account/LogoutButton';
 import { MemberCard } from '@/components/account/MemberCard';
 import { TicketStubs } from '@/components/account/TicketStubs';
@@ -14,6 +15,7 @@ import { resolveAvatarKey } from '@/lib/avatars';
 import { formatDate } from '@/lib/format';
 import { nextUsernameChange } from '@/server/auth/accounts';
 import { myOrders } from '@/server/checkout/access';
+import { badgesOf } from '@/server/badges/badges';
 import { achievementsFor } from '@/server/community/achievements';
 import { memberStats } from '@/server/community/member-card';
 import { getCurrentSession } from '@/server/auth/current';
@@ -91,10 +93,11 @@ export default async function PerfilPage({ searchParams }: Props) {
   if (!user.username) redirect('/bem-vindo?next=%2Fperfil');
   const nextChange = nextUsernameChange(user);
   const privileged = user.role !== 'USER';
-  const [orders, badges, stats] = await Promise.all([
+  const [orders, badges, stats, emblems] = await Promise.all([
     myOrders(user),
     achievementsFor(user),
     memberStats(user.id),
+    badgesOf(user.id),
   ]);
   const earnedCount = badges.filter((b) => b.earned).length;
 
@@ -167,6 +170,28 @@ export default async function PerfilPage({ searchParams }: Props) {
         </p>
         <AchievementBadges items={badges} showLocked labelledBy="minhas-conquistas" />
         <AchievementsToggle initial={user.showAchievements} />
+      </section>
+
+      <section aria-labelledby="meus-emblemas" className={card}>
+        <div className="mb-2 flex flex-wrap items-baseline justify-between gap-3">
+          <h2 id="meus-emblemas" className={heading.h3}>
+            Emblemas <span className="text-sm font-normal text-fg-muted">{emblems.length}</span>
+          </h2>
+          <Link
+            href="/emblemas"
+            className="text-sm text-lavender underline-offset-4 hover:underline"
+          >
+            Ver todos
+          </Link>
+        </div>
+        {emblems.length ? (
+          <BadgeShelf items={emblems} labelledBy="meus-emblemas" />
+        ) : (
+          <p className="text-sm text-fg-muted">
+            Emblemas de edição limitada aparecem em eventos da live (maratonas, sessões especiais).
+            Resgate em /emblemas enquanto estiverem abertos.
+          </p>
+        )}
       </section>
 
       <section aria-labelledby="meus-pedidos" className={card}>

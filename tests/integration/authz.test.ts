@@ -447,6 +447,37 @@ export const MATRIX: Row[] = [
   R('/api/v1/admin/chat', 'GET', 'moderator'),
   R('/api/v1/admin/chat', 'POST', 'moderator', { body: { text: 'oi chat' } }),
   R('/api/v1/admin/chat/presets', 'PUT', 'moderator', { body: { presets: [] } }),
+  R('/api/v1/badges/[slug]/claim', 'POST', 'user', {
+    params: { slug: 'nenhum' },
+    body: {},
+  }),
+  R('/api/v1/admin/badges', 'POST', 'moderator', {
+    body: {
+      name: 'x',
+      description: '',
+      assetId: '00000000-0000-7000-8000-000000000000',
+      startsAt: '2030-01-01T00:00:00.000Z',
+      endsAt: '2030-01-02T00:00:00.000Z',
+      maxClaims: null,
+    },
+  }),
+  R('/api/v1/admin/badges/[id]', 'PATCH', 'moderator', {
+    params: { id: '00000000-0000-7000-8000-000000000000' },
+    body: {
+      name: 'x',
+      description: '',
+      assetId: '00000000-0000-7000-8000-000000000000',
+      startsAt: '2030-01-01T00:00:00.000Z',
+      endsAt: '2030-01-02T00:00:00.000Z',
+      maxClaims: null,
+    },
+  }),
+  R('/api/v1/admin/badges/[id]', 'DELETE', 'moderator', {
+    params: { id: '00000000-0000-7000-8000-000000000000' },
+  }),
+  R('/api/v1/admin/badges/[id]/end', 'POST', 'moderator', {
+    params: { id: '00000000-0000-7000-8000-000000000000' },
+  }),
   R('/api/v1/admin/guides/[guide]/portraits', 'PUT', 'moderator', {
     params: { guide: 'dark' },
     body: { slot: 'jonas:2019', assetId: null },

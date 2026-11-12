@@ -118,6 +118,14 @@ export const IconWheel = ({ className }: P) => (
     <path d="M10 2.5h4L12 5z" fill="currentColor" />
   </svg>
 );
+/** Emblemas (2026-11-12): a medal on a ribbon */
+export const IconMedal = ({ className }: P) => (
+  <svg {...base} className={className}>
+    <path d="M8 3h3l1 5M16 3h-3l-1 5" />
+    <circle cx="12" cy="15" r="6" />
+    <path d="M12 12l.9 1.9 2.1.3-1.5 1.4.4 2.1-1.9-1-1.9 1 .4-2.1-1.5-1.4 2.1-.3z" />
+  </svg>
+);
 export const IconHeart = ({ className }: P) => (
   <svg {...base} className={className}>
     <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" />

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { BadgeCallout } from '@/components/badges/BadgeCallout';
 import { Mascote } from '@/components/brand/Mascote';
 import { HeroCarousel } from '@/components/catalog/HeroCarousel';
 import { MovieGrid } from '@/components/catalog/MovieGrid';
@@ -7,6 +8,7 @@ import { TwitchLive } from '@/components/live/TwitchLive';
 import { UpNext } from '@/components/live/UpNext';
 import { HomePopup } from '@/components/site/HomePopup';
 import { parseFilter } from '@/lib/catalog/filter';
+import { openBadges } from '@/server/badges/badges';
 import { watchProgress } from '@/server/catalog/progress';
 import { listPublic } from '@/server/catalog/read';
 import { getEnv } from '@/server/env';
@@ -29,12 +31,13 @@ type Props = { searchParams: Promise<Record<string, string | string[] | undefine
 
 export default async function FilmesPage({ searchParams }: Props) {
   const initialFilter = parseFilter(await searchParams, 'movies');
-  const [movies, sessions, progress, live, popup] = await Promise.all([
+  const [movies, sessions, progress, live, popup, emblems] = await Promise.all([
     listPublic('MOVIE'),
     publicSchedule(),
     watchProgress(),
     liveNow(),
     homePopup(),
+    openBadges(),
   ]);
   return (
     <>
@@ -59,6 +62,7 @@ export default async function FilmesPage({ searchParams }: Props) {
           </div>
         </section>
       )}
+      <BadgeCallout badges={emblems} />
       <MovieGrid items={movies} initialFilter={initialFilter} />
       <UpNext sessions={sessions} />
       <ProgressBlock progress={progress} />

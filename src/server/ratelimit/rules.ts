@@ -137,6 +137,12 @@ export const RL = {
   overlaySession: { name: 'overlay-session', perIp: { limit: 60, windowMs: MIN } },
   // subathon chat command (2026-11-04): StreamElements' customapi calls it from its proxy
   subathonCommand: { name: 'subathon-command', perIp: { limit: 30, windowMs: MIN } },
+  /** Emblemas (2026-11-12): claiming (with a claim word): no guessing the word by brute force. */
+  badgeClaim: {
+    name: 'badge-claim',
+    perIp: { limit: 30, windowMs: MIN },
+    perUser: { limit: 10, windowMs: MIN },
+  },
   /** Chat da live (2026-11-11): messages to the Twitch chat as the bot; a human pace, never a flood. */
   chatSay: {
     name: 'chat-say',

@@ -2,9 +2,10 @@ import 'server-only';
 
 /**
  * Image type detection from the FILE BYTES (11 §5) — never from the name or Content-Type.
- * Allow-list: JPEG, PNG, WebP, AVIF. Everything else (SVG, GIF, HEIC, HTML, PDF, …) → null.
+ * Allow-list: JPEG, PNG, WebP, AVIF, and GIF (accepted by the pipeline for badges only,
+ * 2026-11-12). Everything else (SVG, HEIC, HTML, PDF, video, …) → null.
  */
-export type ImageFormat = 'jpeg' | 'png' | 'webp' | 'avif';
+export type ImageFormat = 'jpeg' | 'png' | 'webp' | 'avif' | 'gif';
 
 const ascii = (b: Uint8Array, start: number, end: number) =>
   String.fromCharCode(...b.subarray(start, end));
@@ -16,6 +17,8 @@ export function sniffImage(head: Uint8Array): ImageFormat | null {
   // PNG: fixed 8-byte signature
   const png = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
   if (png.every((v, i) => head[i] === v)) return 'png';
+  // GIF: "GIF87a" or "GIF89a"
+  if (ascii(head, 0, 6) === 'GIF87a' || ascii(head, 0, 6) === 'GIF89a') return 'gif';
   // WebP: RIFF <size> WEBP
   if (ascii(head, 0, 4) === 'RIFF' && ascii(head, 8, 12) === 'WEBP') return 'webp';
   // AVIF: ISO-BMFF `ftyp` box whose major or compatible brands include avif/avis.

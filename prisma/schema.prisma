@@ -88,6 +88,8 @@ model User {
   seasonReleases     SeasonRelease[]     @relation("ReleaseEditor")
   roletaSpins        RoletaSpin[]        @relation("RoletaSpinner")
   roletaDelivered    RoletaSpin[]        @relation("RoletaDeliverer")
+  badgeClaims        BadgeClaim[]
+  badgesCreated      Badge[]             @relation("BadgeCreator")
 
   @@index([role])
 }
@@ -325,6 +327,8 @@ enum MediaRole {
   LOGO
   /// Guia de Winden (2026-11-12): a character's photo, 3:4
   PORTRAIT
+  /// Emblemas (2026-11-12): 1:1, PNG / GIF / WebM (animated ones stay animated, as WebP)
+  BADGE
 }
 
 /// A processed upload. Only re-encoded variants exist on disk (MEDIA_DIR); the original is deleted.
@@ -350,6 +354,7 @@ model MediaAsset {
   posterOfSegment LiveSegment[]   @relation("SegmentPoster")
   coverOfGame     Game[]          @relation("GameCover")
   portraitOf      GuidePortrait[]
+  badgeOf         Badge[]
 
   @@index([unusedSince])
 }
@@ -1260,4 +1265,46 @@ model Game {
 
   @@index([status, updatedAt])
   @@index([coverId])
+}
+
+// ═══════════════════════════ Emblemas (2026-11-12) ═══════════════════════════
+
+/// A time-limited badge the team creates for an event (a marathon, a special live) and viewers
+/// claim while its window is open — optionally with a claim word said on stream, optionally with a
+/// maximum number of claims. The window and the limit are enforced by a trigger on BadgeClaim
+/// (prisma/migrations/*_badges_constraints).
+model Badge {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  slug        String    @unique // a-z0-9- (CHECK)
+  name        String // ≤ 40 chars (CHECK)
+  description String // ≤ 200 chars (CHECK)
+  assetId     String    @db.Uuid // a BADGE MediaAsset
+  startsAt    DateTime  @db.Timestamptz(3)
+  endsAt      DateTime  @db.Timestamptz(3) // > startsAt (CHECK)
+  /// SHA-256 of the normalised claim word, when the badge has one
+  codeHash    Bytes?
+  maxClaims   Int? // > 0 (CHECK)
+  createdById String?   @db.Uuid
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+
+  asset     MediaAsset   @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  createdBy User?        @relation("BadgeCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  claims    BadgeClaim[]
+
+  @@index([endsAt])
+  @@index([startsAt])
+}
+
+/// One viewer's claim of one badge (once each). A badge with claims can't be deleted.
+model BadgeClaim {
+  badgeId   String   @db.Uuid
+  userId    String   @db.Uuid
+  claimedAt DateTime @default(now()) @db.Timestamptz(3)
+
+  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Restrict)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([badgeId, userId])
+  @@index([userId, claimedAt])
 }

@@ -9,6 +9,10 @@ export type MediaVariant = {
   format: MediaFormat;
   path: string;
   bytes: number;
+  /** animated badges (2026-11-12): the first frame, for "reduce motion" */
+  still?: true;
+  /** this WebP is animated */
+  animated?: true;
 };
 
 export type Picture = {
@@ -25,6 +29,7 @@ export const MEDIA_WIDTHS = {
   BACKDROP: [960, 1440, 1920, 2560],
   LOGO: [480, 960],
   PORTRAIT: [160, 320, 640],
+  BADGE: [128, 256],
 } as const;
 
 const SAFE_PATH = /^\/media\/[0-9a-f]{32}-\d{2,4}\.(?:avif|webp)$/;
@@ -32,10 +37,25 @@ const SAFE_PATH = /^\/media\/[0-9a-f]{32}-\d{2,4}\.(?:avif|webp)$/;
 export function pictureFrom(
   asset: { width: number; height: number; variants: unknown } | null | undefined,
 ): Picture | null {
+  return pictureOf(asset, false);
+}
+
+/** An animated badge's first frame (for "reduce motion"), or null when it isn't animated. */
+export function stillFrom(
+  asset: { width: number; height: number; variants: unknown } | null | undefined,
+): Picture | null {
+  return pictureOf(asset, true);
+}
+
+function pictureOf(
+  asset: { width: number; height: number; variants: unknown } | null | undefined,
+  still: boolean,
+): Picture | null {
   if (!asset || !Array.isArray(asset.variants)) return null;
   const vs = (asset.variants as MediaVariant[]).filter(
     (v) =>
       v &&
+      !!v.still === still &&
       SAFE_PATH.test(v.path) &&
       Number.isInteger(v.w) &&
       (v.format === 'avif' || v.format === 'webp'),

@@ -105,7 +105,9 @@ test('badges: earned ones on the public profile; the switch hides them', async (
   await expect(
     mine.getByRole('listitem', { name: /^Primeiro patrocínio — bloqueada/ }),
   ).toBeVisible();
-  await mine.getByLabel('Mostrar minhas conquistas no perfil público e no ranking').uncheck();
+  await mine
+    .getByLabel('Mostrar minhas conquistas e emblemas no perfil público e no ranking')
+    .uncheck();
   await expect(mine.getByRole('status')).toContainText('ficam só aqui');
 
   await page.goto(`/u/${v.username}`);

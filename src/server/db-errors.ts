@@ -23,4 +23,7 @@ export const PG = {
   exclusionViolation: '23P01',
   /** catalog_item_guard(): live limit per kind reached (R1 reviewed SQL). */
   catalogLiveLimit: 'WF409',
+  /** badge_claim_guard(): claimed outside the badge's window / past its limit (2026-11-12). */
+  badgeClosed: 'WF410',
+  badgeFull: 'WF411',
 } as const;

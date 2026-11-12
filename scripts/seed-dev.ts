@@ -377,6 +377,9 @@ async function main() {
       db().catalogRevision.deleteMany({}),
       db().franchiseEntry.deleteMany({}),
       db().catalogItem.deleteMany({}),
+      db().guidePortrait.deleteMany({}),
+      db().badgeClaim.deleteMany({}),
+      db().badge.deleteMany({}),
       db().mediaAsset.deleteMany({}),
     ]);
   }

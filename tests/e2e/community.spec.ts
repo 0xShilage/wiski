@@ -268,6 +268,7 @@ test('phone: the bar has five tabs + "Mais", which opens Animes, Jogos, Fila, As
     'Avaliações',
     'Sugestões',
     'Roleta',
+    'Emblemas',
     'Apoiadores',
     'Links',
   ]);
@@ -299,6 +300,7 @@ test('desktop: "Mais" opens a full-height drawer from the right that fades in, w
     'Avaliações',
     'Sugestões',
     'Roleta',
+    'Emblemas',
     'Apoiadores',
     'Links',
   ]);

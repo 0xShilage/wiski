@@ -40,7 +40,7 @@ export function AchievementsToggle({ initial }: { initial: boolean }) {
           disabled={busy}
           onChange={(e) => void change(e.target.checked)}
         />
-        Mostrar minhas conquistas no perfil público e no ranking
+        Mostrar minhas conquistas e emblemas no perfil público e no ranking
       </label>
       {msg ? (
         <p role="status" className={msg.ok ? 'wf-toast wf-toast--ok' : 'wf-toast wf-toast--err'}>

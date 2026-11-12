@@ -1,0 +1,501 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Guia de Winden (2026-11-11): the spoiler-free guide to "Dark", season 1 — an illustrated map of
+   the town, the eras and the families. Rainy, dim, in the site's purples.
+   ───────────────────────────────────────────────────────────────────────────── */
+@layer components {
+  .wf-guide__head {
+    max-width: 760px;
+    margin-bottom: 22px;
+  }
+  .wf-guide__eyebrow {
+    margin: 0 0 6px;
+    color: var(--color-lavender);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .wf-guide__h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--text-h1);
+    line-height: 1.05;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #f7f2fb;
+  }
+  .wf-guide__lead {
+    margin: 10px 0 0;
+    color: var(--fg-78);
+    line-height: 1.6;
+  }
+
+  .wf-guide {
+    display: grid;
+    gap: 18px;
+  }
+
+  /* how far I've watched */
+  .wf-guide__controls {
+    display: grid;
+    gap: 10px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1px solid rgb(169 157 224 / 0.3);
+    background: rgb(36 26 51 / 0.85);
+  }
+  .wf-guide__label {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #f7f2fb;
+  }
+  .wf-guide__eps {
+    display: grid;
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    gap: 6px;
+    max-width: 560px;
+  }
+  .wf-guide__ep {
+    min-height: 40px;
+    border-radius: 8px;
+    border: 1px solid rgb(169 157 224 / 0.35);
+    background: rgb(27 18 37 / 0.8);
+    color: var(--color-lilac);
+    font: inherit;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+  }
+  .wf-guide__ep.is-seen {
+    background: rgb(115 107 178 / 0.35);
+    border-color: rgb(169 157 224 / 0.5);
+  }
+  .wf-guide__ep.is-on {
+    background: var(--color-lavender);
+    border-color: var(--color-lavender);
+    color: var(--color-ink);
+    box-shadow: 0 0 12px rgb(169 157 224 / 0.6);
+  }
+  .wf-guide__ep:hover:not(.is-on) {
+    border-color: var(--color-lavender);
+  }
+  .wf-guide__now {
+    margin: 0;
+    font-size: 13px;
+    color: var(--fg-78);
+  }
+  .wf-guide__now strong {
+    color: #f7f2fb;
+  }
+
+  /* eras */
+  .wf-guide__eras {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .wf-guide__era {
+    min-width: 84px;
+    min-height: 40px;
+    padding: 6px 16px;
+    border-radius: 999px;
+    border: 1px solid rgb(169 157 224 / 0.4);
+    background: transparent;
+    color: var(--color-lilac);
+    font: inherit;
+    font-family: var(--font-display);
+    font-size: 18px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+  }
+  .wf-guide__era.is-on {
+    background: rgb(169 157 224 / 0.18);
+    border-color: var(--color-lavender);
+    color: #f7f2fb;
+    box-shadow: var(--glow-sm);
+  }
+  .wf-guide__more {
+    font-size: 13px;
+    color: var(--fg-70);
+    font-style: italic;
+  }
+
+  /* map + panel */
+  .wf-guide__main {
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(260px, 1fr);
+    gap: 18px;
+    align-items: start;
+  }
+  .wf-guide__map {
+    min-width: 0;
+  }
+  .wf-guide__note {
+    margin: 6px 0 0;
+    font-size: 12px;
+    color: var(--fg-70);
+  }
+  .wf-guide__panel {
+    display: grid;
+    gap: 8px;
+    padding: 16px 18px;
+    border-radius: 14px;
+    border: 1px solid rgb(169 157 224 / 0.3);
+    background: rgb(36 26 51 / 0.9);
+    min-width: 0;
+  }
+  .wf-guide__panel p {
+    margin: 0;
+    line-height: 1.55;
+    color: var(--fg-78);
+  }
+  .wf-guide__kicker {
+    color: var(--color-lavender) !important;
+    font-family: var(--font-display);
+    letter-spacing: 0.1em;
+  }
+  .wf-guide__place {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 26px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #f7f2fb;
+  }
+  .wf-guide__sub {
+    margin: 8px 0 0;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-lavender);
+  }
+  .wf-guide__hint {
+    font-size: 13px;
+    font-style: italic;
+  }
+  .wf-guide__who,
+  .wf-guide__places {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .wf-guide__who button,
+  .wf-guide__places button {
+    min-height: 34px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid rgb(169 157 224 / 0.35);
+    background: rgb(46 33 65 / 0.7);
+    color: var(--color-lilac);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .wf-guide__who button:hover,
+  .wf-guide__places button:hover,
+  .wf-guide__places button[aria-pressed='true'] {
+    border-color: var(--color-lavender);
+    color: #f7f2fb;
+  }
+  .wf-guide__places button.is-lit {
+    border-color: #f2c46d;
+    color: #f2c46d;
+  }
+
+  /* families */
+  .wf-guide__title {
+    margin: 6px 0 12px;
+    font-family: var(--font-display);
+    font-size: var(--text-h2);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #f7f2fb;
+  }
+  .wf-guide__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+    align-items: start;
+  }
+  .wf-family {
+    padding: 12px;
+    border-radius: 14px;
+    border: 1px solid rgb(169 157 224 / 0.25);
+    border-top: 3px solid var(--fam, var(--color-lavender));
+    background: rgb(27 18 37 / 0.75);
+  }
+  .wf-family--kahnwald {
+    --fam: #a99de0;
+  }
+  .wf-family--nielsen {
+    --fam: #f2c46d;
+  }
+  .wf-family--doppler {
+    --fam: #7fd6a4;
+  }
+  .wf-family--tiedemann {
+    --fam: #ff8f9a;
+  }
+  .wf-family--outros {
+    --fam: #736bb2;
+  }
+  .wf-family__name {
+    margin: 0 0 8px;
+    font-family: var(--font-display);
+    font-size: 20px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--fam);
+  }
+  .wf-family__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 6px;
+  }
+  .wf-person {
+    display: grid;
+    gap: 2px;
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: rgb(46 33 65 / 0.55);
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .wf-person:hover {
+    border-color: rgb(169 157 224 / 0.45);
+  }
+  .wf-person.is-on {
+    border-color: var(--fam);
+    box-shadow: 0 0 10px rgb(169 157 224 / 0.3);
+  }
+  .wf-person__name {
+    font-weight: 600;
+    color: #f7f2fb;
+  }
+  .wf-person__text {
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--fg-78);
+  }
+
+  /* the title page's link to the guide */
+  .wf-guide-cta {
+    border-color: rgb(169 157 224 / 0.45);
+  }
+
+  @media (max-width: 900px) {
+    .wf-guide__main {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  @media (max-width: 560px) {
+    .wf-guide__eps {
+      gap: 4px;
+    }
+    .wf-guide__ep {
+      min-height: 38px;
+      padding: 0;
+      font-size: 14px;
+    }
+  }
+
+  /* ── the map ── */
+  .wf-winden {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 16px;
+    border: 1px solid rgb(169 157 224 / 0.3);
+    box-shadow:
+      0 18px 40px rgb(0 0 0 / 0.4),
+      var(--glow-sm);
+  }
+  .wf-winden__ground {
+    fill: #191222;
+  }
+  .wf-winden[data-era='1986'] .wf-winden__ground {
+    fill: #1c1424;
+  }
+  .wf-winden[data-era='1953'] .wf-winden__ground {
+    fill: #1d1719;
+  }
+  .wf-winden__forest {
+    fill: #221a2e;
+  }
+  .wf-winden__tree {
+    fill: #3a2c53;
+  }
+  .wf-winden__tree--dark {
+    fill: #2e2141;
+  }
+  .wf-winden__river {
+    fill: none;
+    stroke: #2c2a4d;
+    stroke-width: 22;
+    stroke-linecap: round;
+  }
+  .wf-winden__river-shine {
+    fill: none;
+    stroke: rgb(169 157 224 / 0.25);
+    stroke-width: 2;
+    stroke-dasharray: 14 18;
+  }
+  .wf-winden__road {
+    fill: none;
+    stroke: rgb(229 221 237 / 0.18);
+    stroke-width: 7;
+    stroke-linecap: round;
+  }
+  .wf-winden__road--minor {
+    stroke-width: 4;
+  }
+  .wf-winden__track {
+    fill: none;
+    stroke: rgb(229 221 237 / 0.25);
+    stroke-width: 2.5;
+    stroke-dasharray: 3 7;
+    stroke-linecap: round;
+  }
+  .wf-winden__block {
+    fill: #2a2036;
+    stroke: rgb(169 157 224 / 0.12);
+  }
+  .wf-winden__tower {
+    fill: #3a2c53;
+    stroke: rgb(169 157 224 / 0.35);
+    stroke-width: 2;
+  }
+  .wf-winden__building {
+    fill: #2e2141;
+    stroke: rgb(169 157 224 / 0.3);
+  }
+  .wf-winden__steam circle {
+    fill: rgb(229 221 237 / 0.1);
+  }
+  .wf-winden__dig {
+    fill: #2b211c;
+    stroke: rgb(242 196 109 / 0.35);
+    stroke-dasharray: 6 5;
+  }
+  .wf-winden__crane,
+  .wf-winden__fence {
+    fill: none;
+    stroke: rgb(242 196 109 / 0.5);
+    stroke-width: 3;
+  }
+  .wf-winden__rain path {
+    stroke: rgb(229 221 237 / 0.12);
+    stroke-width: 1.2;
+  }
+
+  /* places */
+  .wf-wpin {
+    cursor: pointer;
+    outline: none;
+  }
+  .wf-wpin__hit {
+    fill: transparent;
+  }
+  .wf-wpin__dot {
+    fill: #1b1225;
+    stroke: var(--color-lavender);
+    stroke-width: 2.5;
+    transition: stroke-width 0.15s;
+  }
+  .wf-wpin__icon {
+    fill: var(--color-lavender);
+  }
+  .wf-wpin__icon--ring {
+    fill: none;
+    stroke: var(--color-lavender);
+    stroke-width: 2;
+  }
+  .wf-wpin__hand {
+    stroke: var(--color-lavender);
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+  .wf-wpin__label {
+    font-family: var(--font-sans);
+    font-size: 17px;
+    font-weight: 600;
+    fill: #f7f2fb;
+    paint-order: stroke;
+    stroke: #140d1c;
+    stroke-width: 5px;
+    stroke-linejoin: round;
+    pointer-events: none;
+  }
+  .wf-wpin:hover .wf-wpin__dot,
+  .wf-wpin:focus-visible .wf-wpin__dot {
+    stroke-width: 4;
+    stroke: #f7f2fb;
+  }
+  .wf-wpin.is-on .wf-wpin__dot {
+    stroke: #f2c46d;
+    stroke-width: 4;
+  }
+  .wf-wpin.is-on .wf-wpin__icon,
+  .wf-wpin.is-lit .wf-wpin__icon {
+    fill: #f2c46d;
+  }
+  .wf-wpin.is-lit .wf-wpin__dot {
+    stroke: #f2c46d;
+  }
+  /* on a phone the labels would be unreadable: the list of places beside the map names them */
+  @media (max-width: 640px) {
+    .wf-wpin__label {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .wf-winden__rain {
+      animation: wf-rain 0.9s linear infinite;
+    }
+    .wf-winden__steam {
+      animation: wf-steam 7s ease-in-out infinite alternate;
+    }
+    .wf-wpin__halo {
+      animation: wf-halo 2.4s ease-in-out infinite;
+      transform-box: fill-box;
+      transform-origin: center;
+    }
+  }
+  @keyframes wf-rain {
+    from {
+      translate: 0 -40px;
+    }
+    to {
+      translate: -12px 0;
+    }
+  }
+  @keyframes wf-steam {
+    from {
+      translate: 0 0;
+      opacity: 0.7;
+    }
+    to {
+      translate: 10px -14px;
+      opacity: 1;
+    }
+  }
+  @keyframes wf-halo {
+    50% {
+      scale: 1.15;
+      opacity: 0.7;
+    }
+  }
+}

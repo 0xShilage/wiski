@@ -115,7 +115,8 @@ describe('image sniffing (11 §5)', () => {
     expect(sniffImage(bytes(0, 0, 0, 24, 'ftypavif', 0, 0, 0, 0, 'mif1miaf'))).toBe('avif');
     expect(sniffImage(bytes(0, 0, 0, 24, 'ftypmif1', 0, 0, 0, 0, 'mif1avif'))).toBe('avif');
     expect(sniffImage(bytes(0, 0, 0, 24, 'ftypheic', 0, 0, 0, 0, 'mif1heic'))).toBeNull();
-    expect(sniffImage(bytes('GIF89a'))).toBeNull();
+    // GIF is recognised (2026-11-12) but the pipeline accepts it for badges only
+    expect(sniffImage(bytes('GIF89a', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))).toBe('gif');
     expect(sniffImage(bytes('<svg xmlns="http://www.w3.org/2000/svg">'))).toBeNull();
     expect(sniffImage(bytes(0xff, 0xd8))).toBeNull(); // too short / truncated marker
   });

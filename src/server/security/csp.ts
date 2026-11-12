@@ -29,7 +29,9 @@ export function pageCsp({ nonce, origin, dev }: CspOptions): string {
     // home page's Twitch player (created only after "Assistir aqui", 2026-11-02).
     `frame-src https://challenges.cloudflare.com https://www.youtube-nocookie.com https://player.twitch.tv`,
     `manifest-src 'self'`,
-    `media-src 'self'`,
+    // blob: — the badge editor decodes a WebM the moderator picked, locally, into frames
+    // (2026-11-12); a blob URL can only come from this page's own script
+    `media-src 'self' blob:`,
     `object-src 'none'`,
     `base-uri 'none'`,
     `form-action 'self'`,

@@ -14,7 +14,7 @@ import { db } from '../db';
  */
 const username = z.string().regex(USERNAME_PATTERN);
 const itemKind = z.enum(['MOVIE', 'SERIES', 'FRANCHISE', 'ANIME']);
-const mediaRole = z.enum(['POSTER', 'BACKDROP', 'LOGO', 'PORTRAIT']);
+const mediaRole = z.enum(['POSTER', 'BACKDROP', 'LOGO', 'PORTRAIT', 'BADGE']);
 const orderKind = z.enum(['MOVIE', 'CONTRIBUTION']);
 const paymentStatus = z.enum([
   'PENDING',
@@ -364,6 +364,23 @@ export const AUDIT_ACTIONS = {
   'audit.export': z.object({ rows: z.int().nonnegative() }).strict(),
   // ── Phase 6 ──
   'link.create': z.object({ visible: z.boolean() }).strict(),
+  /** Emblemas (2026-11-12): the shape of a badge; its name and art are on the row itself */
+  'badge.create': z
+    .object({
+      hasCode: z.boolean(),
+      maxClaims: z.int().min(1).nullable(),
+      minutes: z.int().min(1),
+    })
+    .strict(),
+  'badge.update': z
+    .object({
+      hasCode: z.boolean(),
+      maxClaims: z.int().min(1).nullable(),
+      minutes: z.int().min(1),
+    })
+    .strict(),
+  'badge.end': z.object({ claims: z.int().min(0) }).strict(),
+  'badge.delete': z.object({ claims: z.literal(0) }).strict(),
   /** Guia de Winden photos (2026-11-12): which slot of which guide; the asset is the target */
   'guide.portrait.set': z.object({ guide: z.string().max(40), slot: z.string().max(60) }).strict(),
   'guide.portrait.remove': z

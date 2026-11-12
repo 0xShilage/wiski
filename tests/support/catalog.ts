@@ -70,13 +70,15 @@ export async function clearCatalog(): Promise<void> {
     db().franchiseEntry.deleteMany({}),
     db().catalogItem.deleteMany({}),
     db().guidePortrait.deleteMany({}),
+    db().badgeClaim.deleteMany({}),
+    db().badge.deleteMany({}),
     db().mediaAsset.deleteMany({}),
   ]);
 }
 
 let assetSeq = 0;
 /** Test-only: a MediaAsset row with fake (but well-formed) variants. */
-export async function makeAsset(role: 'POSTER' | 'BACKDROP' | 'LOGO' | 'PORTRAIT') {
+export async function makeAsset(role: 'POSTER' | 'BACKDROP' | 'LOGO' | 'PORTRAIT' | 'BADGE') {
   assetSeq++;
   const hash = new Uint8Array(32);
   crypto.getRandomValues(hash);
@@ -88,7 +90,9 @@ export async function makeAsset(role: 'POSTER' | 'BACKDROP' | 'LOGO' | 'PORTRAIT
         ? [1920, 1080]
         : role === 'PORTRAIT'
           ? [640, 853]
-          : [960, 240];
+          : role === 'BADGE'
+            ? [256, 256]
+            : [960, 240];
   return db().mediaAsset.create({
     data: {
       sha256: hash,

@@ -3,11 +3,13 @@ import { notFound, permanentRedirect } from 'next/navigation';
 import Link from 'next/link';
 import { Avatar } from '@/components/Avatar';
 import { AchievementBadges } from '@/components/community/AchievementBadges';
+import { BadgeShelf } from '@/components/badges/BadgeShelf';
 import { RabinhoViolet } from '@/components/brand/generated';
 import { ReviewList } from '@/components/reviews/ReviewList';
 import { card, heading } from '@/components/ui/styles';
 import { formatMonthYear } from '@/lib/format';
 import { getCurrentSession } from '@/server/auth/current';
+import { badgesOf } from '@/server/badges/badges';
 import { achievementsFor } from '@/server/community/achievements';
 import { findProfile, userReviews } from '@/server/reviews/read';
 
@@ -27,9 +29,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 /**
- * Public profile (03 §5.4): username, avatar, joined month, badges (2026-11-04, unless the viewer
- * turned them off) and visible reviews — never e-mail. Same column as /perfil (`wf-page--narrow`,
- * 2026-11-11): the page clears the floating header and lines up with the rest of the site.
+ * Public profile (03 §5.4): username, avatar, joined month, badges (2026-11-04) and event badges
+ * (2026-11-12) — both unless the viewer turned them off — and visible reviews, never e-mail. Same
+ * column as /perfil (`wf-page--narrow`, 2026-11-11): the page clears the floating header and lines
+ * up with the rest of the site.
  */
 export default async function PerfilPublicoPage({ params }: Props) {
   const raw = (await params).username;
@@ -37,9 +40,10 @@ export default async function PerfilPublicoPage({ params }: Props) {
   if (!profile) notFound();
   if (raw !== profile.username) permanentRedirect(`/u/${profile.username}`);
   const ctx = await getCurrentSession();
-  const [page, badges] = await Promise.all([
+  const [page, badges, emblems] = await Promise.all([
     userReviews(profile.id, undefined, ctx?.user.id),
     profile.showAchievements ? achievementsFor(profile) : Promise.resolve([]),
+    profile.showAchievements ? badgesOf(profile.id) : Promise.resolve([]),
   ]);
   const earned = badges.filter((b) => b.earned);
 
@@ -71,6 +75,22 @@ export default async function PerfilPublicoPage({ params }: Props) {
             </Link>
           </div>
           <AchievementBadges items={earned} labelledBy="conquistas" />
+        </section>
+      ) : null}
+      {emblems.length ? (
+        <section aria-labelledby="emblemas">
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <h2 id="emblemas" className={heading.h2}>
+              Emblemas
+            </h2>
+            <Link
+              href="/emblemas"
+              className="text-sm text-lavender underline-offset-4 hover:underline"
+            >
+              Ver todos
+            </Link>
+          </div>
+          <BadgeShelf items={emblems} labelledBy="emblemas" />
         </section>
       ) : null}
       <section aria-labelledby="avaliacoes">

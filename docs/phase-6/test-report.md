@@ -279,3 +279,8 @@ Fix (PR "fix-prefetch-burst"): no prefetch on the header tabs, the phone bar, th
 
 - Integration `community.test.ts`: off-stream register puts a draft in Assistidos tagged `offStream`, keeps it out of `watchProgress`, audited; only a draft and no future date (409 INVALID_STATE); a suggestion can be marked WATCHED (audit `to:'WATCHED'`, shows under the WATCHED filter). `overlay.test.ts`: `queueSnapshot` follows the scheduled titles (capped at 5) and never the unscheduled queue, and is empty when nothing is scheduled. Authz matrix: the new `watched-offstream` endpoint.
 - Existing overlay/`!fila`, suggestions and catalog e2e unchanged and green; unit green.
+
+## Addendum — Emblemas (2026-11-12)
+
+- Integration `badges.test.ts` (10) and `media-badge.test.ts`: see README §38. Authz matrix: the five new endpoints. Full integration suite green (1 286 tests); unit green (navigation now fifteen tabs, "Emblemas" in "Mais").
+- e2e `emblemas.spec.ts` (dashboard flow on desktop; claim flow on both projects), `community.spec.ts` (the "Mais" lists), `community-catalog.spec.ts` (renamed switch), `csp.spec.ts` / `a11y-layout.spec.ts` (three new pages), `headers.spec.ts` green. Screenshots `test-results/emblemas/`.

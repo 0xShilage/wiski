@@ -9,8 +9,8 @@ import { randomToken } from '../security/crypto';
 
 /**
  * LGPD self-service (05 §13, 02 §5, Q14): download everything we hold about you, or erase your
- * account. Erasure removes reviews, likes, reports, suggestions and passkeys, ends every session and
- * anonymises the account row (it stays only so paid orders — kept 5 years for tax/accounting —
+ * account. Erasure removes reviews, likes, reports, suggestions, badge claims and passkeys, ends
+ * every session and anonymises the account row (it stays only so paid orders — kept 5 years for tax/accounting —
  * still point somewhere). The username is held for 30 days so nobody can take it over at once.
  */
 export const LgpdProblems = {
@@ -31,7 +31,7 @@ export const LgpdProblems = {
 };
 
 export async function exportMyData(user: User, requestId: string | null) {
-  const [sessions, orders, reviews, likes, reports, legal, passkeys, suggestions, roleta] =
+  const [sessions, orders, reviews, likes, reports, legal, passkeys, suggestions, roleta, badges] =
     await Promise.all([
       db().session.findMany({
         where: { userId: user.id },
@@ -100,6 +100,11 @@ export async function exportMyData(user: User, requestId: string | null) {
         },
         orderBy: { createdAt: 'desc' },
       }),
+      db().badgeClaim.findMany({
+        where: { userId: user.id },
+        select: { claimedAt: true, badge: { select: { name: true } } },
+        orderBy: { claimedAt: 'desc' },
+      }),
     ]);
   await audit({
     action: 'user.export',
@@ -130,6 +135,7 @@ export async function exportMyData(user: User, requestId: string | null) {
     passkeys,
     suggestions,
     roleta: roleta.map(({ voucher, ...r }) => ({ ...r, couponCode: voucher?.code ?? null })),
+    badges: badges.map((b) => ({ badge: b.badge.name, claimedAt: b.claimedAt })),
     // never the secret or the codes — only whether it is on
     authenticatorApp: {
       enabledAt: user.totpEnabledAt?.toISOString() ?? null,
@@ -172,6 +178,7 @@ export async function eraseMyAccount(
       });
     }
     await t.roletaSpin.deleteMany({ where: { userId: user.id } });
+    await t.badgeClaim.deleteMany({ where: { userId: user.id } });
     await t.mfaRecoveryCode.deleteMany({ where: { userId: user.id } });
     await t.session.updateMany({
       where: { userId: user.id, revokedAt: null },

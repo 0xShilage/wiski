@@ -18,6 +18,7 @@ import {
   IconTv,
   IconUser,
   IconWheel,
+  IconMedal,
 } from '@/components/ui/icons';
 import { NAV_ITEMS } from './nav-items';
 
@@ -37,6 +38,7 @@ const ICON: Record<
   '/avaliacoes': IconStar,
   '/sugestoes': IconBulb,
   '/roleta': IconWheel,
+  '/emblemas': IconMedal,
   '/links': IconLink,
   '/perfil': IconUser,
 };

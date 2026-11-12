@@ -132,8 +132,19 @@ server {
     proxy_pass http://wf_app;
   }
 
+  # The API: every method its routes declare (each route() answers 405 to the others).
+  location /api/ {
+    include ${WF_SNIPPETS}/security-headers.conf;
+    limit_req zone=wf_general burst=150 nodelay;
+    limit_conn wf_conn 100;
+    proxy_pass http://wf_app;
+  }
+
+  # Pages and everything else are read-only: GET (and HEAD). A PUT, DELETE or PATCH on a page
+  # used to reach Next.js and render the page (pentest 2026-11-11); it stops here now.
   location / {
     include ${WF_SNIPPETS}/security-headers.conf;
+    limit_except GET { deny all; }
     limit_req zone=wf_general burst=150 nodelay;
     limit_conn wf_conn 100;
     proxy_pass http://wf_app;

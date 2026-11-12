@@ -19,6 +19,18 @@ describe('chat rules', () => {
     expect(expand('Agora: {agora} {agora}', vars).missing).toEqual(['agora']);
     expect(placeholdersIn('{site} {nope} {site}')).toEqual(['site']);
   });
+  it('nothing invisible in front of a command gets it past the check (pentest 2026-11-11)', () => {
+    for (const sneaky of [
+      '\u200b/ban x',
+      '\u2060.timeout x',
+      '\ufeff/mod x',
+      '\u00a0 /ban x',
+      '\u202e/ban x',
+    ])
+      expect(chatProblem(oneLine(sneaky)), JSON.stringify(sneaky)).toMatch(/Comandos/);
+    // emoji sequences keep their joiners
+    expect(oneLine('👨\u200d👩\u200d👧 oi')).toBe('👨\u200d👩\u200d👧 oi');
+  });
   it('refuses commands, empty and over-long lines; "!" commands are text', () => {
     expect(chatProblem('')).toMatch(/Escreva/);
     expect(chatProblem('/ban x')).toMatch(/Comandos/);

@@ -101,7 +101,16 @@ describe('sending', () => {
 
   it('refuses Twitch commands, empty and too long messages (nothing reaches StreamElements)', async () => {
     const mod = await as('STREAMER');
-    for (const text of ['/ban alguem', '.clear', '   ', 'x'.repeat(501)]) {
+    for (const text of [
+      '/ban alguem',
+      '.clear',
+      '   ',
+      'x'.repeat(501),
+      // invisible characters in front of a command (pentest 2026-11-11)
+      '\u200b/ban alguem',
+      '\u2060.timeout alguem 600',
+      '\ufeff/mod alguem',
+    ]) {
       const { res } = await say(mod, text);
       expect(res.status, text.slice(0, 10)).toBe(422);
     }

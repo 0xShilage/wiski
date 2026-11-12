@@ -120,5 +120,6 @@ export function streamSafeName(raw: string | null | undefined): string | null {
  * those characters are stripped from the start of every line.
  */
 export function chatSafe(line: string): string {
-  return line.replace(/^[\s/.!\\]+/, '').slice(0, 450);
+  // invisible format characters (zero-width space, word joiner, BOM…) count as nothing in front
+  return line.replace(/^[\s\p{Cf}/.!\\]+/u, '').slice(0, 450);
 }

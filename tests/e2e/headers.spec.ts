@@ -230,3 +230,22 @@ function announce12Mb(): Promise<number> {
     req.flushHeaders();
   });
 }
+
+test('pentest 2026-11-11: pages are read-only at the edge, and security.txt is served', async ({
+  request,
+}) => {
+  for (const method of ['PUT', 'DELETE', 'PATCH', 'POST'] as const) {
+    const res = await request.fetch('/filmes', { method, maxRedirects: 0 });
+    expect(res.status(), method).toBe(403);
+    expect(res.headers()['x-frame-options']).toBe('DENY');
+  }
+  // the API keeps its methods and its own answers (anonymous: 401)
+  expect((await request.fetch('/api/v1/me/profile', { method: 'PATCH', data: {} })).status()).toBe(
+    401,
+  );
+  expect((await request.get('/api/v1/live')).status()).toBe(200);
+  const txt = await request.get('/.well-known/security.txt');
+  expect(txt.status()).toBe(200);
+  expect(txt.headers()['content-type']).toMatch(/^text\/plain/);
+  expect(await txt.text()).toMatch(/^Contact: https:\/\/wiski\.fun\/contato$/m);
+});

@@ -466,3 +466,7 @@ The sidebar shows the former "Streamer" group as "Canal" to everyone on staff; t
 - Data: `src/lib/guides/dark-s1.ts` (static; places, people and their versions per era, each with the episode it may show from). The gates are deliberately late (one episode late costs nothing, one early is a spoiler): 1986 from episode 3, 1953 from episode 8, per the official episode synopses; names, places and relations only, descriptions in our own words, episode titles in the original German. No images of the series or its cast.
 - The title page of a series called "Dark" shows a "Guia de Winden" panel linking to the guide (`src/lib/guides/index.ts`, matched by kind and title, so it appears once the series is in the catalog).
 - Tests: `tests/unit/dark-guide.test.ts` (no item before its era, links to real places, going back never shows more, episode-1 view), `tests/e2e/guide.spec.ts` (desktop and phone: episode 1 has only 2019 and never names another year; 1986 at episode 3; 1953 building site at episode 8; remembered episode; `?ep=`; going back hides; no CSP or hydration errors).
+
+## 36. Security round (2026-11-11)
+
+Full white-box review plus active testing against the production stack: [`../security/pentest-2026-11-11.md`](../security/pentest-2026-11-11.md). No critical/high/medium finding. Fixed in this round: invisible characters in front of a chat command (Chat da live and every bot line), Google step-up on the Roleta switch, pages read-only at nginx (GET/HEAD only), and `/.well-known/security.txt`.

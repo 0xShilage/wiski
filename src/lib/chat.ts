@@ -22,14 +22,20 @@ export type ChatVars = Record<PlaceholderKey, string | null>;
 
 const TOKEN = /\{(site|agora|proxima)\}/g;
 
-/** One line, as Twitch shows it: no line breaks or control characters, single spaces, trimmed. */
+/**
+ * One line, as Twitch shows it: no line breaks or control characters, no bidi overrides, single
+ * spaces, trimmed — and nothing invisible in front (pentest 2026-11-11: a zero-width space or word
+ * joiner before "/ban" slipped past the command check below).
+ */
 export function oneLine(raw: string): string {
   return (
     raw
       .normalize('NFC')
       // eslint-disable-next-line no-control-regex
       .replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/g, ' ')
+      .replace(/[\u202a-\u202e\u2066-\u2069]/g, '')
       .replace(/\s+/g, ' ')
+      .replace(/^[\s\p{Cf}]+/u, '')
       .trim()
   );
 }

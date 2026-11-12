@@ -97,7 +97,11 @@ function prepare(upstreamPort: number): Prepared {
 
 function get(
   path: string,
-  o: { cert?: { key: Buffer; cert: Buffer }; headers?: Record<string, string> } = {},
+  o: {
+    cert?: { key: Buffer; cert: Buffer };
+    headers?: Record<string, string>;
+    method?: string;
+  } = {},
 ) {
   return new Promise<{ status: number; body: string }>((resolve, reject) => {
     const req = httpsRequest(
@@ -105,6 +109,7 @@ function get(
         host: '127.0.0.1',
         port: 18443,
         path,
+        method: o.method ?? 'GET',
         servername: 'wiski.fun',
         headers: { host: 'wiski.fun', ...o.headers },
         rejectUnauthorized: false,
@@ -220,6 +225,11 @@ describe.skipIf(!hasNginx)('production nginx config', () => {
       // 127.0.0.1 is not a Cloudflare range: CF-Connecting-IP and client-sent headers are ignored
       expect(JSON.parse(ok.body)).toEqual({ realIp: '127.0.0.1', xff: null });
       expect((await get('/api/ready', { cert })).status).toBe(404);
+      // pages are read-only at the edge; the API keeps its methods (pentest 2026-11-11)
+      for (const method of ['PUT', 'DELETE', 'PATCH', 'POST'])
+        expect((await get('/filmes', { cert, method })).status, method).toBe(403);
+      expect((await get('/filmes', { cert, method: 'HEAD' })).status).toBe(200);
+      expect((await get('/api/v1/me/profile', { cert, method: 'PATCH' })).status).toBe(200);
     } finally {
       nginx.kill('SIGTERM');
       upstream.close();

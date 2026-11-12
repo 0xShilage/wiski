@@ -132,6 +132,17 @@ describe('spins', () => {
     expect(audited?.metadata).toEqual({ key: 'roleta.open', value: false });
     await hit(openRoute, 'PUT', '/api/v1/admin/roleta/open', { who: st, body: { open: true } });
     expect((await spin(v)).res.status).toBe(200);
+
+    // the switch asks for a recent login, like the other site switches (pentest 2026-11-11)
+    const stale = new Date(Date.now() - 3_600_000);
+    const mod = await as('MODERATOR', { authTime: stale, mfaAt: stale });
+    const late = await hit(openRoute, 'PUT', '/api/v1/admin/roleta/open', {
+      who: mod,
+      body: { open: false },
+    });
+    expect(late.res.status).toBe(401);
+    expect(late.json.code).toBe('STEP_UP_REQUIRED');
+    expect((await myRoleta(v.user.id)).open).toBe(true);
   });
 });
 

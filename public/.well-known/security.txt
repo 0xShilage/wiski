@@ -1,0 +1,7 @@
+# Wiskiflix (wiski.fun) — how to report a security problem (RFC 9116).
+# Please write through the contact page with "Segurança" in the subject. No testing that
+# harms real people's accounts, payments or the live stream, please.
+Contact: https://wiski.fun/contato
+Expires: 2027-11-11T00:00:00.000Z
+Preferred-Languages: pt, en
+Canonical: https://wiski.fun/.well-known/security.txt

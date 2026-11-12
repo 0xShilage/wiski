@@ -17,6 +17,7 @@ import { getEnv } from '../env';
 import { HttpError, Problems } from '../http/problem';
 import { liveStatus } from '../live/public';
 import { redis } from '../redis';
+import { plainText } from '../text/sanitize';
 import { type BotResult, botSay, chatBotConfigured } from './bot';
 
 /**
@@ -133,7 +134,8 @@ export const chatSayInput = z.object({ text: z.string().max(2_000) }).strict();
 
 /** Sends one message as the bot; throws a problem the panel shows when it can't. */
 export async function sendChat(ctx: Ctx, raw: string, now = new Date()): Promise<ChatHistoryEntry> {
-  const draft = oneLine(raw);
+  // the same sanitiser as every other text people see (invisible characters out), then one line
+  const draft = oneLine(plainText(raw));
   const { text, missing } = expand(draft, await chatVars(now));
   if (missing.length)
     throw Problems.validation([

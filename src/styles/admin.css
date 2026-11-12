@@ -567,3 +567,28 @@
     }
   }
 }
+
+/* Admin › Guia de Winden (2026-11-12): portrait slots, 3:4 */
+@layer components {
+  .wf-drop--portrait {
+    width: 140px;
+    aspect-ratio: 3 / 4;
+  }
+  .wf-portraits {
+    list-style: none;
+    margin: 12px 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 16px 14px;
+  }
+  .wf-portraits__item {
+    display: grid;
+    gap: 4px;
+    justify-items: start;
+  }
+  .wf-portraits__meta {
+    font-size: 12px;
+    color: var(--fg-70);
+  }
+}

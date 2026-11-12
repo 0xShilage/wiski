@@ -41,6 +41,8 @@ export const ROLE_RULES: Record<MediaRole, RoleRule> = {
   POSTER: { minW: 600, minH: 900, aspect: 2 / 3, widths: MEDIA_WIDTHS.POSTER },
   BACKDROP: { minW: 1920, minH: 1080, aspect: 16 / 9, widths: MEDIA_WIDTHS.BACKDROP },
   LOGO: { minW: 480, minH: 60, aspect: null, widths: MEDIA_WIDTHS.LOGO },
+  /** Guia de Winden photos (2026-11-12): 3:4, cropped like posters */
+  PORTRAIT: { minW: 300, minH: 400, aspect: 3 / 4, widths: MEDIA_WIDTHS.PORTRAIT },
 };
 
 if (process.env.NODE_ENV === 'production') sharp.concurrency(2); // 2 GB server

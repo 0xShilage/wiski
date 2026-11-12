@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { DarkGuide } from '@/components/guides/DarkGuide';
-import { clampEpisode } from '@/lib/guides/dark-s1';
+import { clampEpisode, GUIDE_ID } from '@/lib/guides/dark-s1';
+import { guidePortraits } from '@/server/guides/portraits';
 
 export const metadata: Metadata = {
   title: 'Guia de Winden: Dark, 1ª temporada sem spoilers',
@@ -30,7 +31,11 @@ export default async function DarkGuidePage({
           nada aqui explica os mistérios.
         </p>
       </header>
-      <DarkGuide initialEp={fromUrl ? clampEpisode(raw) : 1} fromUrl={fromUrl} />
+      <DarkGuide
+        initialEp={fromUrl ? clampEpisode(raw) : 1}
+        fromUrl={fromUrl}
+        portraits={await guidePortraits(GUIDE_ID)}
+      />
     </div>
   );
 }

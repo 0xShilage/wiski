@@ -17,6 +17,7 @@ export type OpsSection =
   | 'subathon'
   | 'media-kit'
   | 'links'
+  | 'guias'
   | 'contato'
   | 'cupons'
   | 'auditoria'
@@ -49,6 +50,7 @@ const CHANNEL: { id: OpsSection; label: string; badge?: (c: OpsCounts) => number
   { id: 'subathon', label: 'Subathon' },
   { id: 'media-kit', label: 'Media kit' },
   { id: 'links', label: 'Links' },
+  { id: 'guias', label: 'Guia de Winden' },
   { id: 'contato', label: 'Contato', badge: (c) => c.unread },
   { id: 'cupons', label: 'Cupons' },
   { id: 'auditoria', label: 'Auditoria' },

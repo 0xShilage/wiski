@@ -447,6 +447,10 @@ export const MATRIX: Row[] = [
   R('/api/v1/admin/chat', 'GET', 'moderator'),
   R('/api/v1/admin/chat', 'POST', 'moderator', { body: { text: 'oi chat' } }),
   R('/api/v1/admin/chat/presets', 'PUT', 'moderator', { body: { presets: [] } }),
+  R('/api/v1/admin/guides/[guide]/portraits', 'PUT', 'moderator', {
+    params: { guide: 'dark' },
+    body: { slot: 'jonas:2019', assetId: null },
+  }),
   R('/api/v1/admin/settings', 'GET', 'moderator'),
   R('/api/v1/admin/settings', 'PUT', 'moderator', { body: { ordersOpen: true } }),
   R('/api/v1/admin/vouchers', 'GET', 'moderator'),

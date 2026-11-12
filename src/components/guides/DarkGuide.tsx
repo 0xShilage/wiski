@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
+import { MediaPicture } from '@/components/media/MediaPicture';
 import {
   clampEpisode,
   EPISODE_COUNT,
@@ -12,7 +13,10 @@ import {
   peopleFor,
   placesFor,
   placesOf,
+  slotOf,
+  SPOILERS,
 } from '@/lib/guides/dark-s1';
+import type { Picture } from '@/lib/media';
 import { WindenMap } from './WindenMap';
 
 const STORE = 'wf:guia:dark:ep';
@@ -23,7 +27,90 @@ const STORE = 'wf:guia:dark:ep';
  * shown up to there. The choice is remembered in this browser (and kept in the address as ?ep=,
  * so a link from the chat opens at the same point).
  */
-export function DarkGuide({ initialEp, fromUrl }: { initialEp: number; fromUrl: boolean }) {
+/** A character's photo (uploaded by the team), or their initials in the family colour. */
+function Face({
+  name,
+  picture,
+  size,
+}: {
+  name: string;
+  picture: Picture | null | undefined;
+  size: 'sm' | 'md' | 'lg';
+}) {
+  if (picture)
+    return (
+      <span className={`wf-face wf-face--${size}`}>
+        <MediaPicture
+          picture={picture}
+          alt={`Foto de ${name}`}
+          sizes={size === 'lg' ? '160px' : '64px'}
+        />
+      </span>
+    );
+  const initials = name
+    .replace(/^(?:O|A)\s+/, '')
+    .split(/\s+/)
+    .map((w) => w[0])
+    .filter((c) => c && /\p{L}/u.test(c))
+    .slice(0, 2)
+    .join('');
+  return (
+    <span className={`wf-face wf-face--${size} wf-face--initials`} aria-hidden="true">
+      {initials}
+    </span>
+  );
+}
+
+/**
+ * Spoilers of the whole season, behind a button (2026-11-12). Closed on every visit; the text is
+ * not in the page at all until it is opened.
+ */
+function Spoilers() {
+  const [open, setOpen] = useState(false);
+  return (
+    <section className="wf-spoilers" aria-labelledby="guia-spoilers">
+      <div className="wf-spoilers__head">
+        <h2 id="guia-spoilers" className="wf-guide__title">
+          Com spoilers
+        </h2>
+        <button
+          type="button"
+          className={open ? 'wf-btn wf-btn--ghost' : 'wf-btn wf-btn--neon'}
+          aria-expanded={open}
+          aria-controls="guia-spoilers-corpo"
+          onClick={() => setOpen((o) => !o)}
+        >
+          {open ? 'Esconder spoilers' : 'Mostrar spoilers'}
+        </button>
+      </div>
+      <p className="wf-spoilers__warn">
+        Atenção: esta parte conta as revelações da 1ª temporada inteira, até o último episódio.
+      </p>
+      <div id="guia-spoilers-corpo" className="wf-spoilers__body" hidden={!open}>
+        {open ? (
+          <ol className="wf-spoilers__list">
+            {SPOILERS.map((s) => (
+              <li key={s.title}>
+                <h3>{s.title}</h3>
+                <p>{s.text}</p>
+              </li>
+            ))}
+          </ol>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+export function DarkGuide({
+  initialEp,
+  fromUrl,
+  portraits,
+}: {
+  initialEp: number;
+  fromUrl: boolean;
+  portraits: Record<string, Picture>;
+}) {
   const [ep, setEp] = useState(initialEp);
   const [eraPick, setEraPick] = useState<Era>('2019');
   const [selected, setSelected] = useState<string | null>(null);
@@ -160,6 +247,11 @@ export function DarkGuide({ initialEp, fromUrl }: { initialEp: number; fromUrl: 
                     {here.map((s) => (
                       <li key={s.person.id}>
                         <button type="button" onClick={() => pickPerson(s.person.id)}>
+                          <Face
+                            name={s.person.name}
+                            picture={portraits[slotOf(s.person.id, era)]}
+                            size="sm"
+                          />
                           {s.person.name}
                         </button>
                       </li>
@@ -170,6 +262,11 @@ export function DarkGuide({ initialEp, fromUrl }: { initialEp: number; fromUrl: 
             </>
           ) : focused ? (
             <>
+              <Face
+                name={focused.person.name}
+                picture={portraits[slotOf(focused.person.id, era)]}
+                size="lg"
+              />
               <p className="wf-guide__kicker">{era}</p>
               <h2 className="wf-guide__place">{focused.person.name}</h2>
               <p>{focused.text}</p>
@@ -226,6 +323,11 @@ export function DarkGuide({ initialEp, fromUrl }: { initialEp: number; fromUrl: 
                         aria-pressed={focus === s.person.id}
                         onClick={() => pickPerson(s.person.id)}
                       >
+                        <Face
+                          name={s.person.name}
+                          picture={portraits[slotOf(s.person.id, era)]}
+                          size="md"
+                        />
                         <span className="wf-person__name">{s.person.name}</span>
                         <span className="wf-person__text">{s.text}</span>
                       </button>
@@ -237,6 +339,8 @@ export function DarkGuide({ initialEp, fromUrl }: { initialEp: number; fromUrl: 
           })}
         </div>
       </section>
+
+      <Spoilers />
     </div>
   );
 }

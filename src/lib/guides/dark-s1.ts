@@ -54,7 +54,7 @@ export type Place = {
 };
 
 export type Version = {
-  era: Era | null;
+  era: Era;
   from: number;
   text: Staged;
   places: string[];
@@ -214,12 +214,7 @@ export const PLACES: Place[] = [
   },
 ];
 
-const v = (
-  era: Era | null,
-  from: number,
-  text: string | Staged,
-  places: string[] = [],
-): Version => ({
+const v = (era: Era, from: number, text: string | Staged, places: string[] = []): Version => ({
   era,
   from,
   text: typeof text === 'string' ? [{ from, text }] : text,
@@ -551,12 +546,12 @@ export function placesFor(era: Era, ep: number): (Place & { text: string })[] {
 
 export type ShownVersion = { person: Person; version: Version; text: string };
 
-/** The people of an era at episode `ep` (era-less versions show in every unlocked era). */
+/** The people of an era at episode `ep`. */
 export function peopleFor(era: Era, ep: number): ShownVersion[] {
   if (!erasUnlocked(ep).includes(era)) return [];
   return PEOPLE.flatMap((person) =>
     person.versions.flatMap((version) => {
-      if (version.from > ep || (version.era !== null && version.era !== era)) return [];
+      if (version.from > ep || version.era !== era) return [];
       const text = stagedText(version.text, ep);
       return text ? [{ person, version, text }] : [];
     }),
@@ -580,3 +575,64 @@ export function clampEpisode(n: unknown): number {
   const x = typeof n === 'number' ? n : Number(n);
   return Number.isInteger(x) && x >= 1 && x <= EPISODE_COUNT ? x : 1;
 }
+
+// ── photos (2026-11-12): one slot per person per era, filled in from the dashboard ─────────
+
+export const GUIDE_ID = 'dark';
+
+/** "<person>:<era>", the key of a photo (the database CHECK takes exactly this shape). */
+export function slotOf(personId: string, era: Era): string {
+  return `${personId}:${era}`;
+}
+
+export type Slot = { slot: string; name: string; era: Era; family: Family; from: number };
+
+/** Every photo slot of the guide (all eras and episodes: the dashboard shows everything). */
+export function allSlots(): Slot[] {
+  return PEOPLE.flatMap((p) =>
+    p.versions.map((v) => ({
+      slot: slotOf(p.id, v.era),
+      name: p.name,
+      era: v.era,
+      family: p.family,
+      from: v.from,
+    })),
+  );
+}
+
+// ── spoilers (2026-11-12): the whole first season, behind a button ────────────────────────
+
+/**
+ * What the first season reveals, for people who finished it (or don't mind). Shown only when the
+ * viewer opens it; never part of the page until then. The big reveals only, in our own words.
+ */
+export const SPOILERS: { title: string; text: string }[] = [
+  {
+    title: 'As cavernas atravessam o tempo',
+    text: 'A passagem nas cavernas leva quem a atravessa 33 anos para trás ou para a frente: 2019, 1986, 1953.',
+  },
+  {
+    title: 'Mikkel é Michael',
+    text: 'Mikkel vai parar em 1986 e não consegue voltar. É criado por Ines Kahnwald e cresce como Michael Kahnwald, o pai de Jonas. Ou seja: Ulrich e Katharina são avós de Jonas, e Martha é tia dele.',
+  },
+  {
+    title: 'O menino encontrado morto',
+    text: 'O corpo de menino achado em 2019, com roupas antigas, é de Mads Nielsen, o irmão de Ulrich que sumiu em 1986.',
+  },
+  {
+    title: 'Quem é o forasteiro',
+    text: 'O homem hospedado no hotel é o próprio Jonas, adulto, vindo do futuro.',
+  },
+  {
+    title: 'Os sumiços de crianças',
+    text: 'Noah está por trás deles: com a ajuda de Helge Doppler, leva crianças a um bunker na floresta, onde testa uma máquina de viajar no tempo.',
+  },
+  {
+    title: 'Ulrich em 1953',
+    text: 'Ulrich atravessa a caverna até 1953 para impedir o pequeno Helge. Não consegue e acaba preso pelo jovem policial Egon Tiedemann.',
+  },
+  {
+    title: 'O fim da temporada',
+    text: 'Jonas é levado para o futuro: uma Winden destruída, em 2052.',
+  },
+];

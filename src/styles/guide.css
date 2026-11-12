@@ -499,3 +499,136 @@
     }
   }
 }
+
+/* ── Faces (2026-11-12): the team's photo of a character, or initials in the family colour ── */
+@layer components {
+  .wf-face {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    overflow: hidden;
+    background: rgb(46 33 65 / 0.9);
+    color: var(--fam, var(--color-lavender));
+    font-family: var(--font-display);
+    letter-spacing: 0.04em;
+    box-shadow: 0 0 0 2px var(--fam, rgb(169 157 224 / 0.6));
+  }
+  .wf-face img,
+  .wf-face picture {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 25%;
+  }
+  .wf-face--sm {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 10px;
+  }
+  .wf-face--md {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    font-size: 15px;
+  }
+  .wf-face--lg {
+    width: 120px;
+    aspect-ratio: 3 / 4;
+    border-radius: 12px;
+    font-size: 34px;
+    margin-bottom: 6px;
+  }
+  .wf-face--initials {
+    background:
+      radial-gradient(120% 120% at 30% 20%, rgb(115 107 178 / 0.45), transparent 60%),
+      rgb(27 18 37 / 0.95);
+  }
+  .wf-person {
+    grid-template-columns: 44px minmax(0, 1fr);
+    column-gap: 10px;
+    align-items: center;
+  }
+  .wf-person .wf-face {
+    grid-row: span 2;
+  }
+  .wf-guide__who button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding-left: 4px;
+  }
+}
+
+/* ── Spoilers (2026-11-12): closed by default, behind a button ── */
+@layer components {
+  .wf-spoilers {
+    padding: 16px 18px;
+    border-radius: 14px;
+    border: 1px dashed rgb(255 143 154 / 0.55);
+    background:
+      repeating-linear-gradient(-45deg, rgb(255 143 154 / 0.05) 0 12px, transparent 12px 24px),
+      rgb(27 18 37 / 0.8);
+  }
+  .wf-spoilers__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .wf-spoilers__head .wf-guide__title {
+    margin: 0;
+  }
+  .wf-spoilers__warn {
+    margin: 8px 0 0;
+    color: var(--color-danger);
+    font-size: 14px;
+  }
+  .wf-spoilers__list {
+    margin: 14px 0 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+    counter-reset: spoiler;
+  }
+  .wf-spoilers__list li {
+    counter-increment: spoiler;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgb(46 33 65 / 0.7);
+    border: 1px solid rgb(169 157 224 / 0.25);
+  }
+  .wf-spoilers__list h3 {
+    margin: 0 0 4px;
+    font-size: 15px;
+    color: #f7f2fb;
+  }
+  .wf-spoilers__list h3::before {
+    content: counter(spoiler) '. ';
+    color: var(--color-danger);
+  }
+  .wf-spoilers__list p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--fg-78);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .wf-spoilers__list li {
+      animation: wf-spoil-in 0.35s var(--ease-smooth) both;
+    }
+  }
+  @keyframes wf-spoil-in {
+    from {
+      opacity: 0;
+      translate: 0 6px;
+      filter: blur(4px);
+    }
+  }
+}

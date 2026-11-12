@@ -81,6 +81,7 @@ model User {
   games              Game[]              @relation("GameCreator")
   catalogRevisions   CatalogRevision[]   @relation("RevisionEditor")
   mediaUploads       MediaAsset[]        @relation("MediaUploader")
+  guidePortraitEdits GuidePortrait[]     @relation("GuidePortraitEditor")
   campaignsOpened    Campaign[]          @relation("CampaignOpener")
   suggestions        Suggestion[]        @relation("SuggestionAuthor")
   suggestionsDecided Suggestion[]        @relation("SuggestionReviewer")
@@ -322,6 +323,8 @@ enum MediaRole {
   POSTER
   BACKDROP
   LOGO
+  /// Guia de Winden (2026-11-12): a character's photo, 3:4
+  PORTRAIT
 }
 
 /// A processed upload. Only re-encoded variants exist on disk (MEDIA_DIR); the original is deleted.
@@ -346,6 +349,7 @@ model MediaAsset {
   posterOfRelease SeasonRelease[] @relation("ReleasePoster")
   posterOfSegment LiveSegment[]   @relation("SegmentPoster")
   coverOfGame     Game[]          @relation("GameCover")
+  portraitOf      GuidePortrait[]
 
   @@index([unusedSince])
 }
@@ -990,6 +994,22 @@ model ContactMessage {
 }
 
 // ═══════════════════════════ Phase 6: links page, suggestions ═══════════════
+
+/// Guia de Winden photos (2026-11-12): one portrait per character version of a guide, uploaded by
+/// the team. `slot` is "<person id>:<era>" from the guide's data (CHECK on both shapes).
+model GuidePortrait {
+  guide       String
+  slot        String
+  assetId     String   @db.Uuid
+  updatedById String?  @db.Uuid
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  asset     MediaAsset @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  updatedBy User?      @relation("GuidePortraitEditor", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@id([guide, slot])
+  @@index([assetId])
+}
 
 /// The streamer's "Links" page (a link-in-bio list), in `position` order. https only (CHECK).
 model SocialLink {

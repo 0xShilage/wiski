@@ -5,7 +5,11 @@
  * changes, so a `chmod +x` on the server is not an option.
  */
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+
+const ROOT = join(import.meta.dirname, '../..');
 
 function trackedScripts(): { mode: string; path: string }[] {
   const out = execFileSync('git', ['ls-files', '-s', '--', '*.sh'], { encoding: 'utf8' });
@@ -23,5 +27,14 @@ describe('shell scripts', () => {
     const scripts = trackedScripts();
     expect(scripts.length).toBeGreaterThan(5);
     expect(scripts.filter((s) => s.mode !== '100755').map((s) => s.path)).toEqual([]);
+  });
+});
+
+describe('deploy.sh and the nginx template (2026-11-11)', () => {
+  it('restarts nginx so a changed site template is rendered again (a reload kept the old one)', () => {
+    const sh = readFileSync(join(ROOT, 'scripts/ops/deploy.sh'), 'utf8');
+    expect(sh).toMatch(/^"\$\{COMPOSE\[@\]\}" restart nginx$/m);
+    expect(sh).not.toMatch(/nginx -s reload/);
+    expect(sh).toMatch(/die "nginx did not come back/);
   });
 });

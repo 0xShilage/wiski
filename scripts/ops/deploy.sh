@@ -47,9 +47,17 @@ log "migrations"
 log "starting the release"
 "${COMPOSE[@]}" up -d --wait --remove-orphans web worker nginx
 # nginx resolves `web` once, at start: when only web was recreated (new image, new address) the
-# old nginx would answer 502. A reload re-reads the configuration and resolves it again.
-log "reloading nginx"
-"${COMPOSE[@]}" exec -T nginx nginx -s reload
+# old nginx would answer 502. And the site configuration is rendered from the template only when
+# the container starts (into a tmpfs): a reload kept the previous release's configuration when the
+# template changed (2026-11-11). A restart does both — a second or two without nginx.
+log "restarting nginx (re-renders the site template)"
+"${COMPOSE[@]}" restart nginx
+nginx_ok=0
+for _ in $(seq 1 30); do
+  if "${COMPOSE[@]}" exec -T nginx nginx -t -q 2>/dev/null; then nginx_ok=1; break; fi
+  sleep 1
+done
+[ "$nginx_ok" = 1 ] || die "nginx did not come back after the restart (docker compose logs nginx)"
 
 mkdir -p releases
 stamp="$(date -u +%Y%m%dT%H%M%SZ)"

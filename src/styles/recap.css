@@ -1,0 +1,378 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   "Seu ano na Wiskiflix" (2026-11-12): the yearly recap as story cards — a tall card, progress
+   bars on top, big numbers in the display face. Moves on by itself only with motion allowed.
+   ───────────────────────────────────────────────────────────────────────────── */
+@layer components {
+  .wf-recap-page {
+    display: grid;
+    justify-items: center;
+    gap: 16px;
+  }
+  .wf-recap-page__lead {
+    margin: 8px 0 18px;
+    color: var(--fg-78);
+  }
+  .wf-recap-page__years {
+    display: flex;
+    gap: 14px;
+    font-size: 14px;
+  }
+  .wf-recap-page__years a {
+    color: var(--color-lavender);
+    text-underline-offset: 4px;
+  }
+  .wf-recap-page__years a[aria-current='page'] {
+    color: var(--color-lilac);
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .wf-recap {
+    /* as wide as a 9:16 card that fits the window's height (never under 292 px) */
+    --recap-w: min(440px, 100%, max(292px, calc((100dvh - 220px) * 9 / 16)));
+    position: relative;
+    display: grid;
+    gap: 12px;
+    width: var(--recap-w);
+    outline-offset: 6px;
+  }
+  .wf-recap__bars {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 4px;
+  }
+  .wf-recap__bar {
+    flex: 1;
+    height: 4px;
+    border-radius: 999px;
+    background: rgb(229 221 237 / 0.22);
+    overflow: hidden;
+  }
+  .wf-recap__fill {
+    display: block;
+    height: 100%;
+    width: 100%;
+    border-radius: inherit;
+    background: var(--color-lilac);
+    transform-origin: left;
+    transform: scaleX(0);
+  }
+  .wf-recap__bar.is-done .wf-recap__fill {
+    transform: none;
+  }
+  .wf-recap__bar.is-active .wf-recap__fill {
+    animation: wf-recap-fill 7s linear forwards;
+  }
+  .wf-recap.is-paused .wf-recap__bar.is-active .wf-recap__fill {
+    animation-play-state: paused;
+  }
+  @keyframes wf-recap-fill {
+    to {
+      transform: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .wf-recap__bar.is-active .wf-recap__fill {
+      animation: none;
+      transform: none;
+    }
+  }
+
+  .wf-recap__stage {
+    position: relative;
+    aspect-ratio: 9 / 16;
+    border-radius: 24px;
+    overflow: hidden;
+    touch-action: manipulation;
+    user-select: none;
+    cursor: pointer;
+    border: 1px solid rgb(169 157 224 / 0.35);
+    box-shadow: var(--glow-sm);
+    background:
+      radial-gradient(120% 70% at 50% 0%, rgb(115 107 178 / 0.55), transparent 70%),
+      radial-gradient(90% 50% at 50% 110%, rgb(79 61 114 / 0.7), transparent 70%), var(--color-ink);
+  }
+  .wf-recap__card {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    padding: 28px 24px;
+    text-align: center;
+    overflow-y: auto;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .wf-recap__card > * {
+      animation: wf-recap-in 520ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+    }
+    .wf-recap__card > :nth-child(2) {
+      animation-delay: 90ms;
+    }
+    .wf-recap__card > :nth-child(3) {
+      animation-delay: 180ms;
+    }
+    .wf-recap__card > :nth-child(n + 4) {
+      animation-delay: 270ms;
+    }
+  }
+  @keyframes wf-recap-in {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+  }
+  .wf-recap__card--persona,
+  .wf-recap__card--intro {
+    background: radial-gradient(70% 45% at 50% 45%, rgb(169 157 224 / 0.22), transparent 70%);
+  }
+
+  .wf-recap__eyebrow {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-lavender);
+  }
+  .wf-recap__title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(40px, 11vw, 56px);
+    line-height: 1;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: #f7f2fb;
+    text-shadow: var(--text-glow);
+  }
+  .wf-recap__who {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--color-lilac);
+  }
+  .wf-recap__who--small {
+    margin-top: 0;
+    font-size: 16px;
+  }
+  .wf-recap__hint {
+    margin: 18px 0 0;
+    font-size: 13px;
+    color: var(--fg-70);
+  }
+  .wf-recap__big {
+    display: grid;
+    margin: 0;
+    line-height: 1;
+  }
+  .wf-recap__num {
+    font-family: var(--font-display);
+    font-size: clamp(88px, 26vw, 128px);
+    color: #f7f2fb;
+    text-shadow: var(--text-glow);
+  }
+  .wf-recap__unit {
+    margin-top: 4px;
+    font-family: var(--font-display);
+    font-size: 26px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-lavender);
+  }
+  .wf-recap__line {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--fg-78);
+  }
+  .wf-recap__line--lead {
+    max-width: 30ch;
+    font-size: 18px;
+    color: var(--color-lilac);
+  }
+  .wf-recap__quote {
+    margin: 6px 0 0;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgb(46 33 65 / 0.8);
+    font-size: 14px;
+    color: var(--fg-78);
+  }
+  .wf-recap__quote strong {
+    color: var(--color-lilac);
+  }
+  .wf-recap__persona {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(44px, 12vw, 60px);
+    line-height: 1.02;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: #f7f2fb;
+    text-shadow: var(--glow);
+  }
+  .wf-recap__persona--small {
+    font-size: 30px;
+    text-shadow: var(--text-glow);
+  }
+
+  .wf-recap__posters {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+  }
+  .wf-recap__posters > li {
+    width: calc((100% - 18px) / 4);
+  }
+  .wf-recap__card--sponsored .wf-recap__posters > li,
+  .wf-recap__card--supported .wf-recap__posters > li {
+    width: calc((86% - 12px) / 3);
+  }
+  .wf-recap__poster {
+    aspect-ratio: 2 / 3;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--color-surface-2);
+  }
+  .wf-recap__poster img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .wf-recap__poster-empty {
+    display: grid;
+    place-items: center;
+    height: 100%;
+    padding: 6px;
+    font-size: 11px;
+    line-height: 1.25;
+    color: var(--fg-78);
+  }
+
+  .wf-recap__badges {
+    list-style: none;
+    margin: 6px 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px 10px;
+    width: 100%;
+  }
+  .wf-recap__badges li {
+    display: grid;
+    justify-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--color-lilac);
+  }
+  .wf-recap__badges .wf-badge-art {
+    width: min(88px, 100%);
+  }
+
+  .wf-recap__stats {
+    list-style: none;
+    margin: 6px 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+  }
+  .wf-recap__stats li {
+    display: grid;
+    gap: 2px;
+    padding: 10px 8px;
+    border-radius: 14px;
+    border: 1px solid rgb(169 157 224 / 0.3);
+    background: rgb(58 44 83 / 0.7);
+  }
+  .wf-recap__stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #f7f2fb;
+  }
+  .wf-recap__stat-label {
+    font-size: 12px;
+    color: var(--fg-78);
+  }
+  .wf-recap__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .wf-recap__note {
+    margin: 0;
+    font-size: 13px;
+    color: var(--color-success);
+  }
+  .wf-recap__back {
+    font-size: 14px;
+    color: var(--color-lavender);
+    text-underline-offset: 4px;
+  }
+
+  .wf-recap__controls {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  /* /perfil and the home page */
+  .wf-recap-callout {
+    position: relative;
+    z-index: 1;
+    margin: 0 auto;
+    max-width: calc(1280px + 2 * var(--pad));
+    padding: 20px var(--pad) 0;
+  }
+  .wf-recap-callout__card {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 16px;
+    padding: 16px 20px;
+    border-radius: 18px;
+    border: 1px solid rgb(169 157 224 / 0.5);
+    background:
+      radial-gradient(circle at 100% 0%, rgb(169 157 224 / 0.3), transparent 55%),
+      rgb(36 26 51 / 0.92);
+    box-shadow: var(--glow-sm);
+    color: inherit;
+    text-decoration: none;
+  }
+  .wf-recap-callout__title {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 24px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: #f7f2fb;
+  }
+  .wf-recap-callout__sub {
+    font-size: 14px;
+    color: var(--fg-78);
+  }
+  .wf-recap-callout__cta {
+    font-weight: 700;
+    color: var(--color-lavender);
+  }
+  .wf-recap-callout__card:hover .wf-recap-callout__cta {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+}

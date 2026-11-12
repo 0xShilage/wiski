@@ -5,6 +5,7 @@ import { DataTools } from '@/components/account/DataTools';
 import { AchievementBadges } from '@/components/community/AchievementBadges';
 import { AchievementsToggle } from '@/components/community/AchievementsToggle';
 import { BadgeShelf } from '@/components/badges/BadgeShelf';
+import { RecapCallout } from '@/components/recap/RecapCallout';
 import { LogoutButton } from '@/components/account/LogoutButton';
 import { MemberCard } from '@/components/account/MemberCard';
 import { TicketStubs } from '@/components/account/TicketStubs';
@@ -13,6 +14,7 @@ import { Mascote } from '@/components/brand/Mascote';
 import { button, card, heading } from '@/components/ui/styles';
 import { resolveAvatarKey } from '@/lib/avatars';
 import { formatDate } from '@/lib/format';
+import { defaultRecapYear } from '@/lib/recap';
 import { nextUsernameChange } from '@/server/auth/accounts';
 import { myOrders } from '@/server/checkout/access';
 import { badgesOf } from '@/server/badges/badges';
@@ -136,6 +138,8 @@ export default async function PerfilPage({ searchParams }: Props) {
           <LogoutButton />
         </div>
       </section>
+
+      <RecapCallout year={defaultRecapYear(new Date())} />
 
       <section aria-labelledby="editar-perfil" className={card}>
         <h2 id="editar-perfil" className={`${heading.h3} mb-6`}>

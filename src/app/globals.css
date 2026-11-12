@@ -25,6 +25,7 @@
 @import '../styles/chat.css';
 @import '../styles/guide.css';
 @import '../styles/badges.css';
+@import '../styles/recap.css';
 
 @theme {
   /* Reset Tailwind's default palette so only approved colours exist */

@@ -24,7 +24,7 @@ const PLUM = '#2e2141';
 const LAVENDER = '#a99de0';
 const LILAC = '#e5dded';
 
-function load(src: string): Promise<HTMLImageElement | null> {
+export function load(src: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
     const img = new Image();
     img.decoding = 'async';
@@ -34,7 +34,7 @@ function load(src: string): Promise<HTMLImageElement | null> {
   });
 }
 
-function roundRect(
+export function roundRect(
   c: CanvasRenderingContext2D,
   x: number,
   y: number,
@@ -52,7 +52,12 @@ function roundRect(
 }
 
 /** Up to `max` lines of `text` that fit `width`; the last one ends in "…" when cut. */
-function wrap(c: CanvasRenderingContext2D, text: string, width: number, max: number): string[] {
+export function wrap(
+  c: CanvasRenderingContext2D,
+  text: string,
+  width: number,
+  max: number,
+): string[] {
   const words = text.split(/\s+/).filter(Boolean);
   const lines: string[] = [];
   let line = '';

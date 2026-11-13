@@ -3,6 +3,7 @@ import type { Prisma } from '@/generated/prisma/client';
 import { type AchievementStats, evaluateAchievements } from '@/lib/achievements';
 import { audit } from '../audit/audit';
 import { db } from '../db';
+import type { RoleName } from '@/lib/roles';
 
 /**
  * Badges and the ranking (2026-11-04, docs/phase-6/README.md §12). Only facts already public under
@@ -51,7 +52,7 @@ export async function achievementsFor(
 
 /** /perfil switch: badges on the public profile and a place in the ranking. */
 export async function setShowAchievements(
-  user: { id: string; role: 'USER' | 'MODERATOR' | 'STREAMER' },
+  user: { id: string; role: RoleName },
   show: boolean,
   requestId: string | null,
 ): Promise<void> {

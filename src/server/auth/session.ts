@@ -16,6 +16,7 @@ export const SESSION_LIFETIME: Record<Role, { idleMs: number; absoluteMs: number
   USER: { idleMs: 14 * DAY, absoluteMs: 60 * DAY },
   // Admin sessions (05 §5): idle 8 h / absolute 24 h.
   MODERATOR: { idleMs: 8 * HOUR, absoluteMs: 24 * HOUR },
+  SUPER_MODERATOR: { idleMs: 8 * HOUR, absoluteMs: 24 * HOUR },
   STREAMER: { idleMs: 8 * HOUR, absoluteMs: 24 * HOUR },
 };
 

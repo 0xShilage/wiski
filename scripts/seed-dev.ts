@@ -14,6 +14,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { ArtSpec } from './seed-art';
+import type { RoleName } from '../src/lib/roles';
 
 for (const file of ['.env.local', '.env']) {
   if (existsSync(file)) process.loadEnvFile(file);
@@ -47,7 +48,7 @@ const log = (...a: unknown[]) =>
   console.log(`[seed ${((Date.now() - t0) / 1000).toFixed(1)}s]`, ...a);
 
 // ── people (fictional; their Google `sub` can never log in) ──────────────────────
-async function user(username: string, role: 'USER' | 'MODERATOR' | 'STREAMER', avatarKey: string) {
+async function user(username: string, role: RoleName, avatarKey: string) {
   return db().user.upsert({
     where: { googleSub: `seed:${username}` },
     update: {},

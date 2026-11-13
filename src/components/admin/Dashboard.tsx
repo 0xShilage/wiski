@@ -8,10 +8,11 @@ import { ItemEditor } from './ItemEditor';
 import { OpsNav, type OpsCounts } from './OpsNav';
 import { SlotBoard } from './SlotBoard';
 import { type AdminItem, type AdminListItem, KIND_UI, type Kind, LIMIT, tileState } from './types';
+import type { StaffRole } from '@/lib/roles';
+import { RoleTag } from './RoleTag';
 
 type Counts = Record<Kind, number>;
 const KINDS: Kind[] = ['MOVIE', 'SERIES', 'FRANCHISE', 'ANIME'];
-const ROLE_LABEL = { MODERATOR: 'Moderação', STREAMER: 'Streamer', USER: '' } as const;
 
 /**
  * /admin/catalogo (11 §4, design §4): sidebar with the live counts, the slot board and the editor.
@@ -29,7 +30,7 @@ export function Dashboard({
   initialItems: AdminListItem[];
   initialCounts: Counts;
   initialItem: AdminItem | null;
-  user: { username: string; role: 'MODERATOR' | 'STREAMER' | 'USER' };
+  user: { username: string; role: StaffRole | 'USER' };
   /** sidebar badges (moderation, orders, contact) */
   ops?: OpsCounts;
 }) {
@@ -141,7 +142,7 @@ export function Dashboard({
         <OpsNav counts={ops} role={user.role} />
         <div className="wf-admin__me">
           <p className="m-0 font-semibold">
-            @{user.username} · {ROLE_LABEL[user.role]}
+            @{user.username} <RoleTag role={user.role} />
           </p>
           <p className="wf-admin__ok m-0 mt-1">● Verificação em duas etapas ok</p>
           <Link href="/perfil" className="wf-linkbtn text-xs">

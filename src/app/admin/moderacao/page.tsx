@@ -3,6 +3,7 @@ import { AdminShell } from '@/components/admin/AdminShell';
 import { adminPage } from '@/components/admin/admin-page';
 import { ModerationQueue } from '@/components/admin/ModerationQueue';
 import { moderationQueue } from '@/server/reviews/moderation';
+import { staffRole } from '@/lib/roles';
 
 export const metadata: Metadata = { title: 'Moderação' };
 
@@ -18,10 +19,7 @@ export default async function ModeracaoPage() {
       lead="Avaliações escondidas automaticamente (mais de 2 links, ou 3 denúncias de contas com 7+ dias) e avaliações com denúncias abertas. Ocultar e restaurar ficam no histórico de auditoria; remover de vez é só para o streamer."
       {...p.shell}
     >
-      <ModerationQueue
-        initial={queue}
-        role={p.ctx.user.role === 'STREAMER' ? 'STREAMER' : 'MODERATOR'}
-      />
+      <ModerationQueue initial={queue} role={staffRole(p.ctx.user.role)} />
     </AdminShell>
   );
 }

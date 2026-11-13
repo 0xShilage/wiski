@@ -508,6 +508,10 @@
   .wf-member__card--streamer {
     --tier: #ff8cc6;
   }
+  /* Super Moderador (2026-11-13): the staff card in amber */
+  .wf-member__card--super {
+    --tier: #ffbf6b;
+  }
 
   /* the foil sheen, now and then */
   .wf-member__card::before {

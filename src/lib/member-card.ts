@@ -1,3 +1,4 @@
+import type { RoleName } from '@/lib/roles';
 /**
  * Cinema membership card on /perfil (2026-11-11): the tier, the member number and the decorative
  * barcode. Pure: the server counts, this decides (and the unit tests check it). The card is the
@@ -5,7 +6,7 @@
  * public badges and ranking, which count only orders shown with the name.
  */
 export type MemberTierId =
-  'viewer' | 'member' | 'silver' | 'gold' | 'diamond' | 'staff' | 'streamer';
+  'viewer' | 'member' | 'silver' | 'gold' | 'diamond' | 'staff' | 'super' | 'streamer';
 export type MemberTier = { id: MemberTierId; label: string };
 
 /** Paid sponsorships + contributions needed for each tier (same steps as the sponsor badges). */
@@ -30,9 +31,10 @@ export type MemberStats = {
 
 export function memberTier(
   stats: Pick<MemberStats, 'sponsorships' | 'contributions'>,
-  role: 'USER' | 'MODERATOR' | 'STREAMER',
+  role: RoleName,
 ): MemberTier {
   if (role === 'STREAMER') return { id: 'streamer', label: 'Streamer' };
+  if (role === 'SUPER_MODERATOR') return { id: 'super', label: 'Super Moderador' };
   if (role === 'MODERATOR') return { id: 'staff', label: 'Moderação' };
   const total = stats.sponsorships + stats.contributions;
   const tier = [...MEMBER_TIERS].reverse().find((t) => total >= t.from)!;
@@ -42,7 +44,7 @@ export function memberTier(
 /** The next tier and how many more sponsorships/contributions it takes (null at the top, or staff). */
 export function nextMemberTier(
   stats: Pick<MemberStats, 'sponsorships' | 'contributions'>,
-  role: 'USER' | 'MODERATOR' | 'STREAMER',
+  role: RoleName,
 ): { label: string; remaining: number } | null {
   if (role !== 'USER') return null;
   const total = stats.sponsorships + stats.contributions;

@@ -4,8 +4,8 @@ import type { ReactNode } from 'react';
 import { Logo } from '@/components/brand/Logo';
 import type { Role } from '@/generated/prisma/enums';
 import { OpsNav, type OpsCounts, type OpsSection } from './OpsNav';
+import { RoleTag } from './RoleTag';
 
-const ROLE_LABEL = { MODERATOR: 'Moderação', STREAMER: 'Streamer', USER: '' } as const;
 const CATALOG = [
   ['filmes', 'Filmes', 'MOVIE', LIVE_LIMIT.MOVIE],
   ['series', 'Séries', 'SERIES', LIVE_LIMIT.SERIES],
@@ -51,7 +51,7 @@ export function AdminShell({
         <OpsNav active={active} counts={counts} role={user.role} />
         <div className="wf-admin__me">
           <p className="m-0 font-semibold">
-            @{user.username ?? 'moderacao'} · {ROLE_LABEL[user.role]}
+            @{user.username ?? 'moderacao'} <RoleTag role={user.role} />
           </p>
           <p className="wf-admin__ok m-0 mt-1">● Verificação em duas etapas ok</p>
           <Link href="/perfil" className="wf-linkbtn text-xs">

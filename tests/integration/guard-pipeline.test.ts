@@ -9,6 +9,7 @@ import { redis } from '@/server/redis';
 import { hit } from '@/server/ratelimit/sliding-window';
 import { makeUser } from '../support/db';
 import { call, freshIp, ORIGIN, req, signedIn } from '../support/http';
+import type { RoleName } from '@/lib/roles';
 
 const echo = route(
   {
@@ -44,7 +45,7 @@ async function json(res: Response) {
   return (await res.json()) as Record<string, unknown>;
 }
 
-async function asUser(role: 'USER' | 'MODERATOR' | 'STREAMER' = 'USER', authTime?: Date) {
+async function asUser(role: RoleName = 'USER', authTime?: Date) {
   const user = await makeUser({ role });
   return { user, ...(await signedIn(user, authTime)) };
 }

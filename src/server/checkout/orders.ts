@@ -160,7 +160,7 @@ export const CheckoutProblems = {
 
 export function perkFor(user: User | null): Perk {
   if (!user || user.status !== 'ACTIVE') return 'NONE';
-  if (user.role === 'MODERATOR' || user.role === 'STREAMER') return 'MODERATOR';
+  if (user.role !== 'USER') return 'MODERATOR';
   return user.isVip ? 'VIP' : 'NONE';
 }
 

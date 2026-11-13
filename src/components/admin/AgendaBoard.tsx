@@ -15,6 +15,7 @@ import {
 import { sortQueue, type QueueSort } from '@/lib/admin/agenda-sort';
 import { formatRuntime } from '@/lib/catalog/pricing';
 import { episodesLabel, minutesPerEpisode } from '@/lib/live/segments';
+import type { StaffRole } from '@/lib/roles';
 
 type Data = { sessions: AgendaSession[]; queue: AgendaEntry[] };
 
@@ -111,7 +112,7 @@ function guessMinutes(e: AgendaEntry, p: { from: number; to: number; film: numbe
  * 2026-11-09: ↑/↓ put a session's entries in any order, an event can have a poster, and
  * "Limpar encerradas e canceladas" hides the sessions that are over.
  */
-export function AgendaBoard({ initial }: { initial: Data; role: 'MODERATOR' | 'STREAMER' }) {
+export function AgendaBoard({ initial }: { initial: Data; role: StaffRole }) {
   const id = useId();
   const [data, setData] = useState(initial);
   const [busy, setBusy] = useState(false);

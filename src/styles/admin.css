@@ -592,3 +592,32 @@
     color: var(--fg-70);
   }
 }
+
+/* Staff role tags (2026-11-13): the Super Moderador's in amber with a star */
+@layer components {
+  .wf-role-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 0 7px;
+    border-radius: 999px;
+    border: 1px solid currentColor;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.6;
+    vertical-align: 1px;
+  }
+  .wf-role-tag--mod {
+    color: var(--color-lavender);
+  }
+  .wf-role-tag--streamer {
+    color: #ff8cc6;
+  }
+  .wf-role-tag--super {
+    color: #ffbf6b;
+    background: rgb(255 191 107 / 0.1);
+  }
+  .wf-role-tag__star {
+    font-size: 10px;
+  }
+}

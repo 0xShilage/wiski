@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { BrowserContext } from '@playwright/test';
 import pg from 'pg';
+import type { RoleName } from '../../../src/lib/roles';
 
 const ROOT = join(import.meta.dirname, '../../..');
 export const stack = () =>
@@ -26,7 +27,7 @@ export async function withDb<T>(fn: (c: pg.Client) => Promise<T>): Promise<T> {
 export async function seedUser(
   opts: {
     username?: string | null;
-    role?: 'USER' | 'MODERATOR' | 'STREAMER';
+    role?: RoleName;
     avatarKey?: string;
     /** a registered passkey row + a session verified with it just now (admin second factor) */
     passkeyVerified?: boolean;
@@ -79,11 +80,12 @@ export async function signIn(context: BrowserContext, token: string) {
 
 /** Users for a PageCase `auth` value. */
 export async function seedFor(
-  auth: 'user' | 'newcomer' | 'moderator' | 'admin' | 'streamer' | undefined,
+  auth: 'user' | 'newcomer' | 'moderator' | 'admin' | 'streamer' | 'super' | undefined,
 ) {
   if (auth === 'newcomer') return seedUser({ username: null });
   if (auth === 'moderator') return seedUser({ role: 'MODERATOR' });
   if (auth === 'admin') return seedUser({ role: 'MODERATOR', passkeyVerified: true });
   if (auth === 'streamer') return seedUser({ role: 'STREAMER', passkeyVerified: true });
+  if (auth === 'super') return seedUser({ role: 'SUPER_MODERATOR', passkeyVerified: true });
   return seedUser({ avatarKey: 'perfil-10' });
 }

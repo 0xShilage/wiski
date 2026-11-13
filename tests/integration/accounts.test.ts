@@ -14,6 +14,7 @@ import { loadSession } from '@/server/auth/session';
 import { db } from '@/server/db';
 import { makeUser, withAdmin } from '../support/db';
 import { call, req, setCookies, signedIn } from '../support/http';
+import type { RoleName } from '@/lib/roles';
 
 const uniq = () => `u${Math.random().toString(36).slice(2, 10)}`;
 
@@ -122,7 +123,7 @@ describe('username changes and 30-day holds', () => {
   });
 
   it('username cool-down: 30 days for viewers, 5 days for moderators and the streamer', async () => {
-    const rename = async (role: 'USER' | 'MODERATOR' | 'STREAMER', daysAgo: number) => {
+    const rename = async (role: RoleName, daysAgo: number) => {
       const u = await makeUser({ username: uniq(), role });
       await db().user.update({
         where: { id: u.id },

@@ -31,6 +31,7 @@ import {
   type Kind,
   reaisToCents,
 } from './types';
+import type { StaffRole } from '@/lib/roles';
 
 type Msg = { kind: 'ok' | 'err'; text: string; conflict?: boolean } | null;
 
@@ -58,7 +59,7 @@ export function ItemEditor({
   kind: Kind;
   item: AdminItem | null;
   newSlot: number | null;
-  role: 'MODERATOR' | 'STREAMER' | 'USER';
+  role: StaffRole | 'USER';
   drafts: AdminListItem[];
   /** after any successful write: the fresh item (or null to just reload the board) */
   onChanged: (item: AdminItem | null) => void;

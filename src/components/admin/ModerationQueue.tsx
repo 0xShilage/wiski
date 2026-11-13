@@ -11,6 +11,7 @@ import {
 } from '@/lib/reviews/types';
 import { reviewDate } from '@/components/reviews/format';
 import { Stars } from '@/components/reviews/Stars';
+import type { StaffRole } from '@/lib/roles';
 
 const STATUS_LABEL = {
   VISIBLE: 'Visível',
@@ -122,7 +123,7 @@ function Entry({
  * (reason, note, reporter's account age); the moderator acts on the status they see — if someone
  * else acted first, the server answers 409 and the queue reloads.
  */
-export function ModerationQueue({ initial }: { initial: Queue; role: 'MODERATOR' | 'STREAMER' }) {
+export function ModerationQueue({ initial }: { initial: Queue; role: StaffRole }) {
   const [queue, setQueue] = useState(initial);
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null);

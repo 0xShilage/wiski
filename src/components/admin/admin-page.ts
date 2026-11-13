@@ -5,6 +5,7 @@ import type { SessionContext } from '@/server/auth/session';
 import { adminCounts } from '@/server/catalog/read';
 import { notFound } from 'next/navigation';
 import { adminGate } from './AdminGate';
+import { hasStreamerPowers } from '@/lib/roles';
 
 /**
  * Everything an /admin page needs before rendering: the gate (role + passkey), and the sidebar's
@@ -26,7 +27,7 @@ export async function adminPage(
 > {
   const g = await adminGate(path);
   if ('gate' in g) return g;
-  if (opts.streamer && g.ctx.user.role !== 'STREAMER') notFound();
+  if (opts.streamer && !hasStreamerPowers(g.ctx.user.role)) notFound();
   const [catalog, counts] = await Promise.all([adminCounts(), opsCounts()]);
   return {
     ctx: g.ctx,

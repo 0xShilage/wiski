@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { StaffRole } from '@/lib/roles';
 
 export type OpsSection =
   | 'agenda'
@@ -67,7 +68,7 @@ export function OpsNav({
 }: {
   active?: OpsSection | undefined;
   counts: OpsCounts;
-  role: 'MODERATOR' | 'STREAMER' | 'USER';
+  role: StaffRole | 'USER';
 }) {
   const item = (s: (typeof OPS)[number]) => {
     const n = s.badge?.(counts) ?? 0;

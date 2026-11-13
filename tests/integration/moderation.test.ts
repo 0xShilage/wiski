@@ -17,8 +17,9 @@ import {
   watchedItem,
   type Actor,
 } from '../support/reviews';
+import type { StaffRole } from '@/lib/roles';
 
-async function staff(role: 'MODERATOR' | 'STREAMER'): Promise<Actor> {
+async function staff(role: StaffRole): Promise<Actor> {
   return actor(60, { role });
 }
 

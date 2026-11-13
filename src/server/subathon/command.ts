@@ -6,6 +6,7 @@ import { HttpError } from '../http/problem';
 import { logger } from '../log';
 import { randomToken, safeEqual, sha256 } from '../security/crypto';
 import { changeStatus, openSubathon, SubathonProblems } from './timer';
+import type { RoleName } from '@/lib/roles';
 
 /**
  * Subathon chat commands (2026-11-04): `!pausar`, `!retomar` and `!tempo` in the StreamElements
@@ -23,7 +24,7 @@ export const COMMAND_KEY = /^wfc_[\w-]{43}$/;
 
 type Stored = { hash: string; prefix: string; createdAt: string };
 type Ctx = {
-  actor: { id: string; role: 'USER' | 'MODERATOR' | 'STREAMER' };
+  actor: { id: string; role: RoleName };
   requestId: string | null;
 };
 

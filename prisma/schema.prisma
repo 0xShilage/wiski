@@ -274,8 +274,8 @@ model CatalogItem {
   /// true: watched by Iara off-stream and logged by hand (2026-11-10); kept out of the live
   /// progress counts and tagged "fora da live" on Assistidos.
   offStream        Boolean    @default(false)
-  /// SERIES / ANIME / FRANCHISE (2026-11-13): seasons (or films) already watched on stream, for
-  /// the title page's marathon trail; set from the dashboard (CHECK: 0 for movies, ≤ 100)
+  /// Unused since 2026-11-13 (the marathon trail follows the Agenda's parts instead); kept until a
+  /// later migration drops it, so a running release never reads a missing column. CHECK: 0 on movies.
   partsWatched     Int        @default(0)
   partsWatchedAt   DateTime?  @db.Timestamptz(3)
   archivedAt       DateTime?  @db.Timestamptz(3)

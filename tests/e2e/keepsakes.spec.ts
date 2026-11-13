@@ -61,7 +61,7 @@ test('the most-liked review is a clipping of the Gazeta Wiski', async ({ page },
   }
 });
 
-test('a title page: the poster palette and the poster colour on the decorations', async ({
+test('a title page: the poster palette, and no colour line under the title', async ({
   page,
 }, info) => {
   const slug = await withDb(async (c) => {
@@ -78,45 +78,59 @@ test('a title page: the poster palette and the poster colour on the decorations'
   expect(n).toBeGreaterThanOrEqual(2);
   expect(n).toBeLessThanOrEqual(5);
   await expect(page.locator('.wf-detail')).toHaveAttribute('data-accented', 'true');
+  // no line under the title (removed 2026-11-13)
   const bar = await page
     .locator('#titulo')
-    .evaluate((el) => getComputedStyle(el, '::after').backgroundColor);
-  expect(bar).not.toBe('rgba(0, 0, 0, 0)');
+    .evaluate((el) => getComputedStyle(el, '::after').content);
+  expect(['none', 'normal']).toContain(bar);
   await page.screenshot({ path: `${SHOTS}/palette-${info.project.name}.png` });
 });
 
-test('the marathon trail: seasons watched, the next stop, "você está aqui"', async ({
-  page,
-}, info) => {
-  const item = await withDb(async (c) => {
-    const r = await c.query<{ id: string; slug: string; seasonCount: number }>(
-      `SELECT id, slug, "seasonCount" FROM "CatalogItem"
-        WHERE kind = 'SERIES' AND status IN ('ACTIVE', 'FUNDED') AND "seasonCount" >= 3
-        ORDER BY slot LIMIT 1`,
+test('the marathon trail follows the parts done on the Agenda', async ({ page }, info) => {
+  const fx = await withDb(async (c) => {
+    const r = await c.query<{ id: string; slug: string; campaignId: string }>(
+      `SELECT ci.id, ci.slug, c.id AS "campaignId" FROM "CatalogItem" ci
+         JOIN "Campaign" c ON c."itemId" = ci.id
+        WHERE ci.kind = 'SERIES' AND ci.status IN ('ACTIVE', 'FUNDED') ORDER BY ci.slot LIMIT 1`,
     );
     const it = r.rows[0]!;
-    await c.query(
-      `UPDATE "CatalogItem" SET "partsWatched" = 2, "partsWatchedAt" = now() WHERE id = $1`,
-      [it.id],
-    );
-    return it;
+    await c.query(`UPDATE "CatalogItem" SET "episodeCount" = 8 WHERE id = $1`, [it.id]);
+    const sessions = [randomUUID(), randomUUID(), randomUUID()];
+    for (const [k, h] of [-72, -24, 48].entries())
+      await c.query(
+        `INSERT INTO "StreamSession"(id, "startsAt", "capacityMinutes", "updatedAt")
+         VALUES ($1, now() + make_interval(hours => $2), 300, now())`,
+        [sessions[k], h],
+      );
+    const parts: [number, number, number, string][] = [
+      [0, 1, 3, 'DONE'],
+      [1, 4, 6, 'DONE'],
+      [2, 7, 8, 'SCHEDULED'],
+    ];
+    for (const [k, from, to, status] of parts)
+      await c.query(
+        `INSERT INTO "LiveSegment"(id, "sessionId", kind, "campaignId", label, "seasonNumber",
+           "episodeFrom", "episodeTo", minutes, status, "doneAt")
+         VALUES ($1, $2, 'PART', $3, $4, 1, $5::int, $6::int, 135, $7::"LiveSegmentStatus",
+           CASE WHEN $7::text = 'DONE' THEN now() + make_interval(secs => $5::int) END)`,
+        [randomUUID(), sessions[k], it.campaignId, `T1 · E${from}–E${to}`, from, to, status],
+      );
+    return { ...it, sessions };
   });
   try {
-    await page.goto(`/series/${item.slug}`);
+    await page.goto(`/series/${fx.slug}`);
     const trail = page.getByRole('region', { name: 'Trilha da maratona' });
-    await expect(trail).toContainText(`2 de ${item.seasonCount} temporadas assistidas.`);
-    await expect(trail.locator('.wf-trail__stop')).toHaveCount(item.seasonCount);
+    await expect(trail).toContainText('6 de 8 episódios em 2 lives.');
+    await expect(trail.locator('.wf-trail__stop')).toHaveCount(4);
     await expect(trail.locator('.wf-trail__stop.is-done')).toHaveCount(2);
-    await expect(trail.locator('[aria-current="step"]')).toContainText('Temporada 3');
+    await expect(trail.locator('[aria-current="step"]')).toContainText('T1 · E7–E8');
     await expect(trail.locator('.wf-trail__here')).toContainText('Você está aqui');
+    await expect(trail.locator('.wf-trail__stop').last()).toContainText('Fim da série');
     await trail.scrollIntoViewIfNeeded();
     await trail.screenshot({ path: `${SHOTS}/trail-${info.project.name}.png` });
   } finally {
     await withDb((c) =>
-      c.query(
-        `UPDATE "CatalogItem" SET "partsWatched" = 0, "partsWatchedAt" = NULL WHERE id = $1`,
-        [item.id],
-      ),
+      c.query(`DELETE FROM "StreamSession" WHERE id = ANY($1::uuid[])`, [fx.sessions]),
     );
   }
 });

@@ -10,7 +10,8 @@ import { ensurePalette } from '../media/palette';
 import { matchesSearch, searchTerms } from '@/lib/search';
 import { db } from '../db';
 import { campaignState, formulaGoal } from './campaigns';
-import { missingForPublish, partsTotal } from './service';
+import { missingForPublish } from './service';
+import type { TrailPart } from '@/lib/trail';
 
 export type { PublicCampaign, PublicItem, PublicState } from '@/lib/catalog/types';
 
@@ -102,8 +103,7 @@ function toPublic(row: PublicRow, now: Date): PublicItem {
     state,
     watchedAt: row.watchedAt?.toISOString() ?? null,
     offStream: row.offStream,
-    partsWatched: row.partsWatched,
-    partsWatchedAt: row.partsWatchedAt?.toISOString() ?? null,
+    parts: [],
     priceCents:
       row.kind === 'MOVIE' ? movieListPriceCents(row.runtimeMinutes, row.manualPriceCents) : null,
     manualPrice: row.kind === 'MOVIE' && row.manualPriceCents !== null,
@@ -147,7 +147,8 @@ export async function getPublic(kind: ItemKind, slug: string, now = new Date()) 
   const [accent, palette] = row.poster
     ? await Promise.all([ensureAccent(row.poster), ensurePalette(row.poster)])
     : [null, []];
-  return { ...toPublic(row, now), accent, palette };
+  const parts = row.kind === 'MOVIE' ? [] : await trailParts(row.id);
+  return { ...toPublic(row, now), accent, palette, parts };
 }
 
 /** Watched titles for Avaliações (newest first). */
@@ -328,8 +329,6 @@ export async function getAdmin(id: string, now = new Date()) {
             : null,
     formulaGoalCents: await formulaGoal(row),
     missing: row.status === 'DRAFT' ? missingForPublish(row, entries) : [],
-    // Trilha da maratona (2026-11-13)
-    progress: { done: row.partsWatched, total: partsTotal(row, entries) },
     campaign: row.campaign
       ? {
           id: row.campaign.id,
@@ -351,3 +350,38 @@ export async function getAdmin(id: string, now = new Date()) {
 }
 
 export type AdminItem = NonNullable<Awaited<ReturnType<typeof getAdmin>>>;
+
+/**
+ * Trilha da maratona (2026-11-13): a series', anime's or franchise's parts on the Agenda — done
+ * ones in the order they were shown, then the ones still to come by their live's start. Skipped
+ * parts (the live ended first) are left out: they are booked again.
+ */
+async function trailParts(itemId: string): Promise<TrailPart[]> {
+  const rows = await db().liveSegment.findMany({
+    where: { kind: 'PART', campaign: { itemId }, status: { in: ['DONE', 'PLAYING', 'SCHEDULED'] } },
+    select: {
+      label: true,
+      status: true,
+      doneAt: true,
+      episodeFrom: true,
+      episodeTo: true,
+      franchisePosition: true,
+      session: { select: { startsAt: true } },
+    },
+  });
+  const when = (r: (typeof rows)[number]) =>
+    (r.status === 'DONE' ? (r.doneAt ?? r.session.startsAt) : r.session.startsAt).getTime();
+  return rows
+    .sort((a, b) => Number(b.status === 'DONE') - Number(a.status === 'DONE') || when(a) - when(b))
+    .map((r) => ({
+      label: r.label,
+      status: r.status as TrailPart['status'],
+      at: (r.status === 'DONE'
+        ? (r.doneAt ?? r.session.startsAt)
+        : r.session.startsAt
+      ).toISOString(),
+      episodes:
+        r.episodeFrom !== null && r.episodeTo !== null ? r.episodeTo - r.episodeFrom + 1 : null,
+      franchisePosition: r.franchisePosition,
+    }));
+}

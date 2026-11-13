@@ -94,7 +94,7 @@ export const PAGES: PageCase[] = [
   // 2026-11-12: Seu ano na Wiskiflix
   { name: 'retrospectiva-entrar', path: '/retrospectiva' },
   { name: 'retrospectiva', path: '/retrospectiva', auth: 'user' },
-  // 2026-11-13: Super Moderador (the streamer's pages)
+  // 2026-11-13: Desenvolvedor (the streamer's pages)
   { name: 'pessoas-super', path: '/admin/pessoas', auth: 'super', shell: false },
   { name: 'pedidos-super', path: '/admin/pedidos', auth: 'super', shell: false },
 ];

@@ -1,13 +1,13 @@
 /**
- * Super Moderador (2026-11-13): the streamer names one from Pessoas; a Super Moderador gets the
+ * Desenvolvedor (2026-11-13): the streamer names one from Pessoas; a Desenvolvedor gets the
  * streamer's pages (refunds, roles) under its own tag, but can't name another or touch a peer.
- * Screenshots go to test-results/super-moderador.
+ * Screenshots go to test-results/desenvolvedor.
  */
 import { mkdirSync } from 'node:fs';
 import { type Page, expect, test } from '@playwright/test';
 import { seedUser, signIn } from './support/seed';
 
-const SHOTS = 'test-results/super-moderador';
+const SHOTS = 'test-results/desenvolvedor';
 mkdirSync(SHOTS, { recursive: true });
 
 async function find(page: Page, username: string) {
@@ -18,7 +18,7 @@ async function find(page: Page, username: string) {
   return row;
 }
 
-test('the streamer names a Super Moderador; one has the streamer pages but not over peers', async ({
+test('the streamer names a Desenvolvedor; one has the streamer pages but not over peers', async ({
   page,
   context,
 }, info) => {
@@ -30,12 +30,12 @@ test('the streamer names a Super Moderador; one has the streamer pages but not o
   await signIn(context, streamer.token);
   await page.goto('/admin/pessoas');
   let row = await find(page, mod.username!);
-  await row.getByRole('button', { name: 'Tornar Super Moderador' }).click();
+  await row.getByRole('button', { name: 'Tornar Desenvolvedor' }).click();
   await expect(page.getByRole('status')).toContainText('Papel alterado');
-  await expect(row.locator('.wf-role-tag--super')).toHaveText('✦Super Moderador');
+  await expect(row.locator('.wf-role-tag--super')).toHaveText('</>Desenvolvedor');
   await expect(row.getByRole('button', { name: 'Voltar para moderação' })).toBeVisible();
 
-  // now as a Super Moderador
+  // now as a Desenvolvedor
   await context.clearCookies();
   const sup = await seedUser({ role: 'SUPER_MODERATOR', passkeyVerified: true });
   await signIn(context, sup.token);
@@ -46,11 +46,11 @@ test('the streamer names a Super Moderador; one has the streamer pages but not o
   await expect(row.getByRole('button', { name: /Tornar|Tirar|Voltar|Suspender|VIP/ })).toHaveCount(
     0,
   );
-  // a moderator: in and out of moderation, never "Super Moderador"
+  // a moderator: in and out of moderation, never "Desenvolvedor"
   const other = await seedUser({ role: 'MODERATOR' });
   row = await find(page, other.username!);
   await expect(row.getByRole('button', { name: 'Tirar da moderação' })).toBeVisible();
-  await expect(row.getByRole('button', { name: 'Tornar Super Moderador' })).toHaveCount(0);
+  await expect(row.getByRole('button', { name: 'Tornar Desenvolvedor' })).toHaveCount(0);
   await page.screenshot({ path: `${SHOTS}/pessoas.png`, animations: 'disabled' });
 
   // the dashboard pages with the streamer's tools open

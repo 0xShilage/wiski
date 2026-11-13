@@ -8,7 +8,7 @@ import { Problems } from '../http/problem';
  */
 export type AccessLevel = 'public' | 'user' | 'moderator' | 'streamer';
 
-/** A Super Moderador (2026-11-13) has the streamer's access level; src/server/users/admin.ts adds
+/** A Desenvolvedor (2026-11-13) has the streamer's access level; src/server/users/admin.ts adds
  *  the few differences (who names one, who can act on one). */
 export const ROLE_RANK: Record<Role, number> = {
   USER: 0,

@@ -4,9 +4,16 @@ import type { PublicItem } from '@/lib/catalog/types';
 import { KIND_PATH } from '@/lib/catalog/kinds';
 import { getCurrentSession } from '@/server/auth/current';
 import { getEnv } from '@/server/env';
-import { eligibility, itemReviews, ownReview, ratingSummary } from '@/server/reviews/read';
+import {
+  eligibility,
+  itemReviews,
+  ownReview,
+  ratingSummary,
+  topReview,
+} from '@/server/reviews/read';
 import { OwnReview } from './OwnReview';
 import { RatingSummary } from './RatingSummary';
+import { ReviewClipping } from './ReviewClipping';
 import { ReviewForm } from './ReviewForm';
 import { ReviewList } from './ReviewList';
 
@@ -17,10 +24,11 @@ import { ReviewList } from './ReviewList';
 export async function ReviewsSection({ item }: { item: PublicItem }) {
   const ctx = await getCurrentSession();
   const viewerId = ctx?.user.id ?? null;
-  const [summary, page, own] = await Promise.all([
+  const [summary, page, own, top] = await Promise.all([
     ratingSummary(item.id),
     itemReviews(item.id, 'recent', undefined, viewerId),
     viewerId ? ownReview(item.id, viewerId) : Promise.resolve(null),
+    topReview(item.id),
   ]);
   const can = await eligibility(item.id, ctx?.user ?? null, own);
   const path = `/${KIND_PATH[item.kind]}/${item.slug}`;
@@ -35,6 +43,7 @@ export async function ReviewsSection({ item }: { item: PublicItem }) {
         <RabinhoViolet aria-hidden className="h-8 w-auto" />
         Avaliações
       </h2>
+      {top ? <ReviewClipping review={top} /> : null}
       <div className="wf-reviews-grid">
         <div className="wf-reviews-side">
           {summary.count ? (

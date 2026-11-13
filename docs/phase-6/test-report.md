@@ -288,3 +288,8 @@ Fix (PR "fix-prefetch-burst"): no prefetch on the header tabs, the phone bar, th
 ## Addendum — Seu ano na Wiskiflix (2026-11-12)
 
 - Unit `recap.test.ts` (5), integration `recap.test.ts` (3): see README §39. e2e `retrospectiva.spec.ts` (both projects), and `csp.spec.ts` / `a11y-layout.spec.ts` on the two new pages. Screenshots `test-results/retrospectiva/` (the shared image: `retrospectiva-imagem.png`).
+
+## Addendum — Keepsakes (2026-11-13)
+
+- Unit `keepsakes.test.ts` (6), integration `keepsakes.test.ts` (5) and the authz row: see README §41. Full suites green (unit 447, integration 1 470).
+- e2e `keepsakes.spec.ts` on both projects (8), plus `csp`, `a11y-layout`, `roleta`, `reviews`, `dashboard`, `theater` and `ambient`.

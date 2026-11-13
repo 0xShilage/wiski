@@ -248,3 +248,16 @@ export function userReviews(
 ): Promise<ReviewPage> {
   return page({ userId }, 'recent', cursor, viewerId);
 }
+
+/**
+ * Críticas como recortes de jornal (2026-11-13): a title's most-liked public review (at least one
+ * like, no spoilers), for the clipping above the list. Ties go to the oldest.
+ */
+export async function topReview(itemId: string): Promise<PublicReview | null> {
+  const row = await db().review.findFirst({
+    where: { itemId, ...PUBLIC_REVIEW, containsSpoilers: false, likeCount: { gte: 1 } },
+    orderBy: [{ likeCount: 'desc' }, { createdAt: 'asc' }],
+    select: reviewSelect,
+  });
+  return row ? toPublicReview(row) : null;
+}

@@ -683,3 +683,64 @@ export async function deleteDraft(ctx: Ctx, id: string) {
     );
   });
 }
+
+/** "Trilha da maratona": how many seasons (or films) a title has, for the progress count. */
+export function partsTotal(
+  item: Pick<CatalogItem, 'kind' | 'seasonCount'>,
+  franchiseEntries: number,
+): number {
+  if (item.kind === 'MOVIE') return 0;
+  return item.kind === 'FRANCHISE' ? franchiseEntries : (item.seasonCount ?? 0);
+}
+
+/**
+ * Trilha da maratona (2026-11-13): the dashboard moves a series', anime's or franchise's progress
+ * one stop at a time ("Temporada concluída"). Compare-and-set on the count the moderator saw, so
+ * two clicks from two tabs can't skip a stop; audited. Not an order or payment state: the title's
+ * own watched state (markWatched) is separate and still ends the marathon.
+ */
+export async function setMarathonProgress(
+  ctx: Ctx,
+  id: string,
+  from: number,
+  to: number,
+  now = new Date(),
+) {
+  const item = await db().catalogItem.findUnique({
+    where: { id },
+    include: { _count: { select: { franchiseEntries: true } } },
+  });
+  if (!item) throw Problems.notFound();
+  const total = partsTotal(item, item._count.franchiseEntries);
+  if (item.kind === 'MOVIE' || total < 2) {
+    throw CatalogProblems.invalidState('Este título não tem temporadas ou filmes para acompanhar.');
+  }
+  if (to < 0 || to > total || Math.abs(to - from) !== 1) {
+    throw CatalogProblems.invalidState('O progresso anda uma parada por vez.');
+  }
+  return db().$transaction(async (t) => {
+    const r = await t.catalogItem.updateMany({
+      where: { id, partsWatched: from },
+      data: { partsWatched: to, partsWatchedAt: to === 0 ? null : now },
+    });
+    if (r.count !== 1) {
+      throw new HttpError(
+        409,
+        'PROGRESS_CHANGED',
+        'O progresso mudou enquanto você olhava. Recarregue para ver o atual.',
+      );
+    }
+    await audit(
+      {
+        action: 'catalog.progress',
+        actor: ctx.actor,
+        requestId: ctx.requestId,
+        targetType: 'CatalogItem',
+        targetId: id,
+        metadata: { kind: item.kind, from, to, total },
+      },
+      t,
+    );
+    return { partsWatched: to, total };
+  });
+}

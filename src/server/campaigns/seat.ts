@@ -26,3 +26,17 @@ export async function viewerSeatKey(campaignId: string): Promise<string | null> 
   if (!ctx) return null;
   return (await hasContributed(ctx.user.id, campaignId)) ? ctx.user.id : null;
 }
+
+/**
+ * The theater seat map's "seu lugar" (2026-11-13): the key above plus the viewer's avatar, which
+ * sits on their seat. Null when the viewer has no seat.
+ */
+export async function viewerSeat(
+  campaignId: string,
+): Promise<{ key: string; avatarKey: string } | null> {
+  const ctx = await getCurrentSession();
+  if (!ctx) return null;
+  return (await hasContributed(ctx.user.id, campaignId))
+    ? { key: ctx.user.id, avatarKey: ctx.user.avatarKey }
+    : null;
+}

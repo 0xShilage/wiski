@@ -2,9 +2,10 @@
  * Theater (2026-11-11): the Ken Burns backdrop on title pages and the campaign seat map.
  * Screenshots go to test-results/theater.
  */
+import { randomBytes, randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
-import { withDb } from './support/seed';
+import { seedUser, signIn, withDb } from './support/seed';
 
 const SHOTS = 'test-results/theater';
 mkdirSync(SHOTS, { recursive: true });
@@ -44,6 +45,59 @@ test('seat map: the campaign as a cinema, seats in proportion to the goal', asyn
   await page
     .locator('#contribuir')
     .screenshot({ path: `${SHOTS}/seatmap-${info.project.name}.png` });
+});
+
+test('seat map as a theater: the title on the screen, a contributor on their seat', async ({
+  page,
+  context,
+}, info) => {
+  const url = await campaignTitle();
+  const slug = url.split('/').pop()!;
+  const u = await seedUser();
+  const order = randomUUID();
+  await withDb(async (c) => {
+    const r = await c.query<{ campaignId: string; itemId: string }>(
+      `SELECT c.id AS "campaignId", ci.id AS "itemId" FROM "Campaign" c
+         JOIN "CatalogItem" ci ON ci.id = c."itemId" WHERE ci.slug = $1`,
+      [slug],
+    );
+    const { campaignId, itemId } = r.rows[0]!;
+    await c.query(
+      `INSERT INTO "Order" (id, "publicCode", kind, "itemId", "campaignId", "userId", "contactEmail",
+         "buyerKey", "accessTokenHash", breakdown, "subtotalCents",
+         "queueJumpCents", "totalCents", status, "paidAt", "clientRequestId", "createdAt", "updatedAt")
+       VALUES ($1, $2, 'CONTRIBUTION', $3, $4, $5, $6, $7, $8, '[]', 1000, 0, 1000, 'PAID', now(),
+         $9, now(), now())`,
+      [
+        order,
+        `WF-${randomBytes(3).toString('hex').toUpperCase()}`,
+        itemId,
+        campaignId,
+        u.id,
+        `${u.id}@example.com`,
+        `u:${u.id}`,
+        randomBytes(32),
+        randomUUID(),
+      ],
+    );
+  });
+  try {
+    await signIn(context, u.token);
+    await page.goto(url);
+    const room = page.getByRole('img', { name: /um deles é o seu/ });
+    await expect(room).toBeVisible();
+    await expect(room.locator('.wf-seatmap__art')).toHaveAttribute('href', /^\/media\//);
+    const mine = room.locator('g.wf-seat--mine');
+    await expect(mine).toHaveCount(1);
+    await expect(mine.locator('image')).toHaveAttribute('href', /^\/avatars\//);
+    await expect(page.locator('.wf-seatmap__key--mine')).toHaveText('seu lugar');
+    await page.waitForTimeout(900);
+    await page
+      .locator('#contribuir')
+      .screenshot({ path: `${SHOTS}/seatmap-mine-${info.project.name}.png` });
+  } finally {
+    await withDb((c) => c.query(`DELETE FROM "Order" WHERE id = $1`, [order]));
+  }
 });
 
 test('ken burns: the backdrop slowly pans (one of four), and stays still with reduce motion', async ({

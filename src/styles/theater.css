@@ -209,3 +209,61 @@
     }
   }
 }
+
+/* ── "A sala" as a theater (2026-11-13): seen from the back row. Seats are <use>s: the backrest
+   takes `fill`, the person on it takes `color`. ── */
+@layer components {
+  .wf-seatmap--theater .wf-seatmap__canvas {
+    fill: #120c1a;
+  }
+  .wf-seatmap--theater .wf-seatmap__art {
+    opacity: 0.92;
+  }
+  .wf-seatmap--theater .wf-seatmap__frame {
+    fill: none;
+    stroke: rgb(229 221 237 / 0.55);
+    stroke-width: 1.2;
+    filter: drop-shadow(0 0 6px rgb(169 157 224 / 0.8));
+  }
+  .wf-seatmap--theater .wf-seatmap__projector {
+    mix-blend-mode: screen;
+  }
+  .wf-seatmap--theater .wf-seat {
+    fill: rgb(79 61 114 / 0.75);
+    filter: none;
+  }
+  .wf-seatmap--theater .wf-seat--taken {
+    fill: rgb(58 44 83);
+    color: var(--color-lavender);
+    filter: drop-shadow(0 -1px 2px rgb(169 157 224 / 0.45));
+  }
+  .wf-seatmap--theater .wf-seat--held {
+    fill: rgb(169 157 224 / 0.12);
+    stroke: var(--color-lavender);
+    stroke-width: 1;
+    stroke-dasharray: 2 2;
+  }
+  .wf-seatmap--theater .wf-seat--mine {
+    filter: none;
+  }
+  .wf-seatmap--theater .wf-seat__mine-back {
+    fill: #f2c46d;
+  }
+  .wf-seatmap--theater .wf-seat__ring {
+    fill: none;
+    stroke: #f2c46d;
+    stroke-width: 1.4;
+    filter: drop-shadow(0 0 4px rgb(242 196 109 / 0.9));
+  }
+  .wf-seatmap--theater .wf-seatmap__key--taken::before {
+    border-radius: 50% 50% 3px 3px;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .wf-seatmap--theater .wf-seat--mine {
+      animation: wf-seat-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1.2) both;
+    }
+    .wf-seatmap--theater .wf-seat__ring {
+      animation: wf-seat-mine 2.6s ease-in-out 1s infinite;
+    }
+  }
+}

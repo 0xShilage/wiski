@@ -177,7 +177,7 @@ export function ItemDetail({
             ) : item.campaign ? (
               <div className="wf-panel" id="contribuir">
                 <h2>Campanha coletiva</h2>
-                <SeatMap campaign={item.campaign} />
+                <SeatMap campaign={item.campaign} art={item.backdrop ?? item.poster} />
                 <CampaignProgress c={item.campaign} />
                 <CampaignStatus c={item.campaign} />
                 <CampaignChips c={item.campaign} />

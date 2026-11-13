@@ -347,8 +347,7 @@ export function ItemEditor({
     poster: pics.poster,
     accent: null,
     palette: [],
-    partsWatched: 0,
-    partsWatchedAt: null,
+    parts: [],
     backdrop: pics.backdrop,
     logo: pics.logo,
     state: 'ACTIVE',
@@ -980,46 +979,6 @@ export function ItemEditor({
           <h3 id="no-ar" className="text-base font-semibold">
             No ar
           </h3>
-          {item.kind !== 'MOVIE' && item.progress.total >= 2 ? (
-            // Trilha da maratona (2026-11-13): one stop at a time, as the live goes
-            <div className="wf-marathon-admin mt-3">
-              <span>
-                Trilha da maratona:{' '}
-                <strong>
-                  {item.progress.done} de {item.progress.total}
-                </strong>{' '}
-                {item.kind === 'FRANCHISE' ? 'filmes' : 'temporadas'}
-              </span>
-              <button
-                type="button"
-                className="wf-btn wf-btn--ghost wf-btn--sm"
-                disabled={busy || item.progress.done === 0}
-                onClick={() =>
-                  void simple(
-                    `/api/v1/admin/catalog/items/${item.id}/progress`,
-                    { from: item.progress.done, to: item.progress.done - 1 },
-                    'Progresso atualizado.',
-                  )
-                }
-              >
-                Voltar uma
-              </button>
-              <button
-                type="button"
-                className="wf-btn wf-btn--ghost wf-btn--sm"
-                disabled={busy || item.progress.done >= item.progress.total}
-                onClick={() =>
-                  void simple(
-                    `/api/v1/admin/catalog/items/${item.id}/progress`,
-                    { from: item.progress.done, to: item.progress.done + 1 },
-                    'Progresso atualizado.',
-                  )
-                }
-              >
-                {item.kind === 'FRANCHISE' ? 'Filme concluído' : 'Temporada concluída'}
-              </button>
-            </div>
-          ) : null}
           <div className="wf-actions mt-3">
             {status !== 'WATCHED' ? (
               <button

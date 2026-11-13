@@ -123,10 +123,6 @@ export const MATRIX: Row[] = [
     body: { expectedVersion: 2, toVersion: 1 },
   }),
   R('/api/v1/admin/catalog/items/[id]/watched', 'POST', 'moderator', { params: { id: NO_ID } }),
-  R('/api/v1/admin/catalog/items/[id]/progress', 'POST', 'moderator', {
-    params: { id: NO_ID },
-    body: { from: 0, to: 1 },
-  }),
   R('/api/v1/admin/catalog/items/[id]/unwatched', 'POST', 'moderator', {
     params: { id: NO_ID },
     body: VERSION0,

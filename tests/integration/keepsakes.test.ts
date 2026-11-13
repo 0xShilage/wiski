@@ -1,13 +1,13 @@
 /**
- * Keepsakes (2026-11-13): the poster palette (upload, filled in once, CHECK), the marathon trail's
- * progress (dashboard, compare-and-set, audit, CHECK) and the most-liked review for the clipping.
+ * Keepsakes (2026-11-13): the poster palette (upload, filled in once, CHECK), the marathon trail
+ * (built from the Agenda's parts) and the most-liked review for the clipping.
  */
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import sharp from 'sharp';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { POST as progressRoute } from '@/app/api/v1/admin/catalog/items/[id]/progress/route';
+import { episodesLabel } from '@/lib/live/segments';
 import { marathonTrail } from '@/lib/trail';
 import { getPublic } from '@/server/catalog/read';
 import { db } from '@/server/db';
@@ -16,7 +16,7 @@ import { ingestFile } from '@/server/media/pipeline';
 import { topReview } from '@/server/reviews/read';
 import { clearCatalog, makeAsset, makeItem } from '../support/catalog';
 import { makeUser } from '../support/db';
-import { as, hit } from '../support/live';
+import { fundedCampaign, makeSession } from '../support/live';
 
 let dir: string;
 beforeAll(() => {
@@ -102,66 +102,79 @@ describe('poster palette', () => {
 });
 
 describe('marathon trail', () => {
-  const step = (who: Awaited<ReturnType<typeof as>>, id: string, from: number, to: number) =>
-    hit(progressRoute, 'POST', '', { who, params: { id }, body: { from, to } });
-
-  it('moves one stop at a time from the dashboard, compare-and-set, audited', async () => {
-    const mod = await as('MODERATOR');
-    const series = await makeItem({ kind: 'SERIES', status: 'FUNDED', slot: 1, seasonCount: 4 });
-    const r = await step(mod, series.id, 0, 1);
-    expect(r.res.status).toBe(200);
-    expect(r.json.item).toMatchObject({ progress: { done: 1, total: 4 } });
-    expect((await step(mod, series.id, 1, 2)).res.status).toBe(200);
-    // a stale count (another tab) and a skipped stop are refused
-    const stale = await step(mod, series.id, 1, 2);
-    expect([stale.res.status, stale.json.code]).toEqual([409, 'PROGRESS_CHANGED']);
-    expect((await step(mod, series.id, 2, 4)).json.code).toBe('INVALID_STATE');
-    expect((await step(mod, series.id, 2, 1)).res.status).toBe(200); // back one
-    const row = await db().catalogItem.findUniqueOrThrow({ where: { id: series.id } });
-    expect(row.partsWatched).toBe(1);
-    expect(row.partsWatchedAt).not.toBeNull();
-    const logs = await db().auditLog.findMany({
-      where: { action: 'catalog.progress', targetId: series.id },
-      orderBy: { id: 'asc' },
+  it('follows the parts marked done on the Agenda (a series)', async () => {
+    const { item, campaign } = await fundedCampaign();
+    await db().catalogItem.update({
+      where: { id: item.id },
+      data: { seasonCount: 1, episodeCount: 8 },
     });
-    expect(logs.map((l) => l.metadata)).toEqual([
-      { kind: 'SERIES', from: 0, to: 1, total: 4 },
-      { kind: 'SERIES', from: 1, to: 2, total: 4 },
-      { kind: 'SERIES', from: 2, to: 1, total: 4 },
+    const [s1, s2, s3] = await Promise.all([
+      makeSession({ inHours: -72, capacity: 300 }),
+      makeSession({ inHours: -24, capacity: 300 }),
+      makeSession({ inHours: 24, capacity: 300 }),
     ]);
-
-    // the page's trail
-    const page = (await getPublic('SERIES', series.slug))!;
-    const trail = marathonTrail(page)!;
-    expect(trail.stops.map((s) => s.state)).toEqual(['done', 'next', 'todo', 'todo']);
-
-    // back to zero clears the date (CHECK keeps the two together)
-    expect((await step(mod, series.id, 1, 0)).res.status).toBe(200);
-    expect(
-      (await db().catalogItem.findUniqueOrThrow({ where: { id: series.id } })).partsWatchedAt,
-    ).toBeNull();
+    const part = (sessionId: string, from: number, to: number) => ({
+      sessionId,
+      kind: 'PART' as const,
+      campaignId: campaign.id,
+      label: episodesLabel(1, from, to),
+      seasonNumber: 1,
+      episodeFrom: from,
+      episodeTo: to,
+      minutes: 135,
+    });
+    const page = async () => marathonTrail((await getPublic('SERIES', item.slug))!);
+    // booked but not shown yet: no trail
+    await db().liveSegment.create({ data: part(s3.id, 7, 8) });
+    expect(await page()).toBeNull();
+    await db().liveSegment.create({
+      data: { ...part(s1.id, 1, 3), status: 'DONE', doneAt: new Date(Date.now() + 1_000) },
+    });
+    await db().liveSegment.create({
+      data: { ...part(s2.id, 4, 6), status: 'DONE', doneAt: new Date(Date.now() + 2_000) },
+    });
+    // a skipped part (the live ended first) is left out
+    await db().liveSegment.create({ data: { ...part(s2.id, 7, 7), status: 'SKIPPED' } });
+    const trail = (await page())!;
+    expect(trail.stops.map((s) => [s.label, s.state, s.here])).toEqual([
+      ['T1 · E1–E3', 'done', false],
+      ['T1 · E4–E6', 'done', true],
+      ['T1 · E7–E8', 'next', false],
+      ['Fim', 'todo', false],
+    ]);
+    expect(trail.summary).toBe('6 de 8 episódios em 2 lives.');
   });
 
-  it('never on a movie, a one-season series, past the end, or for a viewer', async () => {
-    const mod = await as('MODERATOR');
+  it('a franchise fills its films; a movie never has a trail', async () => {
     const movie = await makeItem({ status: 'ACTIVE', slot: 1 });
-    expect((await step(mod, movie.id, 0, 1)).json.code).toBe('INVALID_STATE');
-    const one = await makeItem({ kind: 'SERIES', status: 'ACTIVE', slot: 2, seasonCount: 1 });
-    expect((await step(mod, one.id, 0, 1)).json.code).toBe('INVALID_STATE');
-    const two = await makeItem({ kind: 'SERIES', status: 'ACTIVE', slot: 3, seasonCount: 2 });
-    await step(mod, two.id, 0, 1);
-    await step(mod, two.id, 1, 2);
-    expect((await step(mod, two.id, 2, 3)).json.code).toBe('INVALID_STATE');
-    expect((await step(await as('USER'), two.id, 2, 1)).res.status).toBe(404);
-    // the database refuses a count on a movie, a count without its date, or the other way round
-    for (const data of [{ partsWatched: 1, partsWatchedAt: new Date() }])
-      await expect(db().catalogItem.update({ where: { id: movie.id }, data })).rejects.toThrow();
-    for (const data of [
-      { partsWatched: 1, partsWatchedAt: null },
-      { partsWatched: 0, partsWatchedAt: new Date() },
-      { partsWatched: 101, partsWatchedAt: new Date() },
-    ])
-      await expect(db().catalogItem.update({ where: { id: two.id }, data })).rejects.toThrow();
+    expect(marathonTrail((await getPublic('MOVIE', movie.slug))!)).toBeNull();
+    const { item, campaign } = await fundedCampaign('FRANCHISE');
+    const films = await db().franchiseEntry.findMany({
+      where: { franchiseId: item.id },
+      orderBy: { position: 'asc' },
+    });
+    expect(films.length).toBeGreaterThanOrEqual(2);
+    const s = await makeSession({ inHours: -24, capacity: 300 });
+    await db().liveSegment.create({
+      data: {
+        sessionId: s.id,
+        kind: 'PART',
+        campaignId: campaign.id,
+        label: `Filme ${films[0]!.position}`,
+        franchisePosition: films[0]!.position,
+        minutes: 120,
+        status: 'DONE',
+        doneAt: new Date(Date.now() + 1_000), // CHECK: done after it was booked
+      },
+    });
+    const trail = marathonTrail((await getPublic('FRANCHISE', item.slug))!)!;
+    expect(trail.stops.map((x) => x.state)).toEqual([
+      'done',
+      'next',
+      ...films.slice(2).map(() => 'todo'),
+    ]);
+    expect(trail.stops[0]!.here).toBe(true);
+    expect(trail.summary).toBe(`1 de ${films.length} filmes assistidos.`);
   });
 });
 

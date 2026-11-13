@@ -78,13 +78,22 @@ export async function paidMovie(
   return { item, order };
 }
 
-export async function fundedCampaign() {
+export async function fundedCampaign(kind: 'SERIES' | 'FRANCHISE' = 'SERIES') {
   for (let s = 1; s <= 20; s++) {
     const taken = await db().catalogItem.count({
-      where: { kind: 'SERIES', slot: s, status: { in: ['ACTIVE', 'FUNDED', 'WATCHED'] } },
+      where: { kind, slot: s, status: { in: ['ACTIVE', 'FUNDED', 'WATCHED'] } },
     });
     if (taken) continue;
-    const item = await makeItem({ kind: 'SERIES', status: 'FUNDED', slot: s });
+    const item = await makeItem({ kind, status: 'FUNDED', slot: s });
+    if (kind === 'FRANCHISE')
+      await db().franchiseEntry.createMany({
+        data: [1, 2, 3].map((position) => ({
+          franchiseId: item.id,
+          position,
+          title: `Parte ${position}`,
+          runtimeMinutes: 100,
+        })),
+      });
     const opener = await makeUser({ role: 'STREAMER' });
     const now = new Date();
     const campaign = await db().campaign.create({
@@ -103,7 +112,7 @@ export async function fundedCampaign() {
     });
     return { item, campaign };
   }
-  throw new Error('no free series slot');
+  throw new Error(`no free ${kind} slot`);
 }
 
 export async function makeSession(

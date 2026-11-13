@@ -1,6 +1,7 @@
 import type { ItemKind } from '@/generated/prisma/enums';
 import type { Picture } from '@/lib/media';
 import type { AgeRatingCode } from './age-rating';
+import type { TrailPart } from '../trail';
 
 /** Public read model of a catalog item (src/server/catalog/read.ts) — client-safe types. */
 export type PublicState = 'ACTIVE' | 'RESERVED' | 'SPONSORED' | 'FUNDED' | 'PAUSED' | 'WATCHED';
@@ -48,9 +49,8 @@ export type PublicItem = {
   watchedAt: string | null;
   /** watched by Iara off-stream and logged by hand (2026-11-10) */
   offStream: boolean;
-  /** SERIES / ANIME / FRANCHISE (2026-11-13): seasons or films already watched, for the trail */
-  partsWatched: number;
-  partsWatchedAt: string | null;
+  /** detail page only (2026-11-13): the parts booked on the Agenda, for the marathon trail */
+  parts: TrailPart[];
   /** MOVIE: full sponsorship price */
   priceCents: number | null;
   /** MOVIE: the streamer set this price by hand (no per-minute rule to explain) */

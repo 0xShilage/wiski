@@ -40,46 +40,82 @@ describe('palette', () => {
 });
 
 describe('marathon trail', () => {
-  const base = {
+  const part = (label: string, status: 'DONE' | 'SCHEDULED', episodes: number | null = 3) => ({
+    label,
+    status,
+    at: '2026-11-13T22:00:00.000Z',
+    episodes,
+    franchisePosition: null,
+  });
+  const series = {
     kind: 'SERIES' as const,
-    seasonCount: 4,
     films: [],
-    partsWatched: 2,
-    partsWatchedAt: '2026-11-13T22:00:00.000Z',
     watchedAt: null,
+    episodeCount: 12,
+    parts: [
+      part('T1 · E1–E3', 'DONE'),
+      part('T1 · E4–E6', 'DONE'),
+      part('T1 · E7–E9', 'SCHEDULED'),
+    ],
   };
-  it('stops, the next one, and the unit', () => {
-    const t = marathonTrail(base)!;
-    expect(t.stops.map((s) => [s.label, s.state])).toEqual([
-      ['T1', 'done'],
-      ['T2', 'done'],
-      ['T3', 'next'],
-      ['T4', 'todo'],
+  it('a series: the parts done, the next one, the finish line', () => {
+    const t = marathonTrail(series)!;
+    expect(t.stops.map((s) => [s.label, s.state, s.here])).toEqual([
+      ['T1 · E1–E3', 'done', false],
+      ['T1 · E4–E6', 'done', true],
+      ['T1 · E7–E9', 'next', false],
+      ['Fim', 'todo', false],
     ]);
-    expect(t.unit.many).toBe('temporadas');
-  });
-  it('a franchise uses its films; a watched title is complete', () => {
-    const t = marathonTrail({
-      ...base,
-      kind: 'FRANCHISE',
-      films: [
-        { position: 1, title: 'A', year: null, runtimeMinutes: 90 },
-        { position: 2, title: 'B', year: null, runtimeMinutes: 90 },
-        { position: 3, title: 'C', year: null, runtimeMinutes: 90 },
-      ],
-      partsWatched: 0,
-      partsWatchedAt: null,
-      watchedAt: '2026-11-01T00:00:00.000Z',
+    expect(t.stops.at(-1)!.title).toBe('Fim da série');
+    expect(t.summary).toBe('6 de 12 episódios em 2 lives.');
+    // nothing booked next; no episode count; an anime's finish line
+    const u = marathonTrail({
+      ...series,
+      kind: 'ANIME',
+      episodeCount: null,
+      parts: [part('T1 · E1–E3', 'DONE')],
     })!;
-    expect(t.complete).toBe(true);
-    expect(t.stops.map((s) => s.title)).toEqual(['A', 'B', 'C']);
-    expect(t.stops.every((s) => s.state === 'done')).toBe(true);
+    expect(u.stops.map((s) => s.title)).toEqual([
+      'T1 · E1–E3',
+      'Próximos episódios',
+      'Fim do anime',
+    ]);
+    expect(u.summary).toBe('1 live até agora.');
   });
-  it('nothing for movies, one season, or before the first stop', () => {
-    expect(marathonTrail({ ...base, kind: 'MOVIE' })).toBeNull();
-    expect(marathonTrail({ ...base, seasonCount: 1 })).toBeNull();
-    expect(marathonTrail({ ...base, partsWatched: 0, partsWatchedAt: null })).toBeNull();
-    expect(marathonTrail({ ...base, partsWatched: 9 })!.done).toBe(4);
+  it('watched: everything filled, no pin', () => {
+    const t = marathonTrail({ ...series, watchedAt: '2026-11-20T00:00:00.000Z' })!;
+    expect(t.complete).toBe(true);
+    expect(t.stops.map((s) => s.label)).toEqual(['T1 · E1–E3', 'T1 · E4–E6', 'Fim']);
+    expect(t.stops.every((s) => s.state === 'done' && !s.here)).toBe(true);
+    expect(t.summary).toBe('Maratona concluída em 2 lives.');
+  });
+  it('a franchise uses its films', () => {
+    const films = [1, 2, 3].map((p) => ({
+      position: p,
+      title: `F${p}`,
+      year: null,
+      runtimeMinutes: 90,
+    }));
+    const t = marathonTrail({
+      kind: 'FRANCHISE',
+      films,
+      watchedAt: null,
+      episodeCount: null,
+      parts: [{ ...part('Filme 2: F2', 'DONE', null), franchisePosition: 2 }],
+    })!;
+    expect(t.stops.map((s) => [s.title, s.state, s.here])).toEqual([
+      ['F1', 'next', false],
+      ['F2', 'done', true],
+      ['F3', 'todo', false],
+    ]);
+    expect(t.summary).toBe('1 de 3 filmes assistidos.');
+  });
+  it('nothing for movies or before the first part is shown', () => {
+    expect(marathonTrail({ ...series, kind: 'MOVIE' })).toBeNull();
+    expect(marathonTrail({ ...series, parts: [part('T1 · E1–E3', 'SCHEDULED')] })).toBeNull();
+    expect(
+      marathonTrail({ ...series, parts: [], watchedAt: '2026-11-20T00:00:00.000Z' }),
+    ).toBeNull();
   });
 });
 

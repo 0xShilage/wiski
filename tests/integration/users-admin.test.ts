@@ -134,7 +134,7 @@ describe('roles and VIP (streamer + step-up)', () => {
     ).toBe('STEP_UP_REQUIRED');
   });
 
-  it('Super Moderador: the streamer names one; it has the streamer powers, but not over its peers', async () => {
+  it('Desenvolvedor: the streamer names one; it has the streamer powers, but not over its peers', async () => {
     const setRole = (who: Who, id: string, role: string) =>
       hit(roleRoute, 'POST', '', { who, params: { id }, body: { role } });
     const streamer = await as('STREAMER');
@@ -167,11 +167,11 @@ describe('roles and VIP (streamer + step-up)', () => {
     expect((vip.json.user as { isVip: boolean }).isVip).toBe(true);
     expect((await suspend(sup, person.user.id, null)).res.status).toBe(200);
 
-    // …but only the streamer names (or removes) a Super Moderador
+    // …but only the streamer names (or removes) a Desenvolvedor
     const other = await as('MODERATOR');
     const named = await setRole(sup, other.user.id, 'SUPER_MODERATOR');
     expect([named.res.status, named.json.code]).toEqual([403, 'STREAMER_ONLY']);
-    // a Super Moderador's account is the streamer's to change, not a peer's
+    // a Desenvolvedor's account is the streamer's to change, not a peer's
     const peer = await as('SUPER_MODERATOR');
     for (const res of [
       await setRole(sup, peer.user.id, 'USER'),

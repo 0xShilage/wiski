@@ -70,7 +70,7 @@ describe('RBAC levels', () => {
     expect(meetsAccess('SUPER_MODERATOR', 'moderator')).toBe(true);
   });
 
-  it('Super Moderador: the streamer names one; nobody but the streamer acts on one', () => {
+  it('Desenvolvedor: the streamer names one; nobody but the streamer acts on one', () => {
     expect(hasStreamerPowers('SUPER_MODERATOR')).toBe(true);
     expect(hasStreamerPowers('MODERATOR')).toBe(false);
     expect(canActOn('SUPER_MODERATOR', 'MODERATOR')).toBe(true);
@@ -82,7 +82,7 @@ describe('RBAC levels', () => {
     expect(assignableRoles('SUPER_MODERATOR')).toEqual(['USER', 'MODERATOR']);
     expect(assignableRoles('MODERATOR')).toEqual([]);
     expect(staffRole('SUPER_MODERATOR')).toBe('SUPER_MODERATOR');
-    expect(ROLE_LABEL.SUPER_MODERATOR).toBe('Super Moderador');
+    expect(ROLE_LABEL.SUPER_MODERATOR).toBe('Desenvolvedor');
   });
 });
 

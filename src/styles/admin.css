@@ -593,7 +593,7 @@
   }
 }
 
-/* Staff role tags (2026-11-13): the Super Moderador's in amber with a star */
+/* Staff role tags (2026-11-13): the Desenvolvedor's in amber with a </> mark */
 @layer components {
   .wf-role-tag {
     display: inline-flex;
@@ -618,6 +618,7 @@
     background: rgb(255 191 107 / 0.1);
   }
   .wf-role-tag__star {
+    font-family: var(--font-mono, ui-monospace, monospace);
     font-size: 10px;
   }
 }

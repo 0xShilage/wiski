@@ -5,10 +5,12 @@
 export type RoleName = 'USER' | 'MODERATOR' | 'SUPER_MODERATOR' | 'STREAMER';
 export type StaffRole = Exclude<RoleName, 'USER'>;
 
+/** UI names. SUPER_MODERATOR is shown as "Desenvolvedor" (renamed 2026-11-13; the stored value
+ *  stays, since audit-log row hashes include the actor's role). */
 export const ROLE_LABEL: Record<RoleName, string> = {
   USER: '',
   MODERATOR: 'Moderação',
-  SUPER_MODERATOR: 'Super Moderador',
+  SUPER_MODERATOR: 'Desenvolvedor',
   STREAMER: 'Streamer',
 };
 
@@ -19,7 +21,7 @@ export function hasStreamerPowers(role: RoleName): boolean {
 
 /**
  * Whether `actor` may change `target`'s account (suspend, VIP, role): never the streamer's, and a
- * Super Moderador's only by the streamer.
+ * Desenvolvedor's only by the streamer.
  */
 export function canActOn(actor: RoleName, target: RoleName): boolean {
   if (target === 'STREAMER') return false;
@@ -27,7 +29,7 @@ export function canActOn(actor: RoleName, target: RoleName): boolean {
   return true;
 }
 
-/** Roles `actor` may give (the streamer alone names Super Moderadores; nobody names a streamer). */
+/** Roles `actor` may give (the streamer alone names Desenvolvedores; nobody names a streamer). */
 export function assignableRoles(actor: RoleName): RoleName[] {
   if (actor === 'STREAMER') return ['USER', 'MODERATOR', 'SUPER_MODERATOR'];
   if (actor === 'SUPER_MODERATOR') return ['USER', 'MODERATOR'];

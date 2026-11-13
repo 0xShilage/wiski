@@ -12,12 +12,12 @@ type Reset = { cleared: number; ips: number; pendingOrders: number; pendingOnIps
 type Filter = 'all' | 'staff' | 'vip' | 'suspended';
 type Move = { to: 'USER' | 'MODERATOR' | 'SUPER_MODERATOR'; label: string; ask: string };
 
-/** The role buttons for one person (the streamer alone names or removes a Super Moderador). */
+/** The role buttons for one person (the streamer alone names or removes a Desenvolvedor). */
 function roleMoves(actor: StaffRole, current: RoleName, name: string): Move[] {
   const superMod: Move = {
     to: 'SUPER_MODERATOR',
-    label: 'Tornar Super Moderador',
-    ask: `Tornar @${name} Super Moderador? Terá os mesmos poderes do streamer: reembolsos, papéis, configurações e o resto do painel.`,
+    label: 'Tornar Desenvolvedor',
+    ask: `Tornar @${name} Desenvolvedor? Terá os mesmos poderes do streamer: reembolsos, papéis, configurações e o resto do painel.`,
   };
   const out: Move = {
     to: 'USER',
@@ -146,7 +146,7 @@ export function PeopleBoard({ initial, role }: { initial: Page; role: StaffRole 
           }}
         >
           <option value="all">Todas as contas</option>
-          <option value="staff">Moderação, Super Moderadores e streamer</option>
+          <option value="staff">Moderação, Desenvolvedores e streamer</option>
           <option value="vip">VIP</option>
           <option value="suspended">Suspensas</option>
         </select>
@@ -260,7 +260,7 @@ export function PeopleBoard({ initial, role }: { initial: Page; role: StaffRole 
                   >
                     {u.isVip ? 'Tirar VIP' : 'Dar VIP'}
                   </button>
-                  {/* roles: the streamer's powers; Super Moderadores: the streamer alone */}
+                  {/* roles: the streamer's powers; Desenvolvedores: the streamer alone */}
                   {hasStreamerPowers(role)
                     ? roleMoves(role, u.role, u.username ?? 'conta').map((m) => (
                         <button

@@ -12,8 +12,8 @@ import { HttpError, Problems } from '../http/problem';
  * streamer (passkey + Google step-up, enforced by the routes) suspends for longer or indefinitely,
  * changes roles (USER ↔ MODERATOR) and grants VIP. Nobody acts on the streamer or on themselves;
  * a moderator must be demoted before a suspension (so a suspended account never moderates).
- * Super Moderador (2026-11-13): the streamer's powers here too, except that only the streamer
- * names or removes a Super Moderador, and only the streamer acts on one's account.
+ * Desenvolvedor (2026-11-13): the streamer's powers here too, except that only the streamer
+ * names or removes a Desenvolvedor, and only the streamer acts on one's account.
  * E-mails are shown to staff (moderators and the streamer, 2026-11-08).
  */
 type Ctx = { actor: { id: string; role: Role }; requestId: string | null };
@@ -28,9 +28,9 @@ export const UserProblems = {
   protected: () =>
     new HttpError(409, 'PROTECTED_ACCOUNT', 'A conta do streamer não pode ser alterada aqui.'),
   superProtected: () =>
-    new HttpError(409, 'PROTECTED_ACCOUNT', 'Só o streamer altera a conta de um Super Moderador.'),
+    new HttpError(409, 'PROTECTED_ACCOUNT', 'Só o streamer altera a conta de um Desenvolvedor.'),
   streamerOnly: () =>
-    new HttpError(403, 'STREAMER_ONLY', 'Só o streamer nomeia ou tira um Super Moderador.'),
+    new HttpError(403, 'STREAMER_ONLY', 'Só o streamer nomeia ou tira um Desenvolvedor.'),
   privileged: () =>
     new HttpError(
       409,

@@ -17,7 +17,7 @@ export default async function PessoasPage() {
     <AdminShell
       active="pessoas"
       title="Pessoas"
-      lead="Suspensões de mais de 7 dias, sem prazo e VIP pedem login recente com o Google. Quem é da moderação, o streamer e os Super Moderadores decidem; quem é Super Moderador, só o streamer. “Liberar pedidos” zera os limites de checkout de quem travou (5 pedidos por hora, cupom errado) sem mexer em nenhum pedido."
+      lead="Suspensões de mais de 7 dias, sem prazo e VIP pedem login recente com o Google. Quem é da moderação, o streamer e os Desenvolvedores decidem; quem é Desenvolvedor, só o streamer. “Liberar pedidos” zera os limites de checkout de quem travou (5 pedidos por hora, cupom errado) sem mexer em nenhum pedido."
       {...p.shell}
     >
       <PeopleBoard initial={initial} role={role} />

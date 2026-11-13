@@ -30,7 +30,9 @@ datasource db {
 enum Role {
   USER
   MODERATOR
-  /// Super Moderador (2026-11-13): the streamer's powers (refunds, roles, settings…) under its own
+  /// "Desenvolvedor" in the UI (2026-11-13; first shown as "Super Moderador" — the value keeps that
+  /// name because audit-log row hashes include the actor's role): the streamer's powers (refunds,
+  /// roles, settings…) under its own
   /// name; only the streamer names or removes one, and one can't act on another or on the streamer.
   SUPER_MODERATOR
   STREAMER

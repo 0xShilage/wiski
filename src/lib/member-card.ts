@@ -34,7 +34,7 @@ export function memberTier(
   role: RoleName,
 ): MemberTier {
   if (role === 'STREAMER') return { id: 'streamer', label: 'Streamer' };
-  if (role === 'SUPER_MODERATOR') return { id: 'super', label: 'Super Moderador' };
+  if (role === 'SUPER_MODERATOR') return { id: 'super', label: 'Desenvolvedor' };
   if (role === 'MODERATOR') return { id: 'staff', label: 'Moderação' };
   const total = stats.sponsorships + stats.contributions;
   const tier = [...MEMBER_TIERS].reverse().find((t) => total >= t.from)!;

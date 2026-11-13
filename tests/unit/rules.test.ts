@@ -9,6 +9,7 @@ import {
 } from '@/lib/avatars';
 import { normalizeUsername, usernameRuleViolation, usernameSchema } from '@/lib/username';
 import { meetsAccess } from '@/server/rbac';
+import { ROLE_LABEL, assignableRoles, canActOn, hasStreamerPowers, staffRole } from '@/lib/roles';
 import { isStepUpFresh } from '@/server/auth/step-up';
 import { uaFamilyFrom } from '@/server/auth/session';
 
@@ -59,12 +60,29 @@ describe('avatars', () => {
 });
 
 describe('RBAC levels', () => {
-  it('ranks USER < MODERATOR < STREAMER', () => {
+  it('ranks USER < MODERATOR < SUPER_MODERATOR = STREAMER', () => {
     expect(meetsAccess('USER', 'public')).toBe(true);
     expect(meetsAccess('USER', 'moderator')).toBe(false);
     expect(meetsAccess('MODERATOR', 'moderator')).toBe(true);
     expect(meetsAccess('MODERATOR', 'streamer')).toBe(false);
     expect(meetsAccess('STREAMER', 'streamer')).toBe(true);
+    expect(meetsAccess('SUPER_MODERATOR', 'streamer')).toBe(true);
+    expect(meetsAccess('SUPER_MODERATOR', 'moderator')).toBe(true);
+  });
+
+  it('Super Moderador: the streamer names one; nobody but the streamer acts on one', () => {
+    expect(hasStreamerPowers('SUPER_MODERATOR')).toBe(true);
+    expect(hasStreamerPowers('MODERATOR')).toBe(false);
+    expect(canActOn('SUPER_MODERATOR', 'MODERATOR')).toBe(true);
+    expect(canActOn('SUPER_MODERATOR', 'SUPER_MODERATOR')).toBe(false);
+    expect(canActOn('SUPER_MODERATOR', 'STREAMER')).toBe(false);
+    expect(canActOn('STREAMER', 'SUPER_MODERATOR')).toBe(true);
+    expect(canActOn('MODERATOR', 'SUPER_MODERATOR')).toBe(false);
+    expect(assignableRoles('STREAMER')).toEqual(['USER', 'MODERATOR', 'SUPER_MODERATOR']);
+    expect(assignableRoles('SUPER_MODERATOR')).toEqual(['USER', 'MODERATOR']);
+    expect(assignableRoles('MODERATOR')).toEqual([]);
+    expect(staffRole('SUPER_MODERATOR')).toBe('SUPER_MODERATOR');
+    expect(ROLE_LABEL.SUPER_MODERATOR).toBe('Super Moderador');
   });
 });
 

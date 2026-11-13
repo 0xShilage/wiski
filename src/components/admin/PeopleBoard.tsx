@@ -4,18 +4,50 @@ import { useId, useState } from 'react';
 import { Avatar } from '@/components/Avatar';
 import { adminFetch } from '@/lib/passkey-client';
 import { fmtDateTime, type AdminUserView } from '@/lib/admin/types';
+import { canActOn, hasStreamerPowers, type RoleName, type StaffRole } from '@/lib/roles';
+import { RoleTag } from './RoleTag';
 
 type Page = { users: AdminUserView[]; next: string | null };
 type Reset = { cleared: number; ips: number; pendingOrders: number; pendingOnIps: number };
 type Filter = 'all' | 'staff' | 'vip' | 'suspended';
-const ROLE_PT = { USER: 'Pessoa', MODERATOR: 'Moderação', STREAMER: 'Streamer' } as const;
+type Move = { to: 'USER' | 'MODERATOR' | 'SUPER_MODERATOR'; label: string; ask: string };
+
+/** The role buttons for one person (the streamer alone names or removes a Super Moderador). */
+function roleMoves(actor: StaffRole, current: RoleName, name: string): Move[] {
+  const superMod: Move = {
+    to: 'SUPER_MODERATOR',
+    label: 'Tornar Super Moderador',
+    ask: `Tornar @${name} Super Moderador? Terá os mesmos poderes do streamer: reembolsos, papéis, configurações e o resto do painel.`,
+  };
+  const out: Move = {
+    to: 'USER',
+    label: 'Tirar da moderação',
+    ask: `Tirar @${name} da moderação?`,
+  };
+  if (current === 'USER')
+    return [
+      {
+        to: 'MODERATOR',
+        label: 'Tornar moderação',
+        ask: `Tornar @${name} moderador(a)? Vai precisar configurar a verificação em duas etapas.`,
+      },
+      ...(actor === 'STREAMER' ? [superMod] : []),
+    ];
+  if (current === 'MODERATOR') return [out, ...(actor === 'STREAMER' ? [superMod] : [])];
+  if (current === 'SUPER_MODERATOR' && actor === 'STREAMER')
+    return [
+      { to: 'MODERATOR', label: 'Voltar para moderação', ask: `Voltar @${name} para moderação?` },
+      out,
+    ];
+  return [];
+}
 
 /**
  * Pessoas (Phase 4): find someone by username; suspend (moderators up to 7 days, the streamer
  * longer); the streamer also changes roles, VIP and — since 2026-11-04 — clears the checkout
  * counters of someone who hit the hourly order limit ("Liberar pedidos"). Every action is audited.
  */
-export function PeopleBoard({ initial, role }: { initial: Page; role: 'MODERATOR' | 'STREAMER' }) {
+export function PeopleBoard({ initial, role }: { initial: Page; role: StaffRole }) {
   const id = useId();
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
@@ -114,7 +146,7 @@ export function PeopleBoard({ initial, role }: { initial: Page; role: 'MODERATOR
           }}
         >
           <option value="all">Todas as contas</option>
-          <option value="staff">Moderação e streamer</option>
+          <option value="staff">Moderação, Super Moderadores e streamer</option>
           <option value="vip">VIP</option>
           <option value="suspended">Suspensas</option>
         </select>
@@ -139,8 +171,8 @@ export function PeopleBoard({ initial, role }: { initial: Page; role: 'MODERATOR
                   )}
                 </span>
                 <span className="wf-muted text-xs">
-                  {ROLE_PT[u.role]} · desde {fmtDateTime(u.createdAt)} · {u.reviewCount} avaliações
-                  · {u.orderCount} pedidos
+                  {u.role === 'USER' ? 'Pessoa' : <RoleTag role={u.role} />} · desde{' '}
+                  {fmtDateTime(u.createdAt)} · {u.reviewCount} avaliações · {u.orderCount} pedidos
                   {u.email ? ` · ${u.email}` : ''}
                 </span>
               </div>
@@ -164,7 +196,7 @@ export function PeopleBoard({ initial, role }: { initial: Page; role: 'MODERATOR
                     : 'por tempo indeterminado'}
                 </span>
               ) : null}
-              {u.role === 'STREAMER' ? null : u.status === 'SUSPENDED' ? (
+              {!canActOn(role, u.role) ? null : u.status === 'SUSPENDED' ? (
                 <button
                   type="button"
                   className="wf-btn wf-btn--sm wf-btn--ghost"
@@ -212,7 +244,7 @@ export function PeopleBoard({ initial, role }: { initial: Page; role: 'MODERATOR
                   </button>
                 </>
               ) : null}
-              {u.role !== 'STREAMER' && u.status === 'ACTIVE' ? (
+              {canActOn(role, u.role) && u.status === 'ACTIVE' ? (
                 <>
                   <button
                     type="button"
@@ -228,30 +260,25 @@ export function PeopleBoard({ initial, role }: { initial: Page; role: 'MODERATOR
                   >
                     {u.isVip ? 'Tirar VIP' : 'Dar VIP'}
                   </button>
-                  {/* who moderates stays the streamer's call (2026-11-08) */}
-                  {role === 'STREAMER' ? (
-                    <button
-                      type="button"
-                      className="wf-btn wf-btn--sm wf-btn--ghost"
-                      disabled={busy}
-                      onClick={() => {
-                        const to = u.role === 'USER' ? 'MODERATOR' : 'USER';
-                        if (
-                          window.confirm(
-                            to === 'MODERATOR'
-                              ? `Tornar @${u.username} moderador(a)? Vai precisar cadastrar uma passkey.`
-                              : `Tirar @${u.username} da moderação?`,
-                          )
-                        ) {
-                          void act('Papel alterado', `/api/v1/admin/users/${u.id}/role`, {
-                            role: to,
-                          });
-                        }
-                      }}
-                    >
-                      {u.role === 'USER' ? 'Tornar moderação' : 'Tirar da moderação'}
-                    </button>
-                  ) : null}
+                  {/* roles: the streamer's powers; Super Moderadores: the streamer alone */}
+                  {hasStreamerPowers(role)
+                    ? roleMoves(role, u.role, u.username ?? 'conta').map((m) => (
+                        <button
+                          key={m.to}
+                          type="button"
+                          className="wf-btn wf-btn--sm wf-btn--ghost"
+                          disabled={busy}
+                          onClick={() => {
+                            if (window.confirm(m.ask))
+                              void act('Papel alterado', `/api/v1/admin/users/${u.id}/role`, {
+                                role: m.to,
+                              });
+                          }}
+                        >
+                          {m.label}
+                        </button>
+                      ))
+                    : null}
                 </>
               ) : null}
             </div>

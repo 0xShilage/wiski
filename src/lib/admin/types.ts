@@ -1,5 +1,6 @@
 /** Client-safe shapes of the Phase 4 dashboard data (dates as ISO strings). */
 import type { Picture } from '@/lib/media';
+import type { RoleName } from '@/lib/roles';
 
 export type Kind = 'MOVIE' | 'SERIES' | 'FRANCHISE' | 'ANIME';
 
@@ -97,7 +98,7 @@ export type AdminUserView = {
   id: string;
   username: string | null;
   avatarKey: string;
-  role: 'USER' | 'MODERATOR' | 'STREAMER';
+  role: RoleName;
   status: 'ACTIVE' | 'SUSPENDED' | 'DELETED';
   suspendedUntil: string | null;
   isVip: boolean;

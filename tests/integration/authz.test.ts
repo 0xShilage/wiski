@@ -542,8 +542,9 @@ export const MATRIX: Row[] = [
   R('/api/v1/admin/releases/[id]', 'DELETE', 'moderator', { params: { id: NO_ID } }),
 ];
 
-const ROLES = ['anonymous', 'USER', 'MODERATOR', 'STREAMER'] as const;
-const RANK = { anonymous: -1, USER: 0, MODERATOR: 1, STREAMER: 2 } as const;
+const ROLES = ['anonymous', 'USER', 'MODERATOR', 'SUPER_MODERATOR', 'STREAMER'] as const;
+// Super Moderador (2026-11-13): the streamer's access on every route
+const RANK = { anonymous: -1, USER: 0, MODERATOR: 1, SUPER_MODERATOR: 2, STREAMER: 2 } as const;
 const NEED = { public: -1, user: 0, moderator: 1, streamer: 2 } as const;
 
 function expected(role: (typeof ROLES)[number], access: AccessLevel): 'allow' | 401 | 404 {

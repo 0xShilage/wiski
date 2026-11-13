@@ -9,6 +9,7 @@ import {
   memberTier,
   nextMemberTier,
 } from '@/lib/member-card';
+import type { RoleName } from '@/lib/roles';
 
 const num = new Intl.NumberFormat('pt-BR');
 
@@ -18,7 +19,7 @@ type Props = {
     username: string;
     avatarKey: string | null;
     createdAt: Date;
-    role: 'USER' | 'MODERATOR' | 'STREAMER';
+    role: RoleName;
     isVip: boolean;
   };
   stats: MemberStats;

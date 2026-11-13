@@ -134,6 +134,65 @@ describe('roles and VIP (streamer + step-up)', () => {
     ).toBe('STEP_UP_REQUIRED');
   });
 
+  it('Super Moderador: the streamer names one; it has the streamer powers, but not over its peers', async () => {
+    const setRole = (who: Who, id: string, role: string) =>
+      hit(roleRoute, 'POST', '', { who, params: { id }, body: { role } });
+    const streamer = await as('STREAMER');
+    const target = await as('MODERATOR');
+    const r = await setRole(streamer, target.user.id, 'SUPER_MODERATOR');
+    expect((r.json.user as { role: string }).role).toBe('SUPER_MODERATOR');
+    expect(await loadSession(target.auth.token)).toBeNull();
+    expect(
+      (
+        await db().auditLog.findFirstOrThrow({
+          where: { action: 'user.role', targetId: target.user.id },
+        })
+      ).metadata,
+    ).toEqual({ from: 'MODERATOR', to: 'SUPER_MODERATOR' });
+
+    const sup = await as('SUPER_MODERATOR');
+    // the streamer's powers: roles USER ↔ MODERATOR, VIP, long suspensions
+    const person = await as('USER');
+    expect(
+      ((await setRole(sup, person.user.id, 'MODERATOR')).json.user as { role: string }).role,
+    ).toBe('MODERATOR');
+    expect(((await setRole(sup, person.user.id, 'USER')).json.user as { role: string }).role).toBe(
+      'USER',
+    );
+    const vip = await hit(vipRoute, 'POST', '', {
+      who: sup,
+      params: { id: person.user.id },
+      body: { vip: true },
+    });
+    expect((vip.json.user as { isVip: boolean }).isVip).toBe(true);
+    expect((await suspend(sup, person.user.id, null)).res.status).toBe(200);
+
+    // …but only the streamer names (or removes) a Super Moderador
+    const other = await as('MODERATOR');
+    const named = await setRole(sup, other.user.id, 'SUPER_MODERATOR');
+    expect([named.res.status, named.json.code]).toEqual([403, 'STREAMER_ONLY']);
+    // a Super Moderador's account is the streamer's to change, not a peer's
+    const peer = await as('SUPER_MODERATOR');
+    for (const res of [
+      await setRole(sup, peer.user.id, 'USER'),
+      await hit(vipRoute, 'POST', '', {
+        who: sup,
+        params: { id: peer.user.id },
+        body: { vip: true },
+      }),
+    ])
+      expect([res.res.status, res.json.code]).toEqual([409, 'PROTECTED_ACCOUNT']);
+    expect((await setRole(sup, streamer.user.id, 'USER')).json.code).toBe('PROTECTED_ACCOUNT');
+    // the streamer takes it back
+    expect(
+      ((await setRole(streamer, peer.user.id, 'MODERATOR')).json.user as { role: string }).role,
+    ).toBe('MODERATOR');
+    // and a moderator never sees the role endpoint
+    expect((await setRole(await as('MODERATOR'), person.user.id, 'MODERATOR')).res.status).toBe(
+      404,
+    );
+  });
+
   it('VIP on/off', async () => {
     const target = await as('USER');
     const s = await as('STREAMER');

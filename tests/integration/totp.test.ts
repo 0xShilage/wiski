@@ -20,6 +20,7 @@ import { base32Decode, hotp, stepAt, totpAt } from '@/server/auth/totp';
 import { db } from '@/server/db';
 import { makeUser } from '../support/db';
 import { call, req, setCookies, signedIn } from '../support/http';
+import type { StaffRole } from '@/lib/roles';
 
 type Auth = Awaited<ReturnType<typeof signedIn>>;
 const as = (a: Auth, ip?: string) => ({
@@ -32,7 +33,7 @@ const adminList = (a: Auth) =>
   call(items.GET, req('GET', '/api/v1/admin/catalog/items?kind=MOVIE', as(a)));
 
 /** A moderator signed in just now with Google (step-up fresh), no second factor yet. */
-async function freshMod(role: 'MODERATOR' | 'STREAMER' = 'MODERATOR') {
+async function freshMod(role: StaffRole = 'MODERATOR') {
   const user = await makeUser({ role });
   const a = await signedIn(user, new Date(), { mfaAt: null });
   return { user, a };
@@ -45,7 +46,7 @@ async function startSetup(a: Auth) {
   return { ...body, key: base32Decode(body.secret) };
 }
 
-async function enabled(role: 'MODERATOR' | 'STREAMER' = 'MODERATOR') {
+async function enabled(role: StaffRole = 'MODERATOR') {
   const m = await freshMod(role);
   const s = await startSetup(m.a);
   const r = await call(

@@ -41,7 +41,7 @@ const orderStatus = z.enum([
 ]);
 const moderationStatus = z.enum(['VISIBLE', 'AUTO_HIDDEN', 'HIDDEN', 'REMOVED']);
 const textDecision = z.enum(['APPROVED', 'REJECTED']);
-const role = z.enum(['USER', 'MODERATOR', 'STREAMER']);
+const role = z.enum(['USER', 'MODERATOR', 'SUPER_MODERATOR', 'STREAMER']);
 const overlayWidget = z.enum(['agora', 'fila', 'meta', 'meta-total', 'patrocinio', 'subathon']);
 const goalMetric = z.enum(['SPONSORSHIP_COUNT', 'SPONSORSHIP_REVENUE_CENTS', 'WATCHED_MINUTES']);
 const roletaPrize = z.enum(['FILME', 'DOIS_FILMES', 'VIP_TWITCH', 'CUPOM_30']);

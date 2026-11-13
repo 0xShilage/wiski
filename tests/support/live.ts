@@ -6,6 +6,7 @@ import { makeItem } from './catalog';
 import { makeUser } from './db';
 import { call, req, signedIn } from './http';
 import { testPublicCode } from './orders';
+import type { RoleName } from '@/lib/roles';
 
 /** Direct-DB fixtures for the live schedule (Phase 4): paid movies, funded campaigns, sessions. */
 
@@ -123,7 +124,7 @@ export async function makeSession(
 export type Who = { user: User; auth: Awaited<ReturnType<typeof signedIn>> };
 
 export async function as(
-  role: 'USER' | 'MODERATOR' | 'STREAMER',
+  role: RoleName,
   o: { authTime?: Date; mfaAt?: Date | null } = {},
 ): Promise<Who> {
   const user = await makeUser({ role });

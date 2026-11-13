@@ -6,6 +6,7 @@ import { KIND_PATH } from '@/lib/catalog/kinds';
 import { adminFetch } from '@/lib/passkey-client';
 import { fmtDateTime, ORDER_STATUS_PT, type AdminOrderView } from '@/lib/admin/types';
 import { ManualPaymentForm } from './ManualPaymentForm';
+import { hasStreamerPowers, type StaffRole } from '@/lib/roles';
 
 type Page = {
   orders: AdminOrderView[];
@@ -42,7 +43,7 @@ function pill(status: string) {
  * with the order since 2026-11-04 — here they can be hidden and shown again), and — for the
  * streamer — accepting an order that needs attention or the exception refund.
  */
-export function OrdersBoard({ initial, role }: { initial: Page; role: 'MODERATOR' | 'STREAMER' }) {
+export function OrdersBoard({ initial, role }: { initial: Page; role: StaffRole }) {
   const [filter, setFilter] = useState<Filter>(initial.counts.attention ? 'attention' : 'all');
   const [page, setPage] = useState(initial);
   const [busy, setBusy] = useState(false);
@@ -301,8 +302,8 @@ export function OrdersBoard({ initial, role }: { initial: Page; role: 'MODERATOR
                       Desfazer registro
                     </button>
                   ) : null}
-                  {/* refunds (money leaving the account) stay the streamer's call (2026-11-08) */}
-                  {role === 'STREAMER' &&
+                  {/* refunds (money leaving the account): the streamer's powers (2026-11-08) */}
+                  {hasStreamerPowers(role) &&
                   ['PAID', 'SCHEDULED', 'NEEDS_ATTENTION'].includes(o.status) &&
                   o.payment?.status === 'APPROVED' ? (
                     <button

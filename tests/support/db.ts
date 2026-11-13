@@ -1,6 +1,7 @@
 import { inject } from 'vitest';
 import pg from 'pg';
 import { db } from '@/server/db';
+import type { RoleName } from '@/lib/roles';
 
 /** Superuser connection for test setup/tampering only (the app itself runs as wf_app). */
 export async function withAdmin<T>(fn: (client: pg.Client) => Promise<T>): Promise<T> {
@@ -17,7 +18,7 @@ let seq = 0;
 /** Create a user directly (bypassing Google) for tests. */
 export async function makeUser(
   over: {
-    role?: 'USER' | 'MODERATOR' | 'STREAMER' | undefined;
+    role?: RoleName | undefined;
     username?: string | null | undefined;
     status?: 'ACTIVE' | 'SUSPENDED' | 'DELETED' | undefined;
   } = {},

@@ -190,7 +190,9 @@ export const usersQuery = z
   })
   .strict();
 export const suspendInput = z.object({ days: z.int().min(1).max(3650).nullable() }).strict();
-export const roleInput = z.object({ role: z.enum(['USER', 'MODERATOR']) }).strict();
+export const roleInput = z
+  .object({ role: z.enum(['USER', 'MODERATOR', 'SUPER_MODERATOR']) })
+  .strict();
 export const vipInput = z.object({ vip: z.boolean() }).strict();
 export const eraseInput = z.object({ confirmUsername: z.string().min(1).max(40) }).strict();
 

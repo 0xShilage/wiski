@@ -82,6 +82,7 @@ describe('membership tiers', () => {
     const stats = { sponsorships: 30, contributions: 0 };
     expect(memberTier(stats, 'STREAMER')).toEqual({ id: 'streamer', label: 'Streamer' });
     expect(memberTier(stats, 'MODERATOR')).toEqual({ id: 'staff', label: 'Moderação' });
+    expect(memberTier(stats, 'SUPER_MODERATOR')).toEqual({ id: 'super', label: 'Super Moderador' });
     expect(nextMemberTier({ sponsorships: 0, contributions: 0 }, 'MODERATOR')).toBeNull();
   });
   it('says how many more it takes, and nothing at the top', () => {

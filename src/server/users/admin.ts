@@ -1,5 +1,6 @@
 import 'server-only';
 import type { Prisma, Role } from '@/generated/prisma/client';
+import { canActOn } from '@/lib/roles';
 import { normalizeUsername } from '@/lib/username';
 import { audit } from '../audit/audit';
 import { revokeAllSessions } from '../auth/session';
@@ -11,6 +12,8 @@ import { HttpError, Problems } from '../http/problem';
  * streamer (passkey + Google step-up, enforced by the routes) suspends for longer or indefinitely,
  * changes roles (USER ↔ MODERATOR) and grants VIP. Nobody acts on the streamer or on themselves;
  * a moderator must be demoted before a suspension (so a suspended account never moderates).
+ * Super Moderador (2026-11-13): the streamer's powers here too, except that only the streamer
+ * names or removes a Super Moderador, and only the streamer acts on one's account.
  * E-mails are shown to staff (moderators and the streamer, 2026-11-08).
  */
 type Ctx = { actor: { id: string; role: Role }; requestId: string | null };
@@ -24,6 +27,10 @@ export const UserProblems = {
     new HttpError(409, 'NOT_ON_YOURSELF', 'Você não pode fazer isto com a sua própria conta.'),
   protected: () =>
     new HttpError(409, 'PROTECTED_ACCOUNT', 'A conta do streamer não pode ser alterada aqui.'),
+  superProtected: () =>
+    new HttpError(409, 'PROTECTED_ACCOUNT', 'Só o streamer altera a conta de um Super Moderador.'),
+  streamerOnly: () =>
+    new HttpError(403, 'STREAMER_ONLY', 'Só o streamer nomeia ou tira um Super Moderador.'),
   privileged: () =>
     new HttpError(
       409,
@@ -99,6 +106,7 @@ async function target(id: string, actor: Ctx['actor']) {
   if (!u) throw Problems.notFound();
   if (u.id === actor.id) throw UserProblems.self();
   if (u.role === 'STREAMER') throw UserProblems.protected();
+  if (!canActOn(actor.role, u.role)) throw UserProblems.superProtected();
   if (u.status === 'DELETED') throw UserProblems.deleted();
   return u;
 }
@@ -153,8 +161,17 @@ export async function unsuspendUser(ctx: Ctx, id: string) {
   return userById(ctx.actor.role, id);
 }
 
-/** Streamer: USER ↔ MODERATOR. Every session of the person ends (a new role starts clean). */
-export async function setRole(ctx: Ctx, id: string, role: 'USER' | 'MODERATOR') {
+/**
+ * Streamer powers: USER ↔ MODERATOR; the streamer alone also gives or takes SUPER_MODERATOR. Every
+ * session of the person ends (a new role starts clean).
+ */
+export async function setRole(
+  ctx: Ctx,
+  id: string,
+  role: 'USER' | 'MODERATOR' | 'SUPER_MODERATOR',
+) {
+  if (role === 'SUPER_MODERATOR' && ctx.actor.role !== 'STREAMER')
+    throw UserProblems.streamerOnly();
   const u = await target(id, ctx.actor);
   if (u.role === role) return userById(ctx.actor.role, id);
   if (u.status !== 'ACTIVE') {

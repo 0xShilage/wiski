@@ -4,6 +4,7 @@ import { adminPage } from '@/components/admin/admin-page';
 import { OrdersBoard } from '@/components/admin/OrdersBoard';
 import type { AdminOrderView } from '@/lib/admin/types';
 import { listOrders, orderCounts } from '@/server/checkout/admin';
+import { staffRole } from '@/lib/roles';
 
 export const metadata: Metadata = { title: 'Pedidos' };
 
@@ -11,7 +12,7 @@ export const metadata: Metadata = { title: 'Pedidos' };
 export default async function PedidosPage() {
   const p = await adminPage('/admin/pedidos');
   if ('gate' in p) return p.gate;
-  const role = p.ctx.user.role === 'STREAMER' ? 'STREAMER' : 'MODERATOR';
+  const role = staffRole(p.ctx.user.role);
   const counts = await orderCounts();
   const list = await listOrders(role, counts.attention ? { status: 'NEEDS_ATTENTION' } : {});
   return (

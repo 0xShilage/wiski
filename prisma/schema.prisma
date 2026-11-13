@@ -274,6 +274,10 @@ model CatalogItem {
   /// true: watched by Iara off-stream and logged by hand (2026-11-10); kept out of the live
   /// progress counts and tagged "fora da live" on Assistidos.
   offStream        Boolean    @default(false)
+  /// SERIES / ANIME / FRANCHISE (2026-11-13): seasons (or films) already watched on stream, for
+  /// the title page's marathon trail; set from the dashboard (CHECK: 0 for movies, ≤ 100)
+  partsWatched     Int        @default(0)
+  partsWatchedAt   DateTime?  @db.Timestamptz(3)
   archivedAt       DateTime?  @db.Timestamptz(3)
   createdById      String     @db.Uuid
   createdAt        DateTime   @default(now()) @db.Timestamptz(3)
@@ -347,6 +351,9 @@ model MediaAsset {
   /// POSTER (2026-11-11): the accent colour for the title page's ambient glow, #rrggbb (CHECK);
   /// null until worked out (older assets are filled in the first time their page is opened)
   accent       String?
+  /// POSTER (2026-11-13): up to five colours of the poster, most present first, #rrggbb each
+  /// (CHECK); empty until worked out (older assets: the first time their page is opened)
+  palette      String[]  @default([])
   uploadedById String    @db.Uuid
   createdAt    DateTime  @default(now()) @db.Timestamptz(3)
   unusedSince  DateTime? @db.Timestamptz(3) // GC after 30 days

@@ -16,7 +16,11 @@ import {
   ContributeCta,
   campaignSubtitle,
 } from './CampaignBits';
+import { marathonTrail } from '@/lib/trail';
 import { AmbientGlow } from './AmbientGlow';
+import { MarathonTrail } from './MarathonTrail';
+import { PosterPalette } from './PosterPalette';
+import { TitleAccent } from './TitleAccent';
 import { MetaRow } from './MetaRow';
 import { SeatMap } from './SeatMap';
 import { PriceLine, SponsorCta } from './SponsorLine';
@@ -47,6 +51,7 @@ export function ItemDetail({
   const canPay = Boolean(checkout?.open && checkout.legal);
   const kindPath = KIND_PATH[item.kind];
   const guide = guideFor(item);
+  const trail = marathonTrail(item);
   const back = item.kind === 'MOVIE' ? '/' : `/${kindPath}`;
   return (
     <article className="wf-detail" aria-labelledby="titulo">
@@ -57,6 +62,7 @@ export function ItemDetail({
       <div className="wf-detail__shade" aria-hidden="true" />
       {/* ambient glow (2026-11-11): the poster's colour lighting the hero */}
       <AmbientGlow color={item.accent} part="wash" />
+      <TitleAccent color={item.accent} />
       <div className="wf-page">
         <p>
           <Link href={back} className="text-sm text-fg-muted underline-offset-4 hover:underline">
@@ -79,6 +85,7 @@ export function ItemDetail({
             {item.originalTitle ? (
               <p className="wf-muted mt-2 italic">{item.originalTitle}</p>
             ) : null}
+            <PosterPalette colors={item.palette} />
             <MetaRow
               className="mt-4"
               ageRating={item.ageRating}
@@ -107,6 +114,7 @@ export function ItemDetail({
                 ) : null}
               </dl>
             ) : null}
+            {trail ? <MarathonTrail trail={trail} /> : null}
             {item.kind === 'FRANCHISE' && item.films.length ? (
               <section className="mt-8" aria-labelledby="filmes-incluidos">
                 <h2 className="wf-h2" id="filmes-incluidos">

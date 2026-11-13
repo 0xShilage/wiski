@@ -39,6 +39,8 @@ export type PublicItem = {
   poster: Picture | null;
   /** detail page only (2026-11-11): the poster's accent colour, #rrggbb, for the ambient glow */
   accent: string | null;
+  /** detail page only (2026-11-13): up to five poster colours, #rrggbb, most present first */
+  palette: string[];
   backdrop: Picture | null;
   logo: Picture | null;
   state: PublicState;
@@ -46,6 +48,9 @@ export type PublicItem = {
   watchedAt: string | null;
   /** watched by Iara off-stream and logged by hand (2026-11-10) */
   offStream: boolean;
+  /** SERIES / ANIME / FRANCHISE (2026-11-13): seasons or films already watched, for the trail */
+  partsWatched: number;
+  partsWatchedAt: string | null;
   /** MOVIE: full sponsorship price */
   priceCents: number | null;
   /** MOVIE: the streamer set this price by hand (no per-minute rule to explain) */

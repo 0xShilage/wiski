@@ -6,10 +6,11 @@ import { LIVE_STATUSES, PUBLIC_STATUSES, QUEUE_STATUSES } from '@/lib/catalog/ki
 import { moviePriceCents, movieListPriceCents } from '@/lib/catalog/pricing';
 import { pictureFrom } from '@/lib/media';
 import { ensureAccent } from '../media/accent';
+import { ensurePalette } from '../media/palette';
 import { matchesSearch, searchTerms } from '@/lib/search';
 import { db } from '../db';
 import { campaignState, formulaGoal } from './campaigns';
-import { missingForPublish } from './service';
+import { missingForPublish, partsTotal } from './service';
 
 export type { PublicCampaign, PublicItem, PublicState } from '@/lib/catalog/types';
 
@@ -19,7 +20,7 @@ export type { PublicCampaign, PublicItem, PublicState } from '@/lib/catalog/type
 const mediaSelect = { select: { width: true, height: true, variants: true } } as const;
 /** the detail page also needs the poster's accent (and its id, to fill it in once) */
 const posterSelect = {
-  select: { id: true, accent: true, width: true, height: true, variants: true },
+  select: { id: true, accent: true, palette: true, width: true, height: true, variants: true },
 } as const;
 const SPONSOR_ORDER_STATUSES = ['PAID', 'SCHEDULED', 'WATCHING', 'COMPLETED'] as const;
 
@@ -95,11 +96,14 @@ function toPublic(row: PublicRow, now: Date): PublicItem {
     posterTitle: row.posterTitle,
     poster: pictureFrom(row.poster),
     accent: null,
+    palette: [],
     backdrop: pictureFrom(row.backdrop),
     logo: pictureFrom(row.logo),
     state,
     watchedAt: row.watchedAt?.toISOString() ?? null,
     offStream: row.offStream,
+    partsWatched: row.partsWatched,
+    partsWatchedAt: row.partsWatchedAt?.toISOString() ?? null,
     priceCents:
       row.kind === 'MOVIE' ? movieListPriceCents(row.runtimeMinutes, row.manualPriceCents) : null,
     manualPrice: row.kind === 'MOVIE' && row.manualPriceCents !== null,
@@ -140,8 +144,10 @@ export async function getPublic(kind: ItemKind, slug: string, now = new Date()) 
   });
   if (!row) return null;
   // the ambient glow (2026-11-11): older posters get their colour the first time it's needed
-  const accent = row.poster ? await ensureAccent(row.poster) : null;
-  return { ...toPublic(row, now), accent };
+  const [accent, palette] = row.poster
+    ? await Promise.all([ensureAccent(row.poster), ensurePalette(row.poster)])
+    : [null, []];
+  return { ...toPublic(row, now), accent, palette };
 }
 
 /** Watched titles for Avaliações (newest first). */
@@ -322,6 +328,8 @@ export async function getAdmin(id: string, now = new Date()) {
             : null,
     formulaGoalCents: await formulaGoal(row),
     missing: row.status === 'DRAFT' ? missingForPublish(row, entries) : [],
+    // Trilha da maratona (2026-11-13)
+    progress: { done: row.partsWatched, total: partsTotal(row, entries) },
     campaign: row.campaign
       ? {
           id: row.campaign.id,

@@ -121,6 +121,9 @@ export const AUDIT_ACTIONS = {
     .object({ kind: itemKind, slot: z.int().nullable(), replacementId: z.uuid().nullable() })
     .strict(),
   'catalog.watched': z.object({ kind: itemKind, offStream: z.boolean().optional() }).strict(),
+  'catalog.progress': z
+    .object({ kind: itemKind, from: z.int().min(0), to: z.int().min(0), total: z.int().min(0) })
+    .strict(),
   'catalog.unwatched': z
     .object({ kind: itemKind, status: z.enum(['ACTIVE', 'SPONSORED', 'FUNDED', 'DRAFT']) })
     .strict(),

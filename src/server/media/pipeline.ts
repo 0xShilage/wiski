@@ -17,6 +17,7 @@ import { mediaDir } from '../env';
 import { HttpError, Problems } from '../http/problem';
 import { logger } from '../log';
 import { accentOf } from './accent';
+import { paletteOf } from './palette';
 import { type ImageFormat, SNIFF_BYTES, sniffImage } from './sniff';
 
 /**
@@ -221,6 +222,8 @@ type Processed = {
   }[];
   /** POSTER: ambient glow colour (2026-11-11), from the smallest re-encoded WebP */
   accent: string | null;
+  /** POSTER: up to five colours (2026-11-13), from the same image */
+  palette: string[];
 };
 
 async function processImage(
@@ -275,7 +278,8 @@ async function processImage(
     }
     const smallestWebp = outputs.find((o) => o.format === 'webp')!;
     const accent = role === 'POSTER' ? await accentOf(smallestWebp.data) : null;
-    return { sha256: sha, width: largest.w, height: outputs.at(-1)!.h, outputs, accent };
+    const palette = role === 'POSTER' ? await paletteOf(smallestWebp.data) : [];
+    return { sha256: sha, width: largest.w, height: outputs.at(-1)!.h, outputs, accent, palette };
   } catch (err) {
     if (err instanceof HttpError) throw err;
     logger.warn(
@@ -369,7 +373,7 @@ async function processAnimated(
         .toBuffer();
       outputs.push({ ...size, format: 'webp', data: webp, still: stillSha });
     }
-    return { sha256: sha, width: largest.w, height: largest.h, outputs, accent: null };
+    return { sha256: sha, width: largest.w, height: largest.h, outputs, accent: null, palette: [] };
   } catch (err) {
     if (err instanceof HttpError) throw err;
     logger.warn(
@@ -428,6 +432,7 @@ export async function ingestFile(
           height: processed.height,
           variants,
           accent: processed.accent,
+          palette: processed.palette,
           uploadedById,
         },
       });

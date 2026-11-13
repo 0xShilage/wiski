@@ -327,6 +327,8 @@ function PrizeRow({ p, onChange }: { p: MyPrize; onChange: (p: MyPrize) => void 
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
   const byHand = p.prize === 'FILME' || p.prize === 'DOIS_FILMES' || p.prize === 'VIP_TWITCH';
+  // the ticket's number (2026-11-13): the end of the prize's id, stable and harmless
+  const serial = p.id.replace(/-/g, '').slice(-6).toUpperCase();
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -357,77 +359,88 @@ function PrizeRow({ p, onChange }: { p: MyPrize; onChange: (p: MyPrize) => void 
 
   const fieldErr = problem?.errors?.find((e) => e.path === 'twitchLogin')?.message;
   return (
-    <li className="wf-roleta__prize">
-      <div className="wf-roleta__prize-head">
-        <strong>{PRIZE_LABEL[p.prize]}</strong>
-        <span className={`wf-roleta__status is-${p.status.toLowerCase()}`}>
-          {p.prize === 'CUPOM_30' && p.status === 'DELIVERED'
-            ? p.coupon?.used
-              ? 'Usado'
-              : 'Pronto para usar'
-            : STATUS_PT[p.status]}
-        </span>
-        <small>{date.format(new Date(p.createdAt))}</small>
-      </div>
-      {p.coupon ? (
-        <div className="wf-roleta__coupon">
-          <code>{p.coupon.code}</code>
-          {!p.coupon.used ? (
-            <button
-              type="button"
-              className="wf-btn wf-btn--ghost"
-              onClick={() => copy(p.coupon!.code)}
-            >
-              {copied ? 'Copiado' : 'Copiar'}
-            </button>
-          ) : null}
-          <p>
-            30% de desconto em um filme
-            {p.coupon.endsAt ? `, até ${date.format(new Date(p.coupon.endsAt))}` : ''}. Use o código
-            no pagamento.
-          </p>
+    <li className="wf-roleta__prize wf-raffle">
+      <span className="wf-raffle__stamp" aria-hidden="true">
+        Premiado
+      </span>
+      <div className="wf-raffle__main">
+        <p className="sr-only">Bilhete premiado nº {serial}.</p>
+        <div className="wf-roleta__prize-head">
+          <strong>{PRIZE_LABEL[p.prize]}</strong>
+          <span className={`wf-roleta__status is-${p.status.toLowerCase()}`}>
+            {p.prize === 'CUPOM_30' && p.status === 'DELIVERED'
+              ? p.coupon?.used
+                ? 'Usado'
+                : 'Pronto para usar'
+              : STATUS_PT[p.status]}
+          </span>
+          <small>{date.format(new Date(p.createdAt))}</small>
         </div>
-      ) : null}
-      {byHand && p.status === 'PENDING' ? (
-        <form className="wf-roleta__claim" onSubmit={save} noValidate>
-          <label className="wf-field" htmlFor={`${id}-tw`}>
-            <span>Seu usuário da Twitch</span>
-            <input
-              id={`${id}-tw`}
-              className="wf-input"
-              value={login}
-              maxLength={26}
-              autoComplete="off"
-              spellCheck={false}
-              placeholder="seu_usuario"
-              onChange={(e) => setLogin(e.target.value)}
-              aria-invalid={fieldErr ? 'true' : undefined}
-              aria-describedby={`${id}-help`}
-            />
-          </label>
-          <button type="submit" className="wf-btn wf-btn--ghost" disabled={busy || !login.trim()}>
-            {busy ? 'Salvando…' : 'Salvar'}
-          </button>
-          <p id={`${id}-help`} className={fieldErr ? 'wf-hint wf-hint--err' : 'wf-hint'}>
-            {fieldErr ??
-              (p.prize === 'VIP_TWITCH'
-                ? 'O streamer usa seu usuário para te dar o VIP no canal.'
-                : 'O streamer combina com você o filme pelo chat da live.')}
-          </p>
-          {saved ? (
-            <p role="status" className="wf-toast wf-toast--ok">
-              Salvo! O streamer já pode te entregar o prêmio.
+        {p.coupon ? (
+          <div className="wf-roleta__coupon">
+            <code>{p.coupon.code}</code>
+            {!p.coupon.used ? (
+              <button
+                type="button"
+                className="wf-btn wf-btn--ghost"
+                onClick={() => copy(p.coupon!.code)}
+              >
+                {copied ? 'Copiado' : 'Copiar'}
+              </button>
+            ) : null}
+            <p>
+              30% de desconto em um filme
+              {p.coupon.endsAt ? `, até ${date.format(new Date(p.coupon.endsAt))}` : ''}. Use o
+              código no pagamento.
             </p>
-          ) : null}
-          {problem && !fieldErr ? (
-            <p role="alert" className="wf-toast wf-toast--err">
-              {problem.detail}
+          </div>
+        ) : null}
+        {byHand && p.status === 'PENDING' ? (
+          <form className="wf-roleta__claim" onSubmit={save} noValidate>
+            <label className="wf-field" htmlFor={`${id}-tw`}>
+              <span>Seu usuário da Twitch</span>
+              <input
+                id={`${id}-tw`}
+                className="wf-input"
+                value={login}
+                maxLength={26}
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="seu_usuario"
+                onChange={(e) => setLogin(e.target.value)}
+                aria-invalid={fieldErr ? 'true' : undefined}
+                aria-describedby={`${id}-help`}
+              />
+            </label>
+            <button type="submit" className="wf-btn wf-btn--ghost" disabled={busy || !login.trim()}>
+              {busy ? 'Salvando…' : 'Salvar'}
+            </button>
+            <p id={`${id}-help`} className={fieldErr ? 'wf-hint wf-hint--err' : 'wf-hint'}>
+              {fieldErr ??
+                (p.prize === 'VIP_TWITCH'
+                  ? 'O streamer usa seu usuário para te dar o VIP no canal.'
+                  : 'O streamer combina com você o filme pelo chat da live.')}
             </p>
-          ) : null}
-        </form>
-      ) : byHand && p.twitchLogin ? (
-        <p className="wf-hint">Twitch: {p.twitchLogin}</p>
-      ) : null}
+            {saved ? (
+              <p role="status" className="wf-toast wf-toast--ok">
+                Salvo! O streamer já pode te entregar o prêmio.
+              </p>
+            ) : null}
+            {problem && !fieldErr ? (
+              <p role="alert" className="wf-toast wf-toast--err">
+                {problem.detail}
+              </p>
+            ) : null}
+          </form>
+        ) : byHand && p.twitchLogin ? (
+          <p className="wf-hint">Twitch: {p.twitchLogin}</p>
+        ) : null}
+      </div>
+      <div className="wf-raffle__stub" aria-hidden="true">
+        <span className="wf-raffle__brand">Roleta Wiski</span>
+        <span className="wf-raffle__no">Nº {serial}</span>
+        <span className="wf-raffle__date">{date.format(new Date(p.createdAt))}</span>
+      </div>
     </li>
   );
 }

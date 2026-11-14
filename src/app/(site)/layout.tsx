@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
+import { RouteLoader } from '@/components/fx/RouteLoader';
 import { TiltLayer } from '@/components/fx/TiltLayer';
 import { SiteFooter } from '@/components/layout/SiteFooter';
 import { SiteHeader } from '@/components/layout/SiteHeader';
@@ -14,6 +15,9 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
       <SiteFooter />
       <TabBar />
       <TiltLayer />
+      <Suspense fallback={null}>
+        <RouteLoader />
+      </Suspense>
     </>
   );
 }

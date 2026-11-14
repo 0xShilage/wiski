@@ -298,3 +298,13 @@ Fix (PR "fix-prefetch-burst"): no prefetch on the header tabs, the phone bar, th
 
 - Integration `agenda-move-dayoff.test.ts` (6): a movie moved between lives (capacity on both, hand order forgotten, versions, no reschedule used, audit), refusals (full, same live, stale version, on screen, cancelled target), a whole campaign and a series part (its minutes follow); days off marked and removed (note cleaned, Cronograma placement and order, admin list, audit), a stretch already under way shows today, overlap / past / backwards / > 31 days / long note refused, viewers 404, and the database rules (exclusion, CHECKs). Authz matrix: the two new endpoints. Related suites green (`authz`, `live`, `live-segments`, `releases`: 903); unit green (448).
 - e2e `agenda-move.spec.ts`: an event dragged onto another live and moved back with "Mover para…"; a trip marked in the dashboard, the overlap refused, shown on the Cronograma, removed; a day off on the Cronograma on both projects. `operations.spec.ts` green. Screenshots `test-results/agenda-move/`.
+
+## Addendum — Fita quebrada e carregamento em quadros (2026-11-14)
+
+- e2e `film.spec.ts` (both projects):
+  - The 404 strip runs, burns and snaps. 404 status kept, no CSP violations, no sideways scroll.
+  - Reduced motion draws the final picture with no animation.
+  - `/filmes/<missing>` still answers 404.
+  - A slow navigation shows the frames and a fast one doesn't; going back brings none.
+  - The order page shows the inline strip while it fetches.
+- Unit green (448).

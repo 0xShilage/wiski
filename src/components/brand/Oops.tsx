@@ -1,10 +1,12 @@
 import type { ReactNode } from 'react';
+import { FilmBreak } from './FilmBreak';
 import { Mascote } from './Mascote';
 
 /**
  * The squirrel error pages (2026-11-10): 404, the error boundary and the last-resort one share
- * this — the mascot bobbing over a spotlight, a big neon code behind it, a line of copy and the
- * way out. Decorative art; the heading carries the message.
+ * this — the mascot bobbing over a spotlight, a line of copy and the way out. Decorative art; the
+ * heading carries the message. 2026-11-14 "Fita quebrada": the code is the last frame of a film
+ * strip that burns and snaps above the squirrel (`FilmBreak`).
  */
 export function Oops({
   code,
@@ -22,7 +24,7 @@ export function Oops({
   return (
     <div className="wf-oops">
       <div className="wf-oops__art" aria-hidden="true">
-        <span className="wf-oops__code">{code}</span>
+        <FilmBreak code={code} />
         <span className="wf-oops__squirrel">
           <Mascote pose={pose} colour="lavender" />
         </span>

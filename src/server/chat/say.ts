@@ -128,6 +128,8 @@ export type ChatHistoryEntry = {
   by: string | null;
   text: string;
   ok: boolean;
+  /** an automatic announcement (2026-11-13): which one */
+  auto: 'start' | 'now' | 'badge' | null;
 };
 
 export const chatSayInput = z.object({ text: z.string().max(2_000) }).strict();
@@ -178,10 +180,23 @@ export async function sendChat(ctx: Ctx, raw: string, now = new Date()): Promise
     where: { id: ctx.actor.id },
     select: { username: true },
   });
-  return { id: randomUUID(), at: now.toISOString(), by: me?.username ?? null, text, ok: true };
+  return {
+    id: randomUUID(),
+    at: now.toISOString(),
+    by: me?.username ?? null,
+    text,
+    ok: true,
+    auto: null,
+  };
 }
 
-const sayMeta = z.object({ text: z.string(), ok: z.boolean() }).passthrough();
+const sayMeta = z
+  .object({
+    text: z.string(),
+    ok: z.boolean(),
+    auto: z.enum(['start', 'now', 'badge']).optional(),
+  })
+  .passthrough();
 
 /** The last messages sent from the panel (newest first), with who sent them. */
 export async function chatHistory(take = 30): Promise<ChatHistoryEntry[]> {
@@ -206,6 +221,7 @@ export async function chatHistory(take = 30): Promise<ChatHistoryEntry[]> {
         by: r.actorId ? (name.get(r.actorId) ?? null) : null,
         text: m.data.text,
         ok: m.data.ok,
+        auto: m.data.auto ?? null,
       },
     ];
   });

@@ -26,6 +26,7 @@ import { publishLegal } from '@/server/legal/publish';
 import { syncSiteCredits } from '@/server/subathon/credits';
 import { startStreamElements } from '@/server/subathon/streamelements';
 import { finishIfDue } from '@/server/subathon/timer';
+import { announceOpenBadges } from '@/server/chat/announce';
 import { runAuditVerify } from './jobs/audit-verify';
 import { WAKE_CHANNEL } from '@/server/payments/wake';
 
@@ -70,6 +71,8 @@ const jobs: Job[] = [
       await syncSiteCredits();
     },
   },
+  // Anúncios automáticos (2026-11-13): an event badge open during a live, once
+  { name: 'chat.announce', everyMs: 60_000, run: () => announceOpenBadges() },
   {
     name: 'daily',
     everyMs: 60_000,

@@ -447,6 +447,13 @@ export const MATRIX: Row[] = [
   R('/api/v1/admin/chat', 'GET', 'moderator'),
   R('/api/v1/admin/chat', 'POST', 'moderator', { body: { text: 'oi chat' } }),
   R('/api/v1/admin/chat/presets', 'PUT', 'moderator', { body: { presets: [] } }),
+  R('/api/v1/admin/chat/announce', 'PUT', 'moderator', {
+    body: {
+      start: { on: false, text: 'x' },
+      now: { on: false, text: 'x' },
+      badge: { on: false, text: 'x' },
+    },
+  }),
   R('/api/v1/badges/[slug]/claim', 'POST', 'user', {
     params: { slug: 'nenhum' },
     body: {},

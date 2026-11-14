@@ -71,6 +71,10 @@ export function ItemEditor({
     backdrop: item?.media.backdrop ?? null,
     logo: item?.media.logo ?? null,
   }));
+  /** MOVIE (2026-11-14): the extra backgrounds' previews, in the order of form.extraBackdropIds */
+  const [extraPics, setExtraPics] = useState<(Picture | null)[]>(
+    () => item?.media.extraBackdrops ?? [],
+  );
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<Msg>(null);
@@ -92,6 +96,7 @@ export function ItemEditor({
     setLoadedVersion(item.version);
     setForm(formFrom(item));
     setPics({ poster: item.media.poster, backdrop: item.media.backdrop, logo: item.media.logo });
+    setExtraPics(item.media.extraBackdrops);
   }
 
   useEffect(() => {
@@ -349,6 +354,9 @@ export function ItemEditor({
     palette: [],
     parts: [],
     backdrop: pics.backdrop,
+    backdrops: [pics.backdrop, ...(kind === 'MOVIE' ? extraPics : [])].filter(
+      (p): p is Picture => p !== null,
+    ),
     logo: pics.logo,
     state: 'ACTIVE',
     watchedAt: null,
@@ -369,6 +377,85 @@ export function ItemEditor({
   const inv = (k: string) =>
     errors[k] ? { 'aria-invalid': true as const, 'aria-describedby': `e-${k}` } : {};
   const missing = item?.missing ?? [];
+
+  /**
+   * MOVIE (2026-11-14): "Mais fundos" — up to four more backgrounds after the main one; the movie's
+   * page fades between them. Each can be swapped, moved earlier or removed; a free slot adds one.
+   */
+  function extraBackdrops() {
+    const ids = form.extraBackdropIds;
+    const put = (next: string[], pics: (Picture | null)[]) => {
+      set('extraBackdropIds', next);
+      setExtraPics(pics);
+    };
+    return (
+      <div className="wf-extra-backdrops" role="group" aria-labelledby={`${fid}-extras`}>
+        <span id={`${fid}-extras`} className="wf-extra-backdrops__title">
+          Mais fundos · até 4 (a página do filme alterna entre eles, com um esmaecer suave)
+        </span>
+        {!form.backdropId ? (
+          <span className="wf-hint">Envie primeiro o fundo principal.</span>
+        ) : (
+          <div className="wf-extra-backdrops__grid">
+            {ids.map((id, i) => (
+              <div key={id} className="wf-extra-backdrops__slot">
+                <MediaDrop
+                  role="BACKDROP"
+                  label={`Fundo ${i + 2}`}
+                  hint="16:9, mínimo 1920×1080"
+                  className="wf-drop--backdrop"
+                  picture={extraPics[i] ?? null}
+                  onUploaded={(nid, p) =>
+                    put(
+                      ids.map((x, j) => (j === i ? nid : x)),
+                      ids.map((_, j) => (j === i ? p : (extraPics[j] ?? null))),
+                    )
+                  }
+                  onClear={() =>
+                    put(
+                      ids.filter((_, j) => j !== i),
+                      extraPics.filter((_, j) => j !== i),
+                    )
+                  }
+                />
+                {i > 0 ? (
+                  <button
+                    type="button"
+                    className="wf-linkbtn text-xs"
+                    onClick={() => {
+                      const order = [...ids.keys()];
+                      [order[i - 1], order[i]] = [order[i]!, order[i - 1]!];
+                      put(
+                        order.map((j) => ids[j]!),
+                        order.map((j) => extraPics[j] ?? null),
+                      );
+                    }}
+                  >
+                    ← Antes<span className="sr-only"> (fundo {i + 2})</span>
+                  </button>
+                ) : null}
+              </div>
+            ))}
+            {ids.length < 4 ? (
+              <MediaDrop
+                key={`add-${ids.length}`}
+                role="BACKDROP"
+                label="+ Adicionar fundo"
+                hint="16:9, mínimo 1920×1080"
+                className="wf-drop--backdrop wf-drop--add"
+                picture={null}
+                onUploaded={(nid, p) => {
+                  if (nid === form.backdropId || ids.includes(nid)) return; // the same image again
+                  put([...ids, nid], [...extraPics, p]);
+                }}
+                onClear={() => {}}
+              />
+            ) : null}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   /** The "Já pago" form (amount + public name), in "No ar" or, for a draft campaign, "Abrir campanha". */
   const paidForm =
@@ -826,7 +913,8 @@ export function ItemEditor({
               }}
             />
           </div>
-          {err('posterId') ?? err('backdropId') ?? err('logoId')}
+          {kind === 'MOVIE' ? extraBackdrops() : null}
+          {err('posterId') ?? err('backdropId') ?? err('extraBackdropIds') ?? err('logoId')}
           <span className="wf-hint">
             Toda imagem é reconvertida no servidor e os metadados (EXIF/GPS) são removidos.
           </span>

@@ -107,12 +107,32 @@ async function checkKindFields(t: Tx, kind: ItemKind, f: ItemFieldsInput): Promi
       errors.push({ path: key, message: 'Imagem inválida para este campo.' });
     }
   }
+  // 2026-11-14: a movie's extra backgrounds (up to four more, each a BACKDROP, none twice)
+  const extras = f.extraBackdropIds;
+  if (extras?.length) {
+    if (kind !== 'MOVIE') {
+      errors.push({ path: 'extraBackdropIds', message: 'Só para filmes.' });
+    } else if (
+      new Set(extras).size !== extras.length ||
+      (f.backdropId && extras.includes(f.backdropId))
+    ) {
+      errors.push({
+        path: 'extraBackdropIds',
+        message: 'Cada imagem de fundo só pode entrar uma vez.',
+      });
+    } else {
+      const ok = await t.mediaAsset.count({ where: { id: { in: extras }, role: 'BACKDROP' } });
+      if (ok !== extras.length) {
+        errors.push({ path: 'extraBackdropIds', message: 'Imagem inválida para este campo.' });
+      }
+    }
+  }
   if (errors.length) throw Problems.validation(errors);
 }
 
 /** Data for CatalogItem from the (already sanitised) fields; franchise runtime = Σ films. */
 function itemData(f: ItemFieldsInput) {
-  const { trailer, franchiseEntries, ...rest } = f;
+  const { trailer, franchiseEntries, extraBackdropIds: _extras, ...rest } = f;
   // Drop undefined keys (exactOptionalPropertyTypes): absent = unchanged.
   const data = Object.fromEntries(
     Object.entries(rest).filter(([, v]) => v !== undefined),
@@ -140,13 +160,25 @@ async function replaceEntries(t: Tx, itemId: string, entries: ItemFieldsInput['f
   }
 }
 
+/** A movie's extra backgrounds, in the order given (absent = unchanged, [] = none). */
+async function replaceBackdrops(t: Tx, itemId: string, ids: ItemFieldsInput['extraBackdropIds']) {
+  if (ids === undefined) return;
+  await t.catalogItemBackdrop.deleteMany({ where: { itemId } });
+  if (ids.length) {
+    await t.catalogItemBackdrop.createMany({
+      data: ids.map((assetId, i) => ({ itemId, position: i + 1, assetId })),
+    });
+  }
+}
+
 async function snapshotFor(
   t: Tx,
   itemId: string,
 ): Promise<{ item: CatalogItem; snap: CatalogSnapshot }> {
   const item = await t.catalogItem.findUniqueOrThrow({ where: { id: itemId } });
   const entries = await t.franchiseEntry.findMany({ where: { franchiseId: itemId } });
-  return { item, snap: snapshotOf(item, entries) };
+  const backdrops = await t.catalogItemBackdrop.findMany({ where: { itemId } });
+  return { item, snap: snapshotOf(item, entries, backdrops) };
 }
 
 async function uniqueSlug(t: Tx, title: string): Promise<string> {
@@ -195,6 +227,7 @@ export async function createItem(
       },
     });
     await replaceEntries(t, item.id, fields.franchiseEntries);
+    await replaceBackdrops(t, item.id, fields.extraBackdropIds);
     const { snap } = await snapshotFor(t, item.id);
     await t.catalogRevision.create({
       data: { itemId: item.id, version: 1, snapshot: snap, note: 'create', editorId: ctx.actor.id },
@@ -237,6 +270,7 @@ export async function saveItem(
       }
       await t.catalogItem.update({ where: { id }, data: itemData(fields) });
       await replaceEntries(t, id, fields.franchiseEntries);
+      await replaceBackdrops(t, id, fields.extraBackdropIds);
       const after = await snapshotFor(t, id);
       await t.catalogRevision.create({
         data: { itemId: id, version, snapshot: after.snap, note, editorId: ctx.actor.id },
@@ -279,7 +313,7 @@ export async function revertItem(ctx: Ctx, id: string, expectedVersion: number, 
   });
   if (!rev) throw Problems.notFound();
   const snap = snapshotSchema.parse(rev.snapshot);
-  const { v: _v, trailerYoutubeId, franchiseEntries, ...rest } = snap;
+  const { v: _v, trailerYoutubeId, franchiseEntries, extraBackdropIds, ...rest } = snap;
   const item = await db().catalogItem.findUniqueOrThrow({ where: { id }, select: { kind: true } });
   return saveItem(
     ctx,
@@ -288,6 +322,7 @@ export async function revertItem(ctx: Ctx, id: string, expectedVersion: number, 
     {
       ...rest,
       trailer: trailerYoutubeId,
+      ...(item.kind === 'MOVIE' ? { extraBackdropIds } : {}),
       ...(item.kind === 'FRANCHISE'
         ? {
             franchiseEntries: franchiseEntries.map(({ title, year, runtimeMinutes }) => ({

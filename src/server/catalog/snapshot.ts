@@ -1,6 +1,6 @@
 import 'server-only';
 import { z } from 'zod';
-import type { CatalogItem, FranchiseEntry } from '@/generated/prisma/client';
+import type { CatalogItem, CatalogItemBackdrop, FranchiseEntry } from '@/generated/prisma/client';
 import { AGE_RATINGS } from '@/lib/catalog/age-rating';
 
 /**
@@ -34,6 +34,8 @@ export const snapshotSchema = z
     posterTitle: z.boolean().default(true),
     /** added 2026-11-02; older snapshots lack it and mean "price by runtime" */
     manualPriceCents: z.int().nullable().default(null),
+    /** added 2026-11-14 (movies): more backgrounds, in order; older snapshots mean "none" */
+    extraBackdropIds: z.array(z.uuid()).max(4).default([]),
     franchiseEntries: z
       .array(
         z
@@ -75,10 +77,12 @@ export const CONTENT_FIELDS = [
 export function snapshotOf(
   item: CatalogItem,
   entries: readonly Pick<FranchiseEntry, 'position' | 'title' | 'year' | 'runtimeMinutes'>[],
+  backdrops: readonly Pick<CatalogItemBackdrop, 'position' | 'assetId'>[] = [],
 ): CatalogSnapshot {
   return snapshotSchema.parse({
     v: 1,
     ...Object.fromEntries(CONTENT_FIELDS.map((f) => [f, item[f]])),
+    extraBackdropIds: [...backdrops].sort((a, b) => a.position - b.position).map((b) => b.assetId),
     franchiseEntries: [...entries]
       .sort((a, b) => a.position - b.position)
       .map(({ position, title, year, runtimeMinutes }) => ({
@@ -95,6 +99,9 @@ export function changedFields(a: CatalogSnapshot, b: CatalogSnapshot): string[] 
   const out: string[] = CONTENT_FIELDS.filter((f) => JSON.stringify(a[f]) !== JSON.stringify(b[f]));
   if (JSON.stringify(a.franchiseEntries) !== JSON.stringify(b.franchiseEntries)) {
     out.push('franchiseEntries');
+  }
+  if (JSON.stringify(a.extraBackdropIds) !== JSON.stringify(b.extraBackdropIds)) {
+    out.push('extraBackdropIds');
   }
   return out;
 }

@@ -43,6 +43,11 @@ export type PublicItem = {
   /** detail page only (2026-11-13): up to five poster colours, #rrggbb, most present first */
   palette: string[];
   backdrop: Picture | null;
+  /**
+   * detail page only (2026-11-14): every background in order, the main one first; a movie may
+   * have up to five, and the title page fades between them. Lists carry just the main one.
+   */
+  backdrops: Picture[];
   logo: Picture | null;
   state: PublicState;
   /** when it was watched on stream (WATCHED items; null otherwise) */

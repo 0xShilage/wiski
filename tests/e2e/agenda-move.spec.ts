@@ -58,9 +58,7 @@ test('an event is dragged to another live and moved back with "Mover para…"', 
   const row = from.locator('li', { hasText: 'Karaokê da Iara' });
   await expect(row).toHaveAttribute('draggable', 'true');
   // grab the row by its title (the picker in the middle of the row is a form control)
-  await row
-    .locator('.wf-ops-row__title')
-    .dragTo(target.getByRole('heading', { level: 3 }));
+  await row.locator('.wf-ops-row__title').dragTo(target.getByRole('heading', { level: 3 }));
   await expect(admin.getByText(/^Movido para .*: feito\.$/)).toBeVisible();
   const moved = admin.getByRole('region', { name: toLabel! });
   await expect(moved).toContainText('Karaokê da Iara');

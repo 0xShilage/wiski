@@ -91,6 +91,7 @@ model User {
   suggestions        Suggestion[]        @relation("SuggestionAuthor")
   suggestionsDecided Suggestion[]        @relation("SuggestionReviewer")
   seasonReleases     SeasonRelease[]     @relation("ReleaseEditor")
+  liveDaysOff        LiveDayOff[]        @relation("DayOffEditor")
   roletaSpins        RoletaSpin[]        @relation("RoletaSpinner")
   roletaDelivered    RoletaSpin[]        @relation("RoletaDeliverer")
   badgeClaims        BadgeClaim[]
@@ -533,6 +534,30 @@ enum StreamSessionStatus {
   LIVE
   DONE
   CANCELLED
+}
+
+/// "Dias sem live" (2026-11-13): why there is no live on these days, shown on the Cronograma.
+enum LiveDayOffReason {
+  FOLGA
+  VIAGEM
+  OUTRO
+}
+
+/// One stretch of days without a live (a single day, or a trip): São Paulo calendar days,
+/// inclusive, at most 31 days (CHECK in the constraints migration).
+model LiveDayOff {
+  id          String           @id @default(uuid(7)) @db.Uuid
+  startsOn    DateTime         @db.Date
+  endsOn      DateTime         @db.Date
+  reason      LiveDayOffReason
+  note        String? // ≤ 140 chars, sanitised, public
+  createdById String           @db.Uuid
+  createdAt   DateTime         @default(now()) @db.Timestamptz(3)
+
+  createdBy User @relation("DayOffEditor", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([endsOn])
+  @@index([createdById])
 }
 
 model StreamSession {

@@ -176,8 +176,12 @@ describe('anúncios automáticos', () => {
       '🏅 {emblema} aberto!',
     );
     expect(
-      (await db().auditLog.findFirstOrThrow({ where: { action: 'chat.announce.update' } }))
-        .metadata,
+      (
+        await db().auditLog.findFirstOrThrow({
+          where: { action: 'chat.announce.update' },
+          orderBy: { at: 'desc' }, // the latest: other files may have saved settings before
+        })
+      ).metadata,
     ).toEqual({ start: false, now: true, badge: true });
 
     const { session } = await liveWithMovie();

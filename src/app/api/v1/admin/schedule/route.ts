@@ -3,7 +3,7 @@ import { route } from '@/server/http/route';
 import { RL } from '@/server/ratelimit/rules';
 import { scheduleInput } from '@/server/admin/input';
 import { announceAfter, announceNowPlaying } from '@/server/chat/announce';
-import { complete, nowPlaying, schedule, unschedule } from '@/server/live/schedule';
+import { complete, moveEntry, nowPlaying, schedule, unschedule } from '@/server/live/schedule';
 import {
   addEvent,
   addPart,
@@ -20,6 +20,7 @@ import {
  * 2026-11-04: `part` books a few episodes / one film of a funded campaign, `event` a custom
  * event; both are SEGMENT targets for remove / now / complete (`finish`: the last part).
  * 2026-11-09: an event may carry a poster (`posterId`); `event-poster` changes or removes it.
+ * 2026-11-13: `move` takes any scheduled entry straight to another session.
  */
 export const POST = route<'moderator', typeof scheduleInput>(
   { methods: ['POST'], access: 'moderator', rateLimit: RL.adminWrite, body: scheduleInput },
@@ -36,6 +37,10 @@ export const POST = route<'moderator', typeof scheduleInput>(
     if (body.action === 'event-poster') {
       const { id, expectedVersion } = body.target;
       await setEventPoster(ctx, { id, expectedVersion }, body.posterId);
+      return { ok: true };
+    }
+    if (body.action === 'move') {
+      await moveEntry(ctx, body.target, body.sessionId);
       return { ok: true };
     }
     const t = body.target;

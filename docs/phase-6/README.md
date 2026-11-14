@@ -527,3 +527,19 @@ Full white-box review plus active testing against the production stack: [`../sec
 - Audit: each automatic message is a `chat.say` with no actor and `auto: start|now|badge`, so Chat da live's history (now "Enviadas") marks it "automático". Settings changes are `chat.announce.update` (`{start, now, badge}` on/off). Settings live in AppSetting `chat.announce`; templates are checked on save (unknown placeholder, Twitch command, 500 characters).
 - `PUT /api/v1/admin/chat/announce` (moderators; in the authz matrix). Migration `20261126120000_badge_announced`.
 - Tests: `tests/integration/announce.test.ts` (live start once, sponsor named or not, series part + vaquinha, switched off/reworded, bad placeholder, viewer 404, badge once without its word, no bot), `tests/e2e/chat.spec.ts` (the panel: placeholders, preview, error, switch, save, reload).
+
+## 43. Mover entre lives e Dias sem live (2026-11-13)
+
+- **Mover entre lives.** On the Agenda, anything scheduled that hasn't started (a paid movie, a whole campaign, a series part or an event) goes straight to another planned or live session. Drag its row onto the other live's card, or use **Mover para…** on the row (same move, no mouse). The picker greys out lives it doesn't fit in, and dragging over a full live outlines it in red and doesn't drop.
+  - Server: `moveEntry` in `src/server/live/schedule.ts`, action `move` on `POST /api/v1/admin/schedule` (`{target, sessionId}`).
+  - The target's capacity uses the same compare-and-set as scheduling. The old session gets the minutes back and drops the entry from its hand-made order (`entryOrder`). Both sessions' versions move, so a reorder sent from a stale screen fails.
+  - A staff move never counts against the sponsor's two reschedules. The order page is told (SSE) and the Fila overlay refreshes.
+  - Refused: on screen or watched (409 `INVALID_STATE`), the same session, a cancelled or ended target, a full target (409 `SESSION_FULL`), a stale version (409 `SCHEDULE_CHANGED`).
+  - Audit: `schedule.move` `{from, to, kind, minutes}`.
+- **Dias sem live.** A card in the Agenda marks one day, or up to 31 in a row, as **Folga**, **Viagem** or **Outro** ("Sem live"), with an optional public note (≤ 140).
+  - On the Cronograma it sits among the lives on its first day (or today, for a stretch already under way), as a dashed "fechado" card: "Sem live · Viagem", "de qui, 03/12 a dom, 06/12 (4 dias)", and the note. Shown up to 60 days ahead.
+  - Lives already planned on those days are left alone. The Agenda flags the clash on both sides ("Tem live planejada: …" on the day off, "Marcado como folga neste dia" on the live), and Iara decides.
+  - Model `LiveDayOff` (São Paulo calendar days as `DATE`, inclusive). Migrations `20261127120000_live_day_off` and `20261127120100_live_day_off_constraints`: one to 31 days, note length, and no two stretches overlapping (an exclusion constraint on the date range, mapped to 409 `DAY_OFF_OVERLAP`).
+  - `POST /api/v1/admin/days-off`, `DELETE /api/v1/admin/days-off/[id]` (moderators; in the authz matrix). `GET /api/v1/admin/live` also answers `daysOff`.
+  - Audit: `dayoff.create` `{reason, days, note}` and `dayoff.delete` `{reason}`.
+- Tests: `tests/integration/agenda-move-dayoff.test.ts`, `tests/e2e/agenda-move.spec.ts` (drag and picker on desktop; the dashboard card; the Cronograma card on both projects). Screenshots `test-results/agenda-move/`.

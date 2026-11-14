@@ -4,6 +4,7 @@ import { FlapBoard } from '@/components/live/FlapBoard';
 import { nextLive, SoonTeaser } from '@/components/live/SoonTeaser';
 import { MediaPicture } from '@/components/media/MediaPicture';
 import { KIND_PATH } from '@/lib/catalog/kinds';
+import { DAY_OFF_ICON, DAY_OFF_LABEL, dayOffLength, dayOffRange } from '@/lib/live/days-off';
 import { departures } from '@/lib/live/flapboard';
 import { cronogramaAt } from '@/server/live/public';
 import { publicReleases } from '@/server/releases/releases';
@@ -46,6 +47,7 @@ const timeFmt = new Intl.DateTimeFormat('pt-BR', {
  * Each title shows its poster (2026-11-01); "Próximas temporadas" sits beside the lives on wide
  * screens and below them on phones. "Em breve" (2026-11-11) opens the page with the next live's
  * titles and a countdown to it; below it, the split-flap "Painel de sessões" (2026-11-11).
+ * "Dias sem live" (2026-11-13): a day or a trip without a live shows among the days, with why.
  */
 export default async function CronogramaPage() {
   const [{ now, days }, releases] = await Promise.all([cronogramaAt(), publicReleases()]);
@@ -83,6 +85,30 @@ export default async function CronogramaPage() {
                 <h2 id={`dia-${d.date}`} className="wf-cron__date">
                   {dayFmt.format(new Date(`${d.date}T12:00:00Z`))}
                 </h2>
+                {d.offs.map((o) => (
+                  <article
+                    key={o.id}
+                    className={`wf-cron__off wf-cron__off--${o.reason.toLowerCase()}`}
+                    aria-label={`Sem live: ${DAY_OFF_LABEL[o.reason]}`}
+                  >
+                    <span className="wf-cron__off-icon" aria-hidden="true">
+                      {DAY_OFF_ICON[o.reason]}
+                    </span>
+                    <div className="wf-cron__off-body">
+                      <span className="wf-cron__off-title">
+                        {o.reason === 'OUTRO'
+                          ? 'Sem live'
+                          : `Sem live · ${DAY_OFF_LABEL[o.reason]}`}
+                      </span>
+                      <span className="wf-cron__off-when">
+                        {dayOffLength(o) > 1
+                          ? `${dayOffRange(o)} (${dayOffLength(o)} dias)`
+                          : 'Neste dia'}
+                      </span>
+                      {o.note ? <span className="wf-cron__off-note">“{o.note}”</span> : null}
+                    </div>
+                  </article>
+                ))}
                 {d.sessions.map((s) => (
                   <article
                     key={s.id}

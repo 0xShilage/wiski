@@ -293,3 +293,8 @@ Fix (PR "fix-prefetch-burst"): no prefetch on the header tabs, the phone bar, th
 
 - Unit `keepsakes.test.ts` (6), integration `keepsakes.test.ts` (5) and the authz row: see README §41. Full suites green (unit 447, integration 1 470).
 - e2e `keepsakes.spec.ts` on both projects (8), plus `csp`, `a11y-layout`, `roleta`, `reviews`, `dashboard`, `theater` and `ambient`.
+
+## Addendum — Mover entre lives e Dias sem live (2026-11-13)
+
+- Integration `agenda-move-dayoff.test.ts` (6): a movie moved between lives (capacity on both, hand order forgotten, versions, no reschedule used, audit), refusals (full, same live, stale version, on screen, cancelled target), a whole campaign and a series part (its minutes follow); days off marked and removed (note cleaned, Cronograma placement and order, admin list, audit), a stretch already under way shows today, overlap / past / backwards / > 31 days / long note refused, viewers 404, and the database rules (exclusion, CHECKs). Authz matrix: the two new endpoints. Related suites green (`authz`, `live`, `live-segments`, `releases`: 903); unit green (448).
+- e2e `agenda-move.spec.ts`: an event dragged onto another live and moved back with "Mover para…"; a trip marked in the dashboard, the overlap refused, shown on the Cronograma, removed; a day off on the Cronograma on both projects. `operations.spec.ts` green. Screenshots `test-results/agenda-move/`.

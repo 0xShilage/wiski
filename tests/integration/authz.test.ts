@@ -547,6 +547,11 @@ export const MATRIX: Row[] = [
     body: { note: 'Netflix' },
   }),
   R('/api/v1/admin/releases/[id]', 'DELETE', 'moderator', { params: { id: NO_ID } }),
+  // "Dias sem live" (2026-11-13)
+  R('/api/v1/admin/days-off', 'POST', 'moderator', {
+    body: { startsOn: '2099-01-01', reason: 'FOLGA' },
+  }),
+  R('/api/v1/admin/days-off/[id]', 'DELETE', 'moderator', { params: { id: NO_ID } }),
 ];
 
 const ROLES = ['anonymous', 'USER', 'MODERATOR', 'SUPER_MODERATOR', 'STREAMER'] as const;

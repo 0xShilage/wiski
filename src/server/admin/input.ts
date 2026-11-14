@@ -68,6 +68,8 @@ const segmentNote = oneLine(1, 140, 'Use até 140 caracteres.').nullable().optio
 export const scheduleInput = z.discriminatedUnion('action', [
   z.object({ action: z.literal('add'), target, sessionId: z.uuid() }).strict(),
   z.object({ action: z.literal('remove'), target }).strict(),
+  // 2026-11-13: from one session straight to another (movie, campaign, part or event)
+  z.object({ action: z.literal('move'), target, sessionId: z.uuid() }).strict(),
   z.object({ action: z.literal('now'), target }).strict(),
   z
     .object({
@@ -137,6 +139,16 @@ export const sessionOrderInput = z
   .strict();
 
 export const rescheduleInput = z.object({ sessionId: z.uuid() }).strict();
+
+// "Dias sem live" (2026-11-13): one day, or a stretch (endsOn), with a reason and a short note
+export const dayOffInput = z
+  .object({
+    startsOn: z.iso.date(),
+    endsOn: z.iso.date().optional(),
+    reason: z.enum(['FOLGA', 'VIAGEM', 'OUTRO']),
+    note: segmentNote,
+  })
+  .strict();
 
 // ── orders ──
 const orderStatus = z.enum([

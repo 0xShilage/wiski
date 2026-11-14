@@ -1,0 +1,107 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Agenda QoL (2026-11-13): "Dias sem live" on the Cronograma and in the Agenda, and dragging an
+   entry from one live to another.
+   ───────────────────────────────────────────────────────────────────────────── */
+@layer components {
+  /* ── Cronograma: a day without a live, like a "fechado" sign on the door ── */
+  .wf-cron__off {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    border-radius: 14px;
+    border: 1px dashed rgb(242 196 109 / 0.55);
+    background:
+      repeating-linear-gradient(-45deg, rgb(242 196 109 / 0.06) 0 10px, transparent 10px 20px),
+      rgb(36 26 51 / 0.7);
+  }
+  .wf-cron__off--viagem {
+    border-color: rgb(169 157 224 / 0.6);
+    background:
+      repeating-linear-gradient(-45deg, rgb(169 157 224 / 0.07) 0 10px, transparent 10px 20px),
+      rgb(36 26 51 / 0.7);
+  }
+  .wf-cron__off-icon {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgb(242 196 109 / 0.16);
+    color: #f2c46d;
+    font-size: 20px;
+    line-height: 1;
+  }
+  .wf-cron__off--viagem .wf-cron__off-icon {
+    background: rgb(169 157 224 / 0.18);
+    color: var(--color-lilac);
+  }
+  .wf-cron__off-body {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+  .wf-cron__off-title {
+    font-weight: 700;
+    color: #f7f2fb;
+  }
+  .wf-cron__off-when {
+    font-size: 13px;
+    color: var(--fg-78);
+  }
+  .wf-cron__off-note {
+    font-size: 14px;
+    color: var(--fg-78);
+    font-style: italic;
+    overflow-wrap: anywhere;
+  }
+
+  /* ── Agenda: the "Dias sem live" card ── */
+  .wf-dayoff-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+  }
+  .wf-dayoff-list li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px dashed rgb(242 196 109 / 0.45);
+  }
+  .wf-dayoff-list__main {
+    display: grid;
+    gap: 2px;
+    flex: 1 1 200px;
+    min-width: 0;
+  }
+
+  /* ── Agenda: dragging an entry to another live ── */
+  .wf-ops-row[draggable='true'] {
+    cursor: grab;
+  }
+  .wf-ops-row.is-dragging {
+    opacity: 0.45;
+  }
+  .wf-ops-card.is-drop {
+    outline: 2px dashed var(--color-lavender);
+    outline-offset: 3px;
+  }
+  .wf-ops-card.is-drop-full {
+    outline: 2px dashed var(--color-danger);
+    outline-offset: 3px;
+  }
+  .wf-ops-move {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .wf-ops-move select {
+    max-width: 180px;
+  }
+}

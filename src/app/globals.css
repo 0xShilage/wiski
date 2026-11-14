@@ -27,6 +27,7 @@
 @import '../styles/badges.css';
 @import '../styles/recap.css';
 @import '../styles/keepsakes.css';
+@import '../styles/agenda.css';
 
 @theme {
   /* Reset Tailwind's default palette so only approved colours exist */

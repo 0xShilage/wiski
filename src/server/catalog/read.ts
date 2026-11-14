@@ -4,7 +4,7 @@ import type { ItemKind } from '@/generated/prisma/enums';
 import type { PublicItem, PublicState } from '@/lib/catalog/types';
 import { LIVE_STATUSES, PUBLIC_STATUSES, QUEUE_STATUSES } from '@/lib/catalog/kinds';
 import { moviePriceCents, movieListPriceCents } from '@/lib/catalog/pricing';
-import { pictureFrom } from '@/lib/media';
+import { pictureFrom, type Picture } from '@/lib/media';
 import { ensureAccent } from '../media/accent';
 import { ensurePalette } from '../media/palette';
 import { matchesSearch, searchTerms } from '@/lib/search';
@@ -99,6 +99,7 @@ function toPublic(row: PublicRow, now: Date): PublicItem {
     accent: null,
     palette: [],
     backdrop: pictureFrom(row.backdrop),
+    backdrops: row.backdrop ? [pictureFrom(row.backdrop)!] : [],
     logo: pictureFrom(row.logo),
     state,
     watchedAt: row.watchedAt?.toISOString() ?? null,
@@ -140,7 +141,15 @@ export async function getPublic(kind: ItemKind, slug: string, now = new Date()) 
         { status: 'ARCHIVED', watchedAt: { not: null } },
       ],
     },
-    include: { ...publicInclude, poster: posterSelect },
+    include: {
+      ...publicInclude,
+      poster: posterSelect,
+      // a movie's other backgrounds (2026-11-14), after the main one
+      extraBackdrops: {
+        orderBy: { position: 'asc' },
+        select: { assetId: true, asset: mediaSelect },
+      },
+    },
   });
   if (!row) return null;
   // the ambient glow (2026-11-11): older posters get their colour the first time it's needed
@@ -148,7 +157,18 @@ export async function getPublic(kind: ItemKind, slug: string, now = new Date()) 
     ? await Promise.all([ensureAccent(row.poster), ensurePalette(row.poster)])
     : [null, []];
   const parts = row.kind === 'MOVIE' ? [] : await trailParts(row.id);
-  return { ...toPublic(row, now), accent, palette, parts };
+  const base = toPublic(row, now);
+  const backdrops =
+    row.kind === 'MOVIE' && row.backdrop
+      ? [
+          ...base.backdrops,
+          ...row.extraBackdrops
+            .filter((b) => b.assetId !== row.backdropId)
+            .map((b) => pictureFrom(b.asset))
+            .filter((p): p is Picture => p !== null),
+        ]
+      : base.backdrops;
+  return { ...base, accent, palette, parts, backdrops };
 }
 
 /** Watched titles for Avaliações (newest first). */
@@ -263,6 +283,10 @@ export async function getAdmin(id: string, now = new Date()) {
       poster: mediaSelect,
       backdrop: mediaSelect,
       logo: mediaSelect,
+      extraBackdrops: {
+        orderBy: { position: 'asc' },
+        select: { assetId: true, asset: mediaSelect },
+      },
       campaign: true,
       franchiseEntries: { orderBy: { position: 'asc' } },
       revisions: {
@@ -305,6 +329,7 @@ export async function getAdmin(id: string, now = new Date()) {
       trailerYoutubeId: row.trailerYoutubeId,
       posterId: row.posterId,
       backdropId: row.backdropId,
+      extraBackdropIds: row.extraBackdrops.map((b) => b.assetId),
       logoId: row.logoId,
       posterTitle: row.posterTitle,
       manualPriceCents: row.manualPriceCents,
@@ -317,6 +342,9 @@ export async function getAdmin(id: string, now = new Date()) {
     media: {
       poster: pictureFrom(row.poster),
       backdrop: pictureFrom(row.backdrop),
+      extraBackdrops: row.extraBackdrops
+        .map((b) => pictureFrom(b.asset))
+        .filter((p): p is Picture => p !== null),
       logo: pictureFrom(row.logo),
     },
     priceCents:

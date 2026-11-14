@@ -24,6 +24,8 @@ export type Form = {
   episodeCount: string;
   posterId: string | null;
   backdropId: string | null;
+  /** MOVIE (2026-11-14): up to four more backgrounds, in order */
+  extraBackdropIds: string[];
   logoId: string | null;
   posterTitle: boolean;
   /** MOVIE: "60" or "59,90" (R$); empty = price by runtime */
@@ -48,6 +50,7 @@ export const emptyForm = (slot: number | null = null): Form => ({
   episodeCount: '',
   posterId: null,
   backdropId: null,
+  extraBackdropIds: [],
   logoId: null,
   posterTitle: true,
   manualPrice: '',
@@ -73,6 +76,7 @@ export function formFrom(item: AdminItem): Form {
     episodeCount: f.episodeCount ? String(f.episodeCount) : '',
     posterId: f.posterId,
     backdropId: f.backdropId,
+    extraBackdropIds: f.extraBackdropIds,
     logoId: f.logoId,
     posterTitle: f.posterTitle,
     manualPrice: f.manualPriceCents === null ? '' : centsToReais(f.manualPriceCents),
@@ -125,6 +129,8 @@ export function fieldsFrom(form: Form, kind: Kind, draft: boolean): Record<strin
     logoId: form.logoId,
   };
   if (kind === 'MOVIE') {
+    // the extras only make sense after a main background
+    out.extraBackdropIds = form.backdropId ? form.extraBackdropIds : [];
     out.posterTitle = form.posterTitle;
     out.manualPriceCents = reaisToCents(form.manualPrice);
   }

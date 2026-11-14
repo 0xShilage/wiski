@@ -83,6 +83,8 @@ export const itemFieldsInput = z
       }),
     posterId: mediaId,
     backdropId: mediaId,
+    /** MOVIE (2026-11-14): up to four more backgrounds, in order; the title page fades between them */
+    extraBackdropIds: z.array(z.uuid()).max(4),
     logoId: mediaId,
     /** MOVIE: title drawn over the poster in the carousel ("Adicionar texto?") */
     posterTitle: z.boolean(),

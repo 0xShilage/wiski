@@ -18,6 +18,7 @@ import {
 } from './CampaignBits';
 import { marathonTrail } from '@/lib/trail';
 import { AmbientGlow } from './AmbientGlow';
+import { BackdropFade } from './BackdropFade';
 import { MarathonTrail } from './MarathonTrail';
 import { PosterPalette } from './PosterPalette';
 import { TitleAccent } from './TitleAccent';
@@ -55,10 +56,15 @@ export function ItemDetail({
   const back = item.kind === 'MOVIE' ? '/' : `/${kindPath}`;
   return (
     <article className="wf-detail" aria-labelledby="titulo">
-      {/* Ken Burns (2026-11-11): one of four slow pans, picked by the slug so it stays the same */}
-      <div className="wf-detail__art" aria-hidden="true" data-kb={kenBurns(item.slug)}>
-        <MediaPicture picture={item.backdrop} alt="" sizes="100vw" priority />
-      </div>
+      {/* Ken Burns (2026-11-11): one of four slow pans, picked by the slug so it stays the same;
+          a movie with more backgrounds fades between them (2026-11-14) */}
+      {item.kind === 'MOVIE' && item.backdrops.length > 1 ? (
+        <BackdropFade pictures={item.backdrops.slice(0, 5)} kb={kenBurns(item.slug)} />
+      ) : (
+        <div className="wf-detail__art" aria-hidden="true" data-kb={kenBurns(item.slug)}>
+          <MediaPicture picture={item.backdrop} alt="" sizes="100vw" priority />
+        </div>
+      )}
       <div className="wf-detail__shade" aria-hidden="true" />
       {/* ambient glow (2026-11-11): the poster's colour lighting the hero */}
       <AmbientGlow color={item.accent} part="wash" />

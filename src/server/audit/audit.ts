@@ -66,6 +66,7 @@ const catalogField = z.enum([
   'manualPriceCents',
   'posterId',
   'backdropId',
+  'extraBackdropIds',
   'logoId',
   'slot',
   'franchiseEntries',

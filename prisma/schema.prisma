@@ -289,6 +289,7 @@ model CatalogItem {
   logo             MediaAsset?       @relation("ItemLogo", fields: [logoId], references: [id], onDelete: Restrict)
   createdBy        User              @relation("ItemCreator", fields: [createdById], references: [id], onDelete: Restrict)
   franchiseEntries FranchiseEntry[]
+  extraBackdrops   CatalogItemBackdrop[]
   revisions        CatalogRevision[]
   campaign         Campaign?
   orders           Order[]
@@ -299,6 +300,21 @@ model CatalogItem {
 
   @@index([kind, status, slot])
   @@index([status, watchedAt])
+}
+
+/// MOVIE (2026-11-14): up to four more backgrounds after `backdropId`; the title page fades
+/// between them. Position 1–4 (CHECK in the constraints migration), each asset once per item.
+model CatalogItemBackdrop {
+  itemId   String @db.Uuid
+  position Int
+  assetId  String @db.Uuid
+
+  item  CatalogItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  asset MediaAsset  @relation("ItemExtraBackdrop", fields: [assetId], references: [id], onDelete: Restrict)
+
+  @@id([itemId, position])
+  @@unique([itemId, assetId])
+  @@index([assetId])
 }
 
 /// Films inside a franchise (informational + goal formula: Σ movie price of each film).
@@ -362,6 +378,7 @@ model MediaAsset {
   uploadedBy      User            @relation("MediaUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
   posterOf        CatalogItem[]   @relation("ItemPoster")
   backdropOf      CatalogItem[]   @relation("ItemBackdrop")
+  extraBackdropOf CatalogItemBackdrop[] @relation("ItemExtraBackdrop")
   logoOf          CatalogItem[]   @relation("ItemLogo")
   posterOfRelease SeasonRelease[] @relation("ReleasePoster")
   posterOfSegment LiveSegment[]   @relation("SegmentPoster")

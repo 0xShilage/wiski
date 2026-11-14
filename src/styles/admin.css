@@ -622,3 +622,33 @@
     font-size: 10px;
   }
 }
+
+/* Admin › Filme › "Mais fundos" (2026-11-14): up to four more backgrounds, small 16:9 slots */
+@layer components {
+  .wf-extra-backdrops {
+    display: grid;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .wf-extra-backdrops__title {
+    font-size: 13px;
+    color: var(--fg-78);
+  }
+  .wf-extra-backdrops__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+    align-items: start;
+  }
+  .wf-extra-backdrops__slot {
+    display: grid;
+    gap: 2px;
+    justify-items: start;
+  }
+  .wf-extra-backdrops__slot > :first-child {
+    width: 100%;
+  }
+  .wf-drop--add .wf-drop__label {
+    font-size: 13px;
+  }
+}

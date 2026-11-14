@@ -556,3 +556,24 @@ Full white-box review plus active testing against the production stack: [`../sec
   - How `RouteLoader` works: a click on an internal link to another address starts a 220 ms timer. If the new address hasn't landed by then, the frames cover the old page under the header and the tab bar until it does. Fast pages never flash it, going back doesn't bring it back, and it gives up after 20 s.
   - Why not route `loading.tsx`: the links don't prefetch (NavLinks), and nginx buffers page responses, so a loading boundary would never show. It would also start the response before the page runs, turning the title pages' real 404s into 200s.
 - Tests: `tests/e2e/film.spec.ts` covers the strip's stages and final state on both projects, reduced motion, a missing title still answering 404, frames only on a slow navigation and not after going back, and the order page's inline strip. Screenshots `test-results/film/`.
+
+## 45. Mais fundos para filmes (2026-11-14)
+
+- **What.** A movie can have up to five backgrounds: the main one (`backdropId`, still the one used for sharing and lists) plus up to four more. Its title page fades from one to the next.
+- **Dashboard.** In the movie editor, "Mais fundos" sits under the main background. "+ Adicionar fundo" adds one (until there are four), each can be swapped or removed, and "← Antes" moves one earlier. It only appears once the main background exists, and only for movies.
+- **Title page.** `BackdropFade` (`src/components/catalog/BackdropFade.tsx`):
+  - Each image holds for 7 s, then the next fades in over it in 1.8 s with no dip to black. The old one steps back once covered, and the cycle wraps to the main one.
+  - The first image is the page's eager LCP image. The others load one at a time, only the next one ahead, and a fade starts only once that image has loaded.
+  - It pauses while the tab is hidden. With reduced motion it stays on the main image.
+  - Each image keeps the title's Ken Burns pan.
+  - Series, animes and franchises (and movies with one background) keep the single image as before.
+- **Data.**
+  - `CatalogItemBackdrop` holds `(itemId, position 1–4, assetId)`: assets are restricted from deletion, and rows go with the item.
+  - Migrations `20261128120000_movie_backdrops` and `20261128120100_movie_backdrops_constraints`. The constraints: position 1–4 (CHECK), the same image at most once per movie (unique), and a trigger allowing only movies and BACKDROP assets.
+  - The service checks the same first, in Portuguese: "Só para filmes.", "Cada imagem de fundo só pode entrar uma vez.", and the role.
+  - Field `extraBackdropIds` (ordered) on create and save. Saves that leave it out keep the current set; `[]` clears it.
+- **Revisions.** The snapshot carries `extraBackdropIds` (older snapshots mean none), so revert restores them. `catalog.save` audits the field name `extraBackdropIds`.
+- **Tests.**
+  - `tests/integration/movie-backdrops.test.ts`: order, public page, reorder/remove, revert, old snapshots, refusals, database floor.
+  - `tests/e2e/backdrops.spec.ts`: dashboard upload and reorder, the page fading 0 → 1 → 2 → 0, reduced motion on both projects. Screenshots `test-results/backdrops/`.
+

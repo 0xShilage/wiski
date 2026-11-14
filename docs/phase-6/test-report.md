@@ -308,3 +308,17 @@ Fix (PR "fix-prefetch-burst"): no prefetch on the header tabs, the phone bar, th
   - A slow navigation shows the frames and a fast one doesn't; going back brings none.
   - The order page shows the inline strip while it fetches.
 - Unit green (448).
+
+## Addendum — Mais fundos para filmes (2026-11-14)
+
+- Integration `movie-backdrops.test.ts` (4 tests):
+  - Five backgrounds in order on the title page.
+  - Reorder/remove by save, audited by field name; other saves keep them; revert restores them; a pre-feature snapshot means none.
+  - Series, posters, duplicates (also against the main background) and more than four are refused with 422.
+  - The database refuses series, posters and position 5, unique per image, and the rows go with the item.
+- Full integration green except the known `moderation.test.ts` timing flake.
+- Unit green (448).
+- e2e:
+  - `backdrops.spec.ts` (3 passed, 1 skipped by design).
+  - `dashboard`, `theater` and `keepsakes` green.
+

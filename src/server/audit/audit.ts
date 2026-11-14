@@ -397,7 +397,12 @@ export const AUDIT_ACTIONS = {
       ok: z.boolean(),
       reason: z.enum(['not-configured', 'no-channel', 'unreachable', 'rejected']).nullable(),
       status: z.int().min(100).max(599).nullable(),
+      /** an automatic announcement (2026-11-13): which one; absent when someone sent it */
+      auto: z.enum(['start', 'now', 'badge']).optional(),
     })
+    .strict(),
+  'chat.announce.update': z
+    .object({ start: z.boolean(), now: z.boolean(), badge: z.boolean() })
     .strict(),
   'chat.presets.update': z.object({ count: z.int().min(0).max(20) }).strict(),
   'link.update': z

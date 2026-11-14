@@ -2,6 +2,7 @@ import { Problems } from '@/server/http/problem';
 import { route } from '@/server/http/route';
 import { RL } from '@/server/ratelimit/rules';
 import { scheduleInput } from '@/server/admin/input';
+import { announceAfter, announceNowPlaying } from '@/server/chat/announce';
 import { complete, nowPlaying, schedule, unschedule } from '@/server/live/schedule';
 import {
   addEvent,
@@ -41,8 +42,10 @@ export const POST = route<'moderator', typeof scheduleInput>(
     if (t.kind === 'SEGMENT') {
       const target = { id: t.id, expectedVersion: t.expectedVersion };
       if (body.action === 'remove') await removeSegment(ctx, target);
-      else if (body.action === 'now') await segmentNow(ctx, target);
-      else if (body.action === 'complete') await completeSegment(ctx, target, !!body.finish);
+      else if (body.action === 'now') {
+        await segmentNow(ctx, target);
+        announceAfter(() => announceNowPlaying({ kind: 'SEGMENT', id: t.id }));
+      } else if (body.action === 'complete') await completeSegment(ctx, target, !!body.finish);
       else
         throw Problems.validation([
           { path: 'action', message: 'Use “part” ou “event” para agendar.' },
@@ -52,8 +55,10 @@ export const POST = route<'moderator', typeof scheduleInput>(
     const target = { kind: t.kind, id: t.id, expectedVersion: t.expectedVersion };
     if (body.action === 'add') await schedule(ctx, target, body.sessionId);
     else if (body.action === 'remove') await unschedule(ctx, target);
-    else if (body.action === 'now') await nowPlaying(ctx, target);
-    else await complete(ctx, target);
+    else if (body.action === 'now') {
+      await nowPlaying(ctx, target);
+      announceAfter(() => announceNowPlaying({ kind: target.kind, id: target.id }));
+    } else await complete(ctx, target);
     return { ok: true };
   },
 );

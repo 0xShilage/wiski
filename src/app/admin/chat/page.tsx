@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { adminPage } from '@/components/admin/admin-page';
+import { AnnouncePanel } from '@/components/admin/AnnouncePanel';
 import { ChatPanel } from '@/components/admin/ChatPanel';
+import { announceSettings } from '@/server/chat/announce';
+import { chatBotConfigured } from '@/server/chat/bot';
 import { chatPanel } from '@/server/chat/say';
 
 export const metadata: Metadata = { title: 'Chat da live' };
@@ -18,6 +21,7 @@ export default async function ChatAdminPage() {
       {...p.shell}
     >
       <ChatPanel initial={await chatPanel()} />
+      <AnnouncePanel initial={await announceSettings()} ready={chatBotConfigured()} />
     </AdminShell>
   );
 }

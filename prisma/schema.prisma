@@ -1296,6 +1296,8 @@ model Badge {
   /// SHA-256 of the normalised claim word, when the badge has one
   codeHash    Bytes?
   maxClaims   Int? // > 0 (CHECK)
+  /// when the chat bot announced it opened (2026-11-13; null: not yet)
+  announcedAt DateTime? @db.Timestamptz(3)
   createdById String?   @db.Uuid
   createdAt   DateTime  @default(now()) @db.Timestamptz(3)
   updatedAt   DateTime  @updatedAt @db.Timestamptz(3)

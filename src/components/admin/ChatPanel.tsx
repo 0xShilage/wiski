@@ -22,7 +22,14 @@ import { adminFetch } from '@/lib/passkey-client';
  * sent from here, by whom. Ctrl/⌘ + Enter sends. Refreshes every 30 s while the tab is visible.
  */
 type Preset = { id: string; label: string; text: string };
-type Sent = { id: string; at: string; by: string | null; text: string; ok: boolean };
+type Sent = {
+  id: string;
+  at: string;
+  by: string | null;
+  text: string;
+  ok: boolean;
+  auto: 'start' | 'now' | 'badge' | null;
+};
 export type ChatPanelData = {
   ready: boolean;
   live: boolean;
@@ -429,14 +436,14 @@ export function ChatPanel({ initial }: { initial: ChatPanelData }) {
         </div>
 
         <section className="wf-ops-card wf-chat-history" aria-labelledby={`${id}-history`}>
-          <h2 id={`${id}-history`}>Enviadas daqui</h2>
+          <h2 id={`${id}-history`}>Enviadas</h2>
           {data.history.length ? (
             <ol className="wf-chat-log">
               {data.history.map((h) => (
                 <li key={h.id} className={h.ok ? 'wf-chat-log__row' : 'wf-chat-log__row is-failed'}>
                   <div className="wf-chat-log__meta">
                     <time dateTime={h.at}>{fmtDateTime(h.at)}</time>
-                    <span>{h.by ? `@${h.by}` : 'sistema'}</span>
+                    <span>{h.auto ? 'automático' : h.by ? `@${h.by}` : 'sistema'}</span>
                     <span className={h.ok ? 'wf-chat-pill is-ok' : 'wf-chat-pill is-off'}>
                       {h.ok ? 'Enviada' : 'Não enviada'}
                     </span>
@@ -457,7 +464,7 @@ export function ChatPanel({ initial }: { initial: ChatPanelData }) {
               ))}
             </ol>
           ) : (
-            <p className="wf-chat-help">Nada enviado daqui ainda.</p>
+            <p className="wf-chat-help">Nada enviado ainda.</p>
           )}
         </section>
       </div>

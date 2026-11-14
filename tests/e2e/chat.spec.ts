@@ -37,7 +37,10 @@ test('chat da live: compose with placeholders, preview, saved messages', async (
 
     const box = page.getByPlaceholder(/Escreva para o chat/);
     await box.fill('Boa noite, chat! Site: ');
-    await page.getByRole('button', { name: /^\+ Endereço do site/ }).click();
+    await page
+      .getByRole('group', { name: 'Inserir na mensagem' })
+      .getByRole('button', { name: /^\+ Endereço do site/ })
+      .click();
     await expect(box).toHaveValue('Boa noite, chat! Site: {site}');
     const preview = page.getByLabel('Como vai aparecer no chat');
     await expect(preview).toContainText('StreamElements:');
@@ -77,6 +80,50 @@ test('chat da live: compose with placeholders, preview, saved messages', async (
     expect(csp).toEqual([]);
   } finally {
     await withDb((c) => c.query(`DELETE FROM "AppSetting" WHERE key = 'chat.presets'`));
+    await ctx.close();
+  }
+});
+
+test('anúncios automáticos: switch, reword with placeholders, save', async ({ browser }, info) => {
+  await withDb((c) => c.query(`DELETE FROM "AppSetting" WHERE key = 'chat.announce'`));
+  const mod = await seedUser({ role: 'MODERATOR', passkeyVerified: true });
+  const ctx = await browser.newContext();
+  await signIn(ctx, mod.token);
+  const page = await ctx.newPage();
+  try {
+    await page.goto('/admin/chat');
+    const panel = page.getByRole('region', { name: 'Anúncios automáticos' });
+    await expect(panel).toContainText('O bot do StreamElements ainda não está configurado');
+    // the defaults, with example previews
+    await expect(panel).toContainText('Exemplo: 🔴 A live começou! Hoje tem: Aftersun');
+    const now = panel.getByRole('textbox', { name: /Quando algo entra na tela/ });
+    await now.fill('🎬 Começando: ');
+    await panel
+      .getByRole('group', { name: 'Inserir no aviso' })
+      .nth(1)
+      .getByRole('button', { name: '+ O que está na tela' })
+      .click();
+    await expect(now).toHaveValue('🎬 Começando: {titulo}');
+    await expect(panel).toContainText('Exemplo: 🎬 Começando: Dark · T1 · E1–E3');
+    // an unknown placeholder is caught before saving
+    await now.fill('Agora {agora}');
+    await expect(panel).toContainText('Não existe {agora} neste anúncio.');
+    await now.fill('🎬 Começando: {titulo} {credito}');
+    // switch the badge one off
+    await panel.getByRole('switch').nth(2).uncheck();
+    await expect(panel.getByRole('switch').nth(2)).not.toBeChecked();
+    await panel.getByRole('button', { name: 'Salvar anúncios' }).click();
+    await expect(panel.getByRole('status')).toHaveText('Anúncios salvos.');
+    await panel.screenshot({ path: `${SHOTS}/announce-${info.project.name}.png` });
+    await page.reload();
+    await expect(
+      page
+        .getByRole('region', { name: 'Anúncios automáticos' })
+        .getByRole('textbox', { name: /Quando algo entra na tela/ }),
+    ).toHaveValue('🎬 Começando: {titulo} {credito}');
+    await expect(page.getByRole('switch').nth(2)).not.toBeChecked();
+  } finally {
+    await withDb((c) => c.query(`DELETE FROM "AppSetting" WHERE key = 'chat.announce'`));
     await ctx.close();
   }
 });

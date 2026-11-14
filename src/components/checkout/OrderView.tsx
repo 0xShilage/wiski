@@ -6,6 +6,7 @@ import { apiFetch, type Problem } from '@/lib/api-fetch';
 import { KIND_PATH } from '@/lib/catalog/kinds';
 import { formatBRL } from '@/lib/catalog/pricing';
 import { ORDER_STATUS_LABEL, type OrderView as View } from '@/lib/checkout/types';
+import { FilmLoader } from '@/components/fx/FilmLoader';
 import { PopcornBurst } from '@/components/fx/PopcornBurst';
 import { Ticket } from './Ticket';
 
@@ -71,7 +72,7 @@ function Reschedule({ code, left, onDone }: { code: string; left: number; onDone
           Trocar a data ({left} {left === 1 ? 'troca restante' : 'trocas restantes'})
         </button>
       ) : options === null ? (
-        <p className="wf-co__muted text-sm">Carregando sessões…</p>
+        <FilmLoader label="Carregando sessões…" />
       ) : options.length ? (
         <form
           className="wf-co__row flex-wrap"
@@ -242,7 +243,7 @@ export function OrderView({ code, signedIn }: { code: string; signedIn: boolean 
             </Link>
           </>
         ) : (
-          <p className="wf-co__muted">Carregando pedido…</p>
+          <FilmLoader label="Carregando pedido…" />
         )}
       </div>
     );

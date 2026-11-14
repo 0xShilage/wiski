@@ -543,3 +543,16 @@ Full white-box review plus active testing against the production stack: [`../sec
   - `POST /api/v1/admin/days-off`, `DELETE /api/v1/admin/days-off/[id]` (moderators; in the authz matrix). `GET /api/v1/admin/live` also answers `daysOff`.
   - Audit: `dayoff.create` `{reason, days, note}` and `dayoff.delete` `{reason}`.
 - Tests: `tests/integration/agenda-move-dayoff.test.ts`, `tests/e2e/agenda-move.spec.ts` (drag and picker on desktop; the dashboard card; the Cronograma card on both projects). Screenshots `test-results/agenda-move/`.
+
+## 44. Fita quebrada e carregamento em quadros (2026-11-14)
+
+- **Fita quebrada.** The error pages (404, the error boundary and the last-resort one, `Oops`) draw their code on the last frame of a film strip (`src/components/brand/FilmBreak.tsx`, styles in `src/styles/film.css`).
+  - The strip runs through the gate (countdown leader 3, 2, then the code), stops, burns through the middle frame and snaps in two. The halves hang from the ends, the burnt edge keeps smouldering, and the squirrel sits under the hole. About 2.7 s, once.
+  - Pure SVG with classes. The resting rules are the last picture, so reduced motion shows the broken strip still, straight away. The film is drawn three times (whole while it runs, then the two clipped halves) instead of `<use>`, whose copies don't animate reliably in every browser.
+  - The strip runs off both sides of the screen without making the page scroll sideways.
+- **Carregamento em quadros.** `src/components/fx/FilmLoader.tsx`: film frames with sprocket holes, a projector light passing over them, a scratch and a flicker (still with reduced motion), in a polite live region.
+  - `inline`: three small frames beside the label. Used on the order page ("Carregando pedido…", "Carregando sessões…").
+  - `page`: a title card, a strip of poster frames and caption lines. Used between pages by `src/components/fx/RouteLoader.tsx`, mounted once in the site layout.
+  - How `RouteLoader` works: a click on an internal link to another address starts a 220 ms timer. If the new address hasn't landed by then, the frames cover the old page under the header and the tab bar until it does. Fast pages never flash it, going back doesn't bring it back, and it gives up after 20 s.
+  - Why not route `loading.tsx`: the links don't prefetch (NavLinks), and nginx buffers page responses, so a loading boundary would never show. It would also start the response before the page runs, turning the title pages' real 404s into 200s.
+- Tests: `tests/e2e/film.spec.ts` covers the strip's stages and final state on both projects, reduced motion, a missing title still answering 404, frames only on a slow navigation and not after going back, and the order page's inline strip. Screenshots `test-results/film/`.

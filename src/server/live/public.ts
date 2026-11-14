@@ -1,6 +1,8 @@
 import 'server-only';
 import { type Picture, pictureFrom } from '@/lib/media';
+import type { DayOff } from '@/lib/live/days-off';
 import { db } from '../db';
+import { DAY_OFF_PUBLIC_HORIZON_DAYS, daysOff } from './daysoff';
 import { entryDone, type QueueEntry, sessionsWithEntries } from './schedule';
 import { publicSponsor, sponsorSelect } from './sponsor';
 
@@ -90,6 +92,8 @@ export const CRONOGRAMA_PAST_MS = 2 * 86_400_000;
 export type CronogramaTitle = PublicSession['titles'][number] & { poster: Picture | null };
 export type CronogramaDay = {
   date: string;
+  /** "Dias sem live" (2026-11-13): stretches without a live, listed on the day they start (or today) */
+  offs: DayOff[];
   sessions: (Omit<PublicSession, 'titles'> & { past: boolean; titles: CronogramaTitle[] })[];
 };
 
@@ -101,7 +105,7 @@ const dayKey = new Intl.DateTimeFormat('en-CA', {
 });
 
 export async function cronograma(now = new Date()): Promise<CronogramaDay[]> {
-  const [upcoming, ended] = await Promise.all([
+  const [upcoming, ended, offs] = await Promise.all([
     sessionsWithEntries({
       from: new Date(now.getTime() - 6 * 3_600_000),
       statuses: ['PLANNED', 'LIVE'],
@@ -114,6 +118,7 @@ export async function cronograma(now = new Date()): Promise<CronogramaDay[]> {
       statuses: ['DONE'],
       take: 30,
     }),
+    daysOff(now, DAY_OFF_PUBLIC_HORIZON_DAYS),
   ]);
   const cutoff = now.getTime() - CRONOGRAMA_PAST_MS;
   const rows = [
@@ -145,7 +150,7 @@ export async function cronograma(now = new Date()): Promise<CronogramaDay[]> {
   const days = new Map<string, CronogramaDay>();
   for (const { s, past, entries } of rows) {
     const date = dayKey.format(s.startsAt);
-    if (!days.has(date)) days.set(date, { date, sessions: [] });
+    if (!days.has(date)) days.set(date, { date, offs: [], sessions: [] });
     days.get(date)!.sessions.push({
       id: s.id,
       startsAt: s.startsAt.toISOString(),
@@ -160,7 +165,13 @@ export async function cronograma(now = new Date()): Promise<CronogramaDay[]> {
       })),
     });
   }
-  return [...days.values()];
+  const today = dayKey.format(now);
+  for (const off of offs) {
+    const date = off.startsOn < today ? today : off.startsOn;
+    if (!days.has(date)) days.set(date, { date, offs: [], sessions: [] });
+    days.get(date)!.offs.push(off);
+  }
+  return [...days.values()].sort((a, b) => a.date.localeCompare(b.date));
 }
 
 /**

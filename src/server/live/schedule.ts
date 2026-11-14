@@ -934,6 +934,112 @@ export async function unschedule(ctx: Ctx, target: Target, now = new Date()) {
   await refreshOverlays(['fila']);
 }
 
+/**
+ * "Mover para outra live" (2026-11-13): a scheduled movie, a whole campaign, or a part/event goes
+ * from its session to another planned (or live) one without passing through the queue. What is on
+ * screen or already watched stays put. The target's capacity guard is the same compare-and-set as
+ * scheduling; the old session gives the minutes back and forgets the entry's hand-made position.
+ * Both sessions' versions move, so a reorder sent from a stale screen fails instead of mixing them.
+ */
+export async function moveEntry(
+  ctx: Ctx,
+  target: { kind: 'ORDER' | 'CAMPAIGN' | 'SEGMENT'; id: string; expectedVersion: number },
+  sessionId: string,
+  now = new Date(),
+) {
+  const result = await inTx(async (t) => {
+    const to = await t.streamSession.findUnique({ where: { id: sessionId } });
+    if (!to) throw Problems.notFound();
+    if (to.status !== 'PLANNED' && to.status !== 'LIVE') {
+      throw LiveProblems.state('Só dá para mover para sessões planejadas ou ao vivo.');
+    }
+    const row = await movable(t, target);
+    if (row.sessionId === sessionId) throw LiveProblems.state('Isto já está nesta sessão.');
+    if (row.minutes > 0) {
+      const room = await t.streamSession.updateMany({
+        where: {
+          id: sessionId,
+          status: { in: ['PLANNED', 'LIVE'] },
+          bookedMinutes: { lte: to.capacityMinutes - row.minutes },
+          capacityMinutes: to.capacityMinutes,
+        },
+        data: { bookedMinutes: { increment: row.minutes } },
+      });
+      if (room.count !== 1) throw LiveProblems.full();
+    }
+    const where = { id: target.id, status: 'SCHEDULED' as const, version: target.expectedVersion };
+    const data = { sessionId, version: { increment: 1 } };
+    const res =
+      target.kind === 'ORDER'
+        ? await t.order.updateMany({ where, data: { ...data, scheduledAt: now } })
+        : target.kind === 'CAMPAIGN'
+          ? await t.campaign.updateMany({ where, data: { ...data, scheduledAt: now } })
+          : await t.liveSegment.updateMany({ where, data });
+    if (res.count !== 1) throw LiveProblems.changed();
+    const from = await t.streamSession.findUniqueOrThrow({ where: { id: row.sessionId } });
+    const key = entryKey(target);
+    await t.streamSession.update({
+      where: { id: from.id },
+      data: {
+        bookedMinutes: Math.max(0, from.bookedMinutes - row.minutes),
+        entryOrder: from.entryOrder.filter((k) => k !== key),
+        version: { increment: 1 },
+      },
+    });
+    await t.streamSession.update({
+      where: { id: sessionId },
+      data: { version: { increment: 1 } },
+    });
+    await audit(
+      {
+        action: 'schedule.move',
+        actor: ctx.actor,
+        requestId: ctx.requestId,
+        targetType:
+          target.kind === 'ORDER'
+            ? 'Order'
+            : target.kind === 'CAMPAIGN'
+              ? 'Campaign'
+              : 'LiveSegment',
+        targetId: target.id,
+        metadata: { from: from.id, to: sessionId, kind: target.kind, minutes: row.minutes },
+      },
+      t,
+    );
+    return { orderId: target.kind === 'ORDER' ? target.id : null };
+  });
+  if (result.orderId) await tellOrders([result.orderId], now);
+  await refreshOverlays(['fila']);
+}
+
+/** What `moveEntry` may move: scheduled (not on screen, not watched) and on a session. */
+async function movable(
+  t: Tx,
+  target: { kind: 'ORDER' | 'CAMPAIGN' | 'SEGMENT'; id: string; expectedVersion: number },
+): Promise<{ sessionId: string; minutes: number }> {
+  const notHere = () =>
+    LiveProblems.state('Só dá para mover o que está agendado e ainda não começou.');
+  if (target.kind === 'ORDER') {
+    const o = await t.order.findUnique({ where: { id: target.id } });
+    if (!o || o.kind !== 'MOVIE') throw Problems.notFound();
+    if (o.version !== target.expectedVersion) throw LiveProblems.changed();
+    if (o.status !== 'SCHEDULED' || !o.sessionId) throw notHere();
+    return { sessionId: o.sessionId, minutes: o.runtimeMinutes ?? 0 };
+  }
+  if (target.kind === 'CAMPAIGN') {
+    const c = await t.campaign.findUnique({ where: { id: target.id } });
+    if (!c) throw Problems.notFound();
+    if (c.version !== target.expectedVersion) throw LiveProblems.changed();
+    if (c.status !== 'SCHEDULED' || !c.sessionId) throw notHere();
+    return { sessionId: c.sessionId, minutes: 0 };
+  }
+  const g = await t.liveSegment.findUnique({ where: { id: target.id } });
+  if (!g) throw Problems.notFound();
+  if (g.version !== target.expectedVersion) throw LiveProblems.changed();
+  if (g.status !== 'SCHEDULED') throw notHere();
+  return { sessionId: g.sessionId, minutes: g.minutes };
+}
+
 /** "Agora assistindo": the live session shows this title; a movie order becomes WATCHING. */
 export async function nowPlaying(ctx: Ctx, target: Target, now = new Date()) {
   const changed: string[] = [];

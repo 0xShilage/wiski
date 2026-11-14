@@ -215,6 +215,15 @@ export const AUDIT_ACTIONS = {
   'schedule.remove': z
     .object({ sessionId: z.uuid(), kind: z.enum(['ORDER', 'CAMPAIGN']) })
     .strict(),
+  /** "Mover para outra live" (2026-11-13): straight from one session to another */
+  'schedule.move': z
+    .object({
+      from: z.uuid(),
+      to: z.uuid(),
+      kind: z.enum(['ORDER', 'CAMPAIGN', 'SEGMENT']),
+      minutes: z.int().nonnegative(),
+    })
+    .strict(),
   'schedule.now': z.object({ sessionId: z.uuid() }).strict(),
   'schedule.complete': z.object({ sessionId: z.uuid() }).strict(),
   /** live segments (2026-11-04): part of a series/franchise, or a custom event */
@@ -423,6 +432,15 @@ export const AUDIT_ACTIONS = {
     })
     .strict(),
   'release.delete': z.object({}).strict(),
+  /** "Dias sem live" (2026-11-13) */
+  'dayoff.create': z
+    .object({
+      reason: z.enum(['FOLGA', 'VIAGEM', 'OUTRO']),
+      days: z.int().min(1).max(31),
+      note: z.boolean(),
+    })
+    .strict(),
+  'dayoff.delete': z.object({ reason: z.enum(['FOLGA', 'VIAGEM', 'OUTRO']) }).strict(),
   'suggestion.status': z
     .object({
       from: z.enum(['NEW', 'ACCEPTED', 'DISMISSED', 'WATCHED']),

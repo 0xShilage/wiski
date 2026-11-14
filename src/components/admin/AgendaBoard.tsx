@@ -1,5 +1,5 @@
 'use client';
-import { useId, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { isEpisodic } from '@/lib/catalog/kinds';
 import { MediaPicture } from '@/components/media/MediaPicture';
 import type { Picture } from '@/lib/media';
@@ -16,8 +16,17 @@ import { sortQueue, type QueueSort } from '@/lib/admin/agenda-sort';
 import { formatRuntime } from '@/lib/catalog/pricing';
 import { episodesLabel, minutesPerEpisode } from '@/lib/live/segments';
 import type { StaffRole } from '@/lib/roles';
+import {
+  coversDay,
+  DAY_OFF_LABEL,
+  dayOffRange,
+  saoPauloDay,
+  type DayOff,
+  type DayOffReason,
+} from '@/lib/live/days-off';
 
-type Data = { sessions: AgendaSession[]; queue: AgendaEntry[] };
+type Data = { sessions: AgendaSession[]; queue: AgendaEntry[]; daysOff: DayOff[] };
+type OffForm = { startsOn: string; endsOn: string; reason: DayOffReason; note: string };
 
 const STATUS_PT = {
   PLANNED: 'Planejada',
@@ -111,6 +120,8 @@ function guessMinutes(e: AgendaEntry, p: { from: number; to: number; film: numbe
  * série"; any session can also carry a custom event ("Jogando com os Viewers").
  * 2026-11-09: ↑/↓ put a session's entries in any order, an event can have a poster, and
  * "Limpar encerradas e canceladas" hides the sessions that are over.
+ * 2026-11-13: an entry that hasn't started moves straight to another live ("Mover para…", or
+ * dragged onto the other live's card), and "Dias sem live" marks days off for the Cronograma.
  */
 export function AgendaBoard({ initial }: { initial: Data; role: StaffRole }) {
   const id = useId();
@@ -128,6 +139,17 @@ export function AgendaBoard({ initial }: { initial: Data; role: StaffRole }) {
     days: number;
     cascade: boolean;
   } | null>(null);
+  const [moveTo, setMoveTo] = useState<Record<string, string>>({});
+  const [dragging, setDragging] = useState<{ entry: AgendaEntry; from: string } | null>(null);
+  // the drop targets read the dragged entry here: their handlers exist before React re-renders
+  const dragRef = useRef<{ entry: AgendaEntry; from: string } | null>(null);
+  const [dropOn, setDropOn] = useState<{ id: string; fits: boolean } | null>(null);
+  const [off, setOff] = useState<OffForm>(() => ({
+    startsOn: saoPauloDay(new Date(Date.now() + 86_400_000)),
+    endsOn: '',
+    reason: 'FOLGA',
+    note: '',
+  }));
 
   const upcoming = data.sessions.filter((s) => s.status === 'PLANNED' || s.status === 'LIVE');
 
@@ -139,12 +161,12 @@ export function AgendaBoard({ initial }: { initial: Data; role: StaffRole }) {
   async function run(
     label: string,
     path: string,
-    method: 'POST' | 'PATCH',
+    method: 'POST' | 'PATCH' | 'DELETE',
     body: unknown,
   ): Promise<boolean> {
     setBusy(true);
     setToast(null);
-    const r = await adminFetch(path, { method, body });
+    const r = await adminFetch(path, body === undefined ? { method } : { method, body });
     setBusy(false);
     setToast(r.ok ? { ok: true, text: `${label}: feito.` } : { ok: false, text: r.problem.detail });
     await reload();
@@ -304,6 +326,233 @@ export function AgendaBoard({ initial }: { initial: Data; role: StaffRole }) {
           ))}
         </select>
       </>
+    );
+  }
+
+  // ── "Mover para outra live" (2026-11-13) ──
+  const open = (x: AgendaSession) => x.status === 'PLANNED' || x.status === 'LIVE';
+  const fits = (e: AgendaEntry, x: AgendaSession) =>
+    x.capacityMinutes - x.bookedMinutes >= (e.kind === 'CAMPAIGN' ? 0 : e.runtimeMinutes);
+  /** Scheduled, not on screen, not watched, and there is another live to take it. */
+  function movable(e: AgendaEntry, s: AgendaSession) {
+    if (!open(s) || e.status !== 'SCHEDULED') return false;
+    if (!e.segment && e.item && s.nowItemId === e.item.id && !s.playing?.segment) return false;
+    return upcoming.some((x) => x.id !== s.id);
+  }
+  function moveEntry(e: AgendaEntry, to: AgendaSession) {
+    void run(`Movido para ${fmtDateTime(to.startsAt)}`, SCHEDULE, 'POST', {
+      action: 'move',
+      target: target(e),
+      sessionId: to.id,
+    }).then((ok) => {
+      if (ok) setMoveTo((m) => ({ ...m, [e.id]: '' }));
+    });
+  }
+  function movePicker(e: AgendaEntry, s: AgendaSession) {
+    if (!movable(e, s)) return null;
+    const others = upcoming.filter((x) => x.id !== s.id);
+    const chosen = others.find((x) => x.id === moveTo[e.id]);
+    return (
+      <span className="wf-ops-move">
+        <label className="sr-only" htmlFor={`${id}-mv-${e.id}`}>
+          Mover “{titleOf(e)}” para outra live
+        </label>
+        <select
+          id={`${id}-mv-${e.id}`}
+          value={moveTo[e.id] ?? ''}
+          onChange={(ev) => setMoveTo({ ...moveTo, [e.id]: ev.target.value })}
+        >
+          <option value="">Mover para…</option>
+          {others.map((x) => (
+            <option key={x.id} value={x.id} disabled={!fits(e, x)}>
+              {fmtDateTime(x.startsAt)} · livre {Math.max(0, x.capacityMinutes - x.bookedMinutes)}{' '}
+              min{fits(e, x) ? '' : ' (não cabe)'}
+            </option>
+          ))}
+        </select>
+        {chosen ? (
+          <button
+            type="button"
+            className="wf-btn wf-btn--sm wf-btn--ghost"
+            disabled={busy}
+            onClick={() => moveEntry(e, chosen)}
+          >
+            Mover
+          </button>
+        ) : null}
+      </span>
+    );
+  }
+  /** Drag an entry onto another live's card (the picker does the same without a mouse). */
+  function dragProps(e: AgendaEntry, s: AgendaSession) {
+    if (!movable(e, s)) return {};
+    return {
+      draggable: true,
+      onDragStart: (ev: React.DragEvent) => {
+        ev.dataTransfer.effectAllowed = 'move';
+        ev.dataTransfer.setData('text/plain', titleOf(e));
+        dragRef.current = { entry: e, from: s.id };
+        setDragging(dragRef.current);
+      },
+      onDragEnd: () => {
+        dragRef.current = null;
+        setDragging(null);
+        setDropOn(null);
+      },
+    };
+  }
+  function dropProps(x: AgendaSession) {
+    if (!open(x)) return {};
+    /** the entry being dragged, when this live can take it (another live; null otherwise) */
+    const incoming = () => {
+      const d = dragRef.current;
+      return d && d.from !== x.id ? d : null;
+    };
+    return {
+      onDragOver: (ev: React.DragEvent) => {
+        const d = incoming();
+        if (!d) return;
+        const ok = fits(d.entry, x);
+        if (ok) {
+          ev.preventDefault();
+          ev.dataTransfer.dropEffect = 'move';
+        }
+        if (dropOn?.id !== x.id || dropOn.fits !== ok) setDropOn({ id: x.id, fits: ok });
+      },
+      onDragLeave: (ev: React.DragEvent) => {
+        if (!ev.currentTarget.contains(ev.relatedTarget as Node | null)) setDropOn(null);
+      },
+      onDrop: (ev: React.DragEvent) => {
+        const d = incoming();
+        if (!d) return;
+        ev.preventDefault();
+        dragRef.current = null;
+        setDragging(null);
+        setDropOn(null);
+        if (fits(d.entry, x)) moveEntry(d.entry, x);
+      },
+    };
+  }
+  const rowClass = (e: AgendaEntry, base: string) =>
+    dragging && dragging.entry.kind === e.kind && dragging.entry.id === e.id
+      ? `${base} is-dragging`
+      : base;
+
+  // ── "Dias sem live" (2026-11-13) ──
+  const offOn = (iso: string) => data.daysOff.find((o) => coversDay(o, saoPauloDay(iso)));
+  function daysOffCard() {
+    return (
+      <section className="wf-ops-card" aria-labelledby={`${id}-off`}>
+        <h2 id={`${id}-off`}>Dias sem live</h2>
+        <p className="wf-muted text-xs">
+          Folga, viagem ou outro motivo: aparece no Cronograma, com o recado, para quem chega saber
+          que não tem live e por quê. Um dia ou vários seguidos (até 31).
+        </p>
+        {data.daysOff.length ? (
+          <ul className="wf-dayoff-list">
+            {data.daysOff.map((o) => {
+              const clash = upcoming.filter((x) => coversDay(o, saoPauloDay(x.startsAt)));
+              return (
+                <li key={o.id}>
+                  <div className="wf-dayoff-list__main">
+                    <span className="wf-ops-row__title">
+                      {DAY_OFF_LABEL[o.reason]} · {dayOffRange(o)}
+                    </span>
+                    {o.note ? <span className="text-xs">“{o.note}”</span> : null}
+                    {clash.length ? (
+                      <span className="wf-pill wf-pill--warn">
+                        Tem live planejada: {clash.map((x) => fmtDateTime(x.startsAt)).join(', ')}
+                      </span>
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    className="wf-linkbtn text-xs"
+                    disabled={busy}
+                    onClick={() =>
+                      void run(
+                        'Dia sem live removido',
+                        `/api/v1/admin/days-off/${o.id}`,
+                        'DELETE',
+                        undefined,
+                      )
+                    }
+                  >
+                    Tirar
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="wf-muted text-sm">Nenhum dia sem live marcado.</p>
+        )}
+        <form
+          className="wf-ops-form"
+          aria-label="Marcar dia sem live"
+          onSubmit={(ev) => {
+            ev.preventDefault();
+            void run('Dia sem live marcado', '/api/v1/admin/days-off', 'POST', {
+              startsOn: off.startsOn,
+              ...(off.endsOn && off.endsOn !== off.startsOn ? { endsOn: off.endsOn } : {}),
+              reason: off.reason,
+              note: off.note.trim() || null,
+            }).then((ok) => {
+              if (ok) setOff({ ...off, endsOn: '', note: '' });
+            });
+          }}
+        >
+          <label className="wf-field" htmlFor={`${id}-off-from`}>
+            <span>Dia</span>
+            <input
+              id={`${id}-off-from`}
+              type="date"
+              className="wf-input"
+              value={off.startsOn}
+              onChange={(e) => setOff({ ...off, startsOn: e.target.value })}
+              required
+            />
+          </label>
+          <label className="wf-field" htmlFor={`${id}-off-to`}>
+            <span>Até (opcional, para vários dias)</span>
+            <input
+              id={`${id}-off-to`}
+              type="date"
+              className="wf-input"
+              min={off.startsOn}
+              value={off.endsOn}
+              onChange={(e) => setOff({ ...off, endsOn: e.target.value })}
+            />
+          </label>
+          <label className="wf-field" htmlFor={`${id}-off-why`}>
+            <span>Motivo</span>
+            <select
+              id={`${id}-off-why`}
+              className="wf-input"
+              value={off.reason}
+              onChange={(e) => setOff({ ...off, reason: e.target.value as DayOffReason })}
+            >
+              <option value="FOLGA">Folga</option>
+              <option value="VIAGEM">Viagem</option>
+              <option value="OUTRO">Outro (Sem live)</option>
+            </select>
+          </label>
+          <label className="wf-field" htmlFor={`${id}-off-note`}>
+            <span>Recado público (opcional)</span>
+            <input
+              id={`${id}-off-note`}
+              className="wf-input"
+              maxLength={140}
+              placeholder="Ex.: Volto na segunda com maratona!"
+              value={off.note}
+              onChange={(e) => setOff({ ...off, note: e.target.value })}
+            />
+          </label>
+          <button type="submit" className="wf-btn wf-btn--neon" disabled={busy}>
+            Marcar sem live
+          </button>
+        </form>
+      </section>
     );
   }
 
@@ -601,7 +850,11 @@ export function AgendaBoard({ initial }: { initial: Data; role: StaffRole }) {
     const series = isEpisodic(e.item?.kind);
     const anime = e.item?.kind === 'ANIME';
     return (
-      <li key={`${e.kind}:${e.id}`} className={playing ? 'wf-ops-row is-now' : 'wf-ops-row'}>
+      <li
+        key={`${e.kind}:${e.id}`}
+        className={rowClass(e, playing ? 'wf-ops-row is-now' : 'wf-ops-row')}
+        {...dragProps(e, s)}
+      >
         {orderButtons(e, s, i)}
         {!isPart && g.poster ? (
           <span className="wf-ops-thumb">
@@ -697,6 +950,7 @@ export function AgendaBoard({ initial }: { initial: Data; role: StaffRole }) {
                     : 'Concluído · fim da franquia'}
                 </button>
               ) : null}
+              {movePicker(e, s)}
               {e.status === 'SCHEDULED' ? (
                 <button
                   type="button"
@@ -760,7 +1014,11 @@ export function AgendaBoard({ initial }: { initial: Data; role: StaffRole }) {
     const isNow = !!s && !!e.item && s.nowItemId === e.item.id && !s.playing?.segment;
     const done = e.status === 'COMPLETED' || e.status === 'WATCHED';
     return (
-      <li key={`${e.kind}:${e.id}`} className={isNow ? 'wf-ops-row is-now' : 'wf-ops-row'}>
+      <li
+        key={`${e.kind}:${e.id}`}
+        className={rowClass(e, isNow ? 'wf-ops-row is-now' : 'wf-ops-row')}
+        {...(s ? dragProps(e, s) : {})}
+      >
         {s ? orderButtons(e, s, i) : null}
         <div className="wf-ops-row__main">
           <span className="wf-ops-row__title">{titleOf(e)}</span>
@@ -829,6 +1087,7 @@ export function AgendaBoard({ initial }: { initial: Data; role: StaffRole }) {
                   Concluído
                 </button>
               ) : null}
+              {movePicker(e, s)}
               {e.status === 'SCHEDULED' && !isNow ? (
                 <button
                   type="button"
@@ -947,7 +1206,13 @@ export function AgendaBoard({ initial }: { initial: Data; role: StaffRole }) {
         </section>
 
         <div className="grid gap-4">
+          {daysOffCard()}
           {data.sessions.length ? null : <p className="wf-muted">Nenhuma sessão ainda.</p>}
+          {upcoming.length > 1 ? (
+            <p className="wf-muted text-xs">
+              Arraste um item para outra live para mudar o dia dele, ou use “Mover para…” no item.
+            </p>
+          ) : null}
           {past.length ? (
             <div className="wf-ops-actions">
               <button
@@ -975,13 +1240,25 @@ export function AgendaBoard({ initial }: { initial: Data; role: StaffRole }) {
           {data.sessions.map((s) => (
             <section
               key={s.id}
-              className={s.status === 'LIVE' ? 'wf-ops-card is-live' : 'wf-ops-card'}
+              className={[
+                'wf-ops-card',
+                s.status === 'LIVE' ? 'is-live' : '',
+                dropOn?.id === s.id ? (dropOn.fits ? 'is-drop' : 'is-drop-full') : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
               aria-label={`Sessão de ${fmtDateTime(s.startsAt)}`}
+              {...dropProps(s)}
             >
               <div className="wf-ops-row__main">
                 <h3>
                   {fmtDateTime(s.startsAt)} · {STATUS_PT[s.status]}
                 </h3>
+                {s.status === 'PLANNED' && offOn(s.startsAt) ? (
+                  <span className="wf-pill wf-pill--warn">
+                    Marcado como {DAY_OFF_LABEL[offOn(s.startsAt)!.reason].toLowerCase()} neste dia
+                  </span>
+                ) : null}
                 <span className="wf-muted text-xs">
                   {s.bookedMinutes} de {s.capacityMinutes} min agendados
                   {s.publicNote ? ` · “${s.publicNote}”` : ''}

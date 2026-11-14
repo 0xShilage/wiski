@@ -3,6 +3,8 @@ import { AdminShell } from '@/components/admin/AdminShell';
 import { adminPage } from '@/components/admin/admin-page';
 import { AgendaBoard } from '@/components/admin/AgendaBoard';
 import type { AgendaEntry, AgendaSession } from '@/lib/admin/types';
+import type { DayOff } from '@/lib/live/days-off';
+import { daysOff } from '@/server/live/daysoff';
 import { queue, sessionsWithEntries } from '@/server/live/schedule';
 import { staffRole } from '@/lib/roles';
 
@@ -14,14 +16,16 @@ const daysAgo = (days: number) => new Date(Date.now() - days * 86_400_000);
 export default async function AgendaPage() {
   const p = await adminPage('/admin/agenda');
   if ('gate' in p) return p.gate;
-  const [sessions, waiting] = await Promise.all([
+  const [sessions, waiting, offs] = await Promise.all([
     sessionsWithEntries({ from: daysAgo(3), take: 40 }),
     queue(),
+    daysOff(),
   ]);
   // dates → ISO strings, the same shape the API answers
-  const initial = JSON.parse(JSON.stringify({ sessions, queue: waiting })) as {
+  const initial = JSON.parse(JSON.stringify({ sessions, queue: waiting, daysOff: offs })) as {
     sessions: AgendaSession[];
     queue: AgendaEntry[];
+    daysOff: DayOff[];
   };
   return (
     <AdminShell

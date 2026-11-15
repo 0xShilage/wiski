@@ -47,7 +47,7 @@
     gap: 20px;
   }
   .wf-reviews__h3 {
-    font-size: 17px;
+    font-size: 18px;
     font-weight: 600;
     color: #f7f2fb;
     margin: 0 0 4px;
@@ -330,7 +330,7 @@
     width: min(520px, 92vw);
   }
   .wf-modal--form .wf-panel h2 {
-    font-size: 17px;
+    font-size: 18px;
   }
 
   /* Avaliações grid: rating under the title */

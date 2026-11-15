@@ -75,7 +75,7 @@
     font-weight: 400;
     font-size: clamp(34px, 2.4vw + 18px, 56px);
     line-height: 1;
-    letter-spacing: 0.01em;
+    letter-spacing: var(--tracking-tight);
     color: #f7f2fb;
     text-shadow: var(--text-glow);
   }
@@ -112,7 +112,7 @@
     padding: 10px;
     text-align: center;
     font-family: var(--font-display);
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1.05;
     text-transform: uppercase;
     overflow-wrap: anywhere;
@@ -248,7 +248,7 @@
     margin: 0 0 4px;
     font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.16em;
+    letter-spacing: var(--tracking-label);
     text-transform: uppercase;
     color: #f2c46d;
   }
@@ -258,7 +258,7 @@
     font-weight: 400;
     font-size: clamp(34px, 2vw + 22px, 52px);
     line-height: 1;
-    letter-spacing: 0.02em;
+    letter-spacing: var(--tracking-normal);
     text-transform: uppercase;
     color: #f7f2fb;
     text-shadow: var(--text-glow);
@@ -309,7 +309,7 @@
     margin-top: 4px;
     font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.1em;
+    letter-spacing: var(--tracking-wide);
     text-transform: uppercase;
     color: var(--color-lilac);
   }
@@ -389,7 +389,7 @@
     text-align: center;
     font-size: 10px;
     font-weight: 800;
-    letter-spacing: 0.16em;
+    letter-spacing: var(--tracking-label);
     text-transform: uppercase;
     color: #1b1225;
     background: linear-gradient(90deg, #e8b452, #ffe2a3 50%, #e8b452);
@@ -435,7 +435,7 @@
     }
     .wf-countdown__l {
       font-size: 10px;
-      letter-spacing: 0.06em;
+      letter-spacing: var(--tracking-wide);
     }
     .wf-soon__list {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -559,7 +559,7 @@
   .wf-member__kind {
     font-size: 11px;
     font-weight: 700;
-    letter-spacing: 0.18em;
+    letter-spacing: var(--tracking-label);
     text-transform: uppercase;
     color: var(--tier);
   }
@@ -589,7 +589,7 @@
     font-family: var(--font-display);
     font-size: clamp(26px, 1.4vw + 18px, 34px);
     line-height: 1;
-    letter-spacing: 0.01em;
+    letter-spacing: var(--tracking-tight);
     overflow-wrap: anywhere;
     text-shadow: var(--text-glow);
   }
@@ -610,7 +610,7 @@
     border-radius: 999px;
     font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.04em;
+    letter-spacing: var(--tracking-wide);
   }
   .wf-member__tier {
     border: 1px solid color-mix(in srgb, var(--tier) 60%, transparent);
@@ -659,7 +659,7 @@
   .wf-member__stats dd {
     margin: 0;
     font-family: var(--font-display);
-    font-size: 26px;
+    font-size: 28px;
     line-height: 1;
     font-variant-numeric: tabular-nums;
   }
@@ -667,7 +667,7 @@
     font-size: 10px;
     font-weight: 600;
     line-height: 1.25;
-    letter-spacing: 0.06em;
+    letter-spacing: var(--tracking-wide);
     text-transform: uppercase;
     color: var(--color-lilac);
   }
@@ -681,7 +681,7 @@
     margin: 0;
     font-size: 13px;
     font-variant-numeric: tabular-nums;
-    letter-spacing: 0.12em;
+    letter-spacing: var(--tracking-label);
     color: var(--color-lilac);
   }
   .wf-member__barcode {

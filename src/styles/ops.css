@@ -368,7 +368,7 @@
   }
   .wf-overlay__label {
     font-size: 16px;
-    letter-spacing: 0.12em;
+    letter-spacing: var(--tracking-label);
     text-transform: uppercase;
     color: var(--color-lavender);
     margin: 0;
@@ -381,7 +381,7 @@
     overflow-wrap: anywhere;
   }
   .wf-overlay__sub {
-    font-size: 22px;
+    font-size: 24px;
     margin: 0;
     color: var(--color-lilac);
     overflow-wrap: anywhere;
@@ -428,9 +428,9 @@
     border-radius: 999px;
     background: linear-gradient(90deg, #c9a8ff, #f2a7dd);
     color: #1f1530;
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 700;
-    letter-spacing: 0.12em;
+    letter-spacing: var(--tracking-label);
     text-transform: uppercase;
     text-shadow: none;
     box-shadow: 0 0 16px rgb(201 168 255 / 0.55);
@@ -438,7 +438,7 @@
   .wf-goal__title {
     margin: 0;
     font-family: var(--font-display);
-    font-size: 34px;
+    font-size: 36px;
     line-height: 1.05;
     text-transform: uppercase;
     color: #f7f2fb;
@@ -450,7 +450,7 @@
     border-radius: 999px;
     background: rgb(31 21 48 / 0.82);
     border: 1px solid rgb(201 168 255 / 0.45);
-    font-size: 19px;
+    font-size: 20px;
     font-weight: 600;
     color: #ecdcff;
     font-variant-numeric: tabular-nums;
@@ -481,13 +481,13 @@
     display: grid;
     justify-items: center;
     gap: 4px;
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 600;
-    letter-spacing: 0.06em;
+    letter-spacing: var(--tracking-wide);
     text-transform: uppercase;
   }
   .wf-goal__kinds small {
-    font-size: 15px;
+    font-size: 16px;
     color: #ecdcff;
     font-variant-numeric: tabular-nums;
     text-transform: none;
@@ -698,9 +698,9 @@
   }
   .wf-subathon__label {
     margin: 0;
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 700;
-    letter-spacing: 0.18em;
+    letter-spacing: var(--tracking-label);
     text-transform: uppercase;
     color: var(--color-lavender);
   }
@@ -710,7 +710,7 @@
     font-size: 76px;
     line-height: 1.05;
     font-variant-numeric: tabular-nums;
-    letter-spacing: 0.02em;
+    letter-spacing: var(--tracking-normal);
     color: #fff;
     text-shadow:
       0 0 6px rgb(169 157 224 / 0.95),
@@ -777,7 +777,7 @@
   }
   .wf-subathon__pops li strong {
     font-family: var(--font-display);
-    font-size: 22px;
+    font-size: 24px;
     font-variant-numeric: tabular-nums;
   }
   .wf-subathon__pops li.is-minus {
@@ -1041,7 +1041,7 @@ html:has(.wf-overlay) .skip-link {
     margin: 0;
     font-size: 13px;
     font-weight: 600;
-    letter-spacing: 0.02em;
+    letter-spacing: var(--tracking-normal);
     color: var(--color-lavender);
   }
   .wf-progress-block__value {
@@ -1357,7 +1357,7 @@ html:has(.wf-overlay) .skip-link {
     background: #f3eef9;
     color: var(--color-ink);
     font: inherit;
-    font-size: 17px;
+    font-size: 18px;
     box-shadow: inset 0 2px 5px rgb(27 18 37 / 0.22);
   }
   .wf-searchbar__input::placeholder {
@@ -1512,7 +1512,7 @@ html:has(.wf-overlay) .skip-link {
     border-radius: 999px;
     font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.02em;
+    letter-spacing: var(--tracking-normal);
     color: var(--color-lilac);
   }
 
@@ -1777,7 +1777,7 @@ html:has(.wf-overlay) .skip-link {
     font-family: var(--font-display);
     font-size: clamp(20px, 2vw + 10px, 28px);
     text-transform: uppercase;
-    letter-spacing: 0.02em;
+    letter-spacing: var(--tracking-normal);
   }
   .wf-twitch__note {
     font-size: 13px;
@@ -1835,9 +1835,9 @@ html:has(.wf-overlay) .skip-link {
   .wf-roleta__label {
     fill: var(--color-lilac);
     font-family: var(--font-sans);
-    font-size: 10.5px;
+    font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.02em;
+    letter-spacing: var(--tracking-normal);
   }
   .wf-roleta__label.is-prize {
     fill: #1f1530;
@@ -1964,7 +1964,7 @@ html:has(.wf-overlay) .skip-link {
     background: #1f1530;
     border: 1px dashed var(--color-lavender);
     font-size: 16px;
-    letter-spacing: 0.06em;
+    letter-spacing: var(--tracking-wide);
     color: #f7f2fb;
     user-select: all;
   }
@@ -2009,7 +2009,7 @@ html:has(.wf-overlay) .skip-link {
   }
   .wf-roleta-page__odds thead th {
     font-size: 12px;
-    letter-spacing: 0.08em;
+    letter-spacing: var(--tracking-wide);
     text-transform: uppercase;
     color: var(--color-lavender);
   }
@@ -2116,7 +2116,7 @@ html:has(.wf-overlay) .skip-link {
     color: #f7f2fb;
   }
   .wf-badge-item__how {
-    font-size: 11.5px;
+    font-size: 12px;
     line-height: 1.35;
     color: var(--fg-70);
   }
@@ -2152,7 +2152,7 @@ html:has(.wf-overlay) .skip-link {
   .wf-rank__title {
     margin: 0;
     font-family: var(--font-display);
-    font-size: 26px;
+    font-size: 28px;
     text-transform: uppercase;
     color: #f7f2fb;
   }
@@ -2253,7 +2253,7 @@ html:has(.wf-overlay) .skip-link {
   }
   .wf-queue-card__fine {
     margin: 10px 0 0;
-    font-size: 12.5px;
+    font-size: 13px;
     color: var(--fg-70);
   }
   .wf-queue-card__fine a {
@@ -2369,7 +2369,7 @@ html:has(.wf-overlay) .skip-link {
   }
   .wf-stat__label {
     margin: 0;
-    font-size: 12.5px;
+    font-size: 13px;
     color: var(--fg-70);
   }
   .wf-stat__value {
@@ -2419,7 +2419,7 @@ html:has(.wf-overlay) .skip-link {
   .wf-viz__table table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13.5px;
+    font-size: 14px;
   }
   .wf-analytics__table th,
   .wf-analytics__table td,
@@ -2432,8 +2432,8 @@ html:has(.wf-overlay) .skip-link {
   }
   .wf-analytics__table thead th,
   .wf-viz__table thead th {
-    font-size: 11.5px;
-    letter-spacing: 0.06em;
+    font-size: 12px;
+    letter-spacing: var(--tracking-wide);
     text-transform: uppercase;
     color: var(--color-lavender);
   }
@@ -2466,7 +2466,7 @@ html:has(.wf-overlay) .skip-link {
   }
   .wf-viz__value {
     fill: rgb(229 221 237 / 0.85);
-    font-size: 12.5px;
+    font-size: 13px;
     font-variant-numeric: tabular-nums;
   }
   .wf-viz__bar {
@@ -2490,7 +2490,7 @@ html:has(.wf-overlay) .skip-link {
   }
   .wf-viz__tooltip-label {
     fill: rgb(229 221 237 / 0.75);
-    font-size: 11.5px;
+    font-size: 12px;
   }
   .wf-viz__tooltip-value {
     fill: #f7f2fb;

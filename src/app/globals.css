@@ -95,6 +95,11 @@
   --dur-hover: 220ms;
   --dur-enter: 420ms;
   --dur-fade: 600ms;
+  /* Letter-spacing (2026-11-14): four steps, nothing in between */
+  --tracking-tight: 0.005em;
+  --tracking-normal: 0.02em;
+  --tracking-wide: 0.08em;
+  --tracking-label: 0.14em;
 
   /* ── Aspect ratios taken from asset viewBoxes ── */
   --aspect-poster: 2 / 3;

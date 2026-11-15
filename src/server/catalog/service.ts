@@ -351,7 +351,7 @@ export function missingForPublish(item: CatalogItem, entries: number): ProblemFi
   need(item.backdropId, 'backdropId', 'Envie a imagem de fundo (16:9).');
   if (isEpisodic(item.kind)) {
     need(item.seasonCount, 'seasonCount', 'Informe quantas temporadas estão incluídas.');
-    need(item.seasonsLabel, 'seasonsLabel', 'Descreva as temporadas (ex.: "Temporadas 1–3").');
+    need(item.seasonsLabel, 'seasonsLabel', 'Descreva as temporadas (ex.: “Temporadas 1–3”).');
   }
   if (item.kind === 'FRANCHISE')
     need(entries >= 2, 'franchiseEntries', 'Liste pelo menos 2 filmes.');

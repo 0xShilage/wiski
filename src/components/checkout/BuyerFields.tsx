@@ -101,7 +101,7 @@ export function BuyerFields({
               className={errors.displayName ? 'wf-hint wf-hint--err' : 'wf-hint'}
             >
               {errors.displayName ??
-                'Aparece na live junto com o filme. Sem nome: "Anônimo". A moderação pode ocultar nomes ofensivos.'}
+                'Aparece na live junto com o filme. Sem nome: “Anônimo”. A moderação pode ocultar nomes ofensivos.'}
             </span>
           </label>
         </>

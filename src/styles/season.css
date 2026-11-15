@@ -236,7 +236,7 @@ html[data-season]:not(:has(.wf-overlay))::after {
     font-weight: 400;
     font-size: clamp(26px, 1vw + 20px, 34px);
     line-height: 1.05;
-    letter-spacing: 0.02em;
+    letter-spacing: var(--tracking-normal);
     text-transform: uppercase;
     text-shadow: var(--text-glow);
   }

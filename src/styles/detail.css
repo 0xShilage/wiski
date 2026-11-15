@@ -74,7 +74,7 @@
     grid-template-columns: max-content 1fr;
     gap: 8px 20px;
     margin: 24px 0 0;
-    font-size: 15px;
+    font-size: 16px;
   }
   .wf-detail dt {
     color: var(--color-lavender);

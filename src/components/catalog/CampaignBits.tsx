@@ -62,16 +62,21 @@ export function CampaignStatus({ c }: { c: PublicCampaign }) {
 export function CampaignChips({ c }: { c: PublicCampaign }) {
   const d = daysLeft(c);
   return (
-    <ul className="wf-chips mt-4 list-none p-0" aria-label="Detalhes da campanha">
+    // 2026-11-14: a quiet line of facts (dividers), not a row of outlined chips
+    <ul className="wf-meta mt-4 list-none p-0" aria-label="Detalhes da campanha">
       {c.state === 'OPEN' ? (
-        <li className="wf-chip">{d === 1 ? 'Falta 1 dia' : `Faltam ${d} dias`}</li>
+        <li className="wf-meta__item">{d === 1 ? 'Falta 1 dia' : `Faltam ${d} dias`}</li>
       ) : null}
-      <li className="wf-chip">
+      <li className="wf-meta__item">
         {c.supporterCount} {c.supporterCount === 1 ? 'apoiador' : 'apoiadores'}
       </li>
-      <li className="wf-chip">Mínimo {formatBRL(MIN_CONTRIBUTION_CENTS).replace(',00', '')}</li>
+      <li className="wf-meta__item">
+        Mínimo {formatBRL(MIN_CONTRIBUTION_CENTS).replace(',00', '')}
+      </li>
       {c.extensions > 0 ? (
-        <li className="wf-chip">Prazo prorrogado até {dateFmt.format(new Date(c.deadlineAt))}</li>
+        <li className="wf-meta__item">
+          Prazo prorrogado até {dateFmt.format(new Date(c.deadlineAt))}
+        </li>
       ) : null}
     </ul>
   );

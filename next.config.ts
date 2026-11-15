@@ -7,6 +7,11 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   productionBrowserSourceMaps: false,
+  experimental: {
+    // "Instant" navigation (2026-11-14, IntentPrefetch): a page fetched on intent (hover, touch,
+    // focus) is reused for 30 s, not the default 5 min, so nothing on screen is ever older than that
+    staleTimes: { dynamic: 0, static: 30 },
+  },
   // Server-only packages that should not be bundled (native/optional deps, worker threads).
   serverExternalPackages: ['pino', 'pg', 'ioredis'],
   // R1: /entrar and /conta fold into /perfil (12 §2 step 7). 301 keeps the query (?erro, ?returnTo).

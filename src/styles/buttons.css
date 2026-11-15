@@ -17,10 +17,11 @@
     text-decoration: none;
     cursor: pointer;
     transition:
-      box-shadow 0.25s,
-      transform 0.15s,
-      border-color 0.2s,
-      background-color 0.2s;
+      box-shadow var(--dur-hover) var(--ease-out),
+      transform var(--dur-press) var(--ease-out),
+      scale var(--dur-press) var(--ease-out),
+      border-color var(--dur-hover) var(--ease-out),
+      background-color var(--dur-hover) var(--ease-out);
   }
   .wf-btn svg {
     width: 14px;
@@ -90,8 +91,9 @@
     color: var(--color-lilac);
     cursor: pointer;
     transition:
-      box-shadow 0.2s,
-      border-color 0.2s;
+      box-shadow var(--dur-hover) var(--ease-out),
+      border-color var(--dur-hover) var(--ease-out),
+      scale var(--dur-press) var(--ease-out);
   }
   .wf-iconbtn:hover {
     border-color: var(--color-lavender);

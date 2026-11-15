@@ -371,6 +371,10 @@ model MediaAsset {
   /// POSTER (2026-11-13): up to five colours of the poster, most present first, #rrggbb each
   /// (CHECK); empty until worked out (older assets: the first time their page is opened)
   palette      String[]  @default([])
+  /// POSTER, BACKDROP, PORTRAIT (2026-11-14): a ~24 px WebP as a data: URI, shown blurred until the
+  /// real image arrives; null until worked out (older assets: the worker's media.lqip job), '' when
+  /// it can't be (CHECK in the constraints migration)
+  lqip         String?
   uploadedById String    @db.Uuid
   createdAt    DateTime  @default(now()) @db.Timestamptz(3)
   unusedSince  DateTime? @db.Timestamptz(3) // GC after 30 days

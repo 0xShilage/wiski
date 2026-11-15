@@ -284,7 +284,7 @@ export async function myOrders(user: User) {
           kind: true,
           slug: true,
           title: true,
-          poster: { select: { width: true, height: true, variants: true } },
+          poster: { select: { width: true, height: true, variants: true, lqip: true } },
         },
       },
     },

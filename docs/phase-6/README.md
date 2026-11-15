@@ -577,3 +577,25 @@ Full white-box review plus active testing against the production stack: [`../sec
   - `tests/integration/movie-backdrops.test.ts`: order, public page, reorder/remove, revert, old snapshots, refusals, database floor.
   - `tests/e2e/backdrops.spec.ts`: dashboard upload and reorder, the page fading 0 → 1 → 2 → 0, reduced motion on both projects. Screenshots `test-results/backdrops/`.
 
+## 46. Sensação premium — Feel (2026-11-14)
+
+- **Instant navigation.** `src/components/fx/IntentPrefetch.tsx`, mounted once in the site layout.
+  - It fetches a link's whole next page, data included (`router.prefetch(href, { kind: 'full' })`), when someone shows intent: the mouse rests on it for 70 ms, a finger touches it, or the keyboard focuses it.
+  - Same-origin pages only. Never `/api`, `/media`, `/admin`, another tab, a download, or the page already open; `data-no-prefetch` opts a link out.
+  - At most once per address per 25 s, and 8 per 10 s, far from nginx's per-IP burst. That burst is why the links themselves still don't prefetch on sight.
+  - A fetched page is reused for 30 s (`experimental.staleTimes.static`, down from 5 min), so nothing shown is older than that.
+  - A press answers at once: buttons, cards and chips scale to 0.97 while held.
+- **Blur-up images.** Posters, backgrounds and portraits get `MediaAsset.lqip`: a 24 px WebP as a data URI.
+  - Made at upload (`src/server/media/lqip.ts`). Older assets are filled in by the worker job `media.lqip`, 25 a minute, newest first, with `''` when the file can't be read.
+  - CHECK `media_asset_lqip` (migrations `20261129120000_media_lqip` and `_constraints`) allows only a base64 WebP data URI of at most 3000 characters, or `''`.
+  - `pictureFrom` passes on only a well-formed one, and `MediaPicture` puts it in `data-lqip`.
+  - `ImageFader` (site layout) paints it, stretched and blurred on a `::before` layer, behind any image still loading. It uses a CSS variable set through the CSSOM, which the CSP allows. The image then fades and sharpens in over 0.6 s; already-loaded images are left alone.
+  - Reduced motion: the image just replaces it.
+- **One way of moving.** Motion tokens in `globals.css`: `--ease-out`, `--ease-in-out`, `--ease-spring`, `--dur-press` (120 ms), `--dur-hover` (220 ms), `--dur-enter` (420 ms) and `--dur-fade` (600 ms). Every hover and press transition in `src/styles` now uses them.
+  - The signature moment: a poster in the movie and campaign grids morphs into the title page's poster. React `<ViewTransition name="poster-<id>" share="wf-morph">`, styled in `src/styles/premium.css`.
+  - It plays when the page was fetched on intent, which is the usual case now. The rest of the page crossfades in 0.22 s.
+  - Reduced motion turns every view transition off.
+- **Tests.**
+  - `tests/integration/media-lqip.test.ts`: made at upload for opaque roles only; worker backfill and give-up; malformed ones never reach a picture; the CHECK.
+  - `tests/e2e/premium-feel.spec.ts`: hover fetches the page before the click, the click lands in under 1.5 s with a view transition; a slow image shows its placeholder and fades in; no CSP violations. Screenshots `test-results/premium/`.
+

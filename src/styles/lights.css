@@ -73,7 +73,7 @@
     color: var(--color-lilac);
     text-decoration: none;
     filter: drop-shadow(0 0 8px rgb(169 157 224 / 0.22));
-    transition: filter 0.2s;
+    transition: filter var(--dur-hover) var(--ease-out);
   }
   .wf-stub:hover,
   .wf-stub:focus-visible {

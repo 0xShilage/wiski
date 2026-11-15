@@ -41,7 +41,7 @@
     line-height: 1;
     white-space: nowrap;
     text-decoration: none;
-    transition: background-color 0.2s;
+    transition: background-color var(--dur-hover) var(--ease-out);
   }
   .wf-livebar:hover {
     background-color: rgb(46 33 65 / 0.95);
@@ -200,7 +200,7 @@
     color: var(--fg-78);
     padding-block: 6px 12px;
     text-decoration: none;
-    transition: color 0.2s;
+    transition: color var(--dur-hover) var(--ease-out);
   }
   .wf-nav a::after {
     content: '';
@@ -235,7 +235,7 @@
     background: none;
     border: 0;
     cursor: pointer;
-    transition: color 0.2s;
+    transition: color var(--dur-hover) var(--ease-out);
   }
   .wf-nav__more:hover,
   .wf-nav__more.is-active {
@@ -331,8 +331,8 @@
     color: var(--color-lilac);
     cursor: pointer;
     transition:
-      color 0.2s,
-      background-color 0.2s;
+      color var(--dur-hover) var(--ease-out),
+      background-color var(--dur-hover) var(--ease-out);
   }
   .wf-drawer__close svg {
     width: 28px;
@@ -370,8 +370,8 @@
     color: var(--fg-78);
     text-decoration: none;
     transition:
-      color 0.2s,
-      text-shadow 0.2s;
+      color var(--dur-hover) var(--ease-out),
+      text-shadow var(--dur-hover) var(--ease-out);
   }
   .wf-drawer__main a {
     font-size: clamp(24px, 0.8vw + 16px, 32px);

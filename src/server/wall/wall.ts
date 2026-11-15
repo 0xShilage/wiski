@@ -41,7 +41,7 @@ export async function supportersWall(limit = 120): Promise<WallEntry[]> {
           title: true,
           kind: true,
           slug: true,
-          poster: { select: { width: true, height: true, variants: true } },
+          poster: { select: { width: true, height: true, variants: true, lqip: true } },
         },
       },
     },

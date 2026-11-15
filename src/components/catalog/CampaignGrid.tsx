@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { ViewTransition } from 'react';
 import { MediaPicture } from '@/components/media/MediaPicture';
 import {
   CAMPAIGN_SORTS,
@@ -68,11 +69,14 @@ export function CampaignGrid({
                 data-tilt
               >
                 <div className="wf-scard__poster">
-                  <MediaPicture
-                    picture={item.poster}
-                    alt=""
-                    sizes="(max-width: 760px) 50vw, (max-width: 1440px) 25vw, 320px"
-                  />
+                  {/* the poster morphs into the title page (2026-11-14) */}
+                  <ViewTransition name={`poster-${item.id}`} share="wf-morph" default="none">
+                    <MediaPicture
+                      picture={item.poster}
+                      alt=""
+                      sizes="(max-width: 760px) 50vw, (max-width: 1440px) 25vw, 320px"
+                    />
+                  </ViewTransition>
                 </div>
                 <div className="wf-scard__body">
                   <h3 className="wf-scard__title">{item.title}</h3>

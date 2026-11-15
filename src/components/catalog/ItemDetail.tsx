@@ -17,6 +17,7 @@ import {
   campaignSubtitle,
 } from './CampaignBits';
 import { marathonTrail } from '@/lib/trail';
+import { ViewTransition } from 'react';
 import { AmbientGlow } from './AmbientGlow';
 import { BackdropFade } from './BackdropFade';
 import { MarathonTrail } from './MarathonTrail';
@@ -79,7 +80,10 @@ export function ItemDetail({
           <div className="wf-detail__postercell">
             <AmbientGlow color={item.accent} part="halo" />
             <div className="wf-detail__poster">
-              <MediaPicture picture={item.poster} alt={`Pôster de ${item.title}`} sizes="300px" />
+              {/* the list's poster grows into this one (2026-11-14) */}
+              <ViewTransition name={`poster-${item.id}`} share="wf-morph" default="none">
+                <MediaPicture picture={item.poster} alt={`Pôster de ${item.title}`} sizes="300px" />
+              </ViewTransition>
             </div>
           </div>
 

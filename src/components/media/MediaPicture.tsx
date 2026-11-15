@@ -13,11 +13,13 @@ type Props = {
 /**
  * <picture> with AVIF + WebP srcsets from a MediaAsset (11 §5). Same-origin /media/ URLs only;
  * width/height attributes reserve the space (no layout shift). No inline styles (CSP).
+ * Blur-up (2026-11-14): with a placeholder, `data-lqip` carries it and `ImageFader` paints it
+ * behind the image (a CSS variable set from script) and fades the image in once it has loaded.
  */
 export function MediaPicture({ picture, alt, sizes, className, priority = false }: Props) {
   if (!picture) return null;
   return (
-    <picture>
+    <picture className="wf-pic" {...(picture.lqip ? { 'data-lqip': picture.lqip } : {})}>
       {picture.avif ? <source type="image/avif" srcSet={picture.avif} sizes={sizes} /> : null}
       <source type="image/webp" srcSet={picture.webp} sizes={sizes} />
       <img

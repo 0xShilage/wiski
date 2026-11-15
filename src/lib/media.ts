@@ -21,7 +21,13 @@ export type Picture = {
   avif: string; // srcset
   webp: string; // srcset
   fallback: string; // a mid-size WebP for <img src>
+  /** blur-up placeholder (2026-11-14): a tiny WebP data: URI, shown soft until the image loads */
+  lqip?: string;
 };
+
+/** What a blur-up placeholder may look like (the database CHECK says the same). */
+export const LQIP_PATTERN = /^data:image\/webp;base64,[A-Za-z0-9+/]+={0,2}$/;
+const LQIP_MAX = 3000;
 
 /** Fixed output widths per role (11 §5). */
 export const MEDIA_WIDTHS = {
@@ -34,23 +40,18 @@ export const MEDIA_WIDTHS = {
 
 const SAFE_PATH = /^\/media\/[0-9a-f]{32}-\d{2,4}\.(?:avif|webp)$/;
 
-export function pictureFrom(
-  asset: { width: number; height: number; variants: unknown } | null | undefined,
-): Picture | null {
+type AssetLike = { width: number; height: number; variants: unknown; lqip?: string | null };
+
+export function pictureFrom(asset: AssetLike | null | undefined): Picture | null {
   return pictureOf(asset, false);
 }
 
 /** An animated badge's first frame (for "reduce motion"), or null when it isn't animated. */
-export function stillFrom(
-  asset: { width: number; height: number; variants: unknown } | null | undefined,
-): Picture | null {
+export function stillFrom(asset: AssetLike | null | undefined): Picture | null {
   return pictureOf(asset, true);
 }
 
-function pictureOf(
-  asset: { width: number; height: number; variants: unknown } | null | undefined,
-  still: boolean,
-): Picture | null {
+function pictureOf(asset: AssetLike | null | undefined, still: boolean): Picture | null {
   if (!asset || !Array.isArray(asset.variants)) return null;
   const vs = (asset.variants as MediaVariant[]).filter(
     (v) =>
@@ -75,5 +76,8 @@ function pictureOf(
     avif: set('avif'),
     webp: set('webp'),
     fallback: mid.path,
+    ...(asset.lqip && asset.lqip.length <= LQIP_MAX && LQIP_PATTERN.test(asset.lqip)
+      ? { lqip: asset.lqip }
+      : {}),
   };
 }

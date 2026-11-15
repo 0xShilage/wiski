@@ -1,0 +1,70 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Premium feel (2026-11-14): images that arrive softly instead of popping in, a press that answers
+   at once, and the poster that morphs into the title page. Motion tokens live in globals.css
+   (--ease-*, --dur-*); everything here keeps still with reduced motion.
+   ───────────────────────────────────────────────────────────────────────────── */
+@layer components {
+  /* ── Blur-up: the tiny placeholder behind an image still on its way (ImageFader), stretched and
+     softened on a layer of its own. :where() keeps these weightless, so a container that places
+     its picture (absolute, fixed…) still wins. ── */
+  :where(picture.wf-pic[style]) {
+    display: block;
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+  picture.wf-pic[style]::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--lq, none) center / cover no-repeat;
+    filter: blur(14px) saturate(1.15);
+    scale: 1.15;
+  }
+  picture.wf-pic img.is-pending {
+    opacity: 0;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    picture.wf-pic img.is-arriving {
+      animation: wf-arrive var(--dur-fade) var(--ease-out);
+    }
+  }
+  @keyframes wf-arrive {
+    from {
+      opacity: 0;
+      filter: blur(10px);
+    }
+  }
+
+  /* ── A press answers at once (buttons, cards, chips) ── */
+  .wf-btn:active:not(:disabled),
+  .wf-iconbtn:active:not(:disabled),
+  .wf-scard:active,
+  .wf-chip:active {
+    scale: 0.97;
+  }
+}
+
+/* ── The poster that becomes the title page (React <ViewTransition share="wf-morph">) ── */
+::view-transition-group(*.wf-morph) {
+  animation-duration: var(--dur-enter);
+  animation-timing-function: var(--ease-out);
+}
+::view-transition-old(*.wf-morph),
+::view-transition-new(*.wf-morph) {
+  height: 100%;
+  object-fit: cover;
+}
+/* the rest of the page: a quick crossfade under the morph */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.22s;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

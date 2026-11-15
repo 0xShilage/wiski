@@ -49,7 +49,7 @@ export type PublicRelease = {
   poster: Picture | null;
 };
 
-const mediaSelect = { select: { width: true, height: true, variants: true } } as const;
+const mediaSelect = { select: { width: true, height: true, variants: true, lqip: true } } as const;
 
 /** Cronograma: from a week ago on, soonest first. */
 export async function publicReleases(now = new Date()): Promise<PublicRelease[]> {

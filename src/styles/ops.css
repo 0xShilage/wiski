@@ -1122,9 +1122,9 @@ html:has(.wf-overlay) .skip-link {
     color: #f7f2fb;
     text-decoration: none;
     transition:
-      border-color 0.2s,
-      box-shadow 0.2s,
-      transform 0.2s;
+      border-color var(--dur-hover) var(--ease-out),
+      box-shadow var(--dur-hover) var(--ease-out),
+      transform var(--dur-hover) var(--ease-out);
   }
   .wf-links__btn:hover {
     border-color: var(--color-lavender);
@@ -1149,8 +1149,8 @@ html:has(.wf-overlay) .skip-link {
     background: rgb(169 157 224 / 0.14);
     color: var(--color-lavender);
     transition:
-      background-color 0.2s,
-      color 0.2s;
+      background-color var(--dur-hover) var(--ease-out),
+      color var(--dur-hover) var(--ease-out);
   }
   .wf-links__icon svg {
     width: 22px;
@@ -1383,7 +1383,7 @@ html:has(.wf-overlay) .skip-link {
     background: transparent;
     color: #fff;
     cursor: pointer;
-    transition: background-color 0.15s;
+    transition: background-color var(--dur-hover) var(--ease-out);
   }
   .wf-searchbar__go svg {
     width: 30px;
@@ -1475,8 +1475,8 @@ html:has(.wf-overlay) .skip-link {
     background: rgb(46 33 65 / 0.9);
     border: 1px solid rgb(169 157 224 / 0.25);
     transition:
-      border-color 0.2s,
-      box-shadow 0.2s;
+      border-color var(--dur-hover) var(--ease-out),
+      box-shadow var(--dur-hover) var(--ease-out);
   }
   .wf-seen__poster img {
     display: block;
@@ -1764,7 +1764,7 @@ html:has(.wf-overlay) .skip-link {
     background: var(--color-lavender);
     color: var(--color-ink);
     box-shadow: var(--glow);
-    transition: transform 0.2s;
+    transition: transform var(--dur-hover) var(--ease-out);
   }
   .wf-twitch__play svg {
     width: 28px;

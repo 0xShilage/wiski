@@ -615,9 +615,8 @@ Full white-box review plus active testing against the production stack: [`../sec
   - The big blocks of a page sit on one rhythm (56–88 px apart; a utility margin still wins), and pages end with more space.
   - Status pills and chips lose their outline for a soft tinted label.
   - A campaign's facts (days left, supporters, minimum, extended deadline) are a quiet line with dividers instead of a row of outlined chips.
-- **Material.** Velvet: a fine-nap tile (`public/fx/velvet.png`) on panels, reviews, the drawer and the footer.
-  - A film grain over the whole site and a soft light following the mouse shipped with this batch (#95) and were taken out on 2026-11-15: the owner didn't like the result. Don't bring them back.
-- **Tests.** `tests/e2e/premium-look.spec.ts` covers the velvet, balanced titles, tabular prices and the quiet campaign facts. It also checks that neither the grain nor the mouse light is on the page, even after the mouse moves. Screenshots `test-results/premium-look/`.
+- **Material: none.** A film grain over the whole site, a soft light following the mouse (both #95, out in #97) and a velvet texture on panels, reviews, the drawer and the footer (#95, out on 2026-11-15) were all taken out: the owner didn't like the result, and the velvet read as a stain. Don't bring any of them back.
+- **Tests.** `tests/e2e/premium-look.spec.ts` covers balanced titles, tabular prices and the quiet campaign facts. It also checks that none of the three textures is back: no grain or mouse light on the page, even after the mouse moves, and plain panels and footer. Screenshots `test-results/premium-look/`.
 
 ## 48. Sensação premium — Details (2026-11-14)
 

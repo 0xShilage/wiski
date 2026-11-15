@@ -70,7 +70,7 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Premium look (2026-11-14): typography polish and material (velvet).
+   Premium look (2026-11-14): typography polish.
    ───────────────────────────────────────────────────────────────────────────── */
 @layer components {
   /* ── Typography: balanced headings, no orphans in paragraphs, titles set tighter, figures that
@@ -128,17 +128,8 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* (film grain and the mouse light, 2026-11-14, were taken out the same week: §47) */
-
-  /* ── Velvet: the dark surfaces get a fine nap, like a theater seat ── */
-  .wf-panel,
-  .wf-review,
-  .wf-drawer__panel,
-  .wf-footer {
-    background-image: url('/fx/velvet.png');
-    background-repeat: repeat;
-    background-size: 96px 192px;
-  }
+  /* (film grain, the mouse light and the velvet texture, 2026-11-14, were taken out again on
+     2026-11-15: §47) */
 }
 
 @layer components {

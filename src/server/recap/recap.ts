@@ -16,7 +16,7 @@ const titleSelect = {
   runtimeMinutes: true,
   watchedAt: true,
   offStream: true,
-  poster: { select: { width: true, height: true, variants: true } },
+  poster: { select: { width: true, height: true, variants: true, lqip: true } },
 } as const;
 
 type TitleRow = {

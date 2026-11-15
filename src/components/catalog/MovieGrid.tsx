@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { ViewTransition } from 'react';
 import { MediaPicture } from '@/components/media/MediaPicture';
 import {
   type CatalogFilter,
@@ -61,11 +62,14 @@ export function MovieGrid({
                 data-tilt
               >
                 <div className="wf-scard__poster">
-                  <MediaPicture
-                    picture={m.poster}
-                    alt=""
-                    sizes="(max-width: 760px) 50vw, (max-width: 1440px) 17vw, 220px"
-                  />
+                  {/* the poster morphs into the title page (2026-11-14) */}
+                  <ViewTransition name={`poster-${m.id}`} share="wf-morph" default="none">
+                    <MediaPicture
+                      picture={m.poster}
+                      alt=""
+                      sizes="(max-width: 760px) 50vw, (max-width: 1440px) 17vw, 220px"
+                    />
+                  </ViewTransition>
                   {m.state === 'RESERVED' ? (
                     <span className="wf-badge wf-badge--reserved">Reservado</span>
                   ) : null}

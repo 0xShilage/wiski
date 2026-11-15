@@ -30,7 +30,10 @@ export const portraitInput = z
 export async function guidePortraits(guide: string): Promise<Record<string, Picture>> {
   const rows = await db().guidePortrait.findMany({
     where: { guide },
-    select: { slot: true, asset: { select: { width: true, height: true, variants: true } } },
+    select: {
+      slot: true,
+      asset: { select: { width: true, height: true, variants: true, lqip: true } },
+    },
   });
   const out: Record<string, Picture> = {};
   for (const r of rows) {
@@ -72,7 +75,7 @@ export async function setPortrait(
 
   const asset = await db().mediaAsset.findUnique({
     where: { id: input.assetId },
-    select: { id: true, role: true, width: true, height: true, variants: true },
+    select: { id: true, role: true, width: true, height: true, variants: true, lqip: true },
   });
   if (!asset || asset.role !== 'PORTRAIT')
     throw Problems.validation([

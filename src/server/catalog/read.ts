@@ -18,10 +18,18 @@ export type { PublicCampaign, PublicItem, PublicState } from '@/lib/catalog/type
 /** Read models for the public pages/API and for the dashboard. Never exposes internal ids of
  *  users, order data, or anything the visitor shouldn't see. */
 
-const mediaSelect = { select: { width: true, height: true, variants: true } } as const;
+const mediaSelect = { select: { width: true, height: true, variants: true, lqip: true } } as const;
 /** the detail page also needs the poster's accent (and its id, to fill it in once) */
 const posterSelect = {
-  select: { id: true, accent: true, palette: true, width: true, height: true, variants: true },
+  select: {
+    id: true,
+    accent: true,
+    palette: true,
+    width: true,
+    height: true,
+    variants: true,
+    lqip: true,
+  },
 } as const;
 const SPONSOR_ORDER_STATUSES = ['PAID', 'SCHEDULED', 'WATCHING', 'COMPLETED'] as const;
 

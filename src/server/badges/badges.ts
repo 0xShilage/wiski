@@ -27,7 +27,7 @@ import { plainText } from '../text/sanitize';
  */
 type Ctx = { actor: { id: string; role: Role }; requestId: string | null };
 
-const assetSelect = { select: { width: true, height: true, variants: true } } as const;
+const assetSelect = { select: { width: true, height: true, variants: true, lqip: true } } as const;
 
 export const BadgeProblems = {
   notFound: () => new HttpError(404, 'BADGE_NOT_FOUND', 'Emblema não encontrado.'),

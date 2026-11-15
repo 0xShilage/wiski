@@ -412,7 +412,7 @@
     fill: #1b1225;
     stroke: var(--color-lavender);
     stroke-width: 2.5;
-    transition: stroke-width 0.15s;
+    transition: stroke-width var(--dur-hover) var(--ease-out);
   }
   .wf-wpin__icon {
     fill: var(--color-lavender);

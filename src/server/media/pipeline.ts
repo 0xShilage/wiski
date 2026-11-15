@@ -17,6 +17,7 @@ import { mediaDir } from '../env';
 import { HttpError, Problems } from '../http/problem';
 import { logger } from '../log';
 import { accentOf } from './accent';
+import { LQIP_ROLES, lqipOf } from './lqip';
 import { paletteOf } from './palette';
 import { type ImageFormat, SNIFF_BYTES, sniffImage } from './sniff';
 
@@ -224,6 +225,8 @@ type Processed = {
   accent: string | null;
   /** POSTER: up to five colours (2026-11-13), from the same image */
   palette: string[];
+  /** POSTER, BACKDROP, PORTRAIT: the blur-up placeholder (2026-11-14); null for other roles */
+  lqip: string | null;
 };
 
 async function processImage(
@@ -279,7 +282,16 @@ async function processImage(
     const smallestWebp = outputs.find((o) => o.format === 'webp')!;
     const accent = role === 'POSTER' ? await accentOf(smallestWebp.data) : null;
     const palette = role === 'POSTER' ? await paletteOf(smallestWebp.data) : [];
-    return { sha256: sha, width: largest.w, height: outputs.at(-1)!.h, outputs, accent, palette };
+    const lqip = LQIP_ROLES.includes(role) ? await lqipOf(smallestWebp.data) : null;
+    return {
+      sha256: sha,
+      width: largest.w,
+      height: outputs.at(-1)!.h,
+      outputs,
+      accent,
+      palette,
+      lqip,
+    };
   } catch (err) {
     if (err instanceof HttpError) throw err;
     logger.warn(
@@ -373,7 +385,15 @@ async function processAnimated(
         .toBuffer();
       outputs.push({ ...size, format: 'webp', data: webp, still: stillSha });
     }
-    return { sha256: sha, width: largest.w, height: largest.h, outputs, accent: null, palette: [] };
+    return {
+      sha256: sha,
+      width: largest.w,
+      height: largest.h,
+      outputs,
+      accent: null,
+      palette: [],
+      lqip: null,
+    };
   } catch (err) {
     if (err instanceof HttpError) throw err;
     logger.warn(
@@ -433,6 +453,7 @@ export async function ingestFile(
           variants,
           accent: processed.accent,
           palette: processed.palette,
+          lqip: processed.lqip,
           uploadedById,
         },
       });

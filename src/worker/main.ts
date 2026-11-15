@@ -27,6 +27,7 @@ import { syncSiteCredits } from '@/server/subathon/credits';
 import { startStreamElements } from '@/server/subathon/streamelements';
 import { finishIfDue } from '@/server/subathon/timer';
 import { announceOpenBadges } from '@/server/chat/announce';
+import { backfillLqip } from '@/server/media/lqip';
 import { runAuditVerify } from './jobs/audit-verify';
 import { WAKE_CHANNEL } from '@/server/payments/wake';
 
@@ -73,6 +74,8 @@ const jobs: Job[] = [
   },
   // Anúncios automáticos (2026-11-13): an event badge open during a live, once
   { name: 'chat.announce', everyMs: 60_000, run: () => announceOpenBadges() },
+  // blur-up placeholders (2026-11-14) for images uploaded before they existed, a few a minute
+  { name: 'media.lqip', everyMs: 60_000, run: () => backfillLqip() },
   {
     name: 'daily',
     everyMs: 60_000,

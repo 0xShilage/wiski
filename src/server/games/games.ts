@@ -44,7 +44,9 @@ export type GameInput = {
   coverId?: string | null | undefined;
 };
 
-const coverSelect = { cover: { select: { width: true, height: true, variants: true } } } as const;
+const coverSelect = {
+  cover: { select: { width: true, height: true, variants: true, lqip: true } },
+} as const;
 
 function view(
   g: Game & { cover: { width: number; height: number; variants: unknown } | null },

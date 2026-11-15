@@ -32,7 +32,7 @@ export async function ticketOf(
   const [item, user, queue] = await Promise.all([
     db().catalogItem.findUnique({
       where: { id: order.itemId },
-      select: { poster: { select: { width: true, height: true, variants: true } } },
+      select: { poster: { select: { width: true, height: true, variants: true, lqip: true } } },
     }),
     order.userId && order.showSponsorName
       ? db().user.findUnique({

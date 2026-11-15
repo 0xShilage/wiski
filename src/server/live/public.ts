@@ -141,7 +141,10 @@ export async function cronograma(now = new Date()): Promise<CronogramaDay[]> {
     (ids.length
       ? await db().catalogItem.findMany({
           where: { id: { in: ids } },
-          select: { id: true, poster: { select: { width: true, height: true, variants: true } } },
+          select: {
+            id: true,
+            poster: { select: { width: true, height: true, variants: true, lqip: true } },
+          },
         })
       : []
     ).map((i) => [i.id, pictureFrom(i.poster)]),
@@ -249,7 +252,7 @@ export type FilaEntry = {
   lastPart: string | null;
 };
 
-const posterSelect = { select: { width: true, height: true, variants: true } } as const;
+const posterSelect = { select: { width: true, height: true, variants: true, lqip: true } } as const;
 const filaItemSelect = {
   id: true,
   kind: true,

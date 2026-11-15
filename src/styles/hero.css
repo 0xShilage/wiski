@@ -225,9 +225,9 @@
     color: inherit;
     cursor: pointer;
     transition:
-      width 0.25s,
-      height 0.25s,
-      box-shadow 0.25s;
+      width var(--dur-hover) var(--ease-out),
+      height var(--dur-hover) var(--ease-out),
+      box-shadow var(--dur-hover) var(--ease-out);
   }
   .wf-card img {
     position: absolute;
@@ -242,7 +242,7 @@
     inset: 0;
     background:
       linear-gradient(180deg, rgb(27 18 37 / 0) 55%, rgb(27 18 37 / 0.85) 100%), var(--veil);
-    transition: background-color 0.25s;
+    transition: background-color var(--dur-hover) var(--ease-out);
   }
   .wf-card__title {
     position: absolute;

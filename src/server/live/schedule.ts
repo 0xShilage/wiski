@@ -584,7 +584,7 @@ const segmentEntrySelect = {
   campaignId: true,
   campaign: { select: { item: { select: { id: true, kind: true, slug: true, title: true } } } },
   posterId: true,
-  poster: { select: { width: true, height: true, variants: true } },
+  poster: { select: { width: true, height: true, variants: true, lqip: true } },
 } satisfies Prisma.LiveSegmentSelect;
 
 function segmentEntry(

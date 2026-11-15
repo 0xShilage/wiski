@@ -161,7 +161,7 @@ export async function popupForAdmin() {
   const image = s.imageId
     ? await db().mediaAsset.findUnique({
         where: { id: s.imageId },
-        select: { width: true, height: true, variants: true },
+        select: { width: true, height: true, variants: true, lqip: true },
       })
     : null;
   return { ...s, image: pictureFrom(image) };
@@ -244,7 +244,7 @@ export async function homePopup(now = new Date()): Promise<HomePopup | null> {
     const image = s.imageId
       ? await db().mediaAsset.findUnique({
           where: { id: s.imageId },
-          select: { width: true, height: true, variants: true },
+          select: { width: true, height: true, variants: true, lqip: true },
         })
       : null;
     return {

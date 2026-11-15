@@ -599,3 +599,25 @@ Full white-box review plus active testing against the production stack: [`../sec
   - `tests/integration/media-lqip.test.ts`: made at upload for opaque roles only; worker backfill and give-up; malformed ones never reach a picture; the CHECK.
   - `tests/e2e/premium-feel.spec.ts`: hover fetches the page before the click, the click lands in under 1.5 s with a view transition; a slow image shows its placeholder and fades in; no CSP violations. Screenshots `test-results/premium/`.
 
+## 47. Sensação premium — Look (2026-11-14)
+
+- **Typography.**
+  - Headings balance their lines (`text-wrap: balance`), and paragraphs, list items and definitions avoid orphans (`pretty`).
+  - Big titles are set tighter (`--tracking-tight`, line-height 0.96).
+  - Prices, counts, ranks, times and countdowns use tabular figures.
+  - Kerning and antialiasing are set on `body`.
+- **Scales.**
+  - Text sizes collapse to one scale: 10, 11, 12, 13, 14, 16, 18, 20, 24, 28, 36, 48, 64 px, plus the few big display sizes. Half-pixel and in-between sizes were mapped to the nearest step, e.g. 15 → 16 and 22 → 24.
+  - Letter-spacing collapses to four tokens: `--tracking-tight` 0.005em, `--tracking-normal` 0.02em, `--tracking-wide` 0.08em and `--tracking-label` 0.14em.
+  - The film art (`film.css`) keeps its own numbers.
+  - UI copy uses real quotes (“ ”).
+- **More room and fewer pills.**
+  - The big blocks of a page sit on one rhythm (56–88 px apart; a utility margin still wins), and pages end with more space.
+  - Status pills and chips lose their outline for a soft tinted label.
+  - A campaign's facts (days left, supporters, minimum, extended deadline) are a quiet line with dividers instead of a row of outlined chips.
+- **Material and light.**
+  - Film grain: a 160 px noise tile (`public/fx/grain.png`) over the whole site at 4.5% opacity that never takes a click. It shimmers in 6 steps on big screens with a mouse, and stays still elsewhere and with reduced motion.
+  - Velvet: a fine-nap tile (`public/fx/velvet.png`) on panels, reviews, the drawer and the footer.
+  - A soft light follows the mouse (`src/components/fx/Flashlight.tsx`): one fixed element, moved by a CSSOM transform, that fades after 2.5 s at rest. Desktop with a mouse only, never with reduced motion.
+- **Tests.** `tests/e2e/premium-look.spec.ts` covers the grain, velvet, balanced titles, tabular prices, the quiet campaign facts, the light following the mouse, and reduced motion (no light, still grain). Screenshots `test-results/premium-look/`.
+

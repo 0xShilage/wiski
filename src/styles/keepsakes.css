@@ -36,33 +36,33 @@
     border-bottom: 3px double rgb(43 34 25 / 0.75);
     font-size: 11px;
     font-variant: small-caps;
-    letter-spacing: 0.08em;
+    letter-spacing: var(--tracking-wide);
   }
   .wf-clipping__mast span:first-child {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 700;
     font-variant: normal;
-    letter-spacing: 0.02em;
+    letter-spacing: var(--tracking-normal);
     font-style: italic;
   }
   .wf-clipping__kicker {
     margin: 6px 0 0;
     font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.12em;
+    letter-spacing: var(--tracking-label);
     text-transform: uppercase;
   }
   .wf-clipping__stars {
     margin: 2px 0 6px;
-    font-size: 17px;
-    letter-spacing: 0.08em;
+    font-size: 18px;
+    letter-spacing: var(--tracking-wide);
   }
   .wf-clipping__body {
     margin: 0;
   }
   .wf-clipping__body p {
     margin: 0;
-    font-size: 17px;
+    font-size: 18px;
     line-height: 1.5;
     text-align: justify;
     hyphens: auto;
@@ -91,7 +91,7 @@
   .wf-palette__label {
     font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.14em;
+    letter-spacing: var(--tracking-label);
     text-transform: uppercase;
     color: var(--fg-70);
   }
@@ -290,12 +290,12 @@
   .wf-raffle__brand {
     font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.14em;
+    letter-spacing: var(--tracking-label);
     text-transform: uppercase;
     color: #f2c46d;
   }
   .wf-raffle__no {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     color: #f7f2fb;
@@ -319,7 +319,7 @@
     color: #f2c46d;
     font-size: 13px;
     font-weight: 800;
-    letter-spacing: 0.12em;
+    letter-spacing: var(--tracking-label);
     text-transform: uppercase;
     rotate: -12deg;
     opacity: 0.9;

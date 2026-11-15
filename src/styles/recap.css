@@ -135,7 +135,7 @@
     margin: 0;
     font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.16em;
+    letter-spacing: var(--tracking-label);
     text-transform: uppercase;
     color: var(--color-lavender);
   }
@@ -144,7 +144,7 @@
     font-family: var(--font-display);
     font-size: clamp(40px, 11vw, 56px);
     line-height: 1;
-    letter-spacing: 0.03em;
+    letter-spacing: var(--tracking-normal);
     text-transform: uppercase;
     color: #f7f2fb;
     text-shadow: var(--text-glow);
@@ -181,8 +181,8 @@
   .wf-recap__unit {
     margin-top: 4px;
     font-family: var(--font-display);
-    font-size: 26px;
-    letter-spacing: 0.04em;
+    font-size: 28px;
+    letter-spacing: var(--tracking-wide);
     text-transform: uppercase;
     color: var(--color-lavender);
   }
@@ -213,13 +213,13 @@
     font-family: var(--font-display);
     font-size: clamp(44px, 12vw, 60px);
     line-height: 1.02;
-    letter-spacing: 0.03em;
+    letter-spacing: var(--tracking-normal);
     text-transform: uppercase;
     color: #f7f2fb;
     text-shadow: var(--glow);
   }
   .wf-recap__persona--small {
-    font-size: 30px;
+    font-size: 28px;
     text-shadow: var(--text-glow);
   }
 
@@ -359,7 +359,7 @@
     display: block;
     font-family: var(--font-display);
     font-size: 24px;
-    letter-spacing: 0.03em;
+    letter-spacing: var(--tracking-normal);
     text-transform: uppercase;
     color: #f7f2fb;
   }

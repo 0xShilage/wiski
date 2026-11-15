@@ -67,7 +67,7 @@
     color: var(--color-ink);
     font-size: 11px;
     font-weight: 700;
-    letter-spacing: 0.08em;
+    letter-spacing: var(--tracking-wide);
     text-transform: uppercase;
   }
   .wf-livebar__now {
@@ -513,7 +513,7 @@
       gap: 4px;
       min-height: 48px;
       justify-content: center;
-      font-size: 10.5px;
+      font-size: 11px;
       letter-spacing: -0.01em;
       white-space: nowrap;
       overflow: hidden;
@@ -585,7 +585,7 @@
       border-radius: 10px;
       color: var(--fg-78);
       text-decoration: none;
-      font-size: 15px;
+      font-size: 16px;
     }
     .wf-more a:hover,
     .wf-more a:focus-visible {
@@ -604,7 +604,7 @@
   @media (max-width: 420px) {
     .wf-tabbar > a,
     .wf-tabbar__more {
-      font-size: 9.5px;
+      font-size: 10px;
       letter-spacing: -0.02em;
     }
   }
@@ -624,7 +624,7 @@
     font-weight: 400;
     font-size: clamp(40px, 2vw + 24px, 64px);
     line-height: 1;
-    letter-spacing: 0.02em;
+    letter-spacing: var(--tracking-normal);
     text-transform: uppercase;
     color: #f7f2fb;
     text-shadow: 0 0 18px rgb(169 157 224 / 0.45);
@@ -635,7 +635,7 @@
     font-weight: 400;
     font-size: clamp(28px, 1vw + 20px, 40px);
     line-height: 1.05;
-    letter-spacing: 0.02em;
+    letter-spacing: var(--tracking-normal);
     text-transform: uppercase;
     color: #f7f2fb;
     margin: 0;
@@ -648,7 +648,7 @@
   }
   .wf-kicker {
     font-size: 12px;
-    letter-spacing: 0.14em;
+    letter-spacing: var(--tracking-label);
     text-transform: uppercase;
     color: var(--color-lavender);
     font-weight: 600;
@@ -928,7 +928,7 @@
     font-weight: 400;
     font-size: clamp(30px, 1.6vw + 20px, 48px);
     line-height: 1.05;
-    letter-spacing: 0.02em;
+    letter-spacing: var(--tracking-normal);
     text-transform: uppercase;
     text-shadow: var(--text-glow);
   }
@@ -936,7 +936,7 @@
     margin: 0;
     max-width: 52ch;
     color: var(--fg-78);
-    font-size: 17px;
+    font-size: 18px;
     line-height: 1.55;
   }
   .wf-oops__actions {

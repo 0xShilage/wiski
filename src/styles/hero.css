@@ -130,7 +130,7 @@
   .wf-hero__more {
     display: inline-block;
     margin-top: 4px;
-    font-size: 15px;
+    font-size: 16px;
     color: var(--color-lavender);
     text-decoration: underline;
     text-underline-offset: 3px;
@@ -280,7 +280,7 @@
     line-height: 1;
     padding: 5px 8px;
     border-radius: 999px;
-    letter-spacing: 0.02em;
+    letter-spacing: var(--tracking-normal);
   }
   .wf-badge--sponsored {
     background: var(--color-lavender);
@@ -327,7 +327,7 @@
       --content-w: 560px;
     }
     .wf-hero__synopsis {
-      font-size: 17px;
+      font-size: 18px;
     }
   }
 
@@ -372,7 +372,7 @@
       font-size: 13px;
     }
     .wf-hero__synopsis {
-      font-size: 15px;
+      font-size: 16px;
       margin-top: 14px;
     }
     .wf-hero__ctas {

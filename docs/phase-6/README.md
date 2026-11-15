@@ -639,3 +639,9 @@ Full white-box review plus active testing against the production stack: [`../sec
   - Focus ring, selection colour and thin scrollbar.
   - Screenshots `test-results/premium-details/`.
 
+## 49. O brilho do pôster sem corte (2026-11-15)
+
+- **The problem.** On a title page, the glow in the poster's colour (§33, the halo behind the poster) could reach past the bottom of the page's content. `.wf-detail` had `overflow: hidden`, so the glow was cut off in a straight line: a band across the page under the title. It was most visible with strong colours and a tall poster, when the title has no side panel.
+- **The fix.** `.wf-detail` now clips sideways only (`overflow-x: clip`, which still prevents horizontal scrolling), so the glow fades out on its own edges. The footer sits above it (`position: relative; z-index: 1`) and keeps its own line.
+- **Tests.** `tests/e2e/premium-look.spec.ts` checks the title page's overflow (clip sideways, visible downwards).
+

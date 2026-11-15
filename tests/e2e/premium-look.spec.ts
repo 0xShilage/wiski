@@ -39,6 +39,13 @@ test('typography and quiet labels; no grain, no mouse light, no velvet', async (
   const panel = page.locator('.wf-panel').first();
   await expect(panel).toBeVisible();
   await page.waitForTimeout(1_200); // the poster morph and the page's fade-in
+  // the poster's glow is never cut off in a straight line at the bottom of the title (2026-11-15)
+  expect(
+    await page.locator('.wf-detail').evaluate((e) => {
+      const st = getComputedStyle(e);
+      return [st.overflowX, st.overflowY];
+    }),
+  ).toEqual(['clip', 'visible']);
   for (const el of [panel, page.locator('.wf-footer').first()]) {
     expect(await el.evaluate((e) => getComputedStyle(e).backgroundImage)).not.toContain('/fx/');
   }

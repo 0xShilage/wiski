@@ -322,3 +322,29 @@ Fix (PR "fix-prefetch-burst"): no prefetch on the header tabs, the phone bar, th
   - `backdrops.spec.ts` (3 passed, 1 skipped by design).
   - `dashboard`, `theater` and `keepsakes` green.
 
+
+## Addendum — Publicar mais rápido (2026-11-15)
+
+- Unit `wikidata-parse.test.ts` (8 tests):
+  - A film's fill: Portuguese first, deprecated date ignored, the Portuguese trailer and never the whole film, English-only genre left out, 6 cast members.
+  - A bare title lists what is missing.
+  - Series runtime = episode × episodes; a franchise's films in order, hours read as minutes and a book left out.
+  - Genre and ClassInd wording; sanitising and clipping.
+  - The quick-add picker: exact title and year first; a year nobody matches means not found.
+- Unit total green (464).
+- Integration `publishing-helpers.test.ts` (14 tests):
+  - Search by kind, with the User-Agent sent; one title's fields and the Wikipedia summary; bad, unknown and down lookups.
+  - The editor's Wikidata id is saved and audited.
+  - Quick add: filled; the right version by year; duplicates refused (409); series and franchise; title only when not found or down.
+  - Suggestion → draft: every same-title suggestion answered, idempotent, an existing title linked, games refused.
+  - Scheduling rules; the worker on time, in the planned or the first free slot; unscheduled with the reason when incomplete.
+  - The database's CHECKs and the clearing trigger.
+- Authz matrix: the four new endpoints.
+- Full integration green.
+- e2e `publishing.spec.ts` (4 tests):
+  - Fill and undo, then save.
+  - Bulk add: filled, "Confira", already in the catalog, not found.
+  - Suggestion → draft → editor.
+  - Schedule (the Brasília time stored as UTC), then cancel.
+- `dashboard`, `a11y-layout`, `community`, `csp`, `backdrops`, `operations` and `viewports` green: 362 passed, 52 skipped by design.
+- Screenshots `test-results/publishing/`.

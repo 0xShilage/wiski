@@ -3,7 +3,10 @@
   .wf-detail {
     position: relative;
     isolation: isolate;
-    overflow: hidden;
+    /* sideways only (2026-11-15): the poster's glow may run past the bottom of the page's content
+       and fade on its own, instead of being cut off in a straight line where the article ends */
+    overflow-x: clip;
+    overflow-y: visible;
   }
   .wf-detail__art {
     position: absolute;

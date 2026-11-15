@@ -742,6 +742,9 @@
 
   /* ── Footer ── */
   .wf-footer {
+    /* above a title page's glow, which may now run past the page's content (2026-11-15) */
+    position: relative;
+    z-index: 1;
     border-top: 1px solid rgb(79 61 114 / 0.6);
     background: rgb(36 26 51 / 0.5);
   }

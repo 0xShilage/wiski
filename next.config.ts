@@ -14,6 +14,10 @@ const nextConfig: NextConfig = {
   },
   // Server-only packages that should not be bundled (native/optional deps, worker threads).
   serverExternalPackages: ['pino', 'pg', 'ioredis'],
+  // the share images' fonts (2026-11-14) are read from disk at run time: ship them in standalone
+  outputFileTracingIncludes: {
+    '/**/opengraph-image*': ['./src/server/og/fonts/*.ttf'],
+  },
   // R1: /entrar and /conta fold into /perfil (12 §2 step 7). 301 keeps the query (?erro, ?returnTo).
   async redirects() {
     return [

@@ -133,9 +133,12 @@
     min-height: 100dvh;
     background-color: var(--color-bg);
   }
+  /* 2026-11-14: a neon ring with a soft halo (a component's own glow wins); outlines follow the
+     element's own corners */
   :focus-visible {
     outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
+    outline-offset: 3px;
+    box-shadow: 0 0 0 6px rgb(169 157 224 / 0.22);
   }
   a {
     text-underline-offset: 0.2em;

@@ -17,16 +17,13 @@ async function load(slug: string) {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const item = await load((await params).slug);
   if (!item) return { title: 'Anime não encontrado' };
-  const image = item.backdrop?.fallback;
   return {
     title: item.title,
     description: item.synopsis.slice(0, 200),
     openGraph: {
       title: item.title,
       description: item.synopsis.slice(0, 200),
-      ...(image
-        ? { images: [{ url: image, width: item.backdrop!.width, height: item.backdrop!.height }] }
-        : {}),
+      // the image: ./opengraph-image.tsx (a designed card per title, 2026-11-14)
     },
   };
 }

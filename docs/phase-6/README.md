@@ -615,11 +615,9 @@ Full white-box review plus active testing against the production stack: [`../sec
   - The big blocks of a page sit on one rhythm (56–88 px apart; a utility margin still wins), and pages end with more space.
   - Status pills and chips lose their outline for a soft tinted label.
   - A campaign's facts (days left, supporters, minimum, extended deadline) are a quiet line with dividers instead of a row of outlined chips.
-- **Material and light.**
-  - Film grain: a 160 px noise tile (`public/fx/grain.png`) over the whole site at 4.5% opacity that never takes a click. It shimmers in 6 steps on big screens with a mouse, and stays still elsewhere and with reduced motion.
-  - Velvet: a fine-nap tile (`public/fx/velvet.png`) on panels, reviews, the drawer and the footer.
-  - A soft light follows the mouse (`src/components/fx/Flashlight.tsx`): one fixed element, moved by a CSSOM transform, that fades after 2.5 s at rest. Desktop with a mouse only, never with reduced motion.
-- **Tests.** `tests/e2e/premium-look.spec.ts` covers the grain, velvet, balanced titles, tabular prices, the quiet campaign facts, the light following the mouse, and reduced motion (no light, still grain). Screenshots `test-results/premium-look/`.
+- **Material.** Velvet: a fine-nap tile (`public/fx/velvet.png`) on panels, reviews, the drawer and the footer.
+  - A film grain over the whole site and a soft light following the mouse shipped with this batch (#95) and were taken out on 2026-11-15: the owner didn't like the result. Don't bring them back.
+- **Tests.** `tests/e2e/premium-look.spec.ts` covers the velvet, balanced titles, tabular prices and the quiet campaign facts. It also checks that neither the grain nor the mouse light is on the page, even after the mouse moves. Screenshots `test-results/premium-look/`.
 
 ## 48. Sensação premium — Details (2026-11-14)
 

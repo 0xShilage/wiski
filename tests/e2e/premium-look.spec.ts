@@ -1,6 +1,7 @@
 /**
- * Premium look (2026-11-14): film grain over the site, a soft light at the mouse, velvet on the
- * dark panels, quiet labels instead of outlined chips, balanced titles and figures that line up.
+ * Premium look (2026-11-14): velvet on the dark panels, quiet labels instead of outlined chips,
+ * balanced titles and figures that line up. The film grain and the mouse light were taken out
+ * (2026-11-15): neither may come back unnoticed.
  * Screenshots go to test-results/premium-look.
  */
 import { mkdirSync } from 'node:fs';
@@ -9,17 +10,16 @@ import { expect, test } from '@playwright/test';
 const SHOTS = 'test-results/premium-look';
 mkdirSync(SHOTS, { recursive: true });
 
-test('grain, velvet, typography and quiet labels', async ({ page }, info) => {
+test('velvet, typography and quiet labels; no grain, no mouse light', async ({ page }, info) => {
   const violations: string[] = [];
   page.on('console', (m) => {
     if (/Content Security Policy|Refused to/i.test(m.text())) violations.push(m.text());
   });
   await page.goto('/');
-  const grain = page.locator('.wf-grain');
-  await expect(grain).toHaveCSS('position', 'fixed');
-  await expect(grain).toHaveCSS('pointer-events', 'none');
-  expect(Number(await grain.evaluate((e) => getComputedStyle(e).opacity))).toBeLessThan(0.08);
-  // the grain never takes a click: the first movie card is still clickable through it
+  await expect(page.locator('.wf-grain, .wf-flashlight')).toHaveCount(0);
+  await page.mouse.move(400, 300);
+  await page.mouse.move(640, 360, { steps: 6 });
+  await expect(page.locator('.wf-flashlight')).toHaveCount(0);
   const card = page.locator('.wf-movie-grid .wf-scard').first();
   await expect(card).toBeVisible();
   const h1 = page.locator('h1').first();
@@ -53,27 +53,4 @@ test('grain, velvet, typography and quiet labels', async ({ page }, info) => {
   }
   await page.screenshot({ path: `${SHOTS}/series-${info.project.name}.png` });
   expect(violations).toEqual([]);
-});
-
-test('a soft light follows the mouse (desktop), and is never there with reduced motion', async ({
-  browser,
-}, info) => {
-  test.skip(info.project.name !== 'desktop-1280', 'a mouse thing');
-  const page = await (await browser.newContext()).newPage();
-  await page.goto('/');
-  const light = page.locator('.wf-flashlight');
-  await expect(light).not.toHaveClass(/is-on/);
-  await page.mouse.move(400, 300);
-  await page.mouse.move(640, 360, { steps: 6 });
-  await expect(light).toHaveClass(/is-on/);
-  expect(await light.evaluate((e) => (e as HTMLElement).style.transform)).toContain(
-    'translate3d(640px, 360px',
-  );
-  await page.waitForTimeout(700);
-  await page.screenshot({ path: `${SHOTS}/lanterna.png` });
-
-  const still = await (await browser.newContext({ reducedMotion: 'reduce' })).newPage();
-  await still.goto('/');
-  await expect(still.locator('.wf-flashlight')).toHaveCSS('display', 'none');
-  await expect(still.locator('.wf-grain')).toHaveCSS('animation-name', 'none');
 });

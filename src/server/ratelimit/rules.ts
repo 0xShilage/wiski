@@ -62,6 +62,12 @@ export const RL = {
     perIp: { limit: 120, windowMs: MIN },
     perUser: { limit: 120, windowMs: MIN },
   },
+  /** Wikidata lookups and quick adds (2026-11-15): each one calls Wikidata from the server. */
+  wikidata: {
+    name: 'wikidata',
+    perIp: { limit: 60, windowMs: MIN },
+    perUser: { limit: 60, windowMs: MIN },
+  },
   /** Image uploads (11 §9): nginx allows 2/min per IP with a burst; the app adds a per-user cap. */
   mediaUpload: {
     name: 'media-upload',

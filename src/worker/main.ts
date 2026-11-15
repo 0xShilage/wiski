@@ -27,6 +27,7 @@ import { syncSiteCredits } from '@/server/subathon/credits';
 import { startStreamElements } from '@/server/subathon/streamelements';
 import { finishIfDue } from '@/server/subathon/timer';
 import { announceOpenBadges } from '@/server/chat/announce';
+import { publishScheduled } from '@/server/catalog/publishing';
 import { backfillLqip } from '@/server/media/lqip';
 import { runAuditVerify } from './jobs/audit-verify';
 import { WAKE_CHANNEL } from '@/server/payments/wake';
@@ -76,6 +77,8 @@ const jobs: Job[] = [
   { name: 'chat.announce', everyMs: 60_000, run: () => announceOpenBadges() },
   // blur-up placeholders (2026-11-14) for images uploaded before they existed, a few a minute
   { name: 'media.lqip', everyMs: 60_000, run: () => backfillLqip() },
+  // "Agendar publicação" (2026-11-15): movie drafts whose time has come go live
+  { name: 'catalog.scheduled', everyMs: 30_000, run: () => publishScheduled() },
   {
     name: 'daily',
     everyMs: 60_000,

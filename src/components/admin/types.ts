@@ -32,6 +32,8 @@ export type Form = {
   manualPrice: string;
   slot: string;
   films: { title: string; year: string; runtimeMinutes: string }[];
+  /** the Wikidata item the fields were filled from (2026-11-15) */
+  wikidataId: string | null;
 };
 
 export const emptyForm = (slot: number | null = null): Form => ({
@@ -56,6 +58,7 @@ export const emptyForm = (slot: number | null = null): Form => ({
   manualPrice: '',
   slot: slot ? String(slot) : '',
   films: [],
+  wikidataId: null,
 });
 
 export function formFrom(item: AdminItem): Form {
@@ -86,6 +89,7 @@ export function formFrom(item: AdminItem): Form {
       year: e.year ? String(e.year) : '',
       runtimeMinutes: String(e.runtimeMinutes),
     })),
+    wikidataId: f.wikidataId,
   };
 }
 
@@ -127,6 +131,7 @@ export function fieldsFrom(form: Form, kind: Kind, draft: boolean): Record<strin
     posterId: form.posterId,
     backdropId: form.backdropId,
     logoId: form.logoId,
+    wikidataId: form.wikidataId,
   };
   if (kind === 'MOVIE') {
     // the extras only make sense after a main background
@@ -164,11 +169,13 @@ export const STATE_LABEL: Record<string, string> = {
   PAUSED: 'Pausada',
   WATCHED: 'Assistido → substituir',
   DRAFT: 'Rascunho',
+  SCHEDULED: 'Agendado',
 };
 
 export function tileState(i: AdminListItem): string {
   if (i.status === 'ACTIVE' && i.reserved) return 'RESERVED';
   if (i.status === 'ACTIVE' && i.campaign?.state === 'PAUSED') return 'PAUSED';
+  if (i.status === 'DRAFT' && i.publishAt) return 'SCHEDULED';
   return i.status;
 }
 

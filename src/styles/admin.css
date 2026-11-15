@@ -185,7 +185,8 @@
     color: var(--color-lavender);
     font-weight: 600;
   }
-  .wf-slot--DRAFT {
+  .wf-slot--DRAFT,
+  .wf-slot--SCHEDULED {
     border-style: dashed;
   }
   .wf-slot--empty {

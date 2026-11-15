@@ -137,6 +137,8 @@ export type StaffSuggestion = {
   reviewer: string | null;
   /** other viewers waiting with the same title */
   alsoSuggested: number;
+  /** the catalog draft made from it ("Criar rascunho", 2026-11-15), while it isn't archived */
+  item: { id: string; title: string; kind: string; status: string } | null;
 };
 
 export async function listSuggestions(q: {
@@ -151,6 +153,7 @@ export async function listSuggestions(q: {
     include: {
       user: { select: { username: true } },
       reviewedBy: { select: { username: true } },
+      item: { select: { id: true, title: true, kind: true, status: true } },
     },
   });
   const more = rows.length > 30;
@@ -180,6 +183,7 @@ export async function listSuggestions(q: {
         0,
         (waitingByKey.get(r.titleKey) ?? 0) - (r.status === 'NEW' ? 1 : 0),
       ),
+      item: r.item && r.item.status !== 'ARCHIVED' ? r.item : null,
     })),
     next: more ? shown.at(-1)!.createdAt.toISOString() : null,
     waiting: await db().suggestion.count({ where: { status: 'NEW' } }),

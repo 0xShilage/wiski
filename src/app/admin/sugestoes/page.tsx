@@ -14,7 +14,7 @@ export default async function SugestoesAdminPage() {
     <AdminShell
       active="sugestoes"
       title="Sugestões"
-      lead="Títulos que o público gostaria de ver na live. Só a moderação e o streamer veem esta lista. Aceitar não coloca nada no catálogo: é um lembrete para a curadoria."
+      lead="Títulos que o público gostaria de ver na live. Só a moderação e o streamer veem esta lista. “Criar rascunho” monta o rascunho no catálogo com os dados do Wikidata e aceita a sugestão; “Aceitar” só marca como lembrete."
       {...p.shell}
     >
       <SuggestionsBoard initial={JSON.parse(JSON.stringify(await listSuggestions({})))} />

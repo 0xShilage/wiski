@@ -645,3 +645,47 @@ Full white-box review plus active testing against the production stack: [`../sec
 - **The fix.** `.wf-detail` now clips sideways only (`overflow-x: clip`, which still prevents horizontal scrolling), so the glow fades out on its own edges. The footer sits above it (`position: relative; z-index: 1`) and keeps its own line.
 - **Tests.** `tests/e2e/premium-look.spec.ts` checks the title page's overflow (clip sideways, visible downwards).
 
+
+## 50. Publicar mais rápido: Wikidata, Adicionar vários, sugestão → rascunho, agendamento (2026-11-15)
+
+Adding a movie used to mean typing about a dozen fields by hand. Four helpers now do most of it. The images and the synopsis stay with Iara.
+
+- **Why Wikidata.** TMDB's commercial licence was too expensive. Wikidata, the database behind Wikipedia, is CC0 (public domain): free, commercial use allowed, no attribution needed. It has no posters (movie art is copyrighted everywhere), so images are still uploaded by hand.
+- **Preencher com o Wikidata** (editor, drafts only). Iara searches a title and picks the right one, and the form fills in:
+  - Portuguese title and original title (P1476), year (earliest P577) and runtime (P2047, in any unit).
+  - ClassInd rating (P3216), genres in the catalog's words ("filme de ficção científica" → "Ficção científica"), up to 3 directors and 6 cast members.
+  - The trailer (P1651): one marked as a trailer, a Portuguese one first; never a video marked as the whole film.
+  - Seasons and episodes for a series or anime, with total runtime = episode × episodes. A franchise's films with their year and runtime (P527, release order).
+  - Fields Wikidata doesn't have keep what was typed. "Desfazer" restores the form from before the fill.
+  - The Portuguese Wikipedia's summary appears beside the synopsis as a reference. It is CC BY-SA, so it is never copied into the field.
+  - The draft keeps its Wikidata id (`CatalogItem.wikidataId`, not part of revisions); it is used to spot duplicates.
+- **Adicionar vários** (catalog board). One title per line, with "(2001)" or ", 2001" to pick the right version (a year inside a title, like "Blade Runner 2049", stays in the title). Up to 20 lines per round.
+  - Each line is one `POST /api/v1/admin/catalog/quick-add`, so each line shows how it went: filled, "Confira: …" for what Wikidata lacked, "Já está no catálogo" (same Wikidata item, or the same title and year) or "não encontrado".
+  - The pick: the exact title, then the given year. A year no result matches means not found, because a remake is a different film.
+  - If Wikidata has no runtime, the draft gets a placeholder (movie 120 min) and the line says so. If Wikidata is down or the title isn't found, the draft keeps just the title and says so.
+- **Criar rascunho** (Admin › Sugestões). Makes the same filled draft from a viewer's suggestion and accepts it. Every waiting suggestion of the same title is accepted and linked too (`Suggestion.itemId`).
+  - The card then shows "Abrir rascunho". Running it again returns the same draft. A title already in the catalog is linked, not duplicated. Games are refused.
+- **Agendar publicação** (movie drafts). Iara picks a Brasília date and time, between 2 minutes and 90 days ahead; the draft must already be complete. "Cancelar agendamento" undoes it. Scheduling isn't an edit, so the version doesn't change.
+  - The worker job `catalog.scheduled` (every 30 s) publishes due drafts in order: in the planned slot if free, else the first free one. The audit row has no actor and `scheduled: true`.
+  - A draft that can't go live is unscheduled, with the reason shown in the editor (`publishError`) and audited as `catalog.scheduleFailed`. That happens when it became incomplete after an edit or the catalog is full. A draft being saved at that very moment waits for the next round.
+  - The board shows a scheduled draft as "Agendado".
+- **Security.**
+  - Only two fixed hosts are called (www.wikidata.org, pt.wikipedia.org), from the server only, with a 7 s timeout, a 12 MB cap and redirects refused.
+  - Wikimedia's User-Agent rule is followed.
+  - Ids are validated as `Q` + digits, and every string is sanitised and clipped to the catalog's limits. Nothing reaches the browser except through the admin API.
+  - Lookups have their own rate limit (`RL.wikidata`, 60/min).
+  - Tests point both hosts at a local fixture server with `WIKI_TEST_ORIGIN`, which accepts a loopback origin only.
+- **Database** (`20261130120000_publishing_helpers` + reviewed `_constraints`):
+  - `wikidataId` must be `^Q[1-9][0-9]{0,11}$`.
+  - `publishAt` and `publishError` exist on movie drafts only, and `publishError` is at most 300 characters.
+  - A trigger clears both whenever an item leaves DRAFT, whatever path it took.
+- **Endpoints** (moderator + second factor, all in the authz matrix):
+  - `GET /api/v1/admin/catalog/lookup?kind=&q=` or `&id=`
+  - `POST /api/v1/admin/catalog/quick-add`
+  - `PUT /api/v1/admin/catalog/items/[id]/schedule`
+  - `POST /api/v1/admin/suggestions/[id]/draft`
+- **Tests.**
+  - `tests/unit/wikidata-parse.test.ts`: the fill on fixtures, and the picker.
+  - `tests/integration/publishing-helpers.test.ts`: the routes, the worker and the database floor.
+  - `tests/e2e/publishing.spec.ts`: fill and undo, bulk add, suggestion → draft, schedule and cancel. Screenshots `test-results/publishing/`.
+  - Also fixed: `tests/integration/announce.test.ts` used a badge end date that is now in the past.

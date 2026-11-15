@@ -20,6 +20,7 @@ import EmbeddedPostgres from 'embedded-postgres';
 import pg from 'pg';
 import { applyMigrations } from '../../integration/setup/global-setup';
 import { renderSiteTemplate } from '../../support/nginx-template';
+import { startWikiMock } from '../../support/wiki-mock';
 import { HTTP_PORT, HTTPS_PORT } from './ports';
 
 const ROOT = join(import.meta.dirname, '../../..');
@@ -108,6 +109,8 @@ async function main() {
   );
 
   const origin = `https://localhost:${HTTPS_PORT}`;
+  // Wikidata and Wikipedia stand-in for the catalog lookups (2026-11-15): fictional titles
+  const wiki = await startWikiMock();
   const appEnv = {
     PATH: process.env.PATH ?? '',
     NODE_ENV: 'production' as const,
@@ -129,6 +132,7 @@ async function main() {
     TURNSTILE_SITE_KEY: '0x4AAAAAAAe2e-site-key',
     TURNSTILE_SECRET_KEY: '0x4AAAAAAAe2e-secret-key',
     MEDIA_DIR: mediaDir,
+    WIKI_TEST_ORIGIN: wiki.origin,
     LOG_LEVEL: 'warn',
   };
   // R1: the fictional catalogue (scripts/seed-dev.ts) through the real services and media

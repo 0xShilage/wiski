@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { Logo } from '@/components/brand/Logo';
 import { IconPlus } from '@/components/ui/icons';
 import { adminFetch } from '@/lib/passkey-client';
+import { BulkAdd } from './BulkAdd';
 import { ItemEditor } from './ItemEditor';
 import { OpsNav, type OpsCounts } from './OpsNav';
 import { SlotBoard } from './SlotBoard';
@@ -42,6 +43,8 @@ export function Dashboard({
     initialItem ? undefined : undefined,
   );
   const [editorKey, setEditorKey] = useState(0);
+  /** "Adicionar vários" (2026-11-15) open in the editor column */
+  const [bulk, setBulk] = useState(false);
   const [announce, setAnnounce] = useState('');
   const [boardError, setBoardError] = useState<string | null>(null);
 
@@ -64,6 +67,7 @@ export function Dashboard({
     async (id: string, k: Kind = kind) => {
       const res = await adminFetch<{ item: AdminItem }>(`/api/v1/admin/catalog/items/${id}`);
       if (res.ok) {
+        setBulk(false);
         setItem(res.data.item);
         setNewSlot(undefined);
         setEditorKey((x) => x + 1);
@@ -74,6 +78,7 @@ export function Dashboard({
   );
 
   const switchKind = async (k: Kind) => {
+    setBulk(false);
     setKind(k);
     setItem(null);
     setNewSlot(undefined);
@@ -83,6 +88,7 @@ export function Dashboard({
   };
 
   const startNew = (slot: number | null) => {
+    setBulk(false);
     setItem(null);
     setNewSlot(slot);
     setEditorKey((x) => x + 1);
@@ -156,9 +162,24 @@ export function Dashboard({
           <h1 className="wf-h1" id="board-title">
             {KIND_UI[kind].many}
           </h1>
-          <button type="button" className="wf-btn wf-btn--neon" onClick={() => startNew(null)}>
-            <IconPlus /> {KIND_UI[kind].nova}
-          </button>
+          <div className="wf-admin__head-actions">
+            <button
+              type="button"
+              className="wf-btn wf-btn--ghost"
+              aria-pressed={bulk}
+              onClick={() => {
+                setItem(null);
+                setNewSlot(undefined);
+                setBulk(true);
+                syncUrl(kind, null);
+              }}
+            >
+              Adicionar vários
+            </button>
+            <button type="button" className="wf-btn wf-btn--neon" onClick={() => startNew(null)}>
+              <IconPlus /> {KIND_UI[kind].nova}
+            </button>
+          </div>
         </div>
         <ul className="wf-legend" aria-label="Legenda">
           <li className="s-ACTIVE">Ativo</li>
@@ -198,7 +219,15 @@ export function Dashboard({
       </section>
 
       <section className="wf-admin__editor" aria-label="Editor">
-        {editing ? (
+        {bulk ? (
+          <BulkAdd
+            key={kind}
+            kind={kind}
+            onOpen={(id) => void open(id)}
+            onDone={() => void reload(kind)}
+            onClose={() => setBulk(false)}
+          />
+        ) : editing ? (
           <ItemEditor
             key={editorKey}
             kind={kind}

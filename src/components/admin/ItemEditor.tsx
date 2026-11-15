@@ -19,6 +19,7 @@ import type { Picture } from '@/lib/media';
 import type { Problem } from '@/lib/api-fetch';
 import { adminFetch } from '@/lib/passkey-client';
 import { MediaDrop } from './MediaDrop';
+import { type WikiFill, WikidataFill } from './WikidataFill';
 import {
   type AdminItem,
   type AdminListItem,
@@ -46,6 +47,18 @@ const chars = (s: string) => Array.from(s).length;
 const NOTE: Record<string, string> = { create: 'criado', save: 'salvo' };
 const noteLabel = (n: string) =>
   n.startsWith('revert:') ? `revertido para v${n.slice(7)}` : (NOTE[n] ?? n);
+const WHEN = new Intl.DateTimeFormat('pt-BR', {
+  weekday: 'short',
+  day: '2-digit',
+  month: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: 'America/Sao_Paulo',
+});
+/** "dom., 16/11, 20:00" */
+const fmtWhen = (iso: string) => WHEN.format(new Date(iso));
+/** A time as a datetime-local value in Brasília ("2026-11-16T20:00"). */
+const spLocal = (ms: number) => new Date(ms - 3 * 3_600_000).toISOString().slice(0, 16);
 
 /** The editor panel (11 §4): every field, live price/goal, trailer check, images, actions. */
 export function ItemEditor({
@@ -88,6 +101,13 @@ export function ItemEditor({
   const preview = useRef<HTMLDialogElement>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [loadedVersion, setLoadedVersion] = useState(item?.version ?? 0);
+  /** "Preencher com o Wikidata" (2026-11-15): the form before the fill (Desfazer), the item used,
+   *  and the Wikipedia summary shown as a reference beside the synopsis */
+  const [beforeFill, setBeforeFill] = useState<Form | null>(null);
+  const [filledFrom, setFilledFrom] = useState<string | null>(null);
+  const [reference, setReference] = useState<WikiFill['summary']>(null);
+  /** "Agendar publicação" (2026-11-15): the date and time typed (Brasília) */
+  const [when, setWhen] = useState('');
 
   // A new version from the server (save, revert, another action) replaces the form — unless the
   // moderator has unsaved edits, which are never overwritten silently. (State adjusted during
@@ -149,6 +169,71 @@ export function ItemEditor({
     }
   }, [kind, runtime, manualCents, manualValid, form.seasonCount, form.films]);
   const ytId = form.trailer.trim() ? parseYoutubeId(form.trailer) : null;
+
+  function applyFill(fill: WikiFill) {
+    const f = fill.fields;
+    const num = (n: number | null, keep: string) => (n ? String(n) : keep);
+    setBeforeFill(form);
+    setFilledFrom(fill.id);
+    setReference(fill.summary);
+    setForm((cur) => ({
+      ...cur,
+      title: f.title || cur.title,
+      originalTitle: f.originalTitle ?? cur.originalTitle,
+      year: num(f.year, cur.year),
+      runtimeMinutes:
+        kind === 'FRANCHISE' ? cur.runtimeMinutes : num(f.runtimeMinutes, cur.runtimeMinutes),
+      ageRating: (AGE_RATINGS as readonly string[]).includes(f.ageRating ?? '')
+        ? (f.ageRating as Form['ageRating'])
+        : cur.ageRating,
+      genres: f.genres.length ? f.genres.join(', ') : cur.genres,
+      director: f.director ?? cur.director,
+      cast: f.cast.length ? f.cast.join(', ') : cur.cast,
+      trailer: f.trailer ? `https://youtu.be/${f.trailer}` : cur.trailer,
+      ...(isEpisodic(kind)
+        ? {
+            seasonCount: num(f.seasonCount, cur.seasonCount),
+            episodeCount: num(f.episodeCount, cur.episodeCount),
+            seasonsLabel: f.seasonsLabel ?? cur.seasonsLabel,
+          }
+        : {}),
+      films:
+        kind === 'FRANCHISE' && f.franchiseEntries.length
+          ? f.franchiseEntries.map((e) => ({
+              title: e.title,
+              year: e.year ? String(e.year) : '',
+              runtimeMinutes: e.runtimeMinutes ? String(e.runtimeMinutes) : '',
+            }))
+          : cur.films,
+      wikidataId: fill.id,
+    }));
+    setErrors({});
+    setDirty(true);
+  }
+
+  /** "Agendar publicação": the typed Brasília time (fixed −03:00, no DST since 2019) → UTC. */
+  async function schedule(at: string | null) {
+    const current = at && (dirty || isNew) ? await save() : item;
+    if (!current) return;
+    let publishAt: string | null = null;
+    if (at) {
+      const d = new Date(`${at}:00-03:00`);
+      if (Number.isNaN(d.getTime())) {
+        setErrors({ publishAt: 'Escolha o dia e a hora.' });
+        return;
+      }
+      publishAt = d.toISOString();
+    }
+    const data = await call<{ item: AdminItem }>(
+      `/api/v1/admin/catalog/items/${current.id}/schedule`,
+      { method: 'PUT', body: { expectedVersion: current.version, publishAt } },
+      at ? 'Publicação agendada.' : 'Agendamento cancelado.',
+    );
+    if (data) {
+      setWhen('');
+      onChanged(data.item);
+    }
+  }
 
   function fail(p: Problem) {
     const fieldErrors: Record<string, string> = {};
@@ -538,6 +623,25 @@ export function ItemEditor({
         </p>
       ) : null}
 
+      {isDraft ? (
+        <WikidataFill
+          kind={kind}
+          initialQuery={form.title}
+          filledId={filledFrom}
+          onFill={applyFill}
+          onUndo={
+            beforeFill
+              ? () => {
+                  setForm(beforeFill);
+                  setBeforeFill(null);
+                  setFilledFrom(null);
+                  setReference(null);
+                }
+              : null
+          }
+        />
+      ) : null}
+
       <form
         className="wf-form"
         onSubmit={(e) => {
@@ -784,6 +888,23 @@ export function ItemEditor({
           />
           {err('synopsis')}
         </label>
+        {reference ? (
+          <aside className="wf-wd-ref full" aria-label="Resumo da Wikipédia (referência)">
+            <p className="wf-wd-ref__label">
+              Resumo da Wikipédia — só para consulta: escreva a sinopse com suas palavras (o texto
+              da Wikipédia tem licença CC BY-SA).
+            </p>
+            <p className="wf-wd-ref__text">{reference.text}</p>
+            <a
+              className="wf-linkbtn text-xs"
+              href={reference.url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Abrir na Wikipédia
+            </a>
+          </aside>
+        ) : null}
         <label className="wf-field">
           Direção
           <input
@@ -963,6 +1084,66 @@ export function ItemEditor({
             </button>
           ) : null}
         </div>
+      ) : null}
+
+      {/* "Agendar publicação" (2026-11-15): a complete movie draft goes live on its own. */}
+      {isDraft && kind === 'MOVIE' ? (
+        <section className="wf-history" aria-labelledby="agendar">
+          <h3 id="agendar" className="text-base font-semibold">
+            Agendar publicação
+          </h3>
+          {item?.publishError ? (
+            <p role="alert" className="wf-toast wf-toast--err">
+              A publicação agendada não aconteceu: {item.publishError}
+            </p>
+          ) : null}
+          {item?.publishAt ? (
+            <p className="wf-sched m-0 mt-2">
+              <span>
+                Entra no ar sozinho <b className="text-lavender">{fmtWhen(item.publishAt)}</b>{' '}
+                (horário de Brasília).
+              </span>{' '}
+              <button
+                type="button"
+                className="wf-linkbtn"
+                disabled={busy}
+                onClick={() => void schedule(null)}
+              >
+                Cancelar agendamento
+              </button>
+            </p>
+          ) : (
+            <div className="wf-form mt-3">
+              <p className="full wf-hint m-0">
+                O filme precisa estar completo. Na hora marcada ele entra na vaga planejada (ou na
+                primeira livre) e aparece no carrossel.
+              </p>
+              <label className="wf-field">
+                Dia e hora (Brasília)
+                <input
+                  type="datetime-local"
+                  className="wf-input"
+                  value={when}
+                  min={spLocal(Date.now() + 3 * 60_000)}
+                  max={spLocal(Date.now() + 89 * 86_400_000)}
+                  onChange={(e) => setWhen(e.target.value)}
+                  {...inv('publishAt')}
+                />
+                {err('publishAt')}
+              </label>
+              <div className="wf-field self-end">
+                <button
+                  type="button"
+                  className="wf-btn wf-btn--ghost"
+                  disabled={busy || !when}
+                  onClick={() => void schedule(when)}
+                >
+                  Agendar
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
       ) : null}
 
       {/* Campaigns: the streamer opens them (goal + deadline, Google step-up). */}

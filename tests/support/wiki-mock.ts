@@ -168,10 +168,12 @@ export const WIKI_FIXTURES: Entity[] = [
   ...people.map((name, i) => ({ id: `Q90030${i + 1}`, labels: label(name) })),
 ];
 
-const SUMMARIES: Record<string, string> = {
-  A_Lontra_Astronauta:
-    'A Lontra Astronauta é um filme de ficção científica de 2019 sobre uma lontra que sonha em chegar à Lua e constrói um foguete com a ajuda dos amigos do rio.',
-};
+const SUMMARIES = new Map<string, string>(
+  Object.entries({
+    A_Lontra_Astronauta:
+      'A Lontra Astronauta é um filme de ficção científica de 2019 sobre uma lontra que sonha em chegar à Lua e constrói um foguete com a ajuda dos amigos do rio.',
+  }),
+);
 
 const fold = (s: string) =>
   s
@@ -219,29 +221,31 @@ export async function startWikiMock(): Promise<WikiMock> {
       }
       if (p.get('action') === 'wbgetentities') {
         const props = (p.get('props') ?? '').split('|');
-        const entities: Record<string, unknown> = {};
+        // a Map, never an object keyed by the request (CodeQL: remote property injection)
+        const entities = new Map<string, unknown>();
         for (const id of (p.get('ids') ?? '').split('|')) {
+          if (!/^Q\d{1,12}$/.test(id)) continue;
           const e = byId.get(id);
           if (!e) {
-            entities[id] = { id, missing: '' };
+            entities.set(id, { id, missing: '' });
             continue;
           }
-          entities[id] = {
+          entities.set(id, {
             id,
             type: 'item',
             ...(props.includes('labels') ? { labels: e.labels } : {}),
             ...(props.includes('descriptions') ? { descriptions: e.descriptions ?? {} } : {}),
             ...(props.includes('claims') ? { claims: e.claims ?? {} } : {}),
             ...(props.includes('sitelinks') ? { sitelinks: e.sitelinks ?? {} } : {}),
-          };
+          });
         }
-        return json(200, { entities, success: 1 });
+        return json(200, { entities: Object.fromEntries(entities), success: 1 });
       }
       return json(400, { error: 'unknown action' });
     }
     const summary = /^\/api\/rest_v1\/page\/summary\/(.+)$/.exec(url.pathname);
     if (summary) {
-      const extract = SUMMARIES[decodeURIComponent(summary[1]!)];
+      const extract = SUMMARIES.get(decodeURIComponent(summary[1]!));
       return extract ? json(200, { type: 'standard', extract }) : json(404, { type: 'not_found' });
     }
     return json(404, {});

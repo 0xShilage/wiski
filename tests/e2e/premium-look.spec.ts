@@ -38,6 +38,7 @@ test('grain, velvet, typography and quiet labels', async ({ page }, info) => {
   await card.click();
   const panel = page.locator('.wf-panel').first();
   await expect(panel).toBeVisible();
+  await page.waitForTimeout(1_200); // the poster morph and the page's fade-in
   expect(await panel.evaluate((e) => getComputedStyle(e).backgroundImage)).toContain(
     '/fx/velvet.png',
   );

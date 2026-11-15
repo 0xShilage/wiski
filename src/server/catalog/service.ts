@@ -207,6 +207,7 @@ async function bumpVersion(t: Tx, item: Pick<CatalogItem, 'id' | 'version'>, exp
 export async function createItem(
   ctx: Ctx,
   input: ItemFieldsInput & { kind: ItemKind; title: string; runtimeMinutes: number },
+  source?: 'wikidata' | 'bulk' | 'suggestion',
 ) {
   const { kind, ...fields } = input;
   return tx(kind, async (t) => {
@@ -239,7 +240,7 @@ export async function createItem(
         requestId: ctx.requestId,
         targetType: 'CatalogItem',
         targetId: item.id,
-        metadata: { kind, version: 1 },
+        metadata: { kind, version: 1, ...(source ? { source } : {}) },
       },
       t,
     );

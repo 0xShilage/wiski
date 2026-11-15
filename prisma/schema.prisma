@@ -275,6 +275,14 @@ model CatalogItem {
   /// true: watched by Iara off-stream and logged by hand (2026-11-10); kept out of the live
   /// progress counts and tagged "fora da live" on Assistidos.
   offStream        Boolean    @default(false)
+  /// The Wikidata item the fields were filled from (2026-11-15), e.g. "Q83495"; helps spot a title
+  /// added twice. Not part of the revision snapshot. CHECK: Q + digits.
+  wikidataId       String?
+  /// MOVIE draft (2026-11-15): goes live on its own at this time (worker job "catalog.scheduled").
+  /// CHECK: movie drafts only; a trigger clears it (and publishError) when the item leaves DRAFT.
+  publishAt        DateTime?  @db.Timestamptz(3)
+  /// Why the last scheduled publish didn't happen (shown in the dashboard), ≤ 300 chars (CHECK).
+  publishError     String?
   /// Unused since 2026-11-13 (the marathon trail follows the Agenda's parts instead); kept until a
   /// later migration drops it, so a running release never reads a missing column. CHECK: 0 on movies.
   partsWatched     Int        @default(0)
@@ -297,9 +305,12 @@ model CatalogItem {
   watchEvents      WatchEvent[]
   nowPlayingIn     StreamSession[]   @relation("NowPlaying")
   seasonReleases   SeasonRelease[]
+  suggestions      Suggestion[]
 
   @@index([kind, status, slot])
   @@index([status, watchedAt])
+  @@index([publishAt])
+  @@index([wikidataId])
 }
 
 /// MOVIE (2026-11-14): up to four more backgrounds after `backdropId`; the title page fades
@@ -1114,12 +1125,15 @@ model Suggestion {
   year         Int?
   note         String? // ≤ 280 chars, sanitised plain text
   status       SuggestionStatus @default(NEW)
+  /// The catalog draft made from this suggestion ("Criar rascunho", 2026-11-15)
+  itemId       String?          @db.Uuid
   reviewedById String?          @db.Uuid
   reviewedAt   DateTime?        @db.Timestamptz(3)
   createdAt    DateTime         @default(now()) @db.Timestamptz(3)
 
-  user       User  @relation("SuggestionAuthor", fields: [userId], references: [id], onDelete: Cascade)
-  reviewedBy User? @relation("SuggestionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  user       User         @relation("SuggestionAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User?        @relation("SuggestionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  item       CatalogItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
 
   @@unique([userId, titleKey], map: "suggestion_one_open_per_title", where: raw("(status = 'NEW'::\"SuggestionStatus\")"))
   @@index([status, createdAt])

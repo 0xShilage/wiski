@@ -552,6 +552,22 @@ export const MATRIX: Row[] = [
     body: { startsOn: '2099-01-01', reason: 'FOLGA' },
   }),
   R('/api/v1/admin/days-off/[id]', 'DELETE', 'moderator', { params: { id: NO_ID } }),
+  // Publishing helpers (2026-11-15): Wikidata lookups (the stubbed fetch answers 599 → 502),
+  // quick add, suggestion → draft, scheduled publishing
+  R('/api/v1/admin/catalog/lookup', 'GET', 'moderator', {
+    url: '/api/v1/admin/catalog/lookup?kind=MOVIE&q=matriz',
+  }),
+  R('/api/v1/admin/catalog/quick-add', 'POST', 'moderator', {
+    body: { kind: 'MOVIE', title: `Matriz ${Date.now()}` },
+  }),
+  R('/api/v1/admin/catalog/items/[id]/schedule', 'PUT', 'moderator', {
+    params: { id: NO_ID },
+    body: { expectedVersion: 0, publishAt: null },
+  }),
+  R('/api/v1/admin/suggestions/[id]/draft', 'POST', 'moderator', {
+    params: { id: NO_ID },
+    body: {},
+  }),
 ];
 
 const ROLES = ['anonymous', 'USER', 'MODERATOR', 'SUPER_MODERATOR', 'STREAMER'] as const;

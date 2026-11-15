@@ -111,11 +111,37 @@ export const AUDIT_ACTIONS = {
       deduplicated: z.boolean(),
     })
     .strict(),
-  'catalog.create': z.object({ kind: itemKind, version: z.int() }).strict(),
+  'catalog.create': z
+    .object({
+      kind: itemKind,
+      version: z.int(),
+      /** 2026-11-15: filled from Wikidata, by "Adicionar vários" or from a viewer suggestion */
+      source: z.enum(['wikidata', 'bulk', 'suggestion']).optional(),
+    })
+    .strict(),
   'catalog.save': z
     .object({ kind: itemKind, version: z.int(), fields: z.array(catalogField).max(40) })
     .strict(),
-  'catalog.publish': z.object({ kind: itemKind, slot: z.int(), version: z.int() }).strict(),
+  'catalog.publish': z
+    .object({
+      kind: itemKind,
+      slot: z.int(),
+      version: z.int(),
+      /** 2026-11-15: published by the worker at the scheduled time */
+      scheduled: z.boolean().optional(),
+    })
+    .strict(),
+  /** "Agendar publicação" (2026-11-15): the time set, or null when cancelled */
+  'catalog.schedule': z
+    .object({ kind: itemKind, publishAt: z.iso.datetime().nullable(), version: z.int() })
+    .strict(),
+  /** the worker couldn't publish at the scheduled time (the reason, by code) */
+  'catalog.scheduleFailed': z
+    .object({
+      kind: itemKind,
+      code: z.enum(['INCOMPLETE', 'CATALOG_FULL', 'SLOT_TAKEN', 'INVALID_STATE', 'OTHER']),
+    })
+    .strict(),
   'catalog.revert': z.object({ kind: itemKind, toVersion: z.int(), version: z.int() }).strict(),
   'catalog.slots': z.object({ kind: itemKind, moved: z.int().nonnegative() }).strict(),
   'catalog.replace': z
@@ -447,6 +473,11 @@ export const AUDIT_ACTIONS = {
       from: z.enum(['NEW', 'ACCEPTED', 'DISMISSED', 'WATCHED']),
       to: z.enum(['NEW', 'ACCEPTED', 'DISMISSED', 'WATCHED']),
     })
+    .strict(),
+  /** "Criar rascunho" (2026-11-15): a draft made (or found) for a suggestion; how many viewers'
+   *  suggestions of the same title it answered */
+  'suggestion.draft': z
+    .object({ itemId: z.uuid(), existed: z.boolean(), suggestions: z.int().min(1) })
     .strict(),
   // ── Roleta (2026-11-04): what was won, never the coupon code ──
   'roleta.win': z.object({ prize: roletaPrize }).strict(),

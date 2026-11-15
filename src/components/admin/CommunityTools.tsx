@@ -292,8 +292,33 @@ export type AdminSuggestion = {
   author: string | null;
   reviewer: string | null;
   alsoSuggested: number;
+  /** the catalog draft made from it (2026-11-15) */
+  item: { id: string; title: string; kind: string; status: string } | null;
 };
 type Page = { suggestions: AdminSuggestion[]; next: string | null; waiting: number };
+
+const KIND_TIPO: Record<string, string> = {
+  MOVIE: 'filmes',
+  SERIES: 'series',
+  FRANCHISE: 'franquias',
+  ANIME: 'animes',
+};
+const editorHref = (item: { id: string; kind: string }) =>
+  `/admin/catalogo?tipo=${KIND_TIPO[item.kind] ?? 'filmes'}&item=${item.id}`;
+const fold = (t: string) =>
+  t
+    .normalize('NFKD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+type DraftResult = {
+  itemId: string;
+  title: string;
+  missing: string[];
+  existed: boolean;
+  linked: number;
+};
 
 export function SuggestionsBoard({ initial }: { initial: Page }) {
   const { busy, act, view } = useAct();
@@ -322,6 +347,37 @@ export function SuggestionsBoard({ initial }: { initial: Page }) {
       { method: 'PATCH', body: { status: to, expectedStatus: s.status } },
     );
     await reload();
+  }
+
+  /** "Criar rascunho" (2026-11-15): a catalog draft filled from Wikidata, the suggestion accepted */
+  const [made, setMade] = useState<Record<string, DraftResult>>({});
+  async function draft(s: AdminSuggestion) {
+    const r = await act<{ result: DraftResult }>(
+      'Rascunho criado',
+      `/api/v1/admin/suggestions/${s.id}/draft`,
+      { method: 'POST', body: {} },
+    );
+    if (r.ok) {
+      const res = r.data.result;
+      setMade((m) => ({ ...m, [s.id]: res }));
+      // stays on screen (with "Abrir rascunho") until the list is reloaded; the same title asked
+      // by other viewers was answered too
+      const key = fold(s.title);
+      const item = {
+        id: res.itemId,
+        title: res.title,
+        kind: s.kind,
+        status: res.existed ? 'ACTIVE' : 'DRAFT',
+      };
+      setPage((p) => ({
+        ...p,
+        suggestions: p.suggestions.map((x) =>
+          x.id === s.id || (x.kind === s.kind && fold(x.title) === key)
+            ? { ...x, item, status: x.status === 'NEW' ? 'ACCEPTED' : x.status }
+            : x,
+        ),
+      }));
+    }
   }
 
   return (
@@ -371,11 +427,38 @@ export function SuggestionsBoard({ initial }: { initial: Page }) {
               </span>
             </div>
             {s.note ? <p className="wf-review__body">{s.note}</p> : null}
+            {made[s.id] ? (
+              <p className="wf-hint m-0" role="status">
+                {made[s.id]!.existed
+                  ? `“${made[s.id]!.title}” já estava no catálogo: a sugestão foi ligada a ele.`
+                  : made[s.id]!.missing.length
+                    ? `Rascunho criado. Confira: ${made[s.id]!.missing.join(' · ')}. Faltam pôster, fundo e sinopse.`
+                    : 'Rascunho criado e preenchido pelo Wikidata. Faltam pôster, fundo e sinopse.'}
+              </p>
+            ) : null}
             <div className="wf-ops-actions">
-              {s.status !== 'ACCEPTED' ? (
+              {s.item ? (
+                <a
+                  className="wf-btn wf-btn--sm wf-btn--neon"
+                  href={editorHref(s.item)}
+                  data-no-prefetch
+                >
+                  {s.item.status === 'DRAFT' ? 'Abrir rascunho' : 'Abrir no catálogo'}
+                </a>
+              ) : s.kind !== 'GAME' ? (
                 <button
                   type="button"
                   className="wf-btn wf-btn--sm wf-btn--neon"
+                  disabled={busy}
+                  onClick={() => void draft(s)}
+                >
+                  Criar rascunho
+                </button>
+              ) : null}
+              {s.status !== 'ACCEPTED' ? (
+                <button
+                  type="button"
+                  className="wf-btn wf-btn--sm wf-btn--ghost"
                   disabled={busy}
                   onClick={() => void decide(s, 'ACCEPTED')}
                 >

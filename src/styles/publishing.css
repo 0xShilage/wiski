@@ -1,0 +1,181 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Publishing helpers (2026-11-15): "Preencher com o Wikidata" in the editor, the Wikipedia
+   summary kept beside the synopsis as a reference, "Adicionar vários" and "Agendar publicação".
+   ───────────────────────────────────────────────────────────────────────────── */
+@layer components {
+  .wf-admin__head-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* ── Preencher com o Wikidata ── */
+  .wf-wd {
+    display: grid;
+    gap: 10px;
+    margin-top: 18px;
+    padding: 14px 16px 16px;
+    border: 1px solid rgb(79 61 114 / 0.9);
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgb(169 157 224 / 0.07), rgb(169 157 224 / 0.02));
+  }
+  .wf-wd__head {
+    display: grid;
+    gap: 2px;
+  }
+  .wf-wd__head h3 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+  }
+  .wf-wd__search {
+    display: flex;
+    gap: 8px;
+  }
+  .wf-wd__search .wf-input {
+    flex: 1;
+    min-width: 0;
+  }
+  .wf-wd__results {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 6px;
+  }
+  .wf-wd__results button {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 12px;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid rgb(79 61 114 / 0.8);
+    background: var(--color-surface-1);
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition:
+      border-color var(--dur-hover) var(--ease-out),
+      background-color var(--dur-hover) var(--ease-out);
+  }
+  .wf-wd__results button:hover:not(:disabled) {
+    border-color: var(--color-lavender);
+    background: var(--color-surface-2);
+  }
+  .wf-wd__results button:disabled {
+    cursor: progress;
+    opacity: 0.7;
+  }
+  .wf-wd__title {
+    grid-column: 1;
+    font-weight: 600;
+    color: #fff;
+    overflow-wrap: anywhere;
+  }
+  .wf-wd__year {
+    font-weight: 400;
+    color: var(--color-lavender);
+  }
+  .wf-wd__desc {
+    grid-column: 1;
+    font-size: 13px;
+    color: rgb(229 221 237 / 0.7);
+    overflow-wrap: anywhere;
+  }
+  .wf-wd__use {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    font-size: 13px;
+    color: var(--color-lavender);
+  }
+
+  /* the Wikipedia summary: a reference card, visibly not part of the form */
+  .wf-wd-ref {
+    display: grid;
+    gap: 6px;
+    padding: 12px 14px;
+    border-left: 3px solid var(--color-lavender);
+    border-radius: 0 10px 10px 0;
+    background: rgb(169 157 224 / 0.06);
+  }
+  .wf-wd-ref__label {
+    margin: 0;
+    font-size: 12px;
+    color: rgb(229 221 237 / 0.7);
+  }
+  .wf-wd-ref__text {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.55;
+    color: rgb(229 221 237 / 0.9);
+    max-height: 12em;
+    overflow-y: auto;
+  }
+  .wf-wd-ref a {
+    justify-self: start;
+  }
+
+  /* ── Adicionar vários ── */
+  .wf-bulk__rows {
+    list-style: none;
+    margin: 18px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 6px;
+  }
+  .wf-bulk__rows li {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid rgb(79 61 114 / 0.7);
+    background: var(--color-surface-1);
+  }
+  .wf-bulk__mark {
+    font-weight: 700;
+    text-align: center;
+    color: rgb(229 221 237 / 0.5);
+  }
+  .wf-bulk__rows .is-done .wf-bulk__mark {
+    color: var(--color-lavender);
+  }
+  .wf-bulk__rows .is-error .wf-bulk__mark {
+    color: var(--color-danger);
+  }
+  .wf-bulk__rows .is-working {
+    border-color: var(--color-lavender);
+  }
+  .wf-bulk__title {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: #fff;
+  }
+  .wf-bulk__title small {
+    font-size: 12px;
+    color: rgb(229 221 237 / 0.7);
+  }
+
+  /* ── Agendar publicação ── */
+  .wf-sched {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+    font-size: 14px;
+  }
+  .wf-drafts__when {
+    color: var(--color-lavender);
+    font-size: 12px;
+  }
+  .wf-legend .s-SCHEDULED {
+    --dot: var(--color-lavender);
+  }
+}

@@ -163,6 +163,7 @@ export function SlotBoard({
                   onClick={() => onSelect(d.id)}
                 >
                   {d.title}
+                  {d.publishAt ? <span className="wf-drafts__when"> · agendado</span> : null}
                 </button>
               </li>
             ))}

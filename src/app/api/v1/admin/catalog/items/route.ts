@@ -18,7 +18,11 @@ export const GET = route(
 export const POST = route(
   { methods: ['POST'], access: 'moderator', rateLimit: RL.adminWrite, body: createItemInput },
   async ({ user, requestId, body }) => {
-    const item = await createItem({ actor: user, requestId }, body);
+    const item = await createItem(
+      { actor: user, requestId },
+      body,
+      body.wikidataId ? 'wikidata' : undefined,
+    );
     return Response.json({ item: await getAdmin(item.id) }, { status: 201 });
   },
 );

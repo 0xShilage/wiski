@@ -273,6 +273,8 @@ export async function listAdmin(kind: ItemKind, now = new Date()) {
     version: r.version,
     updatedAt: r.updatedAt.toISOString(),
     reserved: !!r.reservedUntil && r.reservedUntil > now,
+    /** a movie draft scheduled to go live on its own (2026-11-15) */
+    publishAt: r.publishAt?.toISOString() ?? null,
     poster: pictureFrom(r.poster),
     campaign: r.campaign
       ? {
@@ -321,6 +323,9 @@ export async function getAdmin(id: string, now = new Date()) {
     updatedAt: row.updatedAt.toISOString(),
     publishedAt: row.publishedAt?.toISOString() ?? null,
     reserved: !!row.reservedUntil && row.reservedUntil > now,
+    /** "Agendar publicação" (2026-11-15): when it goes live on its own, and why the last try didn't */
+    publishAt: row.publishAt?.toISOString() ?? null,
+    publishError: row.publishError,
     fields: {
       title: row.title,
       originalTitle: row.originalTitle,
@@ -346,6 +351,7 @@ export async function getAdmin(id: string, now = new Date()) {
         year,
         runtimeMinutes,
       })),
+      wikidataId: row.wikidataId,
     },
     media: {
       poster: pictureFrom(row.poster),

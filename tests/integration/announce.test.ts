@@ -207,7 +207,8 @@ describe('anúncios automáticos', () => {
         description: '',
         assetId: art.id,
         startsAt: new Date(Date.now() - 60_000),
-        endsAt: new Date('2026-11-15T02:59:00Z'),
+        // a Saturday 23:59 in Brasília, far enough ahead to stay open
+        endsAt: new Date('2099-11-15T02:59:00Z'),
         codeHash: Buffer.alloc(32, 7),
       },
     });

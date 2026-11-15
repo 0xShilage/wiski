@@ -104,6 +104,17 @@ export const envSchema = z
         .refine((p) => !/[\0\n\r]/.test(p), 'must not contain control characters'),
     ),
 
+    /** TESTS ONLY: answer the Wikidata and Wikipedia lookups (2026-11-15) from a local fixture
+     *  server. Loopback http origins only, so it can never send the lookups anywhere else. */
+    WIKI_TEST_ORIGIN: optional(
+      z
+        .string()
+        .regex(
+          /^http:\/\/(?:127\.0\.0\.1|localhost):\d{2,5}$/,
+          'must be a loopback origin (http://127.0.0.1:port), for tests only',
+        ),
+    ),
+
     LOG_LEVEL: z
       .enum(['silent', 'fatal', 'error', 'warn', 'info', 'debug', 'trace'])
       .default('info'),

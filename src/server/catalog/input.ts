@@ -93,6 +93,11 @@ export const itemFieldsInput = z
     franchiseEntries: z.array(franchiseEntryInput).max(30),
     /** Planned slot for a draft (the slot it will take when published). */
     slot: z.int().min(1).max(50).nullable(),
+    /** The Wikidata item the fields came from (2026-11-15), "Q" + digits */
+    wikidataId: z
+      .string()
+      .regex(/^Q[1-9]\d{0,11}$/)
+      .nullable(),
   })
   .partial()
   .strict();
@@ -152,4 +157,40 @@ export const extendCampaignInput = z.object({ days: z.int().min(1).max(365) }).s
 
 export const goalInput = z
   .object({ goalCents: z.int().min(500).max(100_000_000).multipleOf(100) })
+  .strict();
+
+// ── publishing helpers (2026-11-15) ──
+
+/** "Agendar publicação": a movie draft goes live on its own at `publishAt` (null = cancel). */
+export const scheduleInput = z
+  .object({ expectedVersion: z.int().min(0), publishAt: z.iso.datetime().nullable() })
+  .strict();
+
+/** GET …/catalog/lookup: a search (`q`) or one Wikidata item's details (`id`). */
+export const lookupQuery = z
+  .object({
+    kind: z.enum(ITEM_KINDS),
+    q: z.string().min(1).max(200).optional(),
+    id: z
+      .string()
+      .regex(/^Q[1-9]\d{0,11}$/)
+      .optional(),
+  })
+  .strict()
+  .refine((v) => (v.q === undefined) !== (v.id === undefined), {
+    message: 'Informe q ou id.',
+  });
+
+/** "Adicionar vários" / quick add: one title (and year) → a draft filled from Wikidata. */
+export const quickAddInput = z
+  .object({
+    kind: z.enum(ITEM_KINDS),
+    title: text(120, { min: 1 }),
+    year: z.int().min(1888).max(2100).nullable().optional(),
+    /** a Wikidata item picked by hand; absent = the best match for the title */
+    wikidataId: z
+      .string()
+      .regex(/^Q[1-9]\d{0,11}$/)
+      .optional(),
+  })
   .strict();

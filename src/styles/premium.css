@@ -70,7 +70,7 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Premium look (2026-11-14): typography polish, material and light.
+   Premium look (2026-11-14): typography polish and material (velvet).
    ───────────────────────────────────────────────────────────────────────────── */
 @layer components {
   /* ── Typography: balanced headings, no orphans in paragraphs, titles set tighter, figures that
@@ -128,70 +128,7 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* ── Film grain over the whole site, faint; it shimmers on big screens only ── */
-  .wf-grain {
-    position: fixed;
-    inset: -50%;
-    z-index: 45;
-    pointer-events: none;
-    background: url('/fx/grain.png') 0 0 / 160px 160px repeat;
-    opacity: 0.045;
-  }
-  @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-    .wf-grain {
-      animation: wf-grain 0.9s steps(6) infinite;
-    }
-  }
-  @keyframes wf-grain {
-    0% {
-      translate: 0 0;
-    }
-    17% {
-      translate: -37px 21px;
-    }
-    33% {
-      translate: 53px -44px;
-    }
-    50% {
-      translate: -18px 61px;
-    }
-    67% {
-      translate: 29px 12px;
-    }
-    83% {
-      translate: -61px -29px;
-    }
-  }
-
-  /* ── A soft light that follows the mouse (Flashlight) ── */
-  .wf-flashlight {
-    position: fixed;
-    top: -280px;
-    left: -280px;
-    z-index: 44;
-    width: 560px;
-    height: 560px;
-    border-radius: 50%;
-    pointer-events: none;
-    background: radial-gradient(
-      closest-side,
-      rgb(169 157 224 / 0.16),
-      rgb(169 157 224 / 0.06) 55%,
-      transparent
-    );
-    mix-blend-mode: screen;
-    opacity: 0;
-    transition: opacity var(--dur-fade) var(--ease-out);
-    will-change: transform;
-  }
-  .wf-flashlight.is-on {
-    opacity: 1;
-  }
-  @media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
-    .wf-flashlight {
-      display: none;
-    }
-  }
+  /* (film grain and the mouse light, 2026-11-14, were taken out the same week: §47) */
 
   /* ── Velvet: the dark surfaces get a fine nap, like a theater seat ── */
   .wf-panel,

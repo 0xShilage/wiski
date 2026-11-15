@@ -621,3 +621,24 @@ Full white-box review plus active testing against the production stack: [`../sec
   - A soft light follows the mouse (`src/components/fx/Flashlight.tsx`): one fixed element, moved by a CSSOM transform, that fades after 2.5 s at rest. Desktop with a mouse only, never with reduced motion.
 - **Tests.** `tests/e2e/premium-look.spec.ts` covers the grain, velvet, balanced titles, tabular prices, the quiet campaign facts, the light following the mouse, and reduced motion (no light, still grain). Screenshots `test-results/premium-look/`.
 
+## 48. Sensação premium — Details (2026-11-14)
+
+- **Focus, selection, scrollbar.**
+  - Keyboard focus is a 2 px lavender ring 3 px out with a soft halo. The halo is in `@layer base`, so a component's own glow wins.
+  - Selected text is lavender at 38%.
+  - The scrollbar is thin, violet on ink (`scrollbar-color`, plus `::-webkit-scrollbar`).
+- **Live favicon.** While a live is on, the tab's icon shows a red dot (`public/fx/icon-live.png`).
+  - `LiveBar`, which already asks `/api/v1/live` every minute while the tab is visible, points the page's icon links at it, and back to their own (kept in `data-wf-href`) when the live ends.
+  - File-based icons (`src/app/icon.png`, `favicon.ico`) stay the default.
+- **A share image per title.** `src/app/(site)/{filmes,series,animes,franquias}/[slug]/opengraph-image.tsx` → `src/server/og/title-image.tsx` (next/og), 1200×630.
+  - The image: the title's background blurred and darkened, its poster glowing on the left, the kind, the title in Escargoth, year · runtime or seasons · two genres. Then a line: "Patrocine na live por R$ X" for a movie open to sponsorship, otherwise the synopsis, cut at 120 characters. Then the Wiski wordmark and WISKI.FUN.
+  - Images are the title's own re-encoded WebPs read from the media folder (safe names only) and turned into PNG with sharp.
+  - Fonts are TrueType subsets in `src/server/og/fonts`, now also written by `npm run brand:fonts`, and shipped in standalone via `outputFileTracingIncludes`.
+  - An unknown or hidden title gets the site's card, never an error.
+  - The pages' `generateMetadata` no longer points `og:image` at the raw background.
+- **Tests.** `tests/e2e/premium-details.spec.ts`:
+  - The share image: 200, PNG, 1200×630, the title's art, and a card for an unknown title.
+  - The red-dot icon during a live.
+  - Focus ring, selection colour and thin scrollbar.
+  - Screenshots `test-results/premium-details/`.
+

@@ -233,3 +233,34 @@
     padding-bottom: clamp(64px, 9vh, 112px);
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Premium details (2026-11-14): our own focus outline, text selection and scrollbar.
+   ───────────────────────────────────────────────────────────────────────────── */
+@layer base {
+  /* the focus ring itself is in globals.css (base rules there come after the imports) */
+  ::selection {
+    background: rgb(169 157 224 / 0.38);
+    color: #fff;
+    text-shadow: none;
+  }
+  html {
+    scrollbar-color: rgb(115 107 178 / 0.7) var(--color-ink);
+    scrollbar-width: thin;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-ink);
+  }
+  ::-webkit-scrollbar-thumb {
+    border: 2px solid var(--color-ink);
+    border-radius: 999px;
+    background: linear-gradient(180deg, var(--color-violet), var(--color-plum));
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-lavender);
+  }
+}

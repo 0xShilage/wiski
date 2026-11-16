@@ -1,6 +1,6 @@
 # 08 — Hosting, domain and e-mail
 
-> Status: **rev 5** · 2026-10-31 · Phase 5 built the stack described here: [../phase-5/deploy-guide.md](../phase-5/deploy-guide.md) (step by step), [../phase-5/security-checklist.md](../phase-5/security-checklist.md) · rev 4 · 2026-10-02 · domain **wiski.fun** on Cloudflare (done) · Hostinger dropped (no Brazil server offered to you) · candidate: **RedHosting** VPS, 2 vCPU · 2 GB RAM · 20 GB NVMe · 500 Mbps · expected traffic ≈ 1,000 visits/month.
+> Status: **rev 5** · 2026-10-31 · Phase 5 built the stack described here: [../phase-5/deploy-guide.md](../phase-5/deploy-guide.md) (step by step) and the security checklist (kept privately) · rev 4 · 2026-10-02 · domain **wiski.fun** on Cloudflare (done) · Hostinger dropped (no Brazil server offered to you) · candidate: **RedHosting** VPS, 2 vCPU · 2 GB RAM · 20 GB NVMe · 500 Mbps · expected traffic ≈ 1,000 visits/month.
 
 ## 1. Is 2 vCPU / 2 GB / 20 GB enough?
 

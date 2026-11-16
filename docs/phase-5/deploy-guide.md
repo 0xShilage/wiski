@@ -1,7 +1,7 @@
 # Wiskiflix — deploy guide (Phase 5)
 
 > From an empty VPS to `https://wiski.fun` behind Cloudflare. Written to be followed in order, once. Day-to-day releases are §5; backups and restores §6; what to do when something breaks §7.
-> Builds on [`../phase-0/08-hosting.md`](../phase-0/08-hosting.md) (sizing, Cloudflare, e-mail) and [`security-checklist.md`](./security-checklist.md).
+> Builds on [`../phase-0/08-hosting.md`](../phase-0/08-hosting.md) (sizing, Cloudflare, e-mail) and the security checklist (kept privately, outside this public repo).
 
 ## 0. What you need before starting
 

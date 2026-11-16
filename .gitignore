@@ -53,3 +53,7 @@ npm-debug.log*
 
 # profile picture originals (≈ 23 MB): kept locally, built into public/avatars by `npm run avatars`
 /brand/profile-icons/
+
+# Kept privately (WSK project on claude.ai), never in this public repo
+/docs/security/
+/docs/phase-5/security-checklist.md

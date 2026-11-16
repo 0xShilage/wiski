@@ -1,7 +1,7 @@
 # Wiskiflix — Phase 5 (production: image, stack, deploy, backups, security)
 
 > Status: **built and tested; deployment pending** · 2026-10-31 · baseline [`../phase-0/`](../phase-0/README.md) (01 §2, 05 §7 + §10, 08) · results [`test-report.md`](./test-report.md).
-> **Do this:** [`deploy-guide.md`](./deploy-guide.md) · **check this:** [`security-checklist.md`](./security-checklist.md).
+> **Do this:** [`deploy-guide.md`](./deploy-guide.md) · **check this:** the security checklist (kept privately, outside this public repo).
 
 Phase 5 turns the repository into something a 2 GB VPS can run safely:
 
@@ -25,7 +25,7 @@ Phase 5 turns the repository into something a 2 GB VPS can run safely:
 | systemd | `docker/systemd/` | nightly backup (04:40 São Paulo), weekly Cloudflare ranges, firewall after every Docker start |
 | CI | `.github/workflows/ci.yml`, `.github/dependabot.yml` | new jobs: `restore-drill`, `image` (build both targets → production-stack smoke test → on `main`: push to GHCR + `release.env` artifact); shellcheck; `npm audit --omit=dev` must be clean; Dependabot also for base and infrastructure images |
 | Tests | `tests/unit/{nginx-config,compose-prod}.test.ts`, `tests/smoke/{worker-smoke.ts,restore-drill.sh,compose-smoke.sh,migrate.ts}`, `tests/e2e/headers.spec.ts` | see the test report |
-| Docs | `docs/phase-5/{deploy-guide,security-checklist,test-report}.md` | |
+| Docs | `docs/phase-5/{deploy-guide,test-report}.md` (the security checklist is kept privately) | |
 
 ## 2. How a request reaches the app
 

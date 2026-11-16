@@ -11,10 +11,11 @@ The project was built in phases; each folder holds that phase's decisions and it
 | [`phase-2`](phase-2/README.md) | Payments: Pix via Mercado Pago, checkout, the order page, "Meus pedidos" |
 | [`phase-3`](phase-3/README.md) | Reviews, likes, reports, moderation, public profiles |
 | [`phase-4`](phase-4/README.md) | Operations: live schedule, orders, people, overlays, media kit, contact |
-| [`phase-5`](phase-5/README.md) | Production: images, Compose stack, nginx, [deploy guide](phase-5/deploy-guide.md), backups, [security checklist](phase-5/security-checklist.md) |
+| [`phase-5`](phase-5/README.md) | Production: images, Compose stack, nginx, [deploy guide](phase-5/deploy-guide.md), backups |
 | [`phase-6`](phase-6/README.md) | Every change since Phase 5, one numbered section each (§1–§50) |
-| [`security`](security/) | Penetration test reports |
 
 Every phase has a `test-report.md` next to its README with what was tested and the results.
+
+The security checklist and the penetration test reports are kept privately, outside this public repository.
 
 Rules that every change follows (lint- and test-enforced) are in [`AGENTS.md`](../AGENTS.md).

@@ -1,0 +1,155 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Emblema ao lado do nome (2026-11-15): the small badge next to a @username, Twitch style —
+   in reviews, the ranking, the profile heading and the member card; and the picker on /perfil.
+   ───────────────────────────────────────────────────────────────────────────── */
+@layer components {
+  .wf-nb {
+    display: inline-grid;
+    flex: none;
+    place-items: center;
+    vertical-align: -0.2em;
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+  }
+  .wf-nb--md {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    vertical-align: middle;
+  }
+  .wf-nb .wf-badge-art {
+    width: 100%;
+    border-radius: inherit;
+  }
+  .wf-nb .wf-badge-art img {
+    filter: none;
+  }
+
+  /* a conquista: the earned ring, small */
+  .wf-nb--achievement {
+    border-radius: 50%;
+    border: 1.5px solid transparent;
+    background:
+      radial-gradient(circle at 50% 40%, #4b3670, #1f1530) padding-box,
+      linear-gradient(135deg, #f3d9ff, #c9a8ff 50%, #f2a7dd) border-box;
+  }
+  .wf-nb--md.wf-nb--achievement {
+    border-width: 2px;
+  }
+
+  /* the team's role */
+  .wf-nb--role {
+    color: #fff;
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.18);
+  }
+  .wf-nb--role-streamer {
+    background: linear-gradient(135deg, #f2a7dd, #c2477f);
+  }
+  .wf-nb--role-super_moderator {
+    background: linear-gradient(135deg, #f6d68b, #c58b2c);
+  }
+  .wf-nb--role-moderator {
+    background: linear-gradient(135deg, #c9a8ff, #6f58b8);
+  }
+
+  .wf-nb__icon {
+    width: 62%;
+    height: 62%;
+  }
+  .wf-nb--achievement .wf-nb__icon {
+    color: var(--color-lilac);
+    width: 58%;
+    height: 58%;
+  }
+
+  /* a name with its badge: badge, then @name, on one line */
+  .wf-named {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  /* ── the picker on /perfil ── */
+  .wf-nb-pick {
+    display: grid;
+    gap: 14px;
+  }
+  .wf-nb-pick__preview {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid rgb(79 61 114 / 0.8);
+    background: var(--color-surface-1);
+  }
+  .wf-nb-pick__preview .wf-named {
+    font-weight: 600;
+    color: var(--color-lilac);
+  }
+  .wf-nb-pick__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .wf-nb-pick__opt {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid rgb(79 61 114 / 0.8);
+    background: var(--color-surface-1);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1.25;
+    transition:
+      border-color var(--dur-hover) var(--ease-out),
+      background-color var(--dur-hover) var(--ease-out);
+  }
+  .wf-nb-pick__opt:hover {
+    border-color: var(--color-lavender);
+  }
+  /* the radio covers the whole option (invisible): a tap anywhere picks it, the keyboard still works */
+  .wf-nb-pick__opt input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .wf-nb-pick__opt:has(input:checked) {
+    border-color: var(--color-lavender);
+    background: rgb(169 157 224 / 0.12);
+    box-shadow: 0 0 0 1px var(--color-lavender);
+  }
+  .wf-nb-pick__opt:has(input:focus-visible) {
+    outline: 2px solid var(--color-lavender);
+    outline-offset: 3px;
+  }
+  .wf-nb-pick__kind {
+    display: block;
+    font-size: 12px;
+    color: rgb(229 221 237 / 0.65);
+  }
+  .wf-nb-pick__none {
+    display: inline-grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 1px dashed rgb(169 157 224 / 0.5);
+    color: rgb(229 221 237 / 0.6);
+    font-size: 14px;
+  }
+}

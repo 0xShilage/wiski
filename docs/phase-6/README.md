@@ -689,3 +689,29 @@ Adding a movie used to mean typing about a dozen fields by hand. Four helpers no
   - `tests/integration/publishing-helpers.test.ts`: the routes, the worker and the database floor.
   - `tests/e2e/publishing.spec.ts`: fill and undo, bulk add, suggestion → draft, schedule and cancel. Screenshots `test-results/publishing/`.
   - Also fixed: `tests/integration/announce.test.ts` used a badge end date that is now in the past.
+
+## 51. Emblema ao lado do nome (2026-11-15)
+
+Like a Twitch chat badge: each viewer can pick one small badge that appears next to their @username across the site.
+
+- **What can be picked** (on `/perfil`, in "Emblema ao lado do nome", saved as soon as it's chosen, with a preview of the name):
+  - an event badge they claimed (its art; next to a name it uses the still first frame, so lists stay calm);
+  - a conquista they earned (the earned ring with its icon);
+  - for the team, their role ("Streamer", "Desenvolvedor", "Moderação", each with its own colour);
+  - or "Nenhum".
+- **Where it shows:** review cards (title pages, `/avaliacoes`, profiles), the "crítica mais curtida" clipping, `/ranking`, the `/u/[username]` heading and the member card on `/perfil`. Name and kind show on hover (`title`) and to screen readers. It shows only while the viewer shows conquistas and emblemas: the existing switch now reads "…no perfil público, no ranking e ao lado do meu nome".
+- **Rules:**
+  - Only badges the viewer has: someone else's event badge, an unearned conquista or a role a viewer doesn't hold are refused with `NAME_BADGE_UNAVAILABLE`.
+  - One badge at a time.
+  - A conquista can stop being earned (a refunded sponsorship, a removed review). The worker job `users.nameBadges` (every 6 h) takes it off, audited with no actor and `reason: not-earned`.
+- **API:** `PUT /api/v1/me/name-badge` `{choice: {kind: none | role | emblem (slug) | achievement (id)}}` (user access, CSRF, `profile-write` rate limit; in the authz matrix). Audit `user.nameBadge` `{kind}`.
+- **Database** (`20261201120000_name_badge` + reviewed `_constraints`):
+  - `User.nameBadgeEmblemId` (FK to `Badge`, set null when the badge is deleted), `nameBadgeAchievement` and `nameBadgeRole`.
+  - CHECKs: at most one is set; the conquista id's shape; the role badge for staff only.
+  - Trigger `user_name_badge_guard`: the event badge must be claimed by this user (SQLSTATE `WF412`), and losing the staff role switches the role badge off in the same write.
+  - Trigger `badge_claim_clear_name_badge`: removing a claim takes the badge off.
+- **LGPD:** the export includes the choice; erasing the account clears it.
+- **Tests:**
+  - `tests/integration/name-badge.test.ts` (7 tests): pick and show in reviews and profile; refusals; conquista and role, one at a time, "Nenhum"; ranking, and hidden when conquistas are hidden; the worker clean-up; database floor; LGPD.
+  - The authz matrix.
+  - `tests/e2e/name-badge.spec.ts`: a badge created in the dashboard, claimed, picked on `/perfil`, seen on the review, the public profile and the member card, then removed; a moderator picks the role on a phone. Screenshots `test-results/name-badge/`.

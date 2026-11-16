@@ -10,6 +10,7 @@ import {
   type ReviewSort,
 } from '@/lib/reviews/types';
 import { normalizeUsername, USERNAME_PATTERN } from '@/lib/username';
+import { nameBadgeOf, nameBadgeUserSelect } from '../community/name-badge';
 import { db } from '../db';
 import { decodeCursor, encodeCursor } from './cursor';
 
@@ -29,7 +30,7 @@ export const reviewSelect = {
   createdAt: true,
   editedAt: true,
   userId: true,
-  user: { select: { username: true, avatarKey: true } },
+  user: { select: { username: true, avatarKey: true, ...nameBadgeUserSelect } },
   item: { select: { kind: true, slug: true, title: true } },
 } satisfies Prisma.ReviewSelect;
 
@@ -54,7 +55,11 @@ export function toPublicReview(
     likeCount: row.likeCount,
     createdAt: row.createdAt.toISOString(),
     editedAt: row.editedAt?.toISOString() ?? null,
-    author: { username: row.user.username ?? 'usuario', avatarKey: row.user.avatarKey },
+    author: {
+      username: row.user.username ?? 'usuario',
+      avatarKey: row.user.avatarKey,
+      badge: nameBadgeOf(row.user),
+    },
     item: row.item,
     ...(viewerId ? { likedByMe: liked?.has(row.id) ?? false, mine: row.userId === viewerId } : {}),
   };
@@ -223,7 +228,7 @@ export async function findProfile(raw: string) {
       createdAt: true,
       status: true,
       isVip: true,
-      showAchievements: true,
+      ...nameBadgeUserSelect,
     },
   });
   if (!user || user.status === 'DELETED' || !user.username) return null;
@@ -238,6 +243,7 @@ export async function findProfile(raw: string) {
     reviewCount,
     isVip: user.isVip,
     showAchievements: user.showAchievements,
+    badge: nameBadgeOf(user),
   };
 }
 

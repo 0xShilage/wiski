@@ -110,7 +110,7 @@ async function entries(
         : [{ moderatedAt: 'desc' }],
     select: {
       ...reviewSelect,
-      user: { select: { username: true, avatarKey: true, createdAt: true } },
+      user: { select: { ...reviewSelect.user.select, createdAt: true } },
       reports: {
         where: { status: 'OPEN' },
         orderBy: { createdAt: 'asc' },

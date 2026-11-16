@@ -26,4 +26,6 @@ export const PG = {
   /** badge_claim_guard(): claimed outside the badge's window / past its limit (2026-11-12). */
   badgeClosed: 'WF410',
   badgeFull: 'WF411',
+  /** user_name_badge_guard(): the badge next to the name must be one the viewer claimed. */
+  nameBadgeNotClaimed: 'WF412',
 } as const;

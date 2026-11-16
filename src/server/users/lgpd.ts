@@ -123,6 +123,13 @@ export async function exportMyData(user: User, requestId: string | null) {
       role: user.role,
       vip: user.isVip,
       showAchievements: user.showAchievements,
+      nameBadge: user.nameBadgeRole
+        ? { kind: 'role' }
+        : user.nameBadgeAchievement
+          ? { kind: 'achievement', id: user.nameBadgeAchievement }
+          : user.nameBadgeEmblemId
+            ? { kind: 'emblem', id: user.nameBadgeEmblemId }
+            : null,
       status: user.status,
       createdAt: user.createdAt.toISOString(),
     },
@@ -216,6 +223,8 @@ export async function eraseMyAccount(
         role: 'USER',
         isVip: false,
         vipSince: null,
+        nameBadgeAchievement: null,
+        nameBadgeRole: false,
         totpSecretEnc: null,
         totpEnabledAt: null,
         totpLastStep: null,

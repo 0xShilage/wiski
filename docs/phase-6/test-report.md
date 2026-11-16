@@ -348,3 +348,21 @@ Fix (PR "fix-prefetch-burst"): no prefetch on the header tabs, the phone bar, th
   - Schedule (the Brasília time stored as UTC), then cancel.
 - `dashboard`, `a11y-layout`, `community`, `csp`, `backdrops`, `operations` and `viewports` green: 362 passed, 52 skipped by design.
 - Screenshots `test-results/publishing/`.
+
+## Addendum — Emblema ao lado do nome (2026-11-15)
+
+- Integration `name-badge.test.ts`, 7 tests:
+  - picking a claimed event badge shows it on reviews and on the profile (audited);
+  - someone else's badge, an unearned conquista, a role the viewer doesn't hold, and malformed bodies are refused;
+  - conquista and role work one at a time, and "Nenhum" clears it;
+  - the badge shows in the ranking, and is hidden everywhere when conquistas are hidden;
+  - the worker takes off a conquista that is no longer earned;
+  - database floor: one badge only, claimed badges only, the conquista id's shape, staff for the role badge, cleared when the role is lost;
+  - LGPD: exported, and cleared on account erasure.
+- The authz matrix covers the new endpoint.
+- Unit and integration suites all green: 456 unit, 1546 integration.
+- e2e `name-badge.spec.ts`:
+  - desktop: create a badge, claim it, pick it, see it on the review, the public profile and the member card, then remove it;
+  - phone: a moderator picks the role badge, with no sideways scroll.
+- `a11y-layout`, `community-catalog`, `community`, `csp`, `emblemas`, `reviews` and `viewports` are green: 358 passed, 34 skipped by design.
+- Screenshots are in `test-results/name-badge/`.

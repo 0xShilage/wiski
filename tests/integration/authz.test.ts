@@ -62,6 +62,8 @@ export const MATRIX: Row[] = [
     body: { username: 'matrix_probe', avatarKey: 'perfil-01' },
   }),
   R('/api/v1/me/profile', 'PATCH', 'user', { body: { avatarKey: 'perfil-01' } }),
+  // "Emblema ao lado do nome" (2026-11-15)
+  R('/api/v1/me/name-badge', 'PUT', 'user', { body: { choice: { kind: 'none' } } }),
   R('/api/v1/me/sessions', 'GET', 'user'),
   R('/api/v1/me/sessions', 'DELETE', 'user'),
   R('/api/v1/me/sessions/[id]', 'DELETE', 'user', {

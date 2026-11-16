@@ -9,6 +9,7 @@ import type { PublicReview } from '@/lib/reviews/types';
 import { reviewDate } from './format';
 import { ReportDialog } from './ReportDialog';
 import { Stars } from './Stars';
+import { NameBadgeMark } from '@/components/community/NameBadge';
 
 export type Viewer = { signedIn: boolean; loginHref: string };
 
@@ -80,7 +81,9 @@ export function ReviewCard({
         {showAuthor ? (
           <Link href={`/u/${review.author.username}`} className="wf-review__author">
             <Avatar avatarKey={review.author.avatarKey} size={40} />
-            <span>@{review.author.username}</span>
+            <span className="wf-named">
+              <NameBadgeMark badge={review.author.badge} />@{review.author.username}
+            </span>
           </Link>
         ) : null}
         <div className="wf-review__meta">

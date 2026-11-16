@@ -9,7 +9,9 @@ import {
   memberTier,
   nextMemberTier,
 } from '@/lib/member-card';
+import type { NameBadge } from '@/lib/name-badge';
 import type { RoleName } from '@/lib/roles';
+import { NameBadgeMark } from '@/components/community/NameBadge';
 
 const num = new Intl.NumberFormat('pt-BR');
 
@@ -23,6 +25,8 @@ type Props = {
     isVip: boolean;
   };
   stats: MemberStats;
+  /** the badge next to the name (2026-11-15) */
+  badge?: NameBadge | null;
 };
 
 /**
@@ -30,7 +34,7 @@ type Props = {
  * desde", the tier, four numbers, a member number and its (decorative) barcode. It tilts like the
  * posters and a foil sheen sweeps across it now and then (not with "reduce motion").
  */
-export function MemberCard({ user, stats }: Props) {
+export function MemberCard({ user, stats, badge }: Props) {
   const tier = memberTier(stats, user.role);
   const next = nextMemberTier(stats, user.role);
   const number = memberNumber(user.id);
@@ -54,7 +58,11 @@ export function MemberCard({ user, stats }: Props) {
             <Avatar avatarKey={user.avatarKey} size={64} />
           </span>
           <div className="wf-member__who">
-            <p className="wf-member__name">@{user.username}</p>
+            <p className="wf-member__name">
+              <span className="wf-named">
+                <NameBadgeMark badge={badge} />@{user.username}
+              </span>
+            </p>
             <p className="wf-member__since">Sócio desde {formatMonthYear(user.createdAt)}</p>
             <p className="wf-member__tiers">
               <span className="wf-member__tier">{tier.label}</span>

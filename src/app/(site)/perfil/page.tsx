@@ -19,6 +19,9 @@ import { nextUsernameChange } from '@/server/auth/accounts';
 import { myOrders } from '@/server/checkout/access';
 import { badgesOf } from '@/server/badges/badges';
 import { achievementsFor } from '@/server/community/achievements';
+import { nameBadgeOptions } from '@/server/community/name-badge';
+import { choiceKey } from '@/lib/name-badge';
+import { NameBadgePicker } from '@/components/account/NameBadgePicker';
 import { memberStats } from '@/server/community/member-card';
 import { getCurrentSession } from '@/server/auth/current';
 import { isGoogleLoginConfigured } from '@/server/env';
@@ -95,12 +98,17 @@ export default async function PerfilPage({ searchParams }: Props) {
   if (!user.username) redirect('/bem-vindo?next=%2Fperfil');
   const nextChange = nextUsernameChange(user);
   const privileged = user.role !== 'USER';
-  const [orders, badges, stats, emblems] = await Promise.all([
+  const [orders, badges, stats, emblems, nameBadge] = await Promise.all([
     myOrders(user),
     achievementsFor(user),
     memberStats(user.id),
     badgesOf(user.id),
+    nameBadgeOptions(user),
   ]);
+  const shownBadge = user.showAchievements
+    ? (nameBadge.options.find((o) => choiceKey(o.choice) === choiceKey(nameBadge.current))?.badge ??
+      null)
+    : null;
   const earnedCount = badges.filter((b) => b.earned).length;
 
   return (
@@ -117,6 +125,7 @@ export default async function PerfilPage({ searchParams }: Props) {
             isVip: user.isVip,
           }}
           stats={stats}
+          badge={shownBadge}
         />
         <div className="wf-member-actions">
           <Link href={`/u/${user.username}`} className={button.secondary}>
@@ -174,6 +183,17 @@ export default async function PerfilPage({ searchParams }: Props) {
         </p>
         <AchievementBadges items={badges} showLocked labelledBy="minhas-conquistas" />
         <AchievementsToggle initial={user.showAchievements} />
+      </section>
+
+      <section aria-labelledby="emblema-nome" className={card}>
+        <h2 id="emblema-nome" className={`${heading.h3} mb-2`}>
+          Emblema ao lado do nome
+        </h2>
+        <p className="mb-4 text-sm text-fg-muted">
+          Escolha um dos seus emblemas ou conquistas para aparecer ao lado do seu @ nas avaliações,
+          no ranking e no seu perfil, como na Twitch.
+        </p>
+        <NameBadgePicker username={user.username} data={nameBadge} />
       </section>
 
       <section aria-labelledby="meus-emblemas" className={card}>

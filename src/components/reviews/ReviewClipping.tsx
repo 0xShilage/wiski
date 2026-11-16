@@ -1,5 +1,6 @@
 import type { PublicReview } from '@/lib/reviews/types';
 import { clippingExcerpt } from '@/lib/reviews/clipping';
+import { NameBadgeMark } from '@/components/community/NameBadge';
 
 const longDate = new Intl.DateTimeFormat('pt-BR', {
   day: 'numeric',
@@ -33,8 +34,11 @@ export function ReviewClipping({ review }: { review: PublicReview }) {
           <p>“{clippingExcerpt(review.body)}”</p>
         </blockquote>
         <figcaption className="wf-clipping__byline">
-          — @{review.author.username} ·{' '}
-          {review.likeCount === 1 ? '1 curtida' : `${review.likeCount} curtidas`}
+          —{' '}
+          <span className="wf-named">
+            <NameBadgeMark badge={review.author.badge} />@{review.author.username}
+          </span>{' '}
+          · {review.likeCount === 1 ? '1 curtida' : `${review.likeCount} curtidas`}
         </figcaption>
       </div>
     </figure>

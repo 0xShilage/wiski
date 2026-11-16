@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Avatar } from '@/components/Avatar';
 import { rankings, type RankingRow } from '@/server/community/rankings';
+import { NameBadgeMark } from '@/components/community/NameBadge';
 
 export const metadata: Metadata = {
   title: 'Ranking',
@@ -41,7 +42,9 @@ function Board({
               </span>
               <Avatar avatarKey={r.avatarKey} size={40} alt="" />
               <Link href={`/u/${r.username}`} className="wf-rank__name" prefetch={false}>
-                @{r.username}
+                <span className="wf-named">
+                  <NameBadgeMark badge={r.badge} />@{r.username}
+                </span>
               </Link>
               <span className="wf-rank__value">
                 {r.value} {r.value === 1 ? unit[0] : unit[1]}

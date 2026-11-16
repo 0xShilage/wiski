@@ -1,4 +1,5 @@
 /** Reviews (Phase 3) — client-safe read models, limits and pt-BR labels. */
+import type { NameBadge } from '../name-badge';
 
 export const REVIEW_BODY_MAX = 2000;
 export const REPORT_NOTE_MAX = 500;
@@ -8,7 +9,8 @@ export type ReviewSort = 'recent' | 'top';
 export type ReviewStatus = 'VISIBLE' | 'AUTO_HIDDEN' | 'HIDDEN' | 'REMOVED';
 export type HoldReason = 'LINKS' | 'REPORTS';
 
-export type ReviewAuthor = { username: string; avatarKey: string };
+/** `badge`: the one they show next to their name (2026-11-15), when they show one */
+export type ReviewAuthor = { username: string; avatarKey: string; badge?: NameBadge | null };
 export type ReviewItemRef = {
   kind: 'MOVIE' | 'SERIES' | 'FRANCHISE' | 'ANIME';
   slug: string;

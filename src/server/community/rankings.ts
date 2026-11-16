@@ -1,6 +1,8 @@
 import 'server-only';
 import type { Prisma } from '@/generated/prisma/client';
 import { db } from '../db';
+import { type NameBadge } from '@/lib/name-badge';
+import { nameBadgeOf, nameBadgeUserSelect } from './name-badge';
 import { countedOrders } from './achievements';
 
 /**
@@ -11,7 +13,14 @@ import { countedOrders } from './achievements';
  */
 export type RankingBoard = 'patrocinadores' | 'criticos' | 'curtidas';
 export type RankingPeriod = 'mes' | 'geral';
-export type RankingRow = { position: number; username: string; avatarKey: string; value: number };
+export type RankingRow = {
+  position: number;
+  username: string;
+  avatarKey: string;
+  value: number;
+  /** the badge they show next to their name (2026-11-15) */
+  badge: NameBadge | null;
+};
 
 export const RANKING_SIZE = 10;
 /** more than shown, so ties at the cut are decided by the same rule as the rest */
@@ -38,10 +47,15 @@ async function rows(counts: { userId: string | null; value: number }[]): Promise
   if (!byId.size) return [];
   const users = await db().user.findMany({
     where: { id: { in: [...byId.keys()] }, ...rankedUser },
-    select: { id: true, username: true, avatarKey: true },
+    select: { id: true, username: true, avatarKey: true, ...nameBadgeUserSelect },
   });
   const sorted = users
-    .map((u) => ({ username: u.username!, avatarKey: u.avatarKey, value: byId.get(u.id)! }))
+    .map((u) => ({
+      username: u.username!,
+      avatarKey: u.avatarKey,
+      value: byId.get(u.id)!,
+      badge: nameBadgeOf(u),
+    }))
     .sort((a, b) => b.value - a.value || a.username.localeCompare(b.username))
     .slice(0, RANKING_SIZE);
   return withPositions(sorted);

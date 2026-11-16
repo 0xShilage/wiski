@@ -84,6 +84,13 @@ export const AUDIT_ACTIONS = {
   'user.avatar.change': z.object({ avatarKey: avatarKeySchema }).strict(),
   // badges on the public profile and a place in /ranking (2026-11-04)
   'user.achievements.visibility': z.object({ show: z.boolean() }).strict(),
+  /** "Emblema ao lado do nome" (2026-11-15): what kind was picked; the worker's clean-up says why */
+  'user.nameBadge': z
+    .object({
+      kind: z.enum(['none', 'role', 'emblem', 'achievement']),
+      reason: z.enum(['not-earned']).optional(),
+    })
+    .strict(),
 
   // ── R1 ──
   'passkey.register': z

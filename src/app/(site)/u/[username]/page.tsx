@@ -12,6 +12,7 @@ import { getCurrentSession } from '@/server/auth/current';
 import { badgesOf } from '@/server/badges/badges';
 import { achievementsFor } from '@/server/community/achievements';
 import { findProfile, userReviews } from '@/server/reviews/read';
+import { NameBadgeMark } from '@/components/community/NameBadge';
 
 type Props = { params: Promise<{ username: string }> };
 
@@ -54,7 +55,11 @@ export default async function PerfilPublicoPage({ params }: Props) {
       >
         <Avatar avatarKey={profile.avatarKey} size={96} alt={`Avatar de @${profile.username}`} />
         <div>
-          <h1 className="text-h1 font-semibold text-lilac">@{profile.username}</h1>
+          <h1 className="text-h1 font-semibold text-lilac">
+            <span className="wf-named">
+              <NameBadgeMark badge={profile.badge} size="md" />@{profile.username}
+            </span>
+          </h1>
           <p className="text-fg-muted">
             Membro desde {formatMonthYear(profile.createdAt)} · {profile.reviewCount}{' '}
             {profile.reviewCount === 1 ? 'avaliação' : 'avaliações'}

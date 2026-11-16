@@ -1,7 +1,7 @@
 /**
  * "Política de Privacidade e Proteção de Dados" (2026-11-01; the lawyer's final version received
  * 2026-11-03): the legal text that replaces the separate Termos de uso and Política de privacidade
- * pages, converted from the streamer's ASSETS/TERMS_PRIVACY.docx without changing a word. The
+ * pages, converted from the streamer's TERMS_PRIVACY.docx without changing a word. The
  * refund terms are a document of their own (refund.ts). Rendered by `src/lib/legal-text.ts`:
  *
  *   ## / ###   section headings ("1. …", "3.1. …")  ·  "- " list items  ·  **bold**  ·  <https://…>

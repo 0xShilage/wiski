@@ -4,7 +4,7 @@ dist
 src/generated
 src/components/brand/generated
 public
-ASSETS
+brand
 docs/phase-0
 prisma/migrations
 playwright-report

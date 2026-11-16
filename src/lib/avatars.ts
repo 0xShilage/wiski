@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /**
- * Preset profile pictures: hand-made round icons (ASSETS/PROFILE_ICONS, built by `npm run avatars`
+ * Preset profile pictures: hand-made round icons (brand/profile-icons, built by `npm run avatars`
  * into public/avatars): 30 on 2026-10-31, 40 on 2026-11-01, 45 since 2026-11-02. A key is the
  * file's number and never changes meaning, so an account keeps its picture; the picker shows them
  * in AVATAR_COLOR_ORDER instead.

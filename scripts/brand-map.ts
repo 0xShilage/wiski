@@ -46,9 +46,9 @@ const by = (
   },
 });
 
-const A = ['SVG - ASSETS', 'PNG - ASSETS'] as const;
-const M = ['SVG - MASCOTE', 'PNG - MASCOTE'] as const;
-const P = ['SVG - PATTERNS', 'PNG - PATTERNS'] as const;
+const A = ['svg/elements', 'png/elements'] as const;
+const M = ['svg/mascote', 'png/mascote'] as const;
+const P = ['svg/patterns', 'png/patterns'] as const;
 
 export const GROUPS: Group[] = [
   by('frame-1', ...A, 'FRAME 1-', [7, 3, 11, 15, 19]),
@@ -66,11 +66,11 @@ export const GROUPS: Group[] = [
 
 /** PNG-only icons (no SVG exists): the blackletter monogram with the PONTO diamond as full stop. */
 export const ICONS: { source: string; slug: string }[] = [
-  { source: 'PNG - ICONS/favicon.png', slug: 'favicon-lilac' },
-  { source: 'PNG - ICONS/SUBMARCA-11.png', slug: 'submarca-ink' },
-  { source: 'PNG - ICONS/SUBMARCA-12.png', slug: 'submarca-plum' },
-  { source: 'PNG - ICONS/SUBMARCA-13.png', slug: 'submarca-violet' },
-  { source: 'PNG - ICONS/SUBMARCA-14.png', slug: 'submarca-lavender' },
+  { source: 'png/icons/favicon.png', slug: 'favicon-lilac' },
+  { source: 'png/icons/SUBMARCA-11.png', slug: 'submarca-ink' },
+  { source: 'png/icons/SUBMARCA-12.png', slug: 'submarca-plum' },
+  { source: 'png/icons/SUBMARCA-13.png', slug: 'submarca-violet' },
+  { source: 'png/icons/SUBMARCA-14.png', slug: 'submarca-lavender' },
 ];
 
 export type SvgEntry = {

@@ -92,7 +92,7 @@ export default defineConfig([
     'next-env.d.ts',
     'src/generated/**',
     'public/**',
-    'ASSETS/**',
+    'brand/**',
     'docs/**',
     'playwright-report/**',
     'test-results/**',

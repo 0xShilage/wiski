@@ -1,15 +1,15 @@
 version: 2
-# Minor and patch updates arrive grouped (few PRs, few CI runs: ~11 runner-minutes each on a
-# private repository). Major updates always arrive as their own PR, so each gets a review.
+# Minor and patch updates arrive grouped and weekly: few PRs, few CI runs.
+# Major versions are not proposed (2026-11-16): each one is planned work (TypeScript 7,
+# ESLint 10, Postgres 18 needs a database upgrade, Redis 8 new defaults), done on purpose in its
+# own branch, not merged from a bot PR. Security updates still arrive for any version.
 updates:
   - package-ecosystem: npm
     directory: /
     schedule: { interval: weekly, day: monday, time: '06:00', timezone: America/Sao_Paulo }
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 5
     ignore:
-      # Types follow the runtime: the project runs Node 24 LTS (`.nvmrc`, `engines`).
-      # Move this line together with them when the project moves to the next LTS.
-      - dependency-name: '@types/node'
+      - dependency-name: '*'
         update-types: ['version-update:semver-major']
     groups:
       next-react:
@@ -28,17 +28,24 @@ updates:
       everything-else:
         patterns: ['*']
         update-types: [minor, patch]
+
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly, day: monday, time: '06:00', timezone: America/Sao_Paulo }
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
     groups:
       actions:
         patterns: ['*']
 
-  # Phase 5: base images (Dockerfile) and the infrastructure images (production compose file)
+  # Base images (Dockerfile) and the infrastructure images (production compose file)
   - package-ecosystem: docker
     directory: /
     schedule: { interval: weekly, day: monday, time: '06:00', timezone: America/Sao_Paulo }
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
     groups:
       base-images:
         patterns: ['*']
@@ -46,6 +53,12 @@ updates:
   - package-ecosystem: docker-compose
     directory: /docker
     schedule: { interval: weekly, day: monday, time: '06:00', timezone: America/Sao_Paulo }
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+      # nginx: odd minor versions are the mainline line; production follows stable (1.28, 1.30…)
+      - dependency-name: nginx
+        versions: ['1.29.x', '1.31.x', '1.33.x']
     groups:
       infra-images:
         patterns: ['*']

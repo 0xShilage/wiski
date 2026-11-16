@@ -64,5 +64,5 @@ The glow is decoration only; every text/background pair keeps the 06 §2 contras
 ## 5. Assets and deviations
 
 - **Icons** (chevrons, play, tab-bar icons) are simple re-drawn equivalents. My workspace's network policy blocks downloads from figma.com, so the Figma vector files couldn't be fetched. The search icon is removed, and the IMDb logo isn't used (no IMDb data and it's a third-party mark).
-- **Brand assets** (logo outlines, PONTO, patterns, mascot) are the unmodified files from `ASSETS/` / `public/brand/`.
+- **Brand assets** (logo outlines, PONTO, patterns, mascot) are the unmodified files from `brand/` / `public/brand/`.
 - **Film imagery** is data: each movie, series and franchise gets its poster, backdrop and optional title logo in the dashboard. The Figma's Marvel posters are not used anywhere.

@@ -1,5 +1,5 @@
 /**
- * Profile pictures (2026-10-31): ASSETS/PROFILE_ICONS/01.png … 45.png (1000 × 1000, round, transparent
+ * Profile pictures (2026-10-31): brand/profile-icons/01.png … 45.png (1000 × 1000, round, transparent
  * corners) → public/avatars/perfil-NN-{128,256}.webp. The originals stay out of git (≈ 34 MB);
  * re-run `npm run avatars` after changing one. Metadata is stripped, alpha kept.
  */
@@ -9,7 +9,7 @@ import sharp from 'sharp';
 import { AVATAR_KEYS, AVATAR_PIXELS } from '../src/lib/avatars';
 
 const ROOT = join(import.meta.dirname, '..');
-const SRC = join(ROOT, 'ASSETS/PROFILE_ICONS');
+const SRC = join(ROOT, 'brand/profile-icons');
 const OUT = join(ROOT, 'public/avatars');
 
 if (!existsSync(SRC)) {

@@ -1,6 +1,6 @@
 /* ─────────────────────────────────────────────────────────────────────────────
    Wiskiflix theme — Tailwind CSS v4 (from docs/phase-0/theme.proposal.css, approved rev 2).
-   Brand palette = the five fills of every SVG in ASSETS (verified by scripts/brand-assets.ts).
+   Brand palette = the five fills of every SVG in brand/ (verified by scripts/brand-assets.ts).
    "Derived" / "state" colours are UI-only additions — never applied to the brand assets.
    No inline styles anywhere (CSP): everything visual lives in classes.
    ───────────────────────────────────────────────────────────────────────────── */
@@ -36,7 +36,7 @@
   /* Reset Tailwind's default palette so only approved colours exist */
   --color-*: initial;
 
-  /* ── Brand palette (extracted 1:1 from ASSETS) ── */
+  /* ── Brand palette (extracted 1:1 from brand/) ── */
   --color-ink: #1b1225; /* "noite"   — page background */
   --color-plum: #4f3d72; /* "ameixa"  — borders, inactive states */
   --color-violet: #736bb2; /* "violeta" — large text, icons, decorative (3.86:1 on ink) */

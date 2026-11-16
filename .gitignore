@@ -52,4 +52,4 @@ npm-debug.log*
 *.zip
 
 # profile picture originals (≈ 23 MB): kept locally, built into public/avatars by `npm run avatars`
-/ASSETS/PROFILE_ICONS/
+/brand/profile-icons/

@@ -1,5 +1,5 @@
 /**
- * The Links page picture (2026-11-03): ASSETS/LINKS_ICON.png (400 × 400, round, transparent
+ * The Links page picture (2026-11-03): brand/links-icon.png (400 × 400, round, transparent
  * corners, lavender glow) → public/brand/links-iara-256.webp (shown at 120 CSS px, sharp at 2×).
  * Re-run `npm run links-photo` after replacing the PNG. Metadata is stripped, alpha kept.
  */
@@ -9,7 +9,7 @@ import sharp from 'sharp';
 import { LINKS_PHOTO_PX } from '../src/lib/links';
 
 const ROOT = join(import.meta.dirname, '..');
-const SRC = join(ROOT, 'ASSETS/LINKS_ICON.png');
+const SRC = join(ROOT, 'brand/links-icon.png');
 const OUT = join(ROOT, 'public/brand');
 
 if (!existsSync(SRC)) {

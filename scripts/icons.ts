@@ -1,5 +1,5 @@
 /**
- * Favicon set (06 §8, favicon-preview.png panel B): ASSETS/PNG - ICONS/favicon.png placed
+ * Favicon set (06 §8, favicon-preview.png panel B): brand/png/icons/favicon.png placed
  * UNCHANGED (no recolouring/cropping; only scaled) on an ink (#1B1225) rounded-square tile, so
  * the lilac mark stays visible on light browser tabs.
  *
@@ -15,7 +15,7 @@ import sharp from 'sharp';
 import { PALETTE } from './brand-map';
 
 const ROOT = join(import.meta.dirname, '..');
-const SOURCE = join(ROOT, 'ASSETS/PNG - ICONS/favicon.png');
+const SOURCE = join(ROOT, 'brand/png/icons/favicon.png');
 
 type TileOptions = { radius: number; markWidth: number };
 const ROUNDED: TileOptions = { radius: 0.22, markWidth: 0.84 }; // panel B

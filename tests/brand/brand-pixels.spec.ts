@@ -59,7 +59,7 @@ async function countDiff(a: Buffer, b: Buffer): Promise<{ diff: number; total: n
 for (const entry of svgEntries()) {
   test.describe(entry.slug, () => {
     test('original ≡ processed (as image, 2×): 0 differing pixels', async ({ page }) => {
-      const original = await read(`ASSETS/${entry.source}`);
+      const original = await read(`brand/${entry.source}`);
       const processed = await read(`public/brand/${entry.slug}.svg`);
       const size = viewBoxSize(original);
       expect(viewBoxSize(processed)).toEqual(size);
@@ -70,7 +70,7 @@ for (const entry of svgEntries()) {
     });
 
     test('original ≡ processed (inline, 2×): 0 differing pixels', async ({ page }) => {
-      const original = stripProlog(await read(`ASSETS/${entry.source}`));
+      const original = stripProlog(await read(`brand/${entry.source}`));
       const processed = await read(`public/brand/${entry.slug}.svg`);
       const size = viewBoxSize(original);
       const a = await render(page, original, size);
@@ -106,7 +106,7 @@ test('logo "Wiski" outlines match live text set in Black Rockie', async ({ page 
     /fill="#[0-9a-f]{6}"/,
     'fill="#000"',
   );
-  const font = await readFile(join(ROOT, 'ASSETS/FONTS/Black Rockie/BlackRockie.ttf'));
+  const font = await readFile(join(ROOT, 'brand/fonts/black-rockie/BlackRockie.ttf'));
 
   await page.setContent('<!doctype html><html><body></body></html>');
   const result = await page.evaluate(

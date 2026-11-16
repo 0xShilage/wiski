@@ -43,36 +43,55 @@ test('a viewer shows a claimed badge next to their name, on reviews and the prof
   test.skip(info.project.name !== 'desktop-1280', 'one run is enough; mobile layout below');
   test.setTimeout(120_000);
 
-  // the team creates the badge (PNG art, open now, no word)
-  const modPage = await browser.newPage();
-  const mod = await seedUser({ role: 'MODERATOR', passkeyVerified: true });
-  await signIn(modPage.context(), mod.token);
-  await modPage.goto('/admin/emblemas');
-  await modPage.getByRole('button', { name: 'Novo emblema' }).click();
-  const form = modPage.getByRole('form', { name: 'Novo emblema' });
-  const png = await sharp({
-    create: { width: 256, height: 256, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
-  })
-    .composite([
-      {
-        input: Buffer.from(
-          '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect x="16" y="16" width="224" height="224" rx="56" fill="#f2a7dd"/><path d="M128 52l22 46 50 6-37 34 10 50-45-25-45 25 10-50-37-34 50-6z" fill="#4f3d72"/></svg>',
-        ),
-      },
-    ])
-    .png()
-    .toBuffer();
-  await form
-    .locator('input[type=file]')
-    .setInputFiles({ name: 'estrela.png', mimeType: 'image/png', buffer: png });
-  await expect(form.locator('.wf-badge-drop img')).toHaveAttribute('src', /^\/media\//, {
-    timeout: 20_000,
-  });
-  await form.getByLabel('Nome').fill(BADGE);
-  await form.getByLabel(/História do emblema/).fill('Para quem viu a maratona inteira.');
-  await form.getByRole('button', { name: 'Criar emblema' }).click();
-  await expect(modPage.getByText('Emblema criado')).toBeVisible();
-  await modPage.close();
+  // the badge (open now, no word). Its art: one already uploaded by an earlier spec when there is
+  // one (CI's per-IP upload limit is shared by the whole run), else uploaded here by the team.
+  const existing = await withDb((c) =>
+    c.query<{ id: string }>(`SELECT id FROM "MediaAsset" WHERE role = 'BADGE' LIMIT 1`),
+  );
+  if (existing.rows[0]) {
+    await withDb((c) =>
+      c.query(
+        `INSERT INTO "Badge"(id, slug, name, description, "assetId", "startsAt", "endsAt", "updatedAt")
+         VALUES ($1, $2, $3, 'Para quem viu a maratona inteira.', $4, now() - interval '1 hour', now() + interval '1 day', now())`,
+        [
+          randomUUID(),
+          `maratona-estrelada-${Date.now().toString(36)}`,
+          BADGE,
+          existing.rows[0]!.id,
+        ],
+      ),
+    );
+  } else {
+    const modPage = await browser.newPage();
+    const mod = await seedUser({ role: 'MODERATOR', passkeyVerified: true });
+    await signIn(modPage.context(), mod.token);
+    await modPage.goto('/admin/emblemas');
+    await modPage.getByRole('button', { name: 'Novo emblema' }).click();
+    const form = modPage.getByRole('form', { name: 'Novo emblema' });
+    const png = await sharp({
+      create: { width: 256, height: 256, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+    })
+      .composite([
+        {
+          input: Buffer.from(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect x="16" y="16" width="224" height="224" rx="56" fill="#f2a7dd"/><path d="M128 52l22 46 50 6-37 34 10 50-45-25-45 25 10-50-37-34 50-6z" fill="#4f3d72"/></svg>',
+          ),
+        },
+      ])
+      .png()
+      .toBuffer();
+    await form
+      .locator('input[type=file]')
+      .setInputFiles({ name: 'estrela.png', mimeType: 'image/png', buffer: png });
+    await expect(form.locator('.wf-badge-drop img')).toHaveAttribute('src', /^\/media\//, {
+      timeout: 20_000,
+    });
+    await form.getByLabel('Nome').fill(BADGE);
+    await form.getByLabel(/História do emblema/).fill('Para quem viu a maratona inteira.');
+    await form.getByRole('button', { name: 'Criar emblema' }).click();
+    await expect(modPage.getByText('Emblema criado')).toBeVisible();
+    await modPage.close();
+  }
 
   // a viewer claims it and has a review
   const page = await browser.newPage();

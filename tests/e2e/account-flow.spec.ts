@@ -31,7 +31,12 @@ test('onboarding → perfil → perfil público', async ({ page, context }) => {
   await page.getByRole('button', { name: 'Criar meu perfil' }).click();
 
   await expect(page).toHaveURL(/\/perfil$/);
-  await expect(page.getByText(`@${name}`, { exact: true })).toBeVisible();
+  // the member card (the "Emblema ao lado do nome" preview shows the name too)
+  await expect(
+    page
+      .getByRole('region', { name: 'Carteirinha de sócio' })
+      .getByText(`@${name}`, { exact: true }),
+  ).toBeVisible();
   await page.getByRole('link', { name: 'Perfil público' }).click();
   await expect(page).toHaveURL(new RegExp(`/u/${name}$`));
   await expect(page.getByText('Nenhuma avaliação ainda.')).toBeVisible();

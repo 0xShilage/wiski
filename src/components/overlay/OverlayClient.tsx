@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { formatBRL } from '@/lib/catalog/pricing';
 import { playAlert } from './alert-sound';
 import { GoalRing, type GoalIcon } from './GoalRing';
 import { SubathonTimer, type SubathonEv } from './SubathonTimer';
@@ -38,6 +39,8 @@ type Ev =
       title: string;
       sponsor: string | null;
       message?: string | null;
+      amountCents?: number | null;
+      contribution?: boolean;
       voice?: boolean;
       id?: string;
       at?: string;
@@ -59,6 +62,9 @@ type Alert = {
   title: string;
   sponsor: string | null;
   message: string | null;
+  /** what they paid (2026-11-16) */
+  amountCents: number | null;
+  contribution: boolean;
   id?: string | undefined;
   voice: boolean;
   leaving: boolean;
@@ -317,6 +323,11 @@ export function OverlayClient({ widget }: { widget: keyof typeof LABEL }) {
             title: data.title,
             sponsor: data.sponsor,
             message: data.message ?? null,
+            amountCents:
+              typeof data.amountCents === 'number' && data.amountCents > 0
+                ? data.amountCents
+                : null,
+            contribution: data.contribution === true,
             id: data.id,
             voice: data.voice === true,
           });
@@ -379,6 +390,12 @@ export function OverlayClient({ widget }: { widget: keyof typeof LABEL }) {
         <p className="wf-overlay__label">{LABEL.patrocinio}</p>
         <p className="wf-overlay__title">{flash.title}</p>
         <p className="wf-overlay__sub">{flash.sponsor ? `por ${flash.sponsor}` : 'por Anônimo'}</p>
+        {flash.amountCents ? (
+          <p className="wf-overlay__amount">
+            {flash.contribution ? 'contribuiu com ' : 'patrocinou com '}
+            <b>{formatBRL(flash.amountCents)}</b>
+          </p>
+        ) : null}
         {flash.message ? <p className="wf-overlay__message">“{flash.message}”</p> : null}
       </div>
     ) : null;

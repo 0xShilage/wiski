@@ -258,6 +258,8 @@ describe('snapshots', () => {
       title: 'Filme invertido',
       sponsor: `@${fan.user.username}`,
       message: null,
+      amountCents: 2000,
+      contribution: false,
       voice: false,
       id: expect.stringMatching(/^\d{13}-[\w-]+$/),
       at: expect.any(String),

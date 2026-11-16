@@ -5,7 +5,7 @@
  * overlay with its cookie; the StreamElements bot thanks the sponsor in chat once per order;
  * "Já pago" orders are announced too; the switches live in Overlays.
  */
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET as alertsGet, PUT as alertsPut } from '@/app/api/v1/admin/alerts/route';
 import { POST as alertsTest } from '@/app/api/v1/admin/alerts/test/route';
@@ -20,7 +20,8 @@ import { overlayChannel } from '@/server/overlay/publish';
 import { announcePaidOrder } from '@/server/overlay/state';
 import { redis } from '@/server/redis';
 import { clearCatalog } from '../support/catalog';
-import { liveMovie } from '../support/checkout';
+import { liveMovie, openCampaignFor } from '../support/checkout';
+import { testPublicCode } from '../support/orders';
 import { call, req, setCookies } from '../support/http';
 import { as, hit, paidMovie, resetSlots } from '../support/live';
 
@@ -96,6 +97,8 @@ describe('who and what the alert shows', () => {
       title: item.title,
       sponsor: 'Tia Lu',
       message: 'Que filme da ***! veja',
+      amountCents: 2000,
+      contribution: false,
       voice: true,
     });
     // the voice says it without the masked word; the key goes in a header, not the URL
@@ -103,7 +106,7 @@ describe('who and what the alert shows', () => {
     expect(tts!.url).not.toContain(KEY);
     expect(tts!.headers.get('x-goog-api-key')).toBe(KEY);
     expect(tts!.body).toMatchObject({
-      input: { text: 'Tia Lu patrocinou Duna! Que filme da! veja' },
+      input: { text: 'Tia Lu patrocinou Duna com 20 reais! Que filme da! veja' },
       voice: { languageCode: 'pt-BR', name: 'pt-BR-Neural2-A' },
     });
     // the chat thanks once, through the channel in the JWT
@@ -112,7 +115,7 @@ describe('who and what the alert shows', () => {
       'https://api.streamelements.com/kappa/v2/bot/5f0c0ffee0ddba11c0ffee00/say',
     );
     expect(chat()[0]!.body).toEqual({
-      message: 'Tia Lu patrocinou Duna! Muito obrigada por seu apoio 🍿🎥',
+      message: 'Tia Lu patrocinou Duna com R$ 20,00! Muito obrigada por seu apoio 🍿🎥',
     });
     await announcePaidOrder(order.id);
     expect(chat()).toHaveLength(1);
@@ -124,7 +127,7 @@ describe('who and what the alert shows', () => {
     const [a] = await alerts(() => announcePaidOrder(named.order.id));
     expect(a!.sponsor).toBe(`@${fan.user.username}`);
     expect(google().at(-1)!.body).toMatchObject({
-      input: { text: `${fan.user.username} patrocinou Com nome!` },
+      input: { text: `${fan.user.username} patrocinou Com nome com 20 reais!` },
     });
 
     const anon = await paidMovie({ user: fan.user, title: 'Sem nome' });
@@ -132,10 +135,10 @@ describe('who and what the alert shows', () => {
     const [b] = await alerts(() => announcePaidOrder(anon.order.id));
     expect(b).toMatchObject({ sponsor: null, message: null });
     expect(google().at(-1)!.body).toMatchObject({
-      input: { text: 'Alguém anônimo patrocinou Sem nome!' },
+      input: { text: 'Alguém anônimo patrocinou Sem nome com 20 reais!' },
     });
     expect(chat().at(-1)!.body).toEqual({
-      message: 'Alguém patrocinou Sem nome! Muito obrigada por seu apoio 🍿🎥',
+      message: 'Alguém patrocinou Sem nome com R$ 20,00! Muito obrigada por seu apoio 🍿🎥',
     });
   });
 
@@ -145,6 +148,33 @@ describe('who and what the alert shows', () => {
     );
     expect(spokenLine({ sponsor: null, title: 'X', message: '  ' })).toBe(
       'Alguém anônimo patrocinou X!',
+    );
+  });
+
+  it('how much they gave (2026-11-16): a whole movie, or a share of a campaign', () => {
+    expect(chatLine({ sponsor: 'Ana', title: 'Duna', amountCents: 3050 })).toBe(
+      'Ana patrocinou Duna com R$ 30,50! Muito obrigada por seu apoio 🍿🎥',
+    );
+    expect(chatLine({ sponsor: 'Ana', title: 'Dark', amountCents: 2500, contribution: true })).toBe(
+      'Ana contribuiu com R$ 25,00 para Dark! Muito obrigada por seu apoio 🍿🎥',
+    );
+    expect(
+      chatLine({ sponsor: 'Ana', title: 'Dark', amountCents: 123456, contribution: true }),
+    ).toBe('Ana contribuiu com R$ 1.234,56 para Dark! Muito obrigada por seu apoio 🍿🎥');
+    expect(
+      spokenLine({
+        sponsor: 'Ana',
+        title: 'Dark',
+        message: null,
+        amountCents: 2550,
+        contribution: true,
+      }),
+    ).toBe('Ana contribuiu com 25 reais e 50 centavos para Dark!');
+    expect(spokenLine({ sponsor: 'Ana', title: 'X', message: null, amountCents: 100 })).toBe(
+      'Ana patrocinou X com 1 real!',
+    );
+    expect(spokenLine({ sponsor: 'Ana', title: 'X', message: null, amountCents: 501 })).toBe(
+      'Ana patrocinou X com 5 reais e 1 centavo!',
     );
   });
 });
@@ -224,6 +254,46 @@ describe('the voice', () => {
   });
 });
 
+describe('a share of a campaign (2026-11-16)', () => {
+  it('says how much they contributed, on stream and in chat', async () => {
+    const fan = await as('USER');
+    const { item, campaign } = await openCampaignFor(50_000);
+    const order = await db().order.create({
+      data: {
+        publicCode: testPublicCode(),
+        kind: 'CONTRIBUTION',
+        itemId: item.id,
+        campaignId: campaign.id,
+        userId: fan.user.id,
+        contactEmail: `c-${randomUUID().slice(0, 8)}@example.com`,
+        buyerKey: `u:${fan.user.id}`,
+        accessTokenHash: randomBytes(32),
+        breakdown: [],
+        subtotalCents: 2500,
+        queueJumpCents: 0,
+        totalCents: 2500,
+        status: 'PAID',
+        paidAt: new Date(),
+        clientRequestId: randomUUID(),
+      },
+    });
+    const [e] = await alerts(() => announcePaidOrder(order.id));
+    expect(e).toMatchObject({
+      type: 'new-sponsorship',
+      title: item.title,
+      sponsor: `@${fan.user.username}`,
+      amountCents: 2500,
+      contribution: true,
+    });
+    expect(google().at(-1)!.body).toMatchObject({
+      input: { text: `${fan.user.username} contribuiu com 25 reais para ${item.title}!` },
+    });
+    expect(chat().at(-1)!.body).toEqual({
+      message: `@${fan.user.username} contribuiu com R$ 25,00 para ${item.title}! Muito obrigada por seu apoio 🍿🎥`,
+    });
+  });
+});
+
 describe('"Já pago" and "Testar alerta"', () => {
   it('a "Já pago" is announced on stream and in chat; a test alert never goes to chat', async () => {
     const st = await as('STREAMER');
@@ -234,14 +304,28 @@ describe('"Já pago" and "Testar alerta"', () => {
         body: { idempotencyKey: randomUUID(), itemId: movie.id, sponsorName: 'Tia Lu' },
       }),
     );
-    expect(got[0]).toMatchObject({ title: movie.title, sponsor: 'Tia Lu' });
+    const manual = await db().order.findFirstOrThrow({
+      where: { itemId: movie.id, source: 'MANUAL' },
+      select: { totalCents: true },
+    });
+    expect(got[0]).toMatchObject({
+      title: movie.title,
+      sponsor: 'Tia Lu',
+      amountCents: manual.totalCents,
+      contribution: false,
+    });
     expect(chat()).toHaveLength(1);
 
     const mod = await as('MODERATOR');
     const test = await alerts(() =>
       hit(alertsTest, 'POST', '/api/v1/admin/alerts/test', { who: mod }),
     );
-    expect(test[0]).toMatchObject({ title: 'Filme de teste', sponsor: 'Wiskiflix', voice: true });
+    expect(test[0]).toMatchObject({
+      title: 'Filme de teste',
+      sponsor: 'Wiskiflix',
+      amountCents: 3000,
+      voice: true,
+    });
     expect(chat()).toHaveLength(1);
   });
 });

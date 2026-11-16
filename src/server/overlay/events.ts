@@ -124,6 +124,10 @@ export const overlayEventSchema = z.discriminatedUnion('type', [
       sponsor: safe(LIMITS.sponsor).nullable(),
       /** the sponsor's message, links and swear words removed (2026-11-09) */
       message: safe(LIMITS.message).nullable(),
+      /** what they paid, in cents (2026-11-16); null on alerts from before, or a test */
+      amountCents: z.int().min(1).max(100_000_000).nullable().optional(),
+      /** a whole movie, or a share of a series/franchise/anime campaign (2026-11-16) */
+      contribution: z.boolean().optional(),
       /** a spoken version is ready at /api/v1/overlay/tts?id=<id> (2026-11-09) */
       voice: z.boolean(),
       /** a unique id (2026-11-05): replayed after a reconnect, shown once */
@@ -267,7 +271,12 @@ export function sponsorshipEvent(
   sponsor: string | null,
   now = new Date(),
   nonce = randomToken(6),
-  extra: { message?: string | null; voice?: boolean } = {},
+  extra: {
+    message?: string | null;
+    voice?: boolean;
+    amountCents?: number | null;
+    contribution?: boolean;
+  } = {},
 ): OverlayEvent | null {
   const t = overlayText(title, LIMITS.title);
   if (!t) return null;
@@ -276,6 +285,8 @@ export function sponsorshipEvent(
     title: t,
     sponsor: overlayText(sponsor, LIMITS.sponsor),
     message: overlayText(extra.message, LIMITS.message),
+    amountCents: extra.amountCents && extra.amountCents > 0 ? extra.amountCents : null,
+    contribution: extra.contribution ?? false,
     voice: extra.voice ?? false,
     id: sponsorshipId(now, nonce),
     at: now.toISOString(),

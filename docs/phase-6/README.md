@@ -469,7 +469,7 @@ The sidebar shows the former "Streamer" group as "Canal" to everyone on staff; t
 
 ## 36. Security round (2026-11-11)
 
-Full white-box review plus active testing against the production stack: [`../security/pentest-2026-11-11.md`](../security/pentest-2026-11-11.md). No critical/high/medium finding. Fixed in this round: invisible characters in front of a chat command (Chat da live and every bot line), Google step-up on the Roleta switch, pages read-only at nginx (GET/HEAD only), and `/.well-known/security.txt`.
+Full white-box review plus active testing against the production stack (the report is kept privately, outside this public repo). No critical/high/medium finding. Fixed in this round: invisible characters in front of a chat command (Chat da live and every bot line), Google step-up on the Roleta switch, pages read-only at nginx (GET/HEAD only), and `/.well-known/security.txt`.
 
 ## 37. Guia de Winden: character photos and a spoiler section (2026-11-12)
 

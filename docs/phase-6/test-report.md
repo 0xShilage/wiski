@@ -331,7 +331,7 @@ Fix (PR "fix-prefetch-burst"): no prefetch on the header tabs, the phone bar, th
   - Series runtime = episode × episodes; a franchise's films in order, hours read as minutes and a book left out.
   - Genre and ClassInd wording; sanitising and clipping.
   - The quick-add picker: exact title and year first; a year nobody matches means not found.
-- Unit total green (464).
+- Unit total green (456).
 - Integration `publishing-helpers.test.ts` (14 tests):
   - Search by kind, with the User-Agent sent; one title's fields and the Wikipedia summary; bad, unknown and down lookups.
   - The editor's Wikidata id is saved and audited.

@@ -220,6 +220,7 @@ export async function testSponsorshipAlert(now = new Date()): Promise<{ voice: b
     sponsor: 'Wiskiflix',
     title: 'Filme de teste',
     message: 'Este é um teste do alerta de patrocínio.',
+    amountCents: 3000,
   };
   let voice = false;
   if (settings.voice && settings.voiceReady) {
@@ -228,6 +229,7 @@ export async function testSponsorshipAlert(now = new Date()): Promise<{ voice: b
   }
   const e = sponsorshipEvent(sample.title, sample.sponsor, now, nonce, {
     message: sample.message,
+    amountCents: sample.amountCents,
     voice,
   });
   if (e) await publish('patrocinio', e);
@@ -245,9 +247,20 @@ export async function announcePaidOrder(orderId: string, now = new Date()): Prom
   try {
     const o = await db().order.findUnique({
       where: { id: orderId },
-      select: { kind: true, status: true, item: { select: { title: true } }, ...sponsorSelect },
+      select: {
+        kind: true,
+        status: true,
+        totalCents: true,
+        item: { select: { title: true } },
+        ...sponsorSelect,
+      },
     });
     if (!o || o.status !== 'PAID') return;
+    // what they paid (2026-11-16): a whole movie, or a share of a campaign
+    const amount = {
+      amountCents: o.totalCents > 0 ? o.totalCents : null,
+      contribution: o.kind === 'CONTRIBUTION',
+    };
     const sponsor = streamSafeName(publicSponsor(o));
     const message = streamSafe(publicMessage(o));
     const nonce = randomToken(6);
@@ -255,18 +268,19 @@ export async function announcePaidOrder(orderId: string, now = new Date()): Prom
     let voice = false;
     if (settings.voice && settings.voiceReady) {
       const mp3 = await synthesize(
-        spokenLine({ sponsor, title: o.item.title, message: message?.spoken ?? null }),
+        spokenLine({ sponsor, title: o.item.title, message: message?.spoken ?? null, ...amount }),
         settings.voiceName,
       );
       voice = !!mp3 && (await storeVoice(sponsorshipId(now, nonce), mp3));
     }
     const e = sponsorshipEvent(o.item.title, sponsor, now, nonce, {
       message: message?.shown ?? null,
+      ...amount,
       voice,
     });
     if (e) await publish('patrocinio', e);
     if (settings.chat && settings.chatReady) {
-      await sayInChat(`order:${orderId}`, chatLine({ sponsor, title: o.item.title }));
+      await sayInChat(`order:${orderId}`, chatLine({ sponsor, title: o.item.title, ...amount }));
     }
     await refreshOverlays(o.kind === 'MOVIE' ? ['fila', 'meta'] : ['meta']);
   } catch (err) {

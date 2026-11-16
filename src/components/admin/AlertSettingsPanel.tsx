@@ -113,8 +113,8 @@ export function AlertSettingsPanel({
             disabled={busy || !s.chatReady}
             onChange={(e) => void save({ ...s, chat: e.target.checked })}
           />
-          Agradecer no chat pelo bot do StreamElements: “Fulano patrocinou Título! Muito obrigada
-          por seu apoio 🍿🎥”
+          Agradecer no chat pelo bot do StreamElements: “Fulano patrocinou Título com R$ 30,00!
+          Muito obrigada por seu apoio 🍿🎥” (ou “contribuiu com R$ 25,00 para…”, numa campanha)
         </label>
         {s.chatReady ? null : (
           <p className="wf-hint full m-0">

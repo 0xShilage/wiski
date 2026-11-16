@@ -715,3 +715,22 @@ Like a Twitch chat badge: each viewer can pick one small badge that appears next
   - `tests/integration/name-badge.test.ts` (7 tests): pick and show in reviews and profile; refusals; conquista and role, one at a time, "Nenhum"; ranking, and hidden when conquistas are hidden; the worker clean-up; database floor; LGPD.
   - The authz matrix.
   - `tests/e2e/name-badge.spec.ts`: a badge created in the dashboard, claimed, picked on `/perfil`, seen on the review, the public profile and the member card, then removed; a moderator picks the role on a phone. Screenshots `test-results/name-badge/`.
+
+## 52. Alerts say how much was given (2026-11-16)
+
+Every sponsorship alert now shows the amount paid (the order's `totalCents`, after any discount). This covers a whole movie and a share of a series, franchise or anime campaign, including orders registered as "Já pago".
+
+- **Overlay ("Novo patrocínio").** Under "por Fulano", a new line reads "patrocinou com **R$ 30,00**" for a movie or "contribuiu com **R$ 25,50**" for a campaign share. The figure is large and white.
+- **Voice.** "Fulano patrocinou Duna com 30 reais!" or "Fulano contribuiu com 25 reais e 50 centavos para Dark!", spelled the way it should be read.
+- **Chat (StreamElements bot).** "Fulano patrocinou Duna com R$ 30,00! Muito obrigada por seu apoio 🍿🎥" or "Fulano contribuiu com R$ 25,00 para Dark! …".
+- **Test alert.** "Testar alerta" shows a R$ 30,00 sample.
+- **Event schema.** The `new-sponsorship` event gains `amountCents` (integer, 1 to 100,000,000, or null) and `contribution` (boolean). An alert without an amount, from before this change or replayed after a reconnect, simply shows none.
+- **Tests:**
+  - `tests/integration/overlay-alerts.test.ts`:
+    - movie amounts on stream, in the voice and in chat;
+    - a campaign share;
+    - "Já pago";
+    - the test alert;
+    - formatting: centavos, "1 real", thousands.
+  - `tests/integration/overlay.test.ts`: the exact event.
+  - `tests/e2e/operations.spec.ts`: a movie, a campaign share, and an old alert without an amount, one after the other. Screenshot `test-results/alert-amount-*.png`.

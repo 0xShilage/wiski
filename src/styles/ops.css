@@ -386,6 +386,19 @@
     color: var(--color-lilac);
     overflow-wrap: anywhere;
   }
+  /* "Novo patrocínio": what they paid (2026-11-16) */
+  .wf-overlay__amount {
+    margin: 4px 0 0;
+    font-size: 22px;
+    color: var(--color-lilac);
+  }
+  .wf-overlay__amount b {
+    font-size: 34px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.01em;
+    font-variant-numeric: tabular-nums;
+  }
   .wf-overlay__queue {
     list-style: none;
     margin: 0;

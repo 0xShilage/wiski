@@ -75,14 +75,24 @@ test('overlay: after the stream drops and a reconnect gets a 502 (a deploy), it 
   expect(n).toBeGreaterThanOrEqual(3);
 });
 
-test('overlay "Novo patrocínio": name and message, one alert after the other', async ({ page }) => {
+test('overlay "Novo patrocínio": name, message and amount, one alert after the other', async ({
+  page,
+}, info) => {
   const key = await overlayKey(['patrocinio']);
-  const alert = (n: number, sponsor: string | null, message: string | null) =>
+  const alert = (
+    n: number,
+    sponsor: string | null,
+    message: string | null,
+    amountCents: number | null = null,
+    contribution = false,
+  ) =>
     `data: ${JSON.stringify({
       type: 'new-sponsorship',
       title: `Filme ${n}`,
       sponsor,
       message,
+      amountCents,
+      contribution,
       voice: false,
       id: `${1_700_000_000_000 + n}-abcdef`,
       at: new Date(1_700_000_000_000 + n).toISOString(),
@@ -94,7 +104,7 @@ test('overlay "Novo patrocínio": name and message, one alert after the other', 
     return route.fulfill({
       status: 200,
       headers: { 'content-type': 'text/event-stream' },
-      body: `retry: 60000\n\n${alert(1, 'Tia Lu', 'Que filme lindo!')}${alert(2, null, null)}`,
+      body: `retry: 60000\n\n${alert(1, 'Tia Lu', 'Que filme lindo!', 3000)}${alert(2, null, null, 2550, true)}${alert(3, 'Sem valor', null)}`,
     });
   });
   await page.clock.install();
@@ -103,11 +113,19 @@ test('overlay "Novo patrocínio": name and message, one alert after the other', 
   await expect(box).toContainText('Filme 1');
   await expect(box).toContainText('por Tia Lu');
   await expect(box).toContainText('“Que filme lindo!”');
-  // the second waits its turn, then shows "Anônimo" and no message
+  // how much they gave (2026-11-16): a whole movie…
+  await expect(box.locator('.wf-overlay__amount')).toHaveText('patrocinou com R$ 30,00');
+  await page.screenshot({ path: `test-results/alert-amount-${info.project.name}.png` });
+  // the second waits its turn, then shows "Anônimo", no message, and a share of a campaign
   await page.clock.runFor(10_000);
   await expect(box).toContainText('Filme 2');
   await expect(box).toContainText('por Anônimo');
   await expect(box.locator('.wf-overlay__message')).toHaveCount(0);
+  await expect(box.locator('.wf-overlay__amount')).toHaveText('contribuiu com R$ 25,50');
+  // an alert without an amount (sent before this change) shows none
+  await page.clock.runFor(10_000);
+  await expect(box).toContainText('Filme 3');
+  await expect(box.locator('.wf-overlay__amount')).toHaveCount(0);
   await page.clock.runFor(10_000);
   await expect(box).toHaveCount(0);
 });

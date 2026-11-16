@@ -1,6 +1,7 @@
 import 'server-only';
 import { z } from 'zod';
 import type { Role } from '@/generated/prisma/client';
+import { formatBRL } from '@/lib/catalog/pricing';
 import { chatSafe } from '@/lib/stream-safe';
 import { audit } from '../audit/audit';
 import { botSay } from '../chat/bot';
@@ -82,15 +83,38 @@ export const TTS_TTL_SECONDS = 600;
 const ttsKey = (alertId: string) => `wf:tts:${alertId}`;
 const TTS_URL = 'https://texttospeech.googleapis.com/v1/text:synthesize';
 
-/** What the voice says: "Tia Lu patrocinou Duna! Que filme lindo." */
-export function spokenLine(p: {
+/** 2550 → "25 reais e 50 centavos", 100 → "1 real", 50 → "50 centavos" (for the voice). */
+export function spokenBRL(cents: number): string {
+  const reais = Math.floor(cents / 100);
+  const c = cents % 100;
+  const r = reais ? `${reais.toLocaleString('pt-BR')} ${reais === 1 ? 'real' : 'reais'}` : '';
+  const ct = c ? `${c} ${c === 1 ? 'centavo' : 'centavos'}` : '';
+  return [r, ct].filter(Boolean).join(' e ');
+}
+
+type Line = {
   sponsor: string | null;
   title: string;
-  message: string | null;
-}): string {
+  /** what they paid (2026-11-16); null: an alert without an amount */
+  amountCents?: number | null;
+  /** a share of a campaign rather than a whole movie */
+  contribution?: boolean;
+};
+
+/**
+ * What the voice says: "Tia Lu patrocinou Duna com 30 reais! Que filme lindo." / "Tia Lu
+ * contribuiu com 25 reais para Dark!"
+ */
+export function spokenLine(p: Line & { message: string | null }): string {
   const who = p.sponsor ? p.sponsor.replace(/^@/, '') : 'Alguém anônimo';
   const msg = p.message?.trim();
-  return `${who} patrocinou ${p.title}!${msg ? ` ${msg}` : ''}`.slice(0, 400);
+  const amount = p.amountCents ? spokenBRL(p.amountCents) : null;
+  const what = !amount
+    ? `patrocinou ${p.title}`
+    : p.contribution
+      ? `contribuiu com ${amount} para ${p.title}`
+      : `patrocinou ${p.title} com ${amount}`;
+  return `${who} ${what}!${msg ? ` ${msg}` : ''}`.slice(0, 400);
 }
 
 /** Google TTS → MP3 bytes, or null (no key, switched off, error, slow). */
@@ -145,11 +169,19 @@ export async function voiceOf(alertId: string): Promise<Buffer | null> {
 
 // ── the chat ─────────────────────────────────────────────────────────────────
 
-/** "Tia Lu patrocinou Duna! Muito obrigada por seu apoio 🍿🎥" */
-export function chatLine(p: { sponsor: string | null; title: string }): string {
-  return chatSafe(
-    `${p.sponsor ?? 'Alguém'} patrocinou ${p.title}! Muito obrigada por seu apoio 🍿🎥`,
-  );
+/**
+ * "Tia Lu patrocinou Duna com R$ 30,00! Muito obrigada por seu apoio 🍿🎥" — or, for a share of a
+ * campaign, "Tia Lu contribuiu com R$ 25,00 para Dark! …" (the amount since 2026-11-16).
+ */
+export function chatLine(p: Line): string {
+  const who = p.sponsor ?? 'Alguém';
+  const amount = p.amountCents ? formatBRL(p.amountCents) : null;
+  const what = !amount
+    ? `patrocinou ${p.title}`
+    : p.contribution
+      ? `contribuiu com ${amount} para ${p.title}`
+      : `patrocinou ${p.title} com ${amount}`;
+  return chatSafe(`${who} ${what}! Muito obrigada por seu apoio 🍿🎥`);
 }
 
 /**

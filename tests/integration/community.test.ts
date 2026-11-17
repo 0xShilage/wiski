@@ -449,6 +449,32 @@ describe('off-stream watched (2026-11-10)', () => {
     await clearCatalog();
   });
 
+  it('Assistidos: titles watched off stream come after the live ones, and have their own filter (2026-11-17)', async () => {
+    const day = (d: number) => new Date(Date.UTC(2026, 9, d, 23));
+    const mk = async (title: string, watchedAt: Date, offStream: boolean) => {
+      const it = await makeItem({ kind: 'MOVIE', status: 'DRAFT', title });
+      await db().catalogItem.update({
+        where: { id: it.id },
+        data: { status: 'WATCHED', watchedAt, offStream, publishedAt: watchedAt },
+      });
+    };
+    await mk('Live antigo', day(1), false);
+    await mk('Fora recente', day(20), true);
+    await mk('Live recente', day(10), false);
+    await mk('Fora antigo', day(5), true);
+    expect((await watchedTitles()).map((t) => t.title)).toEqual([
+      'Live recente',
+      'Live antigo',
+      'Fora recente',
+      'Fora antigo',
+    ]);
+    const only = await watchedTitles(undefined, null, undefined, undefined, true);
+    expect(only.map((t) => t.title)).toEqual(['Fora recente', 'Fora antigo']);
+    const onLive = await watchedTitles('MOVIE', null, undefined, undefined, false);
+    expect(onLive.map((t) => t.title)).toEqual(['Live recente', 'Live antigo']);
+    await clearCatalog();
+  });
+
   it('only a draft, and not with a future date', async () => {
     const mod = await as('MODERATOR');
     const active = await makeItem({ kind: 'MOVIE', status: 'ACTIVE', slot: 1 });

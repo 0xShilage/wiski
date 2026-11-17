@@ -14,11 +14,13 @@ export const metadata: Metadata = {
 };
 
 const FILTERS = [
-  { tipo: null, label: 'Todos', kind: undefined },
-  { tipo: 'filmes', label: 'Filmes', kind: 'MOVIE' },
-  { tipo: 'series', label: 'Séries', kind: 'SERIES' },
-  { tipo: 'franquias', label: 'Franquias', kind: 'FRANCHISE' },
-  { tipo: 'animes', label: 'Animes', kind: 'ANIME' },
+  { tipo: null, label: 'Todos', kind: undefined, off: undefined },
+  { tipo: 'filmes', label: 'Filmes', kind: 'MOVIE', off: undefined },
+  { tipo: 'series', label: 'Séries', kind: 'SERIES', off: undefined },
+  { tipo: 'franquias', label: 'Franquias', kind: 'FRANCHISE', off: undefined },
+  { tipo: 'animes', label: 'Animes', kind: 'ANIME', off: undefined },
+  /** 2026-11-17: only what Iara watched on her own */
+  { tipo: 'fora-da-live', label: 'Vistos fora da live', kind: undefined, off: true },
 ] as const;
 const KIND_PT = KIND_ONE;
 const num = new Intl.NumberFormat('pt-BR');
@@ -49,6 +51,8 @@ function hrefFor(tipo: string | null, q: string): string {
  * Poster wall of fame (2026-11-11): the titles are a dense grid of posters, inside the page column,
  * under a "N títulos · X h juntos na live" headline; the title, kind and date show over the poster
  * on hover or keyboard focus (on touch screens the title is always on it).
+ * Fora da live (2026-11-17): titles Iara watched off stream come after the ones watched on stream,
+ * under their own heading, and have their own filter, "Vistos fora da live".
  */
 export default async function AssistidosPage({ searchParams }: Props) {
   const params = await searchParams;
@@ -56,9 +60,12 @@ export default async function AssistidosPage({ searchParams }: Props) {
   const q = (one(params.q) ?? '').trim().slice(0, SEARCH_MAX);
   const searching = searchTerms(q).length > 0;
   const [items, progress] = await Promise.all([
-    watchedTitles(filter.kind, searching ? q : null),
+    watchedTitles(filter.kind, searching ? q : null, undefined, undefined, filter.off),
     watchProgress(),
   ]);
+  // the query returns the live ones first; the off-stream ones get their own wall below
+  const live = filter.off ? [] : items.filter((it) => !it.offStream);
+  const off = filter.off ? items : items.filter((it) => it.offStream);
   return (
     <div className="wf-page wf-seen">
       <h1 className="wf-h1">Assistidos</h1>
@@ -75,8 +82,9 @@ export default async function AssistidosPage({ searchParams }: Props) {
         </span>
       </p>
       <p className="wf-seen__intro">
-        A nossa parede da fama: tudo o que já passou na live. Os marcados “fora da live” a Iara
-        assistiu por conta própria. Abra um pôster para ler as avaliações ou deixar a sua.
+        A nossa parede da fama: tudo o que já passou na live. O que a Iara viu por conta própria
+        fica no fim, em “Vistos fora da live”. Abra um pôster para ler as avaliações ou deixar a
+        sua.
       </p>
       <form className="wf-seen__search" role="search" action="/assistidos" method="get">
         {filter.tipo ? <input type="hidden" name="tipo" value={filter.tipo} /> : null}
@@ -135,51 +143,77 @@ export default async function AssistidosPage({ searchParams }: Props) {
         </p>
       ) : (
         <p className="wf-seen__intro">
-          {filter.kind ? 'Nada deste tipo foi assistido ainda.' : 'Nada foi assistido ainda.'}{' '}
-          <Link href="/" className="underline">
-            Patrocine um filme
-          </Link>{' '}
-          para ele entrar na próxima live.
+          {filter.off ? (
+            'A Iara ainda não marcou nada que viu fora da live.'
+          ) : (
+            <>
+              {filter.kind ? 'Nada deste tipo foi assistido ainda.' : 'Nada foi assistido ainda.'}{' '}
+              <Link href="/" className="underline">
+                Patrocine um filme
+              </Link>{' '}
+              para ele entrar na próxima live.
+            </>
+          )}
         </p>
       )}
-      {items.length ? (
-        <ul className="wf-fame" aria-label="Parede de pôsteres dos títulos assistidos">
-          {items.map((it) => (
-            <li key={it.id}>
-              <Link
-                href={`/${KIND_PATH[it.kind]}/${it.slug}`}
-                className="wf-seen__card wf-fame__tile"
-                prefetch={false}
-                data-tilt="6"
-              >
-                <span className="wf-seen__poster wf-fame__poster" aria-hidden="true">
-                  {it.poster ? (
-                    <MediaPicture
-                      picture={it.poster}
-                      alt=""
-                      sizes="(max-width: 480px) 33vw, (max-width: 1280px) 15vw, 180px"
-                    />
-                  ) : (
-                    <span className="wf-fame__noposter">{it.title}</span>
-                  )}
-                </span>
-                <span className="wf-fame__cap">
-                  <span className="wf-seen__title">{it.title}</span>
-                  <span className="wf-seen__meta">
-                    {KIND_PT[it.kind]}
-                    {it.year ? ` · ${it.year}` : ''}
-                  </span>
-                  <span className="wf-seen__meta">
-                    Assistido em{' '}
-                    <time dateTime={it.watchedAt}>{date.format(new Date(it.watchedAt))}</time>
-                  </span>
-                  {it.offStream ? <span className="wf-seen__off">Fora da live</span> : null}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+      {live.length ? (
+        <PosterWall items={live} label="Parede de pôsteres dos títulos assistidos" />
+      ) : null}
+      {off.length ? (
+        <section className="wf-seen__offwall" aria-labelledby="vistos-fora">
+          <h2 id="vistos-fora" className={filter.off ? 'sr-only' : 'wf-h2'}>
+            Vistos fora da live
+          </h2>
+          {filter.off ? null : (
+            <p className="wf-seen__intro">O que a Iara assistiu por conta própria, fora da live.</p>
+          )}
+          <PosterWall items={off} label="Pôsteres dos títulos vistos fora da live" />
+        </section>
       ) : null}
     </div>
+  );
+}
+
+type Watched = Awaited<ReturnType<typeof watchedTitles>>[number];
+
+/** A dense grid of posters; the caption shows on hover or focus. */
+function PosterWall({ items, label }: { items: Watched[]; label: string }) {
+  return (
+    <ul className="wf-fame" aria-label={label}>
+      {items.map((it) => (
+        <li key={it.id}>
+          <Link
+            href={`/${KIND_PATH[it.kind]}/${it.slug}`}
+            className="wf-seen__card wf-fame__tile"
+            prefetch={false}
+            data-tilt="6"
+          >
+            <span className="wf-seen__poster wf-fame__poster" aria-hidden="true">
+              {it.poster ? (
+                <MediaPicture
+                  picture={it.poster}
+                  alt=""
+                  sizes="(max-width: 480px) 33vw, (max-width: 1280px) 15vw, 180px"
+                />
+              ) : (
+                <span className="wf-fame__noposter">{it.title}</span>
+              )}
+            </span>
+            <span className="wf-fame__cap">
+              <span className="wf-seen__title">{it.title}</span>
+              <span className="wf-seen__meta">
+                {KIND_PT[it.kind]}
+                {it.year ? ` · ${it.year}` : ''}
+              </span>
+              <span className="wf-seen__meta">
+                Assistido em{' '}
+                <time dateTime={it.watchedAt}>{date.format(new Date(it.watchedAt))}</time>
+              </span>
+              {it.offStream ? <span className="wf-seen__off">Fora da live</span> : null}
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }

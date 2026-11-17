@@ -409,6 +409,60 @@ test('assistidos: search by name, accents and case ignored, kind filter kept', a
   await expect(cards.first()).toBeVisible();
 });
 
+test('assistidos: "Vistos fora da live" after the live ones, and their own filter', async ({
+  page,
+}, info) => {
+  // a copy of a watched movie, marked as watched by Iara off stream (archived, so it doesn't
+  // count towards the live catalog limit; long ago, so it's no one's newest)
+  const title = `Visto fora ${info.project.name}`;
+  const slug = `visto-fora-${info.project.name}-${Date.now().toString(36)}`;
+  await withDb((c) =>
+    c.query(
+      `INSERT INTO "CatalogItem"
+       SELECT (jsonb_populate_record(NULL::"CatalogItem", to_jsonb(i) || jsonb_build_object(
+         'id', gen_random_uuid(), 'slug', $1::text, 'title', $2::text, 'offStream', true,
+         'status', 'ARCHIVED', 'archivedAt', now(), 'watchedAt', '2020-01-01T12:00:00Z',
+         'slot', NULL, 'wikidataId', NULL))).*
+       FROM "CatalogItem" i WHERE i.status = 'WATCHED' AND i.kind = 'MOVIE' LIMIT 1`,
+      [slug, title],
+    ),
+  );
+  try {
+    await page.goto('/assistidos');
+    const offWall = page.getByRole('region', { name: 'Vistos fora da live' });
+    await expect(offWall.getByText(title)).toHaveCount(1);
+    // the live wall comes first and doesn't have it
+    const liveWall = page.getByRole('list', { name: 'Parede de pôsteres dos títulos assistidos' });
+    await expect(liveWall.locator('.wf-seen__card').first()).toBeVisible();
+    await expect(liveWall.getByText(title)).toHaveCount(0);
+    expect(
+      await page.evaluate(() => {
+        const live = document.querySelector('.wf-fame')!;
+        const off = document.querySelector('.wf-seen__offwall')!;
+        return !!(live.compareDocumentPosition(off) & Node.DOCUMENT_POSITION_FOLLOWING);
+      }),
+    ).toBe(true);
+
+    const filter = page.getByRole('navigation', { name: 'Filtrar por tipo' });
+    await filter.getByRole('link', { name: 'Vistos fora da live' }).click();
+    await expect(page).toHaveURL(/tipo=fora-da-live/);
+    await expect(filter.getByRole('link', { name: 'Vistos fora da live' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    const cards = page.locator('.wf-seen__card');
+    await expect(cards.filter({ hasText: title })).toHaveCount(1);
+    await expect(cards.locator('.wf-seen__off')).toHaveCount(await cards.count());
+    // six choices fit a phone: they wrap, the page never scrolls sideways
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      page.viewportSize()!.width,
+    );
+    await page.screenshot({ path: `test-results/assistidos-fora-${info.project.name}.png` });
+  } finally {
+    await withDb((c) => c.query(`DELETE FROM "CatalogItem" WHERE slug = $1`, [slug]));
+  }
+});
+
 test('cronograma: posters next to the titles and "Próximas temporadas" from the dashboard', async ({
   page,
 }) => {

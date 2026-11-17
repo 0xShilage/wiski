@@ -757,3 +757,12 @@ A daily bingo about things that happen in the live chat and on stream. Signed-in
 - **Endpoints:**
   - `GET /api/v1/bingo` and `POST /api/v1/bingo/card` (user);
   - `GET /api/v1/admin/bingo`, `POST /api/v1/admin/bingo/calls` and `PUT /api/v1/admin/bingo/items` (moderator, second factor).
+
+## 54. Assistidos: "Vistos fora da live" (2026-11-17)
+
+Titles Iara watched by herself (the "Já assistiu fora da live?" button in the item editor, §42) used to be mixed with the ones watched on stream. Now they come last.
+
+- **Order.** `/assistidos` lists the titles watched on stream first, newest first. The off-stream ones follow under their own heading, "Vistos fora da live", newest first. This also applies inside each kind filter and to search results. `watchedTitles` sorts by `offStream` and then `watchedAt`.
+- **Filter.** A sixth choice, "Vistos fora da live" (`?tipo=fora-da-live`), shows only the off-stream titles, of every kind.
+- **Phones.** On narrow screens (≤ 720 px) the six choices wrap onto more lines inside the control instead of scrolling.
+- **Counts.** The headline count and hours still count only what was watched on stream.

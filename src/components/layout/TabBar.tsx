@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useId, useRef } from 'react';
 import {
+  IconBingo,
   IconBulb,
   IconCalendar,
   IconEye,
@@ -38,6 +39,7 @@ const ICON: Record<
   '/avaliacoes': IconStar,
   '/sugestoes': IconBulb,
   '/roleta': IconWheel,
+  '/bingo': IconBingo,
   '/emblemas': IconMedal,
   '/links': IconLink,
   '/perfil': IconUser,

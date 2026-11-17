@@ -487,6 +487,14 @@ export const AUDIT_ACTIONS = {
     .object({ itemId: z.uuid(), existed: z.boolean(), suggestions: z.int().min(1) })
     .strict(),
   // ── Roleta (2026-11-04): what was won, never the coupon code ──
+  'bingo.call': z
+    .object({
+      position: z.int().min(1).max(18),
+      called: z.boolean(),
+      day: z.iso.date(),
+    })
+    .strict(),
+  'bingo.items': z.object({ positions: z.array(z.int().min(1).max(18)).min(1).max(18) }).strict(),
   'roleta.win': z.object({ prize: roletaPrize }).strict(),
   'roleta.status': z
     .object({ prize: roletaPrize, from: roletaPrizeStatus, to: roletaPrizeStatus })

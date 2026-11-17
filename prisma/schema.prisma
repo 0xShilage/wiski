@@ -45,36 +45,36 @@ enum AccountStatus {
 }
 
 model User {
-  id                String        @id @default(uuid(7)) @db.Uuid
-  googleSub         String        @unique // OIDC `sub` = identity key. Email is NEVER used as identifier.
-  email             String // private. Default payer.email for this user's orders.
-  emailVerified     Boolean
-  username          String?       @unique // lowercase canonical [a-z0-9_]{3,20}; null until onboarding (CHECK)
-  usernameChangedAt DateTime?     @db.Timestamptz(3)
-  avatarKey         String        @default("perfil-01") // must exist in code registry (Zod enum, src/lib/avatars.ts)
-  role              Role          @default(USER)
-  isVip             Boolean       @default(false) // perk set by STREAMER in Admin → 10 % discount (not a role)
+  id                   String        @id @default(uuid(7)) @db.Uuid
+  googleSub            String        @unique // OIDC `sub` = identity key. Email is NEVER used as identifier.
+  email                String // private. Default payer.email for this user's orders.
+  emailVerified        Boolean
+  username             String?       @unique // lowercase canonical [a-z0-9_]{3,20}; null until onboarding (CHECK)
+  usernameChangedAt    DateTime?     @db.Timestamptz(3)
+  avatarKey            String        @default("perfil-01") // must exist in code registry (Zod enum, src/lib/avatars.ts)
+  role                 Role          @default(USER)
+  isVip                Boolean       @default(false) // perk set by STREAMER in Admin → 10 % discount (not a role)
   /// Badges on the public profile and a place in /ranking (2026-11-04); the viewer can turn it off
-  showAchievements  Boolean       @default(true)
+  showAchievements     Boolean       @default(true)
   /// The badge shown next to the username (2026-11-15, "Emblema ao lado do nome"): at most one of
   /// an event badge the viewer claimed, a conquista they earned, or their staff role (CHECK; the
   /// claim is enforced by a trigger, and removing the claim clears it).
-  nameBadgeEmblemId    String?   @db.Uuid
+  nameBadgeEmblemId    String?       @db.Uuid
   nameBadgeAchievement String?
-  nameBadgeRole        Boolean   @default(false)
-  vipSince          DateTime?     @db.Timestamptz(3)
-  status            AccountStatus @default(ACTIVE)
-  suspendedUntil    DateTime?     @db.Timestamptz(3)
-  createdAt         DateTime      @default(now()) @db.Timestamptz(3)
-  updatedAt         DateTime      @updatedAt @db.Timestamptz(3)
-  deletedAt         DateTime?     @db.Timestamptz(3)
+  nameBadgeRole        Boolean       @default(false)
+  vipSince             DateTime?     @db.Timestamptz(3)
+  status               AccountStatus @default(ACTIVE)
+  suspendedUntil       DateTime?     @db.Timestamptz(3)
+  createdAt            DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime      @updatedAt @db.Timestamptz(3)
+  deletedAt            DateTime?     @db.Timestamptz(3)
   /// Authenticator app (TOTP, RFC 6238): AES-256-GCM-encrypted secret, set only once enabled (CHECK).
-  totpSecretEnc     Bytes?
-  totpEnabledAt     DateTime?     @db.Timestamptz(3)
+  totpSecretEnc        Bytes?
+  totpEnabledAt        DateTime?     @db.Timestamptz(3)
   /// last accepted 30-s time step — a code is never accepted twice (compare-and-set)
-  totpLastStep      BigInt?
+  totpLastStep         BigInt?
   /// bumped when a second factor is removed or the role changes: every "remembered device" stops counting
-  mfaEpoch          Int           @default(0)
+  mfaEpoch             Int           @default(0)
 
   sessions           Session[]
   passkeys           Passkey[]
@@ -103,6 +103,10 @@ model User {
   badgeClaims        BadgeClaim[]
   badgesCreated      Badge[]             @relation("BadgeCreator")
   nameBadgeEmblem    Badge?              @relation("NameBadge", fields: [nameBadgeEmblemId], references: [id], onDelete: SetNull)
+  bingoCards         BingoCard[]
+  bingoWins          BingoWin[]
+  bingoCalls         BingoCall[]         @relation("BingoCaller")
+  bingoItemEdits     BingoItem[]         @relation("BingoItemEditor")
 
   @@index([role])
 }
@@ -299,10 +303,10 @@ model CatalogItem {
   createdAt        DateTime   @default(now()) @db.Timestamptz(3)
   updatedAt        DateTime   @updatedAt @db.Timestamptz(3)
 
-  poster           MediaAsset?       @relation("ItemPoster", fields: [posterId], references: [id], onDelete: Restrict)
-  backdrop         MediaAsset?       @relation("ItemBackdrop", fields: [backdropId], references: [id], onDelete: Restrict)
-  logo             MediaAsset?       @relation("ItemLogo", fields: [logoId], references: [id], onDelete: Restrict)
-  createdBy        User              @relation("ItemCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  poster           MediaAsset?           @relation("ItemPoster", fields: [posterId], references: [id], onDelete: Restrict)
+  backdrop         MediaAsset?           @relation("ItemBackdrop", fields: [backdropId], references: [id], onDelete: Restrict)
+  logo             MediaAsset?           @relation("ItemLogo", fields: [logoId], references: [id], onDelete: Restrict)
+  createdBy        User                  @relation("ItemCreator", fields: [createdById], references: [id], onDelete: Restrict)
   franchiseEntries FranchiseEntry[]
   extraBackdrops   CatalogItemBackdrop[]
   revisions        CatalogRevision[]
@@ -310,7 +314,7 @@ model CatalogItem {
   orders           Order[]
   reviews          Review[]
   watchEvents      WatchEvent[]
-  nowPlayingIn     StreamSession[]   @relation("NowPlaying")
+  nowPlayingIn     StreamSession[]       @relation("NowPlaying")
   seasonReleases   SeasonRelease[]
   suggestions      Suggestion[]
 
@@ -397,14 +401,14 @@ model MediaAsset {
   createdAt    DateTime  @default(now()) @db.Timestamptz(3)
   unusedSince  DateTime? @db.Timestamptz(3) // GC after 30 days
 
-  uploadedBy      User            @relation("MediaUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
-  posterOf        CatalogItem[]   @relation("ItemPoster")
-  backdropOf      CatalogItem[]   @relation("ItemBackdrop")
+  uploadedBy      User                  @relation("MediaUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
+  posterOf        CatalogItem[]         @relation("ItemPoster")
+  backdropOf      CatalogItem[]         @relation("ItemBackdrop")
   extraBackdropOf CatalogItemBackdrop[] @relation("ItemExtraBackdrop")
-  logoOf          CatalogItem[]   @relation("ItemLogo")
-  posterOfRelease SeasonRelease[] @relation("ReleasePoster")
-  posterOfSegment LiveSegment[]   @relation("SegmentPoster")
-  coverOfGame     Game[]          @relation("GameCover")
+  logoOf          CatalogItem[]         @relation("ItemLogo")
+  posterOfRelease SeasonRelease[]       @relation("ReleasePoster")
+  posterOfSegment LiveSegment[]         @relation("SegmentPoster")
+  coverOfGame     Game[]                @relation("GameCover")
   portraitOf      GuidePortrait[]
   badgeOf         Badge[]
 
@@ -1389,4 +1393,66 @@ model BadgeClaim {
 
   @@id([badgeId, userId])
   @@index([userId, claimedAt])
+}
+
+/// Bingo (2026-11-16, §53): the 18 things that can happen in the live chat or on stream. A card
+/// draws 9 of them; the team calls them as they happen. Positions are fixed (1…18, seeded).
+model BingoItem {
+  position    Int      @id
+  text        String
+  updatedById String?  @db.Uuid
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  updatedBy User? @relation("BingoItemEditor", fields: [updatedById], references: [id], onDelete: SetNull)
+}
+
+/// One bingo day (from 16:00 BRT to the next 16:00). Its row is the day's lock: a call and a new
+/// card update it first, so places are given out one at a time.
+model BingoRound {
+  /// the BRT calendar day the bingo day started on
+  day     DateTime @id @db.Date
+  winners Int      @default(0)
+}
+
+/// A viewer's card for one bingo day: 9 distinct positions, row by row (CHECK).
+model BingoCard {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  day       DateTime @db.Date
+  userId    String   @db.Uuid
+  cells     Int[]
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([day, userId])
+  @@index([userId])
+}
+
+/// An item the team saw happen on a bingo day.
+model BingoCall {
+  day        DateTime @db.Date
+  position   Int
+  calledById String?  @db.Uuid
+  calledAt   DateTime @default(now()) @db.Timestamptz(3)
+
+  calledBy User? @relation("BingoCaller", fields: [calledById], references: [id], onDelete: SetNull)
+
+  @@id([day, position])
+  @@index([calledById])
+}
+
+/// A completed line: the viewer's place that day (1st, 2nd…) and the three positions.
+model BingoWin {
+  day    DateTime @db.Date
+  userId String   @db.Uuid
+  place  Int
+  line   Int[]
+  wonAt  DateTime @default(now()) @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([day, userId])
+  @@unique([day, place])
+  @@index([wonAt])
+  @@index([userId, wonAt])
 }

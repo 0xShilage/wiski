@@ -539,6 +539,13 @@ export const MATRIX: Row[] = [
     body: { status: 'DELIVERED', expectedStatus: 'PENDING' },
   }),
   R('/api/v1/admin/roleta/open', 'PUT', 'moderator', { body: { open: true } }),
+  R('/api/v1/bingo', 'GET', 'user'),
+  R('/api/v1/bingo/card', 'POST', 'user', { body: {} }),
+  R('/api/v1/admin/bingo', 'GET', 'moderator'),
+  R('/api/v1/admin/bingo/calls', 'POST', 'moderator', { body: { position: 1, called: true } }),
+  R('/api/v1/admin/bingo/items', 'PUT', 'moderator', {
+    body: { items: Array.from({ length: 18 }, (_, i) => `Item ${i + 1}`) },
+  }),
   // "Próximas temporadas" (Admin › Estreias)
   R('/api/v1/admin/releases', 'GET', 'moderator'),
   R('/api/v1/admin/releases', 'POST', 'moderator', {

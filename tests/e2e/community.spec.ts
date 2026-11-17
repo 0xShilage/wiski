@@ -243,7 +243,7 @@ test('links editor: the streamer adds, moves and hides a link', async ({ browser
   await ctx.close();
 });
 
-test('phone: the bar has five tabs + "Mais", which opens Animes, Jogos, Fila, Assistidos, Avaliações, Sugestões, Roleta and Links', async ({
+test('phone: the bar has five tabs + "Mais", which opens Animes, Jogos, Fila, Assistidos, Avaliações, Sugestões, Roleta, Bingo and Links', async ({
   page,
 }, info) => {
   test.skip(!info.project.name.startsWith('mobile'), 'touch only');
@@ -268,6 +268,7 @@ test('phone: the bar has five tabs + "Mais", which opens Animes, Jogos, Fila, As
     'Avaliações',
     'Sugestões',
     'Roleta',
+    'Bingo',
     'Emblemas',
     'Apoiadores',
     'Links',
@@ -300,6 +301,7 @@ test('desktop: "Mais" opens a full-height drawer from the right that fades in, w
     'Avaliações',
     'Sugestões',
     'Roleta',
+    'Bingo',
     'Emblemas',
     'Apoiadores',
     'Links',

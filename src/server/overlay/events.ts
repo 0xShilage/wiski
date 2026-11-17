@@ -138,6 +138,17 @@ export const overlayEventSchema = z.discriminatedUnion('type', [
     .strict(),
   z
     .object({
+      /** someone completed a line in today's bingo (2026-11-16): shown by "Novo patrocínio" */
+      type: z.literal('bingo'),
+      username: safe(LIMITS.sponsor),
+      /** their place today: 1 for the first bingo */
+      place: z.int().min(1).max(100_000),
+      id: z.string().regex(/^\d{13}-[\w-]{6,16}$/),
+      at: z.iso.datetime(),
+    })
+    .strict(),
+  z
+    .object({
       /** the subathon timer (2026-11-03): the widget counts down from endsAt on its own */
       type: z.literal('subathon'),
       status: z.enum(['READY', 'RUNNING', 'PAUSED', 'ENDED']),
@@ -288,6 +299,24 @@ export function sponsorshipEvent(
     amountCents: extra.amountCents && extra.amountCents > 0 ? extra.amountCents : null,
     contribution: extra.contribution ?? false,
     voice: extra.voice ?? false,
+    id: sponsorshipId(now, nonce),
+    at: now.toISOString(),
+  });
+}
+
+/** "BINGO!" on the alert widget: who and their place today. */
+export function bingoEvent(
+  username: string,
+  place: number,
+  now = new Date(),
+  nonce = randomToken(6),
+): OverlayEvent | null {
+  const who = overlayText(`@${username.replace(/^@/, '')}`, LIMITS.sponsor);
+  if (!who) return null;
+  return overlayEventSchema.parse({
+    type: 'bingo',
+    username: who,
+    place,
     id: sponsorshipId(now, nonce),
     at: now.toISOString(),
   });

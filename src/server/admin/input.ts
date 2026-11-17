@@ -426,3 +426,12 @@ export const roletaStatusInput = z
   .object({ status: roletaStatus, expectedStatus: roletaStatus })
   .strict();
 export const roletaOpenInput = z.object({ open: z.boolean() }).strict();
+
+// ── Bingo (2026-11-16) ──
+export const bingoCardInput = z.object({}).strict();
+export const bingoCallInput = z
+  .object({ position: z.int().min(1).max(18), called: z.boolean() })
+  .strict();
+export const bingoItemsInput = z
+  .object({ items: z.array(z.string().max(200)).length(18) })
+  .strict();

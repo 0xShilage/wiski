@@ -366,3 +366,24 @@ Fix (PR "fix-prefetch-burst"): no prefetch on the header tabs, the phone bar, th
   - phone: a moderator picks the role badge, with no sideways scroll.
 - `a11y-layout`, `community-catalog`, `community`, `csp`, `emblemas`, `reviews` and `viewports` are green: 358 passed, 34 skipped by design.
 - Screenshots are in `test-results/name-badge/`.
+
+## Addendum — Bingo da live (2026-11-16)
+
+- Unit `bingo.test.ts`: the 16:00 BRT day boundary, the next reset and its text, all 8 lines, the cells to light up. Conquistas "Bingo!" and "Rei do bingo" in `community-catalog.test.ts`.
+- Integration `bingo.test.ts`, 12 tests:
+  - one card a day (9 distinct items, the same card again), needs a username and an active account, renews at 16:00;
+  - a card taken after the calls wins at once (overlay event and chat line);
+  - places in the order cards were taken, one bingo per viewer per day;
+  - calling twice is a no-op, a winning call can't be taken back, calls are audited;
+  - more than three winners: three alerts, the rest in one chat line;
+  - item texts cleaned, validated and audited;
+  - the ranking board and the conquista count;
+  - LGPD export and erase;
+  - database floor: 9 distinct positions in 1…18, calls and items in 1…18, always 18 items.
+- The authz matrix covers the five new endpoints.
+- Unit and integration suites all green: 461 unit, 1585 integration.
+- e2e `bingo.spec.ts`:
+  - desktop: a viewer takes a card, a moderator marks its first row, the winning call can't be taken back, the viewer's page finds the bingo by itself, and the ranking shows it;
+  - phone: the card fits 360 px with no sideways scroll.
+- `a11y-layout`, `csp` and `operations` green for the new and touched pages.
+- Screenshots are in `test-results/bingo/`.

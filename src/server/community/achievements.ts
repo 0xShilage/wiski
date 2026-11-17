@@ -24,7 +24,7 @@ export async function achievementStats(
   user: { id: string; createdAt: Date; isVip: boolean },
   now = new Date(),
 ): Promise<AchievementStats> {
-  const [sponsorships, contributions, reviews] = await Promise.all([
+  const [sponsorships, contributions, reviews, bingoWins] = await Promise.all([
     db().order.count({ where: { ...countedOrders('MOVIE'), userId: user.id } }),
     db().order.count({ where: { ...countedOrders('CONTRIBUTION'), userId: user.id } }),
     db().review.aggregate({
@@ -32,12 +32,14 @@ export async function achievementStats(
       _count: { _all: true },
       _sum: { likeCount: true },
     }),
+    db().bingoWin.count({ where: { userId: user.id } }),
   ]);
   return {
     sponsorships,
     contributions,
     reviews: reviews._count._all,
     likes: reviews._sum.likeCount ?? 0,
+    bingoWins,
     memberDays: Math.max(0, Math.floor((now.getTime() - user.createdAt.getTime()) / DAY_MS)),
     vip: user.isVip,
   };

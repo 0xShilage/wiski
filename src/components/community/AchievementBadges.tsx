@@ -1,5 +1,6 @@
 import type { AchievementGroup, AchievementResult } from '@/lib/achievements';
 import {
+  IconBingo,
   IconCalendar,
   IconFilm,
   IconHeart,
@@ -13,6 +14,7 @@ const ICON: Record<AchievementGroup, (p: { className?: string }) => React.JSX.El
   backer: IconLayers,
   review: IconStar,
   likes: IconHeart,
+  bingo: IconBingo,
   member: IconCalendar,
   vip: IconSparkle,
 };

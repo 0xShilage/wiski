@@ -45,6 +45,7 @@ type Ev =
       id?: string;
       at?: string;
     }
+  | { type: 'bingo'; username: string; place: number; id?: string; at?: string }
   | SubathonEv
   | { type: 'show'; seconds: number }
   | { type: 'ready' };
@@ -59,6 +60,9 @@ const LEAVE_MS = 600;
 
 type Alert = {
   n: number;
+  /** a sponsorship, or someone's bingo (2026-11-16: title is the @username, place their place) */
+  kind: 'sponsorship' | 'bingo';
+  place?: number;
   title: string;
   sponsor: string | null;
   message: string | null;
@@ -312,7 +316,25 @@ export function OverlayClient({ widget }: { widget: keyof typeof LABEL }) {
         } catch {
           return;
         }
-        if (data.type === 'new-sponsorship') {
+        if (data.type === 'bingo') {
+          if (data.id) {
+            if (seen.includes(data.id)) return;
+            seen.push(data.id);
+            if (seen.length > 50) seen.shift();
+          }
+          if (data.at && (!since || data.at > since)) since = data.at;
+          enqueue({
+            kind: 'bingo',
+            place: data.place,
+            title: data.username,
+            sponsor: null,
+            message: null,
+            amountCents: null,
+            contribution: false,
+            id: data.id,
+            voice: false,
+          });
+        } else if (data.type === 'new-sponsorship') {
           if (data.id) {
             if (seen.includes(data.id)) return; // replayed after a reconnect, already shown
             seen.push(data.id);
@@ -320,6 +342,7 @@ export function OverlayClient({ widget }: { widget: keyof typeof LABEL }) {
           }
           if (data.at && (!since || data.at > since)) since = data.at;
           enqueue({
+            kind: 'sponsorship',
             title: data.title,
             sponsor: data.sponsor,
             message: data.message ?? null,
@@ -376,6 +399,31 @@ export function OverlayClient({ widget }: { widget: keyof typeof LABEL }) {
     );
   }
 
+  if (widget === 'patrocinio' && flash?.kind === 'bingo') {
+    return (
+      <div
+        key={flash.n}
+        className={
+          flash.leaving
+            ? 'wf-overlay__box wf-overlay__flash wf-overlay__bingo is-leaving'
+            : 'wf-overlay__box wf-overlay__flash wf-overlay__bingo'
+        }
+        role="status"
+      >
+        <p className="wf-overlay__label">BINGO!</p>
+        <p className="wf-overlay__title">{flash.title}</p>
+        <p className="wf-overlay__sub">
+          completou uma linha
+          {flash.place ? (
+            <>
+              {' · '}
+              <b>{flash.place}º lugar de hoje</b>
+            </>
+          ) : null}
+        </p>
+      </div>
+    );
+  }
   if (widget === 'patrocinio') {
     return flash ? (
       <div

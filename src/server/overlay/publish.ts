@@ -7,7 +7,7 @@ import { type OverlayEvent, overlayEventSchema, type Widget } from './events';
 export const overlayChannel = (w: Widget) => `wf:overlay:${w}`;
 
 /**
- * "Novo patrocínio" alerts kept for a few minutes (2026-11-05), so an overlay that was
+ * "Novo patrocínio" alerts (and, since 2026-11-16, bingo wins) kept for a few minutes (2026-11-05), so an overlay that was
  * reconnecting when a payment came in still shows it. The other widgets don't need this: each
  * new stream starts with a fresh snapshot of what they show.
  */
@@ -56,7 +56,7 @@ export async function missedAlerts(since: string | undefined, now = new Date()):
       continue;
     }
     const ev = overlayEventSchema.safeParse(parsed);
-    if (!ev.success || ev.data.type !== 'new-sponsorship') continue;
+    if (!ev.success || (ev.data.type !== 'new-sponsorship' && ev.data.type !== 'bingo')) continue;
     if (Date.parse(ev.data.at) > from) frames.push(`data: ${JSON.stringify(ev.data)}\n\n`);
   }
   return frames;

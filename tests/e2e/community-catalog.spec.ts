@@ -101,7 +101,7 @@ test('badges: earned ones on the public profile; the switch hides them', async (
 
   await page.goto('/perfil');
   const mine = page.getByRole('region', { name: /Conquistas/ });
-  await expect(mine.getByRole('listitem')).toHaveCount(13);
+  await expect(mine.getByRole('listitem')).toHaveCount(15);
   await expect(
     mine.getByRole('listitem', { name: /^Primeiro patrocínio — bloqueada/ }),
   ).toBeVisible();

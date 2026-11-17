@@ -176,6 +176,12 @@ export const RL = {
     perIp: { limit: 30, windowMs: HOUR },
     perUser: { limit: 10, windowMs: HOUR },
   },
+  /** Bingo (2026-11-16): one card a day is kept by the database; this only stops hammering. */
+  bingoCard: {
+    name: 'bingo-card',
+    perIp: { limit: 60, windowMs: MIN },
+    perUser: { limit: 10, windowMs: MIN },
+  },
   dataExport: {
     name: 'data-export',
     perIp: { limit: 10, windowMs: HOUR },

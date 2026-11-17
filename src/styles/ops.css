@@ -386,6 +386,19 @@
     color: var(--color-lilac);
     overflow-wrap: anywhere;
   }
+  /* Bingo (2026-11-16): the same alert, a pink border and a bigger label */
+  .wf-overlay__bingo {
+    border-color: #f2a7dd;
+  }
+  .wf-overlay__bingo .wf-overlay__label {
+    font-family: var(--font-display);
+    font-size: 30px;
+    letter-spacing: 0.06em;
+    color: #f2a7dd;
+  }
+  .wf-overlay__bingo .wf-overlay__sub b {
+    color: #fff;
+  }
   /* "Novo patrocínio": what they paid (2026-11-16) */
   .wf-overlay__amount {
     margin: 4px 0 0;

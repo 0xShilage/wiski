@@ -29,6 +29,7 @@ const stats = (o: Partial<Parameters<typeof evaluateAchievements>[0]> = {}) => (
   contributions: 0,
   reviews: 0,
   likes: 0,
+  bingoWins: 0,
   memberDays: 0,
   vip: false,
   ...o,
@@ -54,6 +55,14 @@ describe('badges', () => {
       'vip',
     ]);
     expect(earnedAchievements(stats({ memberDays: 364 }))).toEqual([]);
+  });
+
+  it('bingos: the first one and the tenth', () => {
+    expect(earnedAchievements(stats({ bingoWins: 1 })).map((a) => a.id)).toEqual(['bingo-1']);
+    expect(earnedAchievements(stats({ bingoWins: 10 })).map((a) => a.id)).toEqual([
+      'bingo-1',
+      'bingo-10',
+    ]);
   });
 });
 

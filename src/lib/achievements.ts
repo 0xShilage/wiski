@@ -1,10 +1,12 @@
 /**
  * Badges (2026-11-04): earned from facts that are already public under the viewer's username —
  * movie sponsorships and campaign contributions shown with their name (never anonymous ones),
- * visible reviews, likes on those reviews, how long they've been here, the VIP perk. No amounts.
+ * visible reviews, likes on those reviews, bingos (2026-11-16), how long they've been here, the
+ * VIP perk. No amounts.
  * Pure rules: the server counts, this decides. Shared by the profile pages and the tests.
  */
-export type AchievementGroup = 'sponsor' | 'backer' | 'review' | 'likes' | 'member' | 'vip';
+export type AchievementGroup =
+  'sponsor' | 'backer' | 'review' | 'likes' | 'bingo' | 'member' | 'vip';
 
 export type AchievementStats = {
   /** movie sponsorships (paid, not refunded) with the sponsor's name shown */
@@ -15,6 +17,8 @@ export type AchievementStats = {
   reviews: number;
   /** likes received on visible reviews */
   likes: number;
+  /** bingos completed (2026-11-16) */
+  bingoWins: number;
   /** whole days since the account was created */
   memberDays: number;
   vip: boolean;
@@ -120,6 +124,22 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
     how: 'Receba 50 curtidas nas suas avaliações',
     metric: 'likes',
     target: 50,
+  },
+  {
+    id: 'bingo-1',
+    group: 'bingo',
+    label: 'Bingo!',
+    how: 'Complete uma linha no bingo da live',
+    metric: 'bingoWins',
+    target: 1,
+  },
+  {
+    id: 'bingo-10',
+    group: 'bingo',
+    label: 'Rei do bingo',
+    how: 'Complete 10 bingos',
+    metric: 'bingoWins',
+    target: 10,
   },
   {
     id: 'member-365',

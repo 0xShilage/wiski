@@ -9,9 +9,9 @@ import { countedOrders } from './achievements';
  * /ranking (2026-11-04): who sponsored the most movies (with their name shown), who wrote the most
  * reviews, whose reviews got the most likes. Counts only — never amounts. Only active accounts with
  * a username that didn't turn the ranking off; the streamer isn't ranked. "Este mês" is the
- * calendar month in São Paulo.
+ * calendar month in São Paulo. 2026-11-16: who made the most bingos.
  */
-export type RankingBoard = 'patrocinadores' | 'criticos' | 'curtidas';
+export type RankingBoard = 'patrocinadores' | 'criticos' | 'curtidas' | 'bingo';
 export type RankingPeriod = 'mes' | 'geral';
 export type RankingRow = {
   position: number;
@@ -108,6 +108,16 @@ export async function ranking(
     });
     return rows(groups.map((g) => ({ userId: g.userId, value: g._count._all })));
   }
+  if (board === 'bingo') {
+    const groups = await db().bingoWin.groupBy({
+      by: ['userId'],
+      where: { user: rankedUser, ...(since ? { wonAt: { gte: since } } : {}) },
+      _count: { _all: true },
+      orderBy: { _count: { userId: 'desc' } },
+      take: CANDIDATES,
+    });
+    return rows(groups.map((g) => ({ userId: g.userId, value: g._count._all })));
+  }
   // likes received: all-time (the like counter lives on the review)
   const groups = await db().review.groupBy({
     by: ['userId'],
@@ -120,16 +130,20 @@ export async function ranking(
 }
 
 export async function rankings(now = new Date()) {
-  const [sponsorsMonth, sponsorsAll, criticsMonth, criticsAll, likes] = await Promise.all([
-    ranking('patrocinadores', 'mes', now),
-    ranking('patrocinadores', 'geral', now),
-    ranking('criticos', 'mes', now),
-    ranking('criticos', 'geral', now),
-    ranking('curtidas', 'geral', now),
-  ]);
+  const [sponsorsMonth, sponsorsAll, criticsMonth, criticsAll, likes, bingoMonth, bingoAll] =
+    await Promise.all([
+      ranking('patrocinadores', 'mes', now),
+      ranking('patrocinadores', 'geral', now),
+      ranking('criticos', 'mes', now),
+      ranking('criticos', 'geral', now),
+      ranking('curtidas', 'geral', now),
+      ranking('bingo', 'mes', now),
+      ranking('bingo', 'geral', now),
+    ]);
   return {
     patrocinadores: { mes: sponsorsMonth, geral: sponsorsAll },
     criticos: { mes: criticsMonth, geral: criticsAll },
     curtidas: { geral: likes },
+    bingo: { mes: bingoMonth, geral: bingoAll },
   };
 }

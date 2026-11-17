@@ -31,81 +31,103 @@ export const LgpdProblems = {
 };
 
 export async function exportMyData(user: User, requestId: string | null) {
-  const [sessions, orders, reviews, likes, reports, legal, passkeys, suggestions, roleta, badges] =
-    await Promise.all([
-      db().session.findMany({
-        where: { userId: user.id },
-        select: { createdAt: true, lastSeenAt: true, uaFamily: true, revokedAt: true },
-        orderBy: { createdAt: 'desc' },
-        take: 200,
-      }),
-      db().order.findMany({
-        where: { userId: user.id },
-        select: {
-          publicCode: true,
-          kind: true,
-          status: true,
-          totalCents: true,
-          createdAt: true,
-          paidAt: true,
-          contactEmail: true,
-          sponsorMessage: true,
-          showSponsorName: true,
-          item: { select: { title: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-      }),
-      db().review.findMany({
-        where: { userId: user.id },
-        select: {
-          rating: true,
-          body: true,
-          containsSpoilers: true,
-          status: true,
-          createdAt: true,
-          editedAt: true,
-          item: { select: { title: true } },
-        },
-      }),
-      db().reviewLike.findMany({
-        where: { userId: user.id },
-        select: { createdAt: true, review: { select: { item: { select: { title: true } } } } },
-      }),
-      db().reviewReport.findMany({
-        where: { reporterId: user.id },
-        select: { reason: true, note: true, status: true, createdAt: true },
-      }),
-      db().legalAcceptance.findMany({
-        where: { OR: [{ userId: user.id }, { order: { userId: user.id } }] },
-        select: { acceptedAt: true, document: { select: { type: true, version: true } } },
-      }),
-      db().passkey.findMany({
-        where: { userId: user.id },
-        select: { label: true, createdAt: true, lastUsedAt: true },
-      }),
-      db().suggestion.findMany({
-        where: { userId: user.id },
-        select: { kind: true, title: true, year: true, note: true, status: true, createdAt: true },
-        orderBy: { createdAt: 'desc' },
-      }),
-      db().roletaSpin.findMany({
-        where: { userId: user.id },
-        select: {
-          prize: true,
-          status: true,
-          twitchLogin: true,
-          createdAt: true,
-          deliveredAt: true,
-          voucher: { select: { code: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-      }),
-      db().badgeClaim.findMany({
-        where: { userId: user.id },
-        select: { claimedAt: true, badge: { select: { name: true } } },
-        orderBy: { claimedAt: 'desc' },
-      }),
-    ]);
+  const [
+    sessions,
+    orders,
+    reviews,
+    likes,
+    reports,
+    legal,
+    passkeys,
+    suggestions,
+    roleta,
+    badges,
+    bingoCards,
+    bingoWins,
+  ] = await Promise.all([
+    db().session.findMany({
+      where: { userId: user.id },
+      select: { createdAt: true, lastSeenAt: true, uaFamily: true, revokedAt: true },
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+    }),
+    db().order.findMany({
+      where: { userId: user.id },
+      select: {
+        publicCode: true,
+        kind: true,
+        status: true,
+        totalCents: true,
+        createdAt: true,
+        paidAt: true,
+        contactEmail: true,
+        sponsorMessage: true,
+        showSponsorName: true,
+        item: { select: { title: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+    db().review.findMany({
+      where: { userId: user.id },
+      select: {
+        rating: true,
+        body: true,
+        containsSpoilers: true,
+        status: true,
+        createdAt: true,
+        editedAt: true,
+        item: { select: { title: true } },
+      },
+    }),
+    db().reviewLike.findMany({
+      where: { userId: user.id },
+      select: { createdAt: true, review: { select: { item: { select: { title: true } } } } },
+    }),
+    db().reviewReport.findMany({
+      where: { reporterId: user.id },
+      select: { reason: true, note: true, status: true, createdAt: true },
+    }),
+    db().legalAcceptance.findMany({
+      where: { OR: [{ userId: user.id }, { order: { userId: user.id } }] },
+      select: { acceptedAt: true, document: { select: { type: true, version: true } } },
+    }),
+    db().passkey.findMany({
+      where: { userId: user.id },
+      select: { label: true, createdAt: true, lastUsedAt: true },
+    }),
+    db().suggestion.findMany({
+      where: { userId: user.id },
+      select: { kind: true, title: true, year: true, note: true, status: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+    }),
+    db().roletaSpin.findMany({
+      where: { userId: user.id },
+      select: {
+        prize: true,
+        status: true,
+        twitchLogin: true,
+        createdAt: true,
+        deliveredAt: true,
+        voucher: { select: { code: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+    db().badgeClaim.findMany({
+      where: { userId: user.id },
+      select: { claimedAt: true, badge: { select: { name: true } } },
+      orderBy: { claimedAt: 'desc' },
+    }),
+    db().bingoCard.findMany({
+      where: { userId: user.id },
+      select: { day: true, cells: true, createdAt: true },
+      orderBy: { day: 'desc' },
+    }),
+    db().bingoWin.findMany({
+      where: { userId: user.id },
+      select: { day: true, place: true, line: true, wonAt: true },
+      orderBy: { day: 'desc' },
+    }),
+  ]);
   await audit({
     action: 'user.export',
     actor: { id: user.id, role: user.role },
@@ -143,6 +165,10 @@ export async function exportMyData(user: User, requestId: string | null) {
     suggestions,
     roleta: roleta.map(({ voucher, ...r }) => ({ ...r, couponCode: voucher?.code ?? null })),
     badges: badges.map((b) => ({ badge: b.badge.name, claimedAt: b.claimedAt })),
+    bingo: {
+      cards: bingoCards.map((c) => ({ ...c, day: c.day.toISOString().slice(0, 10) })),
+      wins: bingoWins.map((w) => ({ ...w, day: w.day.toISOString().slice(0, 10) })),
+    },
     // never the secret or the codes — only whether it is on
     authenticatorApp: {
       enabledAt: user.totpEnabledAt?.toISOString() ?? null,
@@ -186,6 +212,8 @@ export async function eraseMyAccount(
     }
     await t.roletaSpin.deleteMany({ where: { userId: user.id } });
     await t.badgeClaim.deleteMany({ where: { userId: user.id } });
+    await t.bingoCard.deleteMany({ where: { userId: user.id } });
+    await t.bingoWin.deleteMany({ where: { userId: user.id } });
     await t.mfaRecoveryCode.deleteMany({ where: { userId: user.id } });
     await t.session.updateMany({
       where: { userId: user.id, revokedAt: null },

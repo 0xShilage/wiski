@@ -6,7 +6,8 @@ import { NameBadgeMark } from '@/components/community/NameBadge';
 
 export const metadata: Metadata = {
   title: 'Ranking',
-  description: 'Quem mais patrocinou filmes, escreveu avaliações e recebeu curtidas na Wiski.',
+  description:
+    'Quem mais patrocinou filmes, escreveu avaliações, recebeu curtidas e fez bingo na Wiski.',
 };
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
@@ -71,8 +72,8 @@ export default async function RankingPage({ searchParams }: Props) {
     <div className="wf-page wf-rank-page">
       <h1 className="wf-h1">Ranking</h1>
       <p className="wf-rank-page__intro">
-        Quem mais movimenta a Wiski. Contam patrocínios com o nome visível, avaliações e curtidas.
-        Valores nunca aparecem, e você pode sair do ranking quando quiser em{' '}
+        Quem mais movimenta a Wiski. Contam patrocínios com o nome visível, avaliações, curtidas e
+        bingos. Valores nunca aparecem, e você pode sair do ranking quando quiser em{' '}
         <Link href="/perfil#minhas-conquistas" className="underline underline-offset-4">
           Perfil
         </Link>
@@ -111,6 +112,13 @@ export default async function RankingPage({ searchParams }: Props) {
           lead="Curtidas recebidas nas avaliações · desde sempre"
           rows={r.curtidas.geral}
           unit={['curtida', 'curtidas']}
+        />
+        <Board
+          id="rank-bingo"
+          title="Bingo"
+          lead={`Bingos completados · ${PERIOD_LABEL[period].toLowerCase()}`}
+          rows={r.bingo[period]}
+          unit={['bingo', 'bingos']}
         />
       </div>
     </div>

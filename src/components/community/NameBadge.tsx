@@ -2,6 +2,7 @@ import type { AchievementGroup } from '@/lib/achievements';
 import type { NameBadge } from '@/lib/name-badge';
 import { BadgeArt } from '@/components/badges/BadgeArt';
 import {
+  IconBingo,
   IconBulb,
   IconCalendar,
   IconFilm,
@@ -20,6 +21,7 @@ const GROUP_ICON: Record<AchievementGroup, IconC> = {
   backer: IconLayers,
   review: IconStar,
   likes: IconHeart,
+  bingo: IconBingo,
   member: IconCalendar,
   vip: IconSparkle,
 };

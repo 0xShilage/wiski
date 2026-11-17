@@ -734,3 +734,26 @@ Every sponsorship alert now shows the amount paid (the order's `totalCents`, aft
     - formatting: centavos, "1 real", thousands.
   - `tests/integration/overlay.test.ts`: the exact event.
   - `tests/e2e/operations.spec.ts`: a movie, a campaign share, and an old alert without an amount, one after the other. Screenshot `test-results/alert-amount-*.png`.
+
+## 53. Bingo da live (2026-11-16)
+
+A daily bingo about things that happen in the live chat and on stream. Signed-in viewers only.
+
+- **The card.** On `/bingo` (menu "Mais"), a viewer with a username and an active account presses "Pegar minha cartela". The server draws 9 of the 18 items (crypto RNG, Fisher–Yates) onto a 3×3 card. One card per viewer per day; asking again returns the same card.
+- **The day.** Cards and calls renew every day at **16:00 America/Sao_Paulo** (`bingoDay` in `src/lib/bingo.ts`, the same fixed −03:00 rule as the Roleta).
+- **Calling items.** Only the team marks items, in **Admin › Bingo**: one button per item; press it when it happens, press again to take it back. A call that already completed someone's line can't be taken back (`BINGO_CALL_IN_WIN`). Calling twice changes nothing. Every call is audited (`bingo.call`).
+- **Bingo.** A row, column or diagonal of called items. The server checks every card that has the called item, at the call. A card taken after some calls counts them, so it can win at once. One bingo per viewer per day. Places (1º, 2º…) follow the order of completion; cards completed by the same call are ordered by when they were taken. Calls and new cards update the day's `BingoRound` row first, so places are handed out one at a time.
+- **Announcements.**
+  - The overlay's "Novo patrocínio" widget shows a "BINGO!" alert (new `bingo` event: `@username` and place; replayed after a reconnect like sponsorships).
+  - The StreamElements bot posts "BINGO! @fulano completou uma linha e é o 1º lugar de hoje! 🎉" when chat alerts are on in Overlays (once per viewer and day).
+  - Only the first 3 winners of one call get their own alert; the rest are summed up in one chat line.
+- **The page.** The card stamps called items and makes the winning line glow. Next to it: what was called today, and today's winners with their name badge. The page asks the server every 15 s while the tab is visible. Guests see the calls and winners and a sign-in button.
+- **Ranking and conquistas.** A new "Bingo" board on `/ranking` (this month / all time), and two conquistas: "Bingo!" (1) and "Rei do bingo" (10), which can also be shown next to the name.
+- **The items.** The 18 texts are placeholders ("Item N (a definir)") until the team writes them in Admin › Bingo (up to 80 characters, plain text; audited as `bingo.items`). A changed text applies to every card at once, since cards store positions.
+- **Data.**
+  - Tables: `BingoItem` (18 rows, seeded), `BingoRound`, `BingoCard`, `BingoCall`, `BingoWin`.
+  - Migrations: `20261202120000_bingo` and `20261202120100_bingo_constraints`. The constraints keep cards to 9 distinct positions in 1…18, lines to 3, and places at 1 or more.
+  - LGPD: the export includes cards and wins, and erasing the account deletes them.
+- **Endpoints:**
+  - `GET /api/v1/bingo` and `POST /api/v1/bingo/card` (user);
+  - `GET /api/v1/admin/bingo`, `POST /api/v1/admin/bingo/calls` and `PUT /api/v1/admin/bingo/items` (moderator, second factor).

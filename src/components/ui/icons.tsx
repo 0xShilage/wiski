@@ -141,6 +141,16 @@ export const IconTrophy = ({ className }: P) => (
     <path d="M8 4h8v5a4 4 0 0 1-8 0V4zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7M10 17h4" />
   </svg>
 );
+/** Bingo (2026-11-16): a 3×3 card with a stamped diagonal */
+export const IconBingo = ({ className }: P) => (
+  <svg {...base} className={className}>
+    <rect x="3.5" y="3.5" width="17" height="17" rx="3" />
+    <path d="M9.2 3.5v17M14.8 3.5v17M3.5 9.2h17M3.5 14.8h17" />
+    <circle cx="6.35" cy="6.35" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="17.65" cy="17.65" r="1.4" fill="currentColor" stroke="none" />
+  </svg>
+);
 export const IconMore = ({ className }: P) => (
   <svg {...base} className={className} fill="currentColor" stroke="none">
     <circle cx="5.5" cy="12" r="1.9" />

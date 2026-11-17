@@ -97,4 +97,8 @@ export const PAGES: PageCase[] = [
   // 2026-11-13: Desenvolvedor (the streamer's pages)
   { name: 'pessoas-super', path: '/admin/pessoas', auth: 'super', shell: false },
   { name: 'pedidos-super', path: '/admin/pedidos', auth: 'super', shell: false },
+  // 2026-11-16: Bingo da live
+  { name: 'bingo-entrar', path: '/bingo' },
+  { name: 'bingo', path: '/bingo', auth: 'user' },
+  { name: 'bingo-admin', path: '/admin/bingo', auth: 'admin', shell: false },
 ];

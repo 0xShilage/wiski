@@ -190,11 +190,13 @@ export async function listWatched(limit = 24, now = new Date()) {
   return rows.map((r) => ({ ...toPublic(r, now), watchedAt: r.watchedAt!.toISOString() }));
 }
 
-/** Assistidos (2026-11-01): every title watched on stream, newest first, optionally one kind. */
 /**
- * Everything already watched, newest first (/assistidos). With a search (2026-11-03), the title
- * and original title must contain every word, ignoring case and accents; the whole history is
- * searched (up to WATCHED_SEARCH_CAP rows) and the first `limit` matches returned.
+ * Everything already watched (/assistidos, 2026-11-01), optionally one kind. Titles watched on
+ * stream come first, newest first, then (2026-11-17) the ones Iara watched off stream ("fora da
+ * live"), newest first; `offStream` true or false keeps only one group. With a search
+ * (2026-11-03), the title and original title must contain every word, ignoring case and accents;
+ * the whole history is searched (up to WATCHED_SEARCH_CAP rows) and the first `limit` matches
+ * returned.
  */
 const WATCHED_SEARCH_CAP = 2000;
 
@@ -203,6 +205,7 @@ export async function watchedTitles(
   query?: string | null,
   limit = 120,
   now = new Date(),
+  offStream?: boolean,
 ) {
   const terms = searchTerms(query);
   const rows = await db().catalogItem.findMany({
@@ -210,8 +213,9 @@ export async function watchedTitles(
       status: { in: ['WATCHED', 'ARCHIVED'] },
       watchedAt: { not: null },
       ...(kind ? { kind } : {}),
+      ...(offStream === undefined ? {} : { offStream }),
     },
-    orderBy: { watchedAt: 'desc' },
+    orderBy: [{ offStream: 'asc' }, { watchedAt: 'desc' }, { id: 'asc' }],
     take: terms.length ? WATCHED_SEARCH_CAP : limit,
     include: publicInclude,
   });

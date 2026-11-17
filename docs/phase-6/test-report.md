@@ -387,3 +387,12 @@ Fix (PR "fix-prefetch-burst"): no prefetch on the header tabs, the phone bar, th
   - phone: the card fits 360 px with no sideways scroll.
 - `a11y-layout`, `csp` and `operations` green for the new and touched pages.
 - Screenshots are in `test-results/bingo/`.
+
+## Addendum — Assistidos "Vistos fora da live" (2026-11-17)
+
+- Integration (`community.test.ts`): off-stream titles come after the live ones (each group newest first); the off-stream filter and the live-only query.
+- e2e (`community.spec.ts`, desktop and phone):
+  - the off-stream title is in the "Vistos fora da live" section after the live wall, and not in the live wall;
+  - the filter shows only off-stream titles and is marked as current;
+  - no sideways scroll at 360 px.
+- The existing Assistidos tests in `community.spec.ts` and `showcase.spec.ts` stay green.

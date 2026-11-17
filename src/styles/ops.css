@@ -1339,6 +1339,23 @@ html:has(.wf-overlay) .skip-link {
   .wf-seen__filter {
     max-width: 100%;
   }
+  /* six choices since "Vistos fora da live" (2026-11-17): on a narrow screen they wrap onto a
+     second line inside the control (rounded box instead of a pill), never scroll the page */
+  @media (max-width: 720px) {
+    .wf-seen__filter {
+      flex-wrap: wrap;
+      border-radius: 20px;
+    }
+  }
+  /* "Vistos fora da live" (2026-11-17): its own wall, after the titles watched on stream */
+  .wf-seen__offwall {
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .wf-seen__offwall .wf-h2 {
+    margin: 0;
+  }
   /* search by name (2026-11-03): a light field inside a raised purple pill, magnifier on the right */
   .wf-seen__search {
     display: flex;
@@ -1443,10 +1460,6 @@ html:has(.wf-overlay) .skip-link {
     .wf-seen__filter {
       gap: 2px;
       padding: 3px;
-      /* five kinds since Animes (2026-11-09): scroll inside the control, never the page */
-      max-width: 100%;
-      overflow-x: auto;
-      scrollbar-width: none;
     }
     .wf-seen__filter a {
       padding: 0 9px;

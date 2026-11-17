@@ -762,7 +762,7 @@ A daily bingo about things that happen in the live chat and on stream. Signed-in
 
 Titles Iara watched by herself (the "Já assistiu fora da live?" button in the item editor, §42) used to be mixed with the ones watched on stream. Now they come last.
 
-- **Order.** `/assistidos` lists the titles watched on stream first, newest first. The off-stream ones follow under their own heading, "Vistos fora da live", newest first. This also applies inside each kind filter and to search results. `watchedTitles` sorts by `offStream` and then `watchedAt`.
+- **Order.** `/assistidos` is still one poster wall. All the titles watched on stream come first, newest first, then the off-stream ones (tagged "Fora da live"), newest first. This also applies inside each kind filter and to search results. `watchedTitles` sorts by `offStream` and then `watchedAt`. (#112 first put them in a separate section; on 2026-11-17 Iara asked for one wall.)
 - **Filter.** A sixth choice, "Vistos fora da live" (`?tipo=fora-da-live`), shows only the off-stream titles, of every kind.
 - **Phones.** On narrow screens (≤ 720 px) the six choices wrap onto more lines inside the control instead of scrolling.
 - **Counts.** The headline count and hours still count only what was watched on stream.

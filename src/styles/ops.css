@@ -1347,15 +1347,7 @@ html:has(.wf-overlay) .skip-link {
       border-radius: 20px;
     }
   }
-  /* "Vistos fora da live" (2026-11-17): its own wall, after the titles watched on stream */
-  .wf-seen__offwall {
-    display: grid;
-    gap: 10px;
-    margin-top: 12px;
-  }
-  .wf-seen__offwall .wf-h2 {
-    margin: 0;
-  }
+
   /* search by name (2026-11-03): a light field inside a raised purple pill, magnifier on the right */
   .wf-seen__search {
     display: flex;

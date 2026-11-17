@@ -392,7 +392,7 @@ Fix (PR "fix-prefetch-burst"): no prefetch on the header tabs, the phone bar, th
 
 - Integration (`community.test.ts`): off-stream titles come after the live ones (each group newest first); the off-stream filter and the live-only query.
 - e2e (`community.spec.ts`, desktop and phone):
-  - the off-stream title is in the "Vistos fora da live" section after the live wall, and not in the live wall;
+  - one wall: it starts with live titles, every off-stream title comes after the last live one, and ours is on it;
   - the filter shows only off-stream titles and is marked as current;
   - no sideways scroll at 360 px.
 - The existing Assistidos tests in `community.spec.ts` and `showcase.spec.ts` stay green.

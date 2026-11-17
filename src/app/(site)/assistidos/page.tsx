@@ -51,8 +51,8 @@ function hrefFor(tipo: string | null, q: string): string {
  * Poster wall of fame (2026-11-11): the titles are a dense grid of posters, inside the page column,
  * under a "N títulos · X h juntos na live" headline; the title, kind and date show over the poster
  * on hover or keyboard focus (on touch screens the title is always on it).
- * Fora da live (2026-11-17): titles Iara watched off stream come after the ones watched on stream,
- * under their own heading, and have their own filter, "Vistos fora da live".
+ * Fora da live (2026-11-17): titles Iara watched off stream are on the same wall, after all the
+ * ones watched on stream (tagged "Fora da live"), and have their own filter, "Vistos fora da live".
  */
 export default async function AssistidosPage({ searchParams }: Props) {
   const params = await searchParams;
@@ -63,9 +63,6 @@ export default async function AssistidosPage({ searchParams }: Props) {
     watchedTitles(filter.kind, searching ? q : null, undefined, undefined, filter.off),
     watchProgress(),
   ]);
-  // the query returns the live ones first; the off-stream ones get their own wall below
-  const live = filter.off ? [] : items.filter((it) => !it.offStream);
-  const off = filter.off ? items : items.filter((it) => it.offStream);
   return (
     <div className="wf-page wf-seen">
       <h1 className="wf-h1">Assistidos</h1>
@@ -82,9 +79,8 @@ export default async function AssistidosPage({ searchParams }: Props) {
         </span>
       </p>
       <p className="wf-seen__intro">
-        A nossa parede da fama: tudo o que já passou na live. O que a Iara viu por conta própria
-        fica no fim, em “Vistos fora da live”. Abra um pôster para ler as avaliações ou deixar a
-        sua.
+        A nossa parede da fama: tudo o que já passou na live. Depois vem o que a Iara viu por conta
+        própria, marcado “fora da live”. Abra um pôster para ler as avaliações ou deixar a sua.
       </p>
       <form className="wf-seen__search" role="search" action="/assistidos" method="get">
         {filter.tipo ? <input type="hidden" name="tipo" value={filter.tipo} /> : null}
@@ -156,19 +152,15 @@ export default async function AssistidosPage({ searchParams }: Props) {
           )}
         </p>
       )}
-      {live.length ? (
-        <PosterWall items={live} label="Parede de pôsteres dos títulos assistidos" />
-      ) : null}
-      {off.length ? (
-        <section className="wf-seen__offwall" aria-labelledby="vistos-fora">
-          <h2 id="vistos-fora" className={filter.off ? 'sr-only' : 'wf-h2'}>
-            Vistos fora da live
-          </h2>
-          {filter.off ? null : (
-            <p className="wf-seen__intro">O que a Iara assistiu por conta própria, fora da live.</p>
-          )}
-          <PosterWall items={off} label="Pôsteres dos títulos vistos fora da live" />
-        </section>
+      {items.length ? (
+        <PosterWall
+          items={items}
+          label={
+            filter.off
+              ? 'Pôsteres dos títulos vistos fora da live'
+              : 'Parede de pôsteres dos títulos assistidos'
+          }
+        />
       ) : null}
     </div>
   );

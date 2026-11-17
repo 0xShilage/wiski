@@ -409,7 +409,7 @@ test('assistidos: search by name, accents and case ignored, kind filter kept', a
   await expect(cards.first()).toBeVisible();
 });
 
-test('assistidos: "Vistos fora da live" after the live ones, and their own filter', async ({
+test('assistidos: "Vistos fora da live" on the same wall after the live ones, and their own filter', async ({
   page,
 }, info) => {
   // a copy of a watched movie, marked as watched by Iara off stream (archived, so it doesn't
@@ -429,19 +429,16 @@ test('assistidos: "Vistos fora da live" after the live ones, and their own filte
   );
   try {
     await page.goto('/assistidos');
-    const offWall = page.getByRole('region', { name: 'Vistos fora da live' });
-    await expect(offWall.getByText(title)).toHaveCount(1);
-    // the live wall comes first and doesn't have it
-    const liveWall = page.getByRole('list', { name: 'Parede de pôsteres dos títulos assistidos' });
-    await expect(liveWall.locator('.wf-seen__card').first()).toBeVisible();
-    await expect(liveWall.getByText(title)).toHaveCount(0);
-    expect(
-      await page.evaluate(() => {
-        const live = document.querySelector('.wf-fame')!;
-        const off = document.querySelector('.wf-seen__offwall')!;
-        return !!(live.compareDocumentPosition(off) & Node.DOCUMENT_POSITION_FOLLOWING);
-      }),
-    ).toBe(true);
+    // one wall: the live ones first, then the off-stream ones (tagged), ours among them
+    const wall = page.getByRole('list', { name: 'Parede de pôsteres dos títulos assistidos' });
+    const tags = await wall
+      .locator('.wf-seen__card')
+      .evaluateAll((cards) => cards.map((c) => !!c.querySelector('.wf-seen__off')));
+    expect(tags.length).toBeGreaterThan(1);
+    expect(tags[0]).toBe(false);
+    expect(tags.indexOf(true)).toBeGreaterThan(0);
+    expect(tags.slice(tags.indexOf(true)).every(Boolean)).toBe(true); // no live one after
+    await expect(wall.locator('.wf-seen__card', { hasText: title })).toHaveCount(1);
 
     const filter = page.getByRole('navigation', { name: 'Filtrar por tipo' });
     await filter.getByRole('link', { name: 'Vistos fora da live' }).click();

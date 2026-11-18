@@ -60,7 +60,9 @@ export async function ReviewsSection({ item }: { item: PublicItem }) {
             </div>
           ) : can === 'SIGNED_OUT' ? (
             <div className="wf-panel">
-              <h3 className="wf-reviews__h3">Assistiu com a gente?</h3>
+              <h3 className="wf-reviews__h3">
+                {item.offStream ? 'Já assistiu?' : 'Assistiu com a gente?'}
+              </h3>
               <p className="wf-muted">Entre com o Google para dar sua nota e contar o que achou.</p>
               <Link href={loginHref} className="wf-btn wf-btn--neon">
                 Entrar para avaliar

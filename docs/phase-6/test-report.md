@@ -396,3 +396,12 @@ Fix (PR "fix-prefetch-burst"): no prefetch on the header tabs, the phone bar, th
   - the filter shows only off-stream titles and is marked as current;
   - no sideways scroll at 360 px.
 - The existing Assistidos tests in `community.spec.ts` and `showcase.spec.ts` stay green.
+
+## Addendum — reviews on off-stream titles (2026-11-17)
+
+- Integration (`reviews.test.ts`): a review can be posted on, and read from, a title watched off stream with no `WatchEvent`. An archived title that was never watched stays closed (404).
+- Full integration suite green: 1587 tests.
+
+## Addendum — audit allowlist (2026-11-17)
+
+`npm run audit:all` was checked both ways. With the picomatch entry it passes: the advisory is reported as "allowed until 2026-12-01", and a moderate minimatch advisory is listed below the gate. With the entry's date moved into the past it fails ("FAIL: high picomatch …", exit code 1). `npm audit --omit=dev` reports 0 vulnerabilities.

@@ -129,10 +129,17 @@ async function page(
   };
 }
 
-/** Items whose reviews are public: watched on stream (WATCHED, or ARCHIVED after watching). */
+/**
+ * Items whose reviews are public: watched (WATCHED, or ARCHIVED after watching) on stream, or —
+ * since 2026-11-17 — watched by Iara off stream ("fora da live", which has no WatchEvent).
+ */
 export async function reviewableItem(itemId: string) {
   const item = await db().catalogItem.findFirst({
-    where: { id: itemId, status: { in: ['WATCHED', 'ARCHIVED'] }, watchEvents: { some: {} } },
+    where: {
+      id: itemId,
+      status: { in: ['WATCHED', 'ARCHIVED'] },
+      OR: [{ watchEvents: { some: {} } }, { offStream: true }],
+    },
     select: { id: true, kind: true, slug: true, title: true },
   });
   return item;

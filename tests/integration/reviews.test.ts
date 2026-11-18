@@ -87,6 +87,22 @@ describe('writing a review', () => {
     });
   });
 
+  it('works on a title Iara watched off stream ("fora da live", no WatchEvent) too (2026-11-17)', async () => {
+    const off = await makeItem({ kind: 'MOVIE', status: 'ARCHIVED' });
+    await db().catalogItem.update({
+      where: { id: off.id },
+      data: { offStream: true, watchedAt: new Date(Date.now() - 60_000) },
+    });
+    const { res } = await postReview(await actor(), off.id);
+    expect(res.status).toBe(201);
+    const list = await listReviews(null, off.id);
+    expect(list.res.status).toBe(200);
+    expect((list.json.reviews as Rev[]).length).toBe(1);
+    // an archived title never watched (no WatchEvent, not off stream) stays closed
+    const never = await makeItem({ kind: 'MOVIE', status: 'ARCHIVED' });
+    expect((await postReview(await actor(), never.id)).res.status).toBe(404);
+  });
+
   it('needs a login, a watched title, a username and an active account', async () => {
     const item = await watchedItem();
     expect((await postReview(null, item.id)).res.status).toBe(401);

@@ -396,3 +396,8 @@ Fix (PR "fix-prefetch-burst"): no prefetch on the header tabs, the phone bar, th
   - the filter shows only off-stream titles and is marked as current;
   - no sideways scroll at 360 px.
 - The existing Assistidos tests in `community.spec.ts` and `showcase.spec.ts` stay green.
+
+## Addendum — reviews on off-stream titles (2026-11-17)
+
+- Integration (`reviews.test.ts`): a review can be posted on, and read from, a title watched off stream with no `WatchEvent`. An archived title that was never watched stays closed (404).
+- Full integration suite green: 1587 tests.

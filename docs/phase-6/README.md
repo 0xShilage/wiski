@@ -766,3 +766,7 @@ Titles Iara watched by herself (the "Já assistiu fora da live?" button in the i
 - **Filter.** A sixth choice, "Vistos fora da live" (`?tipo=fora-da-live`), shows only the off-stream titles, of every kind.
 - **Phones.** On narrow screens (≤ 720 px) the six choices wrap onto more lines inside the control instead of scrolling.
 - **Counts.** The headline count and hours still count only what was watched on stream.
+
+## 55. Reviews on titles watched off stream (2026-11-17)
+
+Titles Iara registered as watched off stream ("Já assistiu fora da live?", §42) have no `WatchEvent`, so their reviews were closed. They now open like any watched title: viewers can rate and review them on the title page, and their reviews show everywhere reviews do. `reviewableItem` (`src/server/reviews/read.ts`) accepts a watched title (WATCHED or ARCHIVED) that either has a `WatchEvent` or is `offStream`. A title never watched stays closed. The sign-in prompt on these pages says "Já assistiu?" instead of "Assistiu com a gente?".

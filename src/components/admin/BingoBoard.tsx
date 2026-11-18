@@ -20,15 +20,35 @@ export function BingoBoard({ initial }: { initial: StaffBingo }) {
   const [texts, setTexts] = useState(() => initial.items.map((i) => i.text));
   const [saving, setSaving] = useState(false);
 
-  // other moderators call items too: keep the board fresh while it is open
+  // other moderators call items too: the board follows the live stream (2026-11-18), with a slow
+  // poll in case it drops
   useEffect(() => {
-    const t = setInterval(() => {
-      if (document.visibilityState !== 'visible') return;
+    const reread = () =>
       void adminFetch<StaffBingo>('/api/v1/admin/bingo').then((r) => {
         if (r.ok) setPage(r.data);
       });
-    }, 20_000);
-    return () => clearInterval(t);
+    let soon: ReturnType<typeof setTimeout> | undefined;
+    let first = true;
+    const source =
+      typeof EventSource === 'undefined' ? null : new EventSource('/api/v1/bingo/events');
+    if (source) {
+      source.onmessage = () => {
+        if (first) {
+          first = false;
+          return;
+        }
+        clearTimeout(soon);
+        soon = setTimeout(reread, 300);
+      };
+    }
+    const t = setInterval(() => {
+      if (document.visibilityState === 'visible') reread();
+    }, 60_000);
+    return () => {
+      clearInterval(t);
+      clearTimeout(soon);
+      source?.close();
+    };
   }, []);
 
   const called = new Map(page.calls.map((c) => [c.position, c]));

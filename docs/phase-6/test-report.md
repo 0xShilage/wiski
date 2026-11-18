@@ -405,3 +405,16 @@ Fix (PR "fix-prefetch-burst"): no prefetch on the header tabs, the phone bar, th
 ## Addendum — audit allowlist (2026-11-17)
 
 `npm run audit:all` was checked both ways. With the picomatch entry it passes: the advisory is reported as "allowed until 2026-12-01", and a moderate minimatch advisory is listed below the gate. With the entry's date moved into the past it fails ("FAIL: high picomatch …", exit code 1). `npm audit --omit=dev` reports 0 vulnerabilities.
+
+## Addendum — Ações, off-stream published movies, live Bingo (2026-11-18)
+
+- Integration:
+  - `community.test.ts`: a published movie goes to Assistidos (slot freed), but not with a date before it was published. `offStreamBlock` is checked case by case: Pix pending, an open order, an expired reservation, a published series, a sponsored movie, a draft series. The route explains a refusal. A published series is refused.
+  - `bingo.test.ts`: every call publishes `{type, day, called, winners, at}` and nothing else.
+  - The authz matrix has the new SSE route.
+  - Full suite green: 1595 tests.
+- e2e:
+  - `publishing.spec.ts`: Agendar publicação through the Ações panel, still open after cancelling. A published movie is registered off stream from Ações and shows up under "Vistos fora da live". A sponsored movie shows the reason instead of the form.
+  - `dashboard.spec.ts`: "Abrir campanha" opens from Ações.
+  - `bingo.spec.ts`: the viewer's page shows the bingo within 8 s of the moderator's call. The poll is 60 s, so only the live stream can do that.
+  - `a11y-layout` and `csp` pass for the admin and Bingo pages.

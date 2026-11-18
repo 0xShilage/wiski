@@ -45,12 +45,29 @@ export const campaignEventSchema = z
   })
   .strict();
 
+/**
+ * Bingo (2026-11-18): something changed today (an item called or taken back, a bingo, the item
+ * texts). Pages re-read /api/v1/bingo, which knows the viewer's own card; the event itself only
+ * carries public counts.
+ */
+export const bingoEventSchema = z
+  .object({
+    type: z.literal('bingo'),
+    day: z.iso.date(),
+    called: z.int().min(0).max(18),
+    winners: z.int().nonnegative(),
+    at: z.iso.datetime(),
+  })
+  .strict();
+
 export type OrderEvent = z.infer<typeof orderEventSchema>;
+export type BingoEvent = z.infer<typeof bingoEventSchema>;
 export type CampaignEvent = z.infer<typeof campaignEventSchema>;
 
 export const channel = {
   order: (orderId: string) => `wf:order:${orderId}`,
   campaign: (campaignId: string) => `wf:campaign:${campaignId}`,
+  bingo: 'wf:bingo',
 };
 
 /** Best effort: a lost event only delays the page until its next poll. */
@@ -59,6 +76,10 @@ export async function publishOrder(orderId: string, event: OrderEvent): Promise<
 }
 export async function publishCampaign(campaignId: string, event: CampaignEvent): Promise<void> {
   await publish(channel.campaign(campaignId), campaignEventSchema.parse(event));
+}
+
+export async function publishBingo(event: BingoEvent): Promise<void> {
+  await publish(channel.bingo, bingoEventSchema.parse(event));
 }
 
 async function publish(name: string, payload: unknown): Promise<void> {

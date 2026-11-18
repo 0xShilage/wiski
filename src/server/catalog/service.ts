@@ -11,6 +11,7 @@ import { HttpError, type ProblemField, Problems } from '../http/problem';
 import { completeInTx, uncompleteInTx } from '../live/schedule';
 import { refreshOverlays } from '../overlay/state';
 import { publishOrder } from '../realtime/events';
+import { ORDER_DONE, offStreamBlock, openOrderCount } from './offstream';
 import type { ItemFieldsInput } from './input';
 import { type CatalogSnapshot, changedFields, snapshotOf, snapshotSchema } from './snapshot';
 
@@ -594,9 +595,11 @@ export async function markWatched(ctx: Ctx, id: string, now = new Date()) {
 }
 
 /**
- * "Registrar como assistido (fora da live)" (2026-11-10): a DRAFT title Iara watched by herself,
- * off stream, goes straight to Assistidos — no slot, no order, no sponsor. `offStream` keeps it
- * out of the live progress counts and tags it on the page. The watched date may be in the past.
+ * "Já assistiu fora da live?" (2026-11-10): a title Iara watched by herself goes straight to
+ * Assistidos, tagged "fora da live", with no slot, sponsor or WatchEvent. Since 2026-11-18 a
+ * published movie can too, while nobody is paying for it (`offStreamBlock`): it leaves its slot.
+ * The update is a compare-and-set on the version, the status and a free reservation, the same
+ * row checkout's hold updates, so a Pix started at the same moment either wins or fails cleanly.
  */
 export async function registerWatchedOffStream(
   ctx: Ctx,
@@ -607,31 +610,57 @@ export async function registerWatchedOffStream(
 ) {
   const item = await db().catalogItem.findUnique({
     where: { id },
-    select: { kind: true, status: true, version: true, publishedAt: true },
+    select: { kind: true, status: true, version: true, publishedAt: true, reservedUntil: true },
   });
   if (!item) throw Problems.notFound();
-  if (item.status !== 'DRAFT') {
-    throw CatalogProblems.invalidState(
-      'Só um rascunho pode ser registrado como assistido fora da live.',
-    );
-  }
+  const blocked = offStreamBlock(item, await openOrderCount(id), now);
+  if (blocked) throw CatalogProblems.invalidState(blocked);
   const at = watchedOn ?? now;
   if (at.getTime() > now.getTime() + 60_000) {
     throw CatalogProblems.invalidState('A data em que assistiu não pode ser no futuro.');
   }
-  return tx(item.kind, async (t) => {
+  const published = item.status === 'ACTIVE';
+  if (published && item.publishedAt && at < item.publishedAt) {
+    // the lifecycle-times check: watched no earlier than published
+    throw CatalogProblems.invalidState(
+      'Este filme entrou no site depois dessa data: escolha um dia a partir da publicação.',
+    );
+  }
+  const change = tx(item.kind, async (t) => {
+    if (
+      published &&
+      (await t.order.count({ where: { itemId: id, status: { notIn: [...ORDER_DONE] } } }))
+    ) {
+      throw CatalogProblems.invalidState('Já tem um pedido de patrocínio.');
+    }
     const res = await t.catalogItem.updateMany({
-      where: { id, version: expectedVersion, status: 'DRAFT' },
-      // the slot guard trigger clears any planned slot on the way to WATCHED; a never-published
-      // draft needs a publishedAt for the lifecycle-times check
+      where: published
+        ? {
+            id,
+            version: expectedVersion,
+            status: 'ACTIVE',
+            kind: 'MOVIE',
+            OR: [{ reservedUntil: null }, { reservedUntil: { lte: now } }],
+          }
+        : { id, version: expectedVersion, status: 'DRAFT' },
+      // the slot guard trigger frees the slot (or a draft's planned one) on the way to WATCHED; a
+      // never-published draft needs a publishedAt for the lifecycle-times check
       data: {
         status: 'WATCHED',
         watchedAt: at,
         offStream: true,
         publishedAt: item.publishedAt ?? at,
+        reservedUntil: null,
+        reservedOrderId: null,
       },
     });
-    if (res.count !== 1) throw CatalogProblems.versionConflict(item.version);
+    if (res.count !== 1) {
+      const now2 = await t.catalogItem.findUnique({ where: { id }, select: { version: true } });
+      if (now2 && now2.version === expectedVersion) {
+        throw CatalogProblems.invalidState('Alguém começou um patrocínio agora. Tente de novo.');
+      }
+      throw CatalogProblems.versionConflict(now2?.version ?? item.version);
+    }
     await audit(
       {
         action: 'catalog.watched',
@@ -645,6 +674,8 @@ export async function registerWatchedOffStream(
     );
     return t.catalogItem.findUniqueOrThrow({ where: { id } });
   });
+  // a published movie leaving the catalog moves "Meta total"
+  return published ? refreshTotalAfter(change) : change;
 }
 
 /**

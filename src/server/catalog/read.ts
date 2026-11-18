@@ -10,6 +10,7 @@ import { ensurePalette } from '../media/palette';
 import { matchesSearch, searchTerms } from '@/lib/search';
 import { db } from '../db';
 import { campaignState, formulaGoal } from './campaigns';
+import { offStreamBlock, openOrderCount } from './offstream';
 import { missingForPublish } from './service';
 import type { TrailPart } from '@/lib/trail';
 
@@ -317,6 +318,7 @@ export async function getAdmin(id: string, now = new Date()) {
   });
   if (!row) return null;
   const entries = row.franchiseEntries.length;
+  const openOrders = row.status === 'ACTIVE' && row.kind === 'MOVIE' ? await openOrderCount(id) : 0;
   return {
     id: row.id,
     kind: row.kind,
@@ -330,6 +332,8 @@ export async function getAdmin(id: string, now = new Date()) {
     /** "Agendar publicação" (2026-11-15): when it goes live on its own, and why the last try didn't */
     publishAt: row.publishAt?.toISOString() ?? null,
     publishError: row.publishError,
+    /** "Já assistiu fora da live?": null when it can go straight to Assistidos, else why not */
+    offStreamBlock: offStreamBlock(row, openOrders, now),
     fields: {
       title: row.title,
       originalTitle: row.originalTitle,

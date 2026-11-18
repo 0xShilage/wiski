@@ -81,8 +81,8 @@ test('a viewer takes a card, the team marks a line, the viewer has a bingo', asy
   await expect(modPage.locator('.wf-toast--err')).toContainText('não pode ser desmarcado');
   await modPage.close();
 
-  // the viewer's page asks again by itself (every 15 s while visible)
-  await expect(page.getByText(/BINGO! Você é o 1º lugar de hoje/)).toBeVisible({ timeout: 25_000 });
+  // the viewer's page hears it at once (the live stream, 2026-11-18; the poll is every 60 s)
+  await expect(page.getByText(/BINGO! Você é o 1º lugar de hoje/)).toBeVisible({ timeout: 8_000 });
   await expect(card).toHaveClass(/is-won/);
   await expect(card.locator('.wf-bingo__cell.is-line')).toHaveCount(3);
   await expect(card.locator('.wf-bingo__cell.is-called')).toHaveCount(3);

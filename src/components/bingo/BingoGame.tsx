@@ -10,12 +10,13 @@ import { bingoResetText, lineCells, placeText, type MyBingo } from '@/lib/bingo'
 export type BingoViewer = 'guest' | 'onboarding' | 'suspended' | 'ready';
 
 /** how often the page asks what was called while it is open (only while the tab is visible) */
-const POLL_MS = 15_000;
+const POLL_MS = 60_000;
 
 /**
  * /bingo (2026-11-16): the viewer's 3×3 card, stamped as the team calls items; the completed line
- * glows. Today's calls and winners below. The page asks the server every 15 s while visible; the
- * card itself is drawn by the server.
+ * glows. Today's calls and winners below. While the tab is visible the page listens to
+ * /api/v1/bingo/events (2026-11-18) and re-reads the day the moment the team calls an item; a
+ * slow poll (every 60 s) covers a dropped stream. The card itself is drawn by the server.
  */
 export function BingoGame({
   initial,
@@ -56,16 +57,45 @@ export function BingoGame({
 
   useEffect(() => {
     if (viewer !== 'ready') return;
+    let source: EventSource | null = null;
+    let soon: ReturnType<typeof setTimeout> | undefined;
+    let first = true;
+    const open = () => {
+      if (source || typeof EventSource === 'undefined') return;
+      first = true;
+      source = new EventSource('/api/v1/bingo/events');
+      source.onmessage = () => {
+        // the first message is the state when the stream opened: the page already has it,
+        // unless the tab was hidden for a while (then re-read once)
+        if (first) {
+          first = false;
+          return;
+        }
+        // a call can bring a few events together (the call, then the bingo): read once
+        clearTimeout(soon);
+        soon = setTimeout(() => void refresh(), 300);
+      };
+    };
+    const close = () => {
+      source?.close();
+      source = null;
+    };
     const t = setInterval(() => {
       if (document.visibilityState === 'visible') void refresh();
     }, POLL_MS);
-    const onShow = () => {
-      if (document.visibilityState === 'visible') void refresh();
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void refresh();
+        open();
+      } else close();
     };
-    document.addEventListener('visibilitychange', onShow);
+    if (document.visibilityState === 'visible') open();
+    document.addEventListener('visibilitychange', onVisibility);
     return () => {
       clearInterval(t);
-      document.removeEventListener('visibilitychange', onShow);
+      clearTimeout(soon);
+      close();
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [viewer, refresh]);
 

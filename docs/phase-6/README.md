@@ -779,3 +779,21 @@ On 2026-11-17 a new "high" advisory for `picomatch` (GHSA-fc5q-39xc-vjpf, ReDoS 
 - **The allowlist.** Each entry names one advisory id and its package, says why, and has an `expires` date. After that date the advisory counts again and CI fails until it is fixed or renewed on purpose.
 - **First entry.** GHSA-fc5q-39xc-vjpf (picomatch), until 2026-12-01. Remove it once Dependabot brings a fixed `picomatch`.
 - **Production.** The production audit is unchanged: what ships in the image must have no advisory at all.
+
+## 57. Editor "Ações", off-stream for published movies, live Bingo (2026-11-18)
+
+- **Ações panel.** The movie/series editor in Admin › Catálogo now opens with an **Ações** panel above the fields. It starts with the title's state in one line ("Rascunho: ainda não está no site", "No ar · vaga 05", "Patrocinado: na fila da live"…), then lists only the actions that apply:
+  - Marcar/Desmarcar assistido and "Já pago", as buttons;
+  - Agendar publicação, Abrir campanha, Substituir ou liberar a vaga and "Já assistiu fora da live?", each opening in place (native `<details>`);
+  - the campaign line with Prorrogar prazo / Baixar meta;
+  - Excluir rascunho.
+
+  When an action doesn't apply, its row says why instead of disappearing (e.g. "Já foi patrocinado: marque como assistido quando passar na live."). An unsaved new title shows a line saying the actions appear once it's saved. Messages from these actions show inside the panel; messages from saving still show under the form. The sections that used to sit below the form are gone.
+- **Off stream, published movies.** "Já assistiu fora da live?" also works on a published movie that nobody is paying for. It leaves its slot and goes straight to Assistidos, tagged "fora da live".
+  - The rule is `offStreamBlock` in `src/server/catalog/offstream.ts`, shared by the editor (`getAdmin().offStreamBlock`) and the action. A draft is always allowed. A published movie is allowed when there is no Pix pending and no order other than expired, cancelled or refunded ones. Published series, franchises and animes (they have a campaign) and anything sponsored, funded, watched or archived are refused with a reason.
+  - The update is a compare-and-set on version, status and a free reservation (the same row checkout's hold updates), so a Pix started at the same moment either wins or makes this fail cleanly.
+  - The date can't be before the movie went on the site. "Meta total" refreshes.
+- **Bingo updates live.** Every call, bingo or item-text change publishes a small public event on Redis (`wf:bingo`: day, items called, winners). `GET /api/v1/bingo/events` (SSE, public, ≤ 5 streams per IP shared with the other public streams) passes it on.
+  - `/bingo` listens while the tab is visible and re-reads `/api/v1/bingo` at once (the viewer's own card stays behind that user-only endpoint). It closes the stream when the tab is hidden.
+  - Admin › Bingo listens too.
+  - The poll stays as a fallback, now every 60 s.

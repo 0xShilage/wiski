@@ -405,6 +405,89 @@
     gap: 8px;
     align-items: center;
   }
+  /* Ações (2026-11-18): the title's actions at the top of the editor, each opening in place */
+  .wf-acts {
+    margin: 16px 0 22px;
+    padding: 14px;
+    border-radius: 14px;
+    background: rgb(36 26 51 / 0.7);
+    border: 1px solid rgb(169 157 224 / 0.3);
+    display: grid;
+    gap: 12px;
+  }
+  .wf-acts__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 12px;
+  }
+  .wf-acts__head h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .wf-acts .wf-toast {
+    margin: 0;
+  }
+  .wf-acts__list {
+    display: grid;
+    gap: 6px;
+  }
+  .wf-act {
+    border-radius: 10px;
+    border: 1px solid rgb(79 61 114 / 0.9);
+    background: rgb(26 18 38 / 0.6);
+  }
+  .wf-act > summary,
+  .wf-act--static {
+    display: grid;
+    gap: 2px;
+    padding: 10px 12px;
+  }
+  .wf-act > summary {
+    cursor: pointer;
+    list-style: none;
+    position: relative;
+    padding-right: 34px;
+  }
+  .wf-act > summary::-webkit-details-marker {
+    display: none;
+  }
+  .wf-act > summary::after {
+    content: '';
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid var(--color-lavender);
+    border-bottom: 2px solid var(--color-lavender);
+    /* closed: pointing right; open: pointing down */
+    transform: translateY(-50%) rotate(-45deg);
+    transition: transform 0.15s ease;
+  }
+  .wf-act[open] > summary::after {
+    transform: translateY(-70%) rotate(45deg);
+  }
+  .wf-act > summary:focus-visible {
+    outline: 2px solid var(--color-lavender);
+    outline-offset: 2px;
+    border-radius: 10px;
+  }
+  .wf-act__title {
+    font-weight: 600;
+  }
+  .wf-act__hint {
+    font-size: 13px;
+    color: var(--fg-70);
+  }
+  .wf-act__body {
+    padding: 0 12px 12px;
+  }
+  .wf-act--static .wf-act__title {
+    color: var(--fg-78);
+  }
+
   .wf-history {
     margin-top: 28px;
     border-top: 1px solid rgb(79 61 114 / 0.8);

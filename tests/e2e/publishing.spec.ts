@@ -5,7 +5,9 @@
  *    Wikipedia summary beside the synopsis as a reference;
  *  - "Adicionar vários" turns a list into drafts and says how each line went;
  *  - "Criar rascunho" on a viewer suggestion opens a filled draft;
- *  - "Agendar publicação" on a complete draft, then cancelled.
+ *  - "Agendar publicação" on a complete draft, then cancelled;
+ *  - Ações (2026-11-18): "Já assistiu fora da live?" on a published movie nobody is paying for
+ *    takes it off its slot into Assistidos; on a sponsored one the panel says why it can't.
  * Screenshots go to test-results/publishing.
  */
 import { mkdirSync } from 'node:fs';
@@ -199,6 +201,10 @@ test('Agendar publicação on a complete draft, then cancel it', async ({ page }
     return r.rows[0]!.id;
   });
   await page.goto(`/admin/catalogo?tipo=filmes&item=${id}`);
+  // in the editor's Ações panel (2026-11-18), it opens in place
+  const acts = page.getByRole('region', { name: 'Ações' });
+  await expect(acts).toContainText('Rascunho: ainda não está no site');
+  await acts.locator('summary', { hasText: 'Agendar publicação' }).click();
   const sched = page.getByRole('region', { name: 'Agendar publicação' });
   const at = new Date(Date.now() + 2 * 86_400_000 - 3 * 3_600_000);
   const local = `${at.toISOString().slice(0, 10)}T20:30`;
@@ -220,4 +226,79 @@ test('Agendar publicação on a complete draft, then cancel it', async ({ page }
   ).toBeVisible();
   await expect(sched.getByLabel('Dia e hora (Brasília)')).toBeVisible();
   expect(violations).toEqual([]);
+});
+
+test('Ações: a published movie goes to Assistidos as watched off stream; a sponsored one says why not', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'desktop-1280', 'the dashboard is a desktop tool');
+  const violations = cspWatch(page);
+  await asModerator(page);
+  // a copy of a seeded movie, published in a free slot, nobody paying for it
+  const title = `Fora da vaga ${Date.now().toString(36)}`;
+  const id = await withDb(async (c) => {
+    const free = await c.query<{ n: number }>(
+      `SELECT n FROM generate_series(1, 50) n WHERE n NOT IN
+         (SELECT slot FROM "CatalogItem" WHERE kind = 'MOVIE' AND slot IS NOT NULL) ORDER BY n DESC LIMIT 1`,
+    );
+    const r = await c.query<{ id: string }>(
+      `INSERT INTO "CatalogItem"
+       SELECT (jsonb_populate_record(NULL::"CatalogItem", to_jsonb(i) || jsonb_build_object(
+         'id', gen_random_uuid(), 'slug', $1::text, 'title', $2::text, 'slot', $3::int,
+         'status', 'ACTIVE', 'publishedAt', now() - interval '3 days', 'version', 1,
+         'reservedUntil', NULL, 'reservedOrderId', NULL, 'wikidataId', NULL, 'offStream', false,
+         'watchedAt', NULL, 'publishAt', NULL))).*
+       FROM "CatalogItem" i WHERE i.status = 'ACTIVE' AND i.kind = 'MOVIE' LIMIT 1
+       RETURNING id`,
+      [title.toLowerCase().replace(/[^a-z0-9]+/g, '-'), title, free.rows[0]!.n],
+    );
+    return r.rows[0]!.id;
+  });
+  try {
+    await page.goto(`/admin/catalogo?tipo=filmes&item=${id}`);
+    const acts = page.getByRole('region', { name: 'Ações' });
+    await expect(acts).toContainText('No ar · vaga');
+    await acts.locator('summary', { hasText: 'Já assistiu fora da live?' }).click();
+    const fora = page.getByRole('region', { name: 'Já assistiu fora da live?' });
+    await expect(fora).toContainText('Tira o filme da vaga');
+    await page.screenshot({ path: `${SHOTS}/acoes-no-ar.png` });
+    await fora.getByRole('button', { name: 'Registrar como assistido' }).click();
+    await expect(
+      acts.getByRole('status').filter({ hasText: 'Registrado em Assistidos (fora da live).' }),
+    ).toBeVisible();
+    const row = await withDb((c) =>
+      c.query<{ status: string; slot: number | null; offStream: boolean }>(
+        `SELECT status, slot, "offStream" FROM "CatalogItem" WHERE id = $1`,
+        [id],
+      ),
+    );
+    expect(row.rows[0]).toEqual({ status: 'WATCHED', slot: null, offStream: true });
+    await page.goto('/assistidos?tipo=fora-da-live');
+    await expect(page.locator('.wf-seen__card', { hasText: title })).toHaveCount(1);
+
+    // a sponsored movie: the row is there, with the reason instead of the form
+    const sponsored = await withDb((c) =>
+      c.query<{ id: string }>(
+        `SELECT id FROM "CatalogItem" WHERE status = 'SPONSORED' AND kind = 'MOVIE' LIMIT 1`,
+      ),
+    );
+    if (sponsored.rows[0]) {
+      await page.goto(`/admin/catalogo?tipo=filmes&item=${sponsored.rows[0].id}`);
+      const a2 = page.getByRole('region', { name: 'Ações' });
+      await expect(a2).toContainText('Já assistiu fora da live?');
+      await expect(a2).toContainText(
+        'Já foi patrocinado: marque como assistido quando passar na live.',
+      );
+      await expect(a2.locator('summary', { hasText: 'Já assistiu fora da live?' })).toHaveCount(0);
+      await page.screenshot({ path: `${SHOTS}/acoes-patrocinado.png` });
+    }
+    expect(violations).toEqual([]);
+  } finally {
+    // out of later specs' way (archived, like any title taken off the site)
+    await withDb((c) =>
+      c.query(`UPDATE "CatalogItem" SET status = 'ARCHIVED', "archivedAt" = now() WHERE id = $1`, [
+        id,
+      ]),
+    );
+  }
 });

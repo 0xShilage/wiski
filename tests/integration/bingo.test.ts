@@ -15,6 +15,7 @@ import { db } from '@/server/db';
 import { PG, pgErrorCode } from '@/server/db-errors';
 import { resetEnvCache } from '@/server/env';
 import { overlayChannel } from '@/server/overlay/publish';
+import { channel } from '@/server/realtime/events';
 import { redis } from '@/server/redis';
 import { eraseMyAccount, exportMyData } from '@/server/users/lgpd';
 import { makeUser } from '../support/db';
@@ -224,6 +225,29 @@ describe('calling items', () => {
     expect(got).toHaveLength(3);
     expect(chat()).toHaveLength(4);
     expect(chat().at(-1)).toBe('E mais 2 pessoas também fizeram bingo agora! 🎉');
+  });
+});
+
+describe('live updates (2026-11-18)', () => {
+  it('each call publishes a small public event; open pages re-read the day', async () => {
+    const now = freshDay();
+    const s = await staff();
+    const sub = redis().duplicate();
+    const got: Record<string, unknown>[] = [];
+    await sub.subscribe(channel.bingo);
+    sub.on('message', (_c, m) => got.push(JSON.parse(m) as Record<string, unknown>));
+    await cardFor([1, 2, 3, 4, 5, 6, 7, 8, 9], now);
+    await callItem(s, 1, true, now);
+    await callItem(s, 2, true, now);
+    await callItem(s, 3, true, now);
+    for (let i = 0; i < 50 && got.length < 3; i++) await new Promise((r) => setTimeout(r, 20));
+    await sub.quit();
+    expect(got.map((e) => [e.called, e.winners])).toEqual([
+      [1, 0],
+      [2, 0],
+      [3, 1],
+    ]);
+    expect(Object.keys(got[0]!).sort()).toEqual(['at', 'called', 'day', 'type', 'winners']);
   });
 });
 

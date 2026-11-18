@@ -7,7 +7,8 @@ import { db } from '@/server/db';
 import { cleanLinkUrl, platformOf } from '@/lib/links';
 import { publicLinks } from '@/server/links/links';
 import { watchProgress } from '@/server/catalog/progress';
-import { watchedTitles } from '@/server/catalog/read';
+import { getAdmin, watchedTitles } from '@/server/catalog/read';
+import { offStreamBlock } from '@/server/catalog/offstream';
 import { POST as watchedOffStreamRoute } from '@/app/api/v1/admin/catalog/items/[id]/watched-offstream/route';
 import { purgeSuggestions, titleKeyOf } from '@/server/suggestions/suggestions';
 import { eraseMyAccount, exportMyData } from '@/server/users/lgpd';
@@ -449,6 +450,64 @@ describe('off-stream watched (2026-11-10)', () => {
     await clearCatalog();
   });
 
+  it('a published movie nobody is paying for can go too: it leaves its slot (2026-11-18)', async () => {
+    const mod = await as('MODERATOR');
+    const movie = await makeItem({ kind: 'MOVIE', status: 'ACTIVE', slot: 7, title: 'Up' });
+    expect((await getAdmin(movie.id))?.offStreamBlock).toBeNull();
+    // not before the day it went on the site
+    const early = await hit(watchedOffStreamRoute, 'POST', '', {
+      who: mod,
+      params: { id: movie.id },
+      body: { expectedVersion: movie.version, watchedOn: '2020-01-01' },
+    });
+    expect(early.res.status).toBe(409);
+    const r = await hit(watchedOffStreamRoute, 'POST', '', {
+      who: mod,
+      params: { id: movie.id },
+      body: { expectedVersion: movie.version, watchedOn: null },
+    });
+    expect(r.res.status).toBe(200);
+    const row = await db().catalogItem.findUniqueOrThrow({ where: { id: movie.id } });
+    expect(row).toMatchObject({ status: 'WATCHED', offStream: true, slot: null });
+    expect((await watchedTitles(undefined, null, undefined, undefined, true))[0]?.id).toBe(
+      movie.id,
+    );
+    expect((await getAdmin(movie.id))?.offStreamBlock).toBe('Já está em Assistidos.');
+    await clearCatalog();
+  });
+
+  it('…but not while someone is paying for it, nor a published series, nor a sponsored title', async () => {
+    const mod = await as('MODERATOR');
+    const now = new Date();
+    const later = new Date(now.getTime() + 600_000);
+    const movie = { kind: 'MOVIE' as const, status: 'ACTIVE' as const };
+    expect(offStreamBlock({ ...movie, reservedUntil: null }, 0, now)).toBeNull();
+    expect(offStreamBlock({ ...movie, reservedUntil: later }, 0, now)).toMatch(/Pix pendente/);
+    expect(offStreamBlock({ ...movie, reservedUntil: null }, 1, now)).toMatch(/pedido/);
+    expect(
+      offStreamBlock({ ...movie, reservedUntil: new Date(now.getTime() - 1) }, 0, now),
+    ).toBeNull();
+    expect(
+      offStreamBlock({ kind: 'SERIES', status: 'ACTIVE', reservedUntil: null }, 0, now),
+    ).toMatch(/campanha/);
+    expect(offStreamBlock({ ...movie, status: 'SPONSORED', reservedUntil: null }, 0, now)).toMatch(
+      /patrocinado/,
+    );
+    expect(
+      offStreamBlock({ kind: 'SERIES', status: 'DRAFT', reservedUntil: null }, 0, now),
+    ).toBeNull();
+    // the route says why
+    const sponsored = await makeItem({ kind: 'MOVIE', status: 'SPONSORED' });
+    const r = await hit(watchedOffStreamRoute, 'POST', '', {
+      who: mod,
+      params: { id: sponsored.id },
+      body: { expectedVersion: sponsored.version, watchedOn: null },
+    });
+    expect(r.res.status).toBe(409);
+    expect(JSON.stringify(r.json)).toContain('Já foi patrocinado');
+    await clearCatalog();
+  });
+
   it('Assistidos: titles watched off stream come after the live ones, and have their own filter (2026-11-17)', async () => {
     const day = (d: number) => new Date(Date.UTC(2026, 9, d, 23));
     const mk = async (title: string, watchedAt: Date, offStream: boolean) => {
@@ -475,15 +534,15 @@ describe('off-stream watched (2026-11-10)', () => {
     await clearCatalog();
   });
 
-  it('only a draft, and not with a future date', async () => {
+  it('not a published series (it has a campaign), and not with a future date', async () => {
     const mod = await as('MODERATOR');
-    const active = await makeItem({ kind: 'MOVIE', status: 'ACTIVE', slot: 1 });
+    const active = await makeItem({ kind: 'SERIES', status: 'ACTIVE', slot: 1 });
     const bad = await hit(watchedOffStreamRoute, 'POST', '', {
       who: mod,
       params: { id: active.id },
       body: { expectedVersion: active.version, watchedOn: null },
     });
-    expect(bad.res.status).toBe(409); // INVALID_STATE: not a draft
+    expect(bad.res.status).toBe(409); // INVALID_STATE: published series
     const draft = await makeItem({ kind: 'MOVIE', status: 'DRAFT' });
     const future = await hit(watchedOffStreamRoute, 'POST', '', {
       who: mod,

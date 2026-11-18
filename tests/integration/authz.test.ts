@@ -541,6 +541,7 @@ export const MATRIX: Row[] = [
   R('/api/v1/admin/roleta/open', 'PUT', 'moderator', { body: { open: true } }),
   R('/api/v1/bingo', 'GET', 'user'),
   R('/api/v1/bingo/card', 'POST', 'user', { body: {} }),
+  R('/api/v1/bingo/events', 'GET', 'public'),
   R('/api/v1/admin/bingo', 'GET', 'moderator'),
   R('/api/v1/admin/bingo/calls', 'POST', 'moderator', { body: { position: 1, called: true } }),
   R('/api/v1/admin/bingo/items', 'PUT', 'moderator', {

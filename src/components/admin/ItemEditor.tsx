@@ -57,6 +57,16 @@ const WHEN = new Intl.DateTimeFormat('pt-BR', {
 });
 /** "dom., 16/11, 20:00" */
 const fmtWhen = (iso: string) => WHEN.format(new Date(iso));
+
+/** The title's state, in one line at the top of Ações (2026-11-18). */
+const STATUS_LINE: Record<AdminItem['status'], string> = {
+  DRAFT: 'Rascunho: ainda não está no site',
+  ACTIVE: 'No ar',
+  SPONSORED: 'Patrocinado: na fila da live',
+  FUNDED: 'Meta atingida: na fila da live',
+  WATCHED: 'Assistido',
+  ARCHIVED: 'Arquivado',
+};
 /** A time as a datetime-local value in Brasília ("2026-11-16T20:00"). */
 const spLocal = (ms: number) => new Date(ms - 3 * 3_600_000).toISOString().slice(0, 16);
 
@@ -91,6 +101,8 @@ export function ItemEditor({
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<Msg>(null);
+  /** where the last message shows: next to the Ações panel or under the form (2026-11-18) */
+  const [msgAt, setMsgAt] = useState<'acts' | 'form'>('form');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [goal, setGoal] = useState('');
   const [days, setDays] = useState(String(DEFAULT_CAMPAIGN_DAYS));
@@ -108,6 +120,8 @@ export function ItemEditor({
   const [reference, setReference] = useState<WikiFill['summary']>(null);
   /** "Agendar publicação" (2026-11-15): the date and time typed (Brasília) */
   const [when, setWhen] = useState('');
+  /** "Agendar publicação" in Ações starts open when something is scheduled (or went wrong) */
+  const [schedOpen, setSchedOpen] = useState(() => !!item?.publishAt || !!item?.publishError);
 
   // A new version from the server (save, revert, another action) replaces the form — unless the
   // moderator has unsaved edits, which are never overwritten silently. (State adjusted during
@@ -600,6 +614,22 @@ export function ItemEditor({
       </div>
     ) : null;
 
+  const toast = msg ? (
+    <div
+      role={msg.kind === 'err' ? 'alert' : 'status'}
+      className={`wf-toast wf-toast--${msg.kind}`}
+    >
+      {msg.text}{' '}
+      {msg.conflict ? (
+        <button type="button" className="wf-linkbtn" onClick={() => onChanged(null)}>
+          Recarregar
+        </button>
+      ) : null}
+    </div>
+  ) : null;
+  const statusLine =
+    STATUS_LINE[status] + (item?.slot ? ` · vaga ${String(item.slot).padStart(2, '0')}` : '');
+
   return (
     <div>
       <div className="wf-editor__head">
@@ -623,6 +653,387 @@ export function ItemEditor({
         </p>
       ) : null}
 
+      {/*
+        Ações (2026-11-18): everything beyond editing the fields, at the top, only what applies to
+        this title — with the reason when something doesn't (e.g. "fora da live" on a sponsored
+        movie). The forms open in place (native <details>).
+      */}
+      {item ? (
+        <section
+          className="wf-acts"
+          aria-labelledby="acoes"
+          onClickCapture={() => setMsgAt('acts')}
+        >
+          <div className="wf-acts__head">
+            <h3 id="acoes">Ações</h3>
+            <span className="wf-hint">{statusLine}</span>
+          </div>
+          {msgAt === 'acts' ? toast : null}
+          {live ? (
+            <div className="wf-actions mt-0">
+              {status !== 'WATCHED' ? (
+                <button
+                  type="button"
+                  className="wf-btn wf-btn--ghost wf-btn--sm"
+                  disabled={busy}
+                  onClick={() =>
+                    void simple(
+                      `/api/v1/admin/catalog/items/${item.id}/watched`,
+                      undefined,
+                      'Marcado como assistido.',
+                      'Marcar como assistido na live? As avaliações serão liberadas.',
+                    )
+                  }
+                >
+                  Marcar como assistido
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="wf-btn wf-btn--ghost wf-btn--sm"
+                  disabled={busy}
+                  onClick={() =>
+                    void simple(
+                      `/api/v1/admin/catalog/items/${item.id}/unwatched`,
+                      { expectedVersion: item.version },
+                      'Voltou para a fila.',
+                      'Desmarcar como assistido? O título volta para a fila da live (se tiver patrocínio ou meta atingida).',
+                    )
+                  }
+                >
+                  Desmarcar assistido
+                </button>
+              )}
+              {paidRoom !== null && !paid ? (
+                <button
+                  type="button"
+                  className="wf-btn wf-btn--ghost wf-btn--sm"
+                  disabled={busy}
+                  onClick={() => {
+                    setErrors({});
+                    setPaid({ amount: centsToReais(paidRoom), name: '' });
+                  }}
+                >
+                  Já pago
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+          {live ? paidForm : null}
+          <div className="wf-acts__list">
+            {isDraft && kind === 'MOVIE' ? (
+              <details
+                className="wf-act"
+                open={schedOpen}
+                onToggle={(e) => setSchedOpen(e.currentTarget.open)}
+              >
+                <summary>
+                  <span id="agendar" className="wf-act__title">
+                    Agendar publicação
+                  </span>
+                  <span className="wf-act__hint">
+                    {item.publishAt
+                      ? `Entra no ar ${fmtWhen(item.publishAt)}`
+                      : 'Entra no ar sozinho no dia e hora marcados'}
+                  </span>
+                </summary>
+                <section aria-labelledby="agendar" className="wf-act__body">
+                  {item?.publishError ? (
+                    <p role="alert" className="wf-toast wf-toast--err">
+                      A publicação agendada não aconteceu: {item.publishError}
+                    </p>
+                  ) : null}
+                  {item?.publishAt ? (
+                    <p className="wf-sched m-0 mt-2">
+                      <span>
+                        Entra no ar sozinho{' '}
+                        <b className="text-lavender">{fmtWhen(item.publishAt)}</b> (horário de
+                        Brasília).
+                      </span>{' '}
+                      <button
+                        type="button"
+                        className="wf-linkbtn"
+                        disabled={busy}
+                        onClick={() => void schedule(null)}
+                      >
+                        Cancelar agendamento
+                      </button>
+                    </p>
+                  ) : (
+                    <div className="wf-form mt-3">
+                      <p className="full wf-hint m-0">
+                        O filme precisa estar completo. Na hora marcada ele entra na vaga planejada
+                        (ou na primeira livre) e aparece no carrossel.
+                      </p>
+                      <label className="wf-field">
+                        Dia e hora (Brasília)
+                        <input
+                          type="datetime-local"
+                          className="wf-input"
+                          value={when}
+                          min={spLocal(Date.now() + 3 * 60_000)}
+                          max={spLocal(Date.now() + 89 * 86_400_000)}
+                          onChange={(e) => setWhen(e.target.value)}
+                          {...inv('publishAt')}
+                        />
+                        {err('publishAt')}
+                      </label>
+                      <div className="wf-field self-end">
+                        <button
+                          type="button"
+                          className="wf-btn wf-btn--ghost"
+                          disabled={busy || !when}
+                          onClick={() => void schedule(when)}
+                        >
+                          Agendar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </section>
+              </details>
+            ) : null}
+            {isDraft && kind !== 'MOVIE' ? (
+              <details className="wf-act">
+                <summary>
+                  <span id="abrir" className="wf-act__title">
+                    Abrir campanha
+                  </span>
+                  <span className="wf-act__hint">
+                    Publica com meta e prazo, ou registra “Já pago”
+                  </span>
+                </summary>
+                <section aria-labelledby="abrir" className="wf-act__body">
+                  <div className="wf-form">
+                    <label className="wf-field">
+                      Meta (R$, vazio = fórmula{money ? ` ${formatBRL(money.cents)}` : ''})
+                      <input
+                        className="wf-input"
+                        inputMode="decimal"
+                        value={goal}
+                        onChange={(e) => setGoal(e.target.value)}
+                      />
+                    </label>
+                    <label className="wf-field">
+                      Prazo (dias)
+                      <input
+                        className="wf-input"
+                        inputMode="numeric"
+                        value={days}
+                        onChange={(e) => setDays(e.target.value)}
+                      />
+                    </label>
+                    <div className="full">
+                      <button
+                        type="button"
+                        className="wf-btn wf-btn--neon"
+                        disabled={busy}
+                        onClick={() => void openCampaign()}
+                      >
+                        Abrir campanha
+                      </button>
+                      {paidRoom !== null && !paid ? (
+                        <button
+                          type="button"
+                          className="wf-btn wf-btn--ghost ml-2"
+                          disabled={busy}
+                          onClick={() => {
+                            setErrors({});
+                            setPaid({ amount: centsToReais(paidRoom), name: '' });
+                          }}
+                        >
+                          Já pago
+                        </button>
+                      ) : null}
+                    </div>
+                    {paidForm ? <div className="full">{paidForm}</div> : null}
+                  </div>
+                </section>
+              </details>
+            ) : null}
+            {live ? (
+              <details className="wf-act">
+                <summary>
+                  <span id="substituir" className="wf-act__title">
+                    {status === 'WATCHED'
+                      ? 'Arquivar e liberar a vaga'
+                      : 'Substituir ou liberar a vaga'}
+                  </span>
+                  <span className="wf-act__hint">
+                    Arquiva este título; um rascunho pode entrar no lugar
+                  </span>
+                </summary>
+                <section aria-labelledby="substituir" className="wf-act__body">
+                  <div className="wf-actions mt-0">
+                    <select
+                      className="wf-input max-w-64"
+                      aria-label="Rascunho que entra na vaga"
+                      value={replaceWith}
+                      onChange={(e) => setReplaceWith(e.target.value)}
+                    >
+                      <option value="">Só liberar a vaga</option>
+                      {drafts.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          Substituir por: {d.title}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      className="wf-btn wf-btn--ghost wf-btn--sm"
+                      disabled={busy}
+                      onClick={() =>
+                        void simple(
+                          `/api/v1/admin/catalog/items/${item.id}/replace`,
+                          { replacementId: replaceWith || null },
+                          'Vaga liberada.',
+                          'Arquivar este título e liberar a vaga?',
+                        ).then((done) => {
+                          if (done) onDeleted();
+                        })
+                      }
+                    >
+                      Substituir
+                    </button>
+                  </div>
+                </section>
+              </details>
+            ) : null}
+            {live && item.campaign ? (
+              <div className="wf-act wf-act--static grid gap-2 text-sm">
+                <p className="m-0">
+                  Campanha: {formatBRL(item.campaign.raisedCents)} de{' '}
+                  {formatBRL(item.campaign.goalCents)} · prazo{' '}
+                  {new Intl.DateTimeFormat('pt-BR', {
+                    dateStyle: 'short',
+                    timeZone: 'America/Sao_Paulo',
+                  }).format(new Date(item.campaign.deadlineAt))}
+                  {item.campaign.extensions
+                    ? ` · ${item.campaign.extensions} prorrogação(ões)`
+                    : ''}
+                </p>
+                {item.campaign.state === 'OPEN' || item.campaign.state === 'PAUSED' ? (
+                  <div className="wf-actions mt-0">
+                    <button
+                      type="button"
+                      className="wf-btn wf-btn--ghost wf-btn--sm"
+                      disabled={busy}
+                      onClick={() => {
+                        const d = window.prompt('Prorrogar por quantos dias?', '7');
+                        if (d && /^\d{1,3}$/.test(d))
+                          void simple(
+                            `/api/v1/admin/campaigns/${item.id}/extend`,
+                            { days: Number(d) },
+                            'Prazo prorrogado (aparece no site).',
+                          );
+                      }}
+                    >
+                      Prorrogar prazo
+                    </button>
+                    <button
+                      type="button"
+                      className="wf-btn wf-btn--ghost wf-btn--sm"
+                      disabled={busy}
+                      onClick={() => {
+                        const v = window.prompt('Nova meta em reais (menor que a atual):', '');
+                        if (v && /^\d{1,7}$/.test(v))
+                          void simple(
+                            `/api/v1/admin/campaigns/${item.id}/goal`,
+                            { goalCents: Number(v) * 100 },
+                            'Meta atualizada.',
+                          );
+                      }}
+                    >
+                      Baixar meta
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+            {status !== 'WATCHED' && status !== 'ARCHIVED' ? (
+              item.offStreamBlock ? (
+                <div className="wf-act wf-act--static">
+                  <span className="wf-act__title">Já assistiu fora da live?</span>
+                  <span className="wf-act__hint">{item.offStreamBlock}</span>
+                </div>
+              ) : (
+                <details className="wf-act">
+                  <summary>
+                    <span id="fora-live" className="wf-act__title">
+                      Já assistiu fora da live?
+                    </span>
+                    <span className="wf-act__hint">Vai direto para Assistidos, sem patrocínio</span>
+                  </summary>
+                  <section aria-labelledby="fora-live" className="wf-act__body">
+                    <p className="wf-muted m-0 text-sm">
+                      {status === 'ACTIVE'
+                        ? 'Tira o filme da vaga e registra direto em Assistidos, sem patrocínio. Aparece com a marca “fora da live”.'
+                        : 'Registra este título direto em Assistidos, sem vaga nem patrocínio. Aparece com a marca “fora da live”.'}
+                    </p>
+                    <div className="wf-form mt-3">
+                      <label className="wf-field">
+                        Quando assistiu (opcional)
+                        <input
+                          type="date"
+                          className="wf-input"
+                          value={offDate}
+                          max={new Date().toLocaleDateString('en-CA', {
+                            timeZone: 'America/Sao_Paulo',
+                          })}
+                          onChange={(e) => setOffDate(e.target.value)}
+                        />
+                      </label>
+                      <div className="full">
+                        <button
+                          type="button"
+                          className="wf-btn wf-btn--ghost"
+                          disabled={busy}
+                          onClick={() =>
+                            void simple(
+                              `/api/v1/admin/catalog/items/${item.id}/watched-offstream`,
+                              { expectedVersion: item.version, watchedOn: offDate || null },
+                              'Registrado em Assistidos (fora da live).',
+                              status === 'ACTIVE'
+                                ? `Registrar “${item.fields.title}” como assistido fora da live? Ele sai da vaga e vai direto para Assistidos.`
+                                : `Registrar “${item.fields.title}” como assistido fora da live? Vai direto para Assistidos.`,
+                            )
+                          }
+                        >
+                          Registrar como assistido
+                        </button>
+                      </div>
+                    </div>
+                  </section>
+                </details>
+              )
+            ) : null}
+            {isDraft && !item.publishedAt ? (
+              <div className="wf-act wf-act--static">
+                <button
+                  type="button"
+                  className="wf-linkbtn"
+                  onClick={async () => {
+                    if (!window.confirm('Excluir este rascunho?')) return;
+                    const res = await adminFetch(`/api/v1/admin/catalog/items/${item.id}`, {
+                      method: 'DELETE',
+                    });
+                    if (res.ok) onDeleted();
+                    else fail(res.problem);
+                  }}
+                >
+                  Excluir rascunho
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </section>
+      ) : (
+        <p className="wf-hint mt-3">
+          Salve o rascunho para ver as ações: agendar a publicação, registrar como assistido fora da
+          live e outras.
+        </p>
+      )}
+
       {isDraft ? (
         <WikidataFill
           kind={kind}
@@ -643,6 +1054,7 @@ export function ItemEditor({
       ) : null}
 
       <form
+        onClickCapture={() => setMsgAt('form')}
         className="wf-form"
         onSubmit={(e) => {
           e.preventDefault();
@@ -1072,331 +1484,7 @@ export function ItemEditor({
         </div>
       </form>
 
-      {msg ? (
-        <div
-          role={msg.kind === 'err' ? 'alert' : 'status'}
-          className={`wf-toast wf-toast--${msg.kind}`}
-        >
-          {msg.text}{' '}
-          {msg.conflict ? (
-            <button type="button" className="wf-linkbtn" onClick={() => onChanged(null)}>
-              Recarregar
-            </button>
-          ) : null}
-        </div>
-      ) : null}
-
-      {/* "Agendar publicação" (2026-11-15): a complete movie draft goes live on its own. */}
-      {isDraft && kind === 'MOVIE' ? (
-        <section className="wf-history" aria-labelledby="agendar">
-          <h3 id="agendar" className="text-base font-semibold">
-            Agendar publicação
-          </h3>
-          {item?.publishError ? (
-            <p role="alert" className="wf-toast wf-toast--err">
-              A publicação agendada não aconteceu: {item.publishError}
-            </p>
-          ) : null}
-          {item?.publishAt ? (
-            <p className="wf-sched m-0 mt-2">
-              <span>
-                Entra no ar sozinho <b className="text-lavender">{fmtWhen(item.publishAt)}</b>{' '}
-                (horário de Brasília).
-              </span>{' '}
-              <button
-                type="button"
-                className="wf-linkbtn"
-                disabled={busy}
-                onClick={() => void schedule(null)}
-              >
-                Cancelar agendamento
-              </button>
-            </p>
-          ) : (
-            <div className="wf-form mt-3">
-              <p className="full wf-hint m-0">
-                O filme precisa estar completo. Na hora marcada ele entra na vaga planejada (ou na
-                primeira livre) e aparece no carrossel.
-              </p>
-              <label className="wf-field">
-                Dia e hora (Brasília)
-                <input
-                  type="datetime-local"
-                  className="wf-input"
-                  value={when}
-                  min={spLocal(Date.now() + 3 * 60_000)}
-                  max={spLocal(Date.now() + 89 * 86_400_000)}
-                  onChange={(e) => setWhen(e.target.value)}
-                  {...inv('publishAt')}
-                />
-                {err('publishAt')}
-              </label>
-              <div className="wf-field self-end">
-                <button
-                  type="button"
-                  className="wf-btn wf-btn--ghost"
-                  disabled={busy || !when}
-                  onClick={() => void schedule(when)}
-                >
-                  Agendar
-                </button>
-              </div>
-            </div>
-          )}
-        </section>
-      ) : null}
-
-      {/* Campaigns: the streamer opens them (goal + deadline, Google step-up). */}
-      {isDraft && kind !== 'MOVIE' ? (
-        <section className="wf-history" aria-labelledby="abrir">
-          <h3 id="abrir" className="text-base font-semibold">
-            Abrir campanha
-          </h3>
-          <>
-            <div className="wf-form">
-              <label className="wf-field">
-                Meta (R$, vazio = fórmula{money ? ` ${formatBRL(money.cents)}` : ''})
-                <input
-                  className="wf-input"
-                  inputMode="decimal"
-                  value={goal}
-                  onChange={(e) => setGoal(e.target.value)}
-                />
-              </label>
-              <label className="wf-field">
-                Prazo (dias)
-                <input
-                  className="wf-input"
-                  inputMode="numeric"
-                  value={days}
-                  onChange={(e) => setDays(e.target.value)}
-                />
-              </label>
-              <div className="full">
-                <button
-                  type="button"
-                  className="wf-btn wf-btn--neon"
-                  disabled={busy}
-                  onClick={() => void openCampaign()}
-                >
-                  Abrir campanha
-                </button>
-                {paidRoom !== null && !paid ? (
-                  <button
-                    type="button"
-                    className="wf-btn wf-btn--ghost ml-2"
-                    disabled={busy}
-                    onClick={() => {
-                      setErrors({});
-                      setPaid({ amount: centsToReais(paidRoom), name: '' });
-                    }}
-                  >
-                    Já pago
-                  </button>
-                ) : null}
-              </div>
-              {paidForm ? <div className="full">{paidForm}</div> : null}
-            </div>
-          </>
-        </section>
-      ) : null}
-
-      {/* A title Iara watched by herself, off stream (2026-11-10): straight to Assistidos. */}
-      {item && isDraft ? (
-        <section className="wf-history" aria-labelledby="fora-live">
-          <h3 id="fora-live" className="text-base font-semibold">
-            Já assistiu fora da live?
-          </h3>
-          <p className="wf-muted m-0 text-sm">
-            Registra este título direto em Assistidos, sem vaga nem patrocínio. Aparece com a marca
-            “fora da live”.
-          </p>
-          <div className="wf-form mt-3">
-            <label className="wf-field">
-              Quando assistiu (opcional)
-              <input
-                type="date"
-                className="wf-input"
-                value={offDate}
-                max={new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })}
-                onChange={(e) => setOffDate(e.target.value)}
-              />
-            </label>
-            <div className="full">
-              <button
-                type="button"
-                className="wf-btn wf-btn--ghost"
-                disabled={busy}
-                onClick={() =>
-                  void simple(
-                    `/api/v1/admin/catalog/items/${item.id}/watched-offstream`,
-                    { expectedVersion: item.version, watchedOn: offDate || null },
-                    'Registrado em Assistidos (fora da live).',
-                    `Registrar “${item.fields.title}” como assistido fora da live? Vai direto para Assistidos.`,
-                  )
-                }
-              >
-                Registrar como assistido
-              </button>
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      {item && live ? (
-        <section className="wf-history" aria-labelledby="no-ar">
-          <h3 id="no-ar" className="text-base font-semibold">
-            No ar
-          </h3>
-          <div className="wf-actions mt-3">
-            {status !== 'WATCHED' ? (
-              <button
-                type="button"
-                className="wf-btn wf-btn--ghost wf-btn--sm"
-                disabled={busy}
-                onClick={() =>
-                  void simple(
-                    `/api/v1/admin/catalog/items/${item.id}/watched`,
-                    undefined,
-                    'Marcado como assistido.',
-                    'Marcar como assistido na live? As avaliações serão liberadas.',
-                  )
-                }
-              >
-                Marcar como assistido
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="wf-btn wf-btn--ghost wf-btn--sm"
-                disabled={busy}
-                onClick={() =>
-                  void simple(
-                    `/api/v1/admin/catalog/items/${item.id}/unwatched`,
-                    { expectedVersion: item.version },
-                    'Voltou para a fila.',
-                    'Desmarcar como assistido? O título volta para a fila da live (se tiver patrocínio ou meta atingida).',
-                  )
-                }
-              >
-                Desmarcar assistido
-              </button>
-            )}
-            <select
-              className="wf-input max-w-64"
-              aria-label="Rascunho que entra na vaga"
-              value={replaceWith}
-              onChange={(e) => setReplaceWith(e.target.value)}
-            >
-              <option value="">Só liberar a vaga</option>
-              {drafts.map((d) => (
-                <option key={d.id} value={d.id}>
-                  Substituir por: {d.title}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              className="wf-btn wf-btn--ghost wf-btn--sm"
-              disabled={busy}
-              onClick={() =>
-                void simple(
-                  `/api/v1/admin/catalog/items/${item.id}/replace`,
-                  { replacementId: replaceWith || null },
-                  'Vaga liberada.',
-                  'Arquivar este título e liberar a vaga?',
-                ).then((done) => {
-                  if (done) onDeleted();
-                })
-              }
-            >
-              Substituir
-            </button>
-            {paidRoom !== null && !paid ? (
-              <button
-                type="button"
-                className="wf-btn wf-btn--ghost wf-btn--sm"
-                disabled={busy}
-                onClick={() => {
-                  setErrors({});
-                  setPaid({ amount: centsToReais(paidRoom), name: '' });
-                }}
-              >
-                Já pago
-              </button>
-            ) : null}
-          </div>
-          {paidForm}
-          {item.campaign ? (
-            <div className="mt-4 grid gap-2 text-sm">
-              <p className="m-0">
-                Campanha: {formatBRL(item.campaign.raisedCents)} de{' '}
-                {formatBRL(item.campaign.goalCents)} · prazo{' '}
-                {new Intl.DateTimeFormat('pt-BR', {
-                  dateStyle: 'short',
-                  timeZone: 'America/Sao_Paulo',
-                }).format(new Date(item.campaign.deadlineAt))}
-                {item.campaign.extensions ? ` · ${item.campaign.extensions} prorrogação(ões)` : ''}
-              </p>
-              {item.campaign.state === 'OPEN' || item.campaign.state === 'PAUSED' ? (
-                <div className="wf-actions mt-0">
-                  <button
-                    type="button"
-                    className="wf-btn wf-btn--ghost wf-btn--sm"
-                    disabled={busy}
-                    onClick={() => {
-                      const d = window.prompt('Prorrogar por quantos dias?', '7');
-                      if (d && /^\d{1,3}$/.test(d))
-                        void simple(
-                          `/api/v1/admin/campaigns/${item.id}/extend`,
-                          { days: Number(d) },
-                          'Prazo prorrogado (aparece no site).',
-                        );
-                    }}
-                  >
-                    Prorrogar prazo
-                  </button>
-                  <button
-                    type="button"
-                    className="wf-btn wf-btn--ghost wf-btn--sm"
-                    disabled={busy}
-                    onClick={() => {
-                      const v = window.prompt('Nova meta em reais (menor que a atual):', '');
-                      if (v && /^\d{1,7}$/.test(v))
-                        void simple(
-                          `/api/v1/admin/campaigns/${item.id}/goal`,
-                          { goalCents: Number(v) * 100 },
-                          'Meta atualizada.',
-                        );
-                    }}
-                  >
-                    Baixar meta
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-        </section>
-      ) : null}
-
-      {item && isDraft && !item.publishedAt ? (
-        <p className="mt-4">
-          <button
-            type="button"
-            className="wf-linkbtn"
-            onClick={async () => {
-              if (!window.confirm('Excluir este rascunho?')) return;
-              const res = await adminFetch(`/api/v1/admin/catalog/items/${item.id}`, {
-                method: 'DELETE',
-              });
-              if (res.ok) onDeleted();
-              else fail(res.problem);
-            }}
-          >
-            Excluir rascunho
-          </button>
-        </p>
-      ) : null}
+      {msgAt === 'form' ? toast : null}
 
       {item?.revisions.length ? (
         <section className="wf-history" aria-labelledby="historico">

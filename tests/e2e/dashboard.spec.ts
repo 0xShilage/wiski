@@ -291,7 +291,9 @@ test('"Já pago" on a draft series: the campaign opens with the goal met; undone
     .getByRole('region', { name: 'Rascunhos sem vaga' })
     .getByRole('button', { name: series })
     .click();
-  await expect(page.getByRole('heading', { name: 'Abrir campanha' })).toBeVisible();
+  // in the editor's Ações panel (2026-11-18), it opens in place
+  await page.locator('summary', { hasText: 'Abrir campanha' }).click();
+  await expect(page.getByRole('region', { name: 'Abrir campanha' })).toBeVisible();
 
   // the draft's "Abrir campanha" panel offers "Já pago", prefilled with the formula goal
   await page.getByRole('button', { name: 'Já pago' }).click();

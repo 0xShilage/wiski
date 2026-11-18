@@ -18,6 +18,7 @@ import { nameBadgeOf, nameBadgeUserSelect } from '../community/name-badge';
 import { db } from '../db';
 import { HttpError, Problems } from '../http/problem';
 import { logger } from '../log';
+import { publishBingo } from '../realtime/events';
 import { codePointLength, plainText } from '../text/sanitize';
 import { announceBingo } from './announce';
 
@@ -166,6 +167,15 @@ async function recordWins(
   return out;
 }
 
+/** Tells open /bingo pages (and Admin › Bingo) to re-read the day (2026-11-18). Best effort. */
+export async function pingBingo(day: Date, now = new Date()) {
+  const [called, winners] = await Promise.all([
+    db().bingoCall.count({ where: { day } }),
+    db().bingoWin.count({ where: { day } }),
+  ]);
+  await publishBingo({ type: 'bingo', day: isoDay(day), called, winners, at: now.toISOString() });
+}
+
 async function announce(day: Date, wins: NewWin[]) {
   if (!wins.length) return;
   try {
@@ -205,6 +215,7 @@ export async function takeCard(
     return recordWins(t, day, taken, [{ userId: user.id, username: user.username, line }], now);
   });
   await announce(day, wins);
+  if (wins.length) await pingBingo(day, now);
   return { view: await myBingo(user.id, now), place: wins[0]?.place ?? null };
 }
 
@@ -300,6 +311,7 @@ export async function callItem(
     return recordWins(t, day, taken, found, now);
   });
   await announce(day, wins);
+  await pingBingo(day, now);
   return { view: await staffBingo(now), winners: wins.length };
 }
 
@@ -344,6 +356,7 @@ export async function setBingoItems(ctx: Ctx, texts: string[]): Promise<BingoIte
       t,
     );
   });
+  await pingBingo(bingoDay(new Date()));
   return bingoItems();
 }
 

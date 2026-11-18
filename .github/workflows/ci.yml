@@ -134,7 +134,9 @@ jobs:
         with: { fetch-depth: 0, persist-credentials: false }
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with: { node-version-file: .nvmrc, cache: npm }
-      - run: npm audit --audit-level=high
+      # everything, dev tools included, at high/critical — minus a short, expiring allowlist for
+      # advisories with no fix yet (scripts/audit-allowlist.json, 2026-11-17)
+      - run: npm run audit:all
       # Phase 5: what ships (the image has no dev dependencies) must have no advisory at all
       - run: npm audit --omit=dev --audit-level=low
       - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0

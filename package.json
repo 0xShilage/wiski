@@ -14,6 +14,7 @@
     "build:worker": "node scripts/build-worker.mjs",
     "start": "next start",
     "lint": "eslint --max-warnings=0 .",
+    "audit:all": "node scripts/audit-all.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",

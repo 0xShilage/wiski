@@ -770,3 +770,12 @@ Titles Iara watched by herself (the "Já assistiu fora da live?" button in the i
 ## 55. Reviews on titles watched off stream (2026-11-17)
 
 Titles Iara registered as watched off stream ("Já assistiu fora da live?", §42) have no `WatchEvent`, so their reviews were closed. They now open like any watched title: viewers can rate and review them on the title page, and their reviews show everywhere reviews do. `reviewableItem` (`src/server/reviews/read.ts`) accepts a watched title (WATCHED or ARCHIVED) that either has a `WatchEvent` or is `offStream`. A title never watched stays closed. The sign-in prompt on these pages says "Já assistiu?" instead of "Assistiu com a gente?".
+
+## 56. Audit gate with an expiring allowlist (2026-11-17)
+
+On 2026-11-17 a new "high" advisory for `picomatch` (GHSA-fc5q-39xc-vjpf, ReDoS on crafted extglobs) was published. It affects every version and has no fix yet, and it failed the full `npm audit --audit-level=high` step on every PR. `picomatch` is only used by build and test tooling (ESLint, Vitest, Tailwind) matching our own globs. The production audit (`--omit=dev --audit-level=low`) was clean.
+
+- **The gate.** CI's full audit now runs `npm run audit:all` (`scripts/audit-all.mjs`). Like before, it fails on any advisory at high or critical, dev tools included, except the ones listed in `scripts/audit-allowlist.json`.
+- **The allowlist.** Each entry names one advisory id and its package, says why, and has an `expires` date. After that date the advisory counts again and CI fails until it is fixed or renewed on purpose.
+- **First entry.** GHSA-fc5q-39xc-vjpf (picomatch), until 2026-12-01. Remove it once Dependabot brings a fixed `picomatch`.
+- **Production.** The production audit is unchanged: what ships in the image must have no advisory at all.

@@ -419,11 +419,6 @@ Fix (PR "fix-prefetch-burst"): no prefetch on the header tabs, the phone bar, th
   - `bingo.spec.ts`: the viewer's page shows the bingo within 8 s of the moderator's call. The poll is 60 s, so only the live stream can do that.
   - `a11y-layout` and `csp` pass for the admin and Bingo pages.
 
-## Addendum — Moldura da câmera, SSE through nginx (2026-11-18)
+## Addendum — Bingo SSE through nginx (2026-11-18)
 
-- e2e `operations.spec.ts`:
-  - `/overlay/camera` opens without a key and has a transparent body.
-  - The centre pixel of a 1280 × 720 capture has alpha 0, and the rim at the top-right is opaque.
-  - The plate shows `nome`/`sub`; a long `nome` is cut to 18 characters; `ao-vivo=0` hides the tag.
-  - `a11y-layout` and `csp` cover the page (`overlay-camera`). The CSP blocks inline styles, as everywhere else.
 - Unit `nginx-config.test.ts`: the order, campaign, overlay and Bingo SSE paths all match the unbuffered location.

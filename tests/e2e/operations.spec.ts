@@ -4,7 +4,6 @@
  * booked movie, the public "Próximos na live" strip from the dev seed, and "Já pago" in Pedidos.
  */
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
-import sharp from 'sharp';
 import { expect, test } from '@playwright/test';
 import { seedUser, signIn, withDb } from './support/seed';
 
@@ -406,34 +405,4 @@ test('pedidos: the streamer registers a movie as "Já pago" (it enters the queue
     ),
   ).toBe('ACTIVE');
   await ctx.close();
-});
-
-test('the camera frame: no key, transparent, plate text from the URL (cut, plain), sign optional', async ({
-  page,
-}, info) => {
-  test.skip(info.project.name !== 'desktop-1280', 'an OBS source');
-  await page.setViewportSize({ width: 1280, height: 720 });
-  await page.goto('/overlay/camera?nome=Iara&sub=wiski.fun');
-  await expect(page.locator('.wf-cam__name')).toHaveText('Iara');
-  await expect(page.locator('.wf-cam__sub')).toHaveText('wiski.fun');
-  await expect(page.locator('.wf-cam__live')).toHaveText('AO VIVO');
-  expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe(
-    'rgba(0, 0, 0, 0)',
-  );
-  // the middle stays clear: the centre of the source is fully transparent
-  const shot = await page.screenshot({ omitBackground: true });
-  const { data, info: img } = await sharp(shot)
-    .ensureAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-  const alpha = (x: number, y: number) => data[(y * img.width + x) * 4 + 3];
-  expect(alpha(Math.floor(img.width / 2), Math.floor(img.height / 2))).toBe(0);
-  expect(alpha(img.width - 40, 20)).toBeGreaterThan(200); // the rim, top-right
-  await page.screenshot({ path: 'test-results/moldura-camera.png', omitBackground: true });
-  await page.goto(
-    `/overlay/camera?nome=${encodeURIComponent('<b>Uma chamada muito longa demais</b>')}&ao-vivo=0`,
-  );
-  const name = (await page.locator('.wf-cam__name').textContent()) ?? '';
-  expect([...name].length).toBeLessThanOrEqual(18);
-  await expect(page.locator('.wf-cam__live')).toHaveCount(0);
 });

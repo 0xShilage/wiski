@@ -797,3 +797,7 @@ On 2026-11-17 a new "high" advisory for `picomatch` (GHSA-fc5q-39xc-vjpf, ReDoS 
   - `/bingo` listens while the tab is visible and re-reads `/api/v1/bingo` at once (the viewer's own card stays behind that user-only endpoint). It closes the stream when the tab is hidden.
   - Admin › Bingo listens too.
   - The poll stays as a fallback, now every 60 s.
+
+## 58. Bingo's SSE stream through nginx's unbuffered location (2026-11-18)
+
+The Bingo's live stream (`/api/v1/bingo/events`, §57) went through the general `/api/` location, so nginx buffered its events and the live update could arrive late. It now goes through the SSE location (`proxy_buffering off`, 660 s read timeout) with the order, campaign and overlay streams. A unit test checks that every route answering with `sseResponse` matches that location.

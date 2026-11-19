@@ -418,3 +418,7 @@ Fix (PR "fix-prefetch-burst"): no prefetch on the header tabs, the phone bar, th
   - `dashboard.spec.ts`: "Abrir campanha" opens from Ações.
   - `bingo.spec.ts`: the viewer's page shows the bingo within 8 s of the moderator's call. The poll is 60 s, so only the live stream can do that.
   - `a11y-layout` and `csp` pass for the admin and Bingo pages.
+
+## Addendum — Bingo SSE through nginx (2026-11-18)
+
+- Unit `nginx-config.test.ts`: the order, campaign, overlay and Bingo SSE paths all match the unbuffered location.

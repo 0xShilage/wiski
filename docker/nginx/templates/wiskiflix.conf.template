@@ -121,9 +121,10 @@ server {
     proxy_pass http://wf_app;
   }
 
-  # Server-Sent Events: order status, campaign progress, OBS overlays. No buffering; the app
-  # closes each stream after 10 minutes and sends a comment every 20 s (Cloudflare: 100 s idle).
-  location ~ ^/api/v1/(orders/[^/]+/events|campaigns/[^/]+/events|overlay/stream)$ {
+  # Server-Sent Events: order status, campaign progress, OBS overlays, the Bingo (2026-11-18). No
+  # buffering; the app closes each stream after 10 minutes and sends a comment every 20 s
+  # (Cloudflare: 100 s idle).
+  location ~ ^/api/v1/(orders/[^/]+/events|campaigns/[^/]+/events|overlay/stream|bingo/events)$ {
     include ${WF_SNIPPETS}/security-headers.conf;
     limit_conn wf_conn 100;
     proxy_buffering off;

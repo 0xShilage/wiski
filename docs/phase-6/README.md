@@ -797,3 +797,18 @@ On 2026-11-17 a new "high" advisory for `picomatch` (GHSA-fc5q-39xc-vjpf, ReDoS 
   - `/bingo` listens while the tab is visible and re-reads `/api/v1/bingo` at once (the viewer's own card stays behind that user-only endpoint). It closes the stream when the tab is hidden.
   - Admin › Bingo listens too.
   - The poll stays as a fallback, now every 60 s.
+
+## 58. Moldura da câmera for OBS (2026-11-18)
+
+`/overlay/camera` is a 16:9 camera frame for an OBS browser source, placed above the camera at the camera's size (e.g. 1280 × 720). The look is 80s Miami at sunset, in Iara's palette: #3B146B #7B208F #C9349B #F36A78 #F87572 #FF9B55 #FFB458.
+
+- **The art.**
+  - A sunset-gradient rim with an ink edge and a hard offset shadow.
+  - Palm fronds lying along the rim, drawn by code (`frond()`: a curved midrib with swept-back leaflets) and clipped to the rim; two groups sway out of step.
+  - Sketched stars on two corners that twinkle.
+  - A dusk haze on the lower half.
+
+  It is all one SVG on a 1600 × 900 grid, so it keeps its shape at any 16:9 size. The middle is fully transparent. Every drawing is original: no game logo, wordmark, font or asset. The reference image was used for mood only.
+- **Options.** `?nome=` and `?sub=` show a name plate in the bottom-right corner (plain text through `overlayText`, at most 18 and 30 characters). Without `nome` there is no plate. `?ao-vivo=0` hides the "AO VIVO" tag.
+- **Access.** No key and no data: it is decoration only. Admin › Overlays shows the address and how to add it.
+- **nginx.** The Bingo's SSE stream (`/api/v1/bingo/events`, §57) went through the general `/api/` location, so nginx buffered its events and the live update could arrive late. It now goes through the unbuffered SSE location. A unit test checks that every route answering with `sseResponse` matches that location.

@@ -262,4 +262,23 @@ describe.skipIf(!hasNginx)('production nginx config', () => {
     expect(tpl.lastIndexOf('location ', at)).toBe(tpl.lastIndexOf('location /_next/static/', at));
     expect(tpl).toMatch(/location = \/api\/ready \{ return 404; \}/);
   });
+
+  it('every Server-Sent Events route goes through the unbuffered location', () => {
+    const tpl = readFileSync(join(ROOT, 'docker/nginx/templates/wiskiflix.conf.template'), 'utf8');
+    const m = tpl.match(/location ~ \^\/api\/v1\/\(([^)]+)\)\$ \{/);
+    expect(m).not.toBeNull();
+    const re = new RegExp(`^/api/v1/(${m![1]})$`);
+    const block = tpl.slice(m!.index!, tpl.indexOf('\n  }', m!.index!));
+    expect(block).toMatch(/proxy_buffering off;/);
+    // the routes that answer with sseResponse (2026-11-18: the Bingo, which sat behind /api/ and
+    // its buffering, so events arrived late)
+    for (const path of [
+      '/api/v1/orders/0198a6d2-0000-7000-8000-000000000000/events',
+      '/api/v1/campaigns/0198a6d2-0000-7000-8000-000000000000/events',
+      '/api/v1/overlay/stream',
+      '/api/v1/bingo/events',
+    ]) {
+      expect(path).toMatch(re);
+    }
+  });
 });

@@ -101,4 +101,6 @@ export const PAGES: PageCase[] = [
   { name: 'bingo-entrar', path: '/bingo' },
   { name: 'bingo', path: '/bingo', auth: 'user' },
   { name: 'bingo-admin', path: '/admin/bingo', auth: 'admin', shell: false },
+  // 2026-11-18: the camera frame for OBS (public, no key)
+  { name: 'overlay-camera', path: '/overlay/camera?nome=Iara', shell: false },
 ];

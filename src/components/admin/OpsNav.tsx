@@ -10,6 +10,7 @@ export type OpsSection =
   | 'sugestoes'
   | 'roleta'
   | 'bingo'
+  | 'assistidos'
   | 'estreias'
   | 'jogos'
   | 'analise'
@@ -43,6 +44,7 @@ const OPS: { id: OpsSection; label: string; badge?: (c: OpsCounts) => number }[]
   { id: 'sugestoes', label: 'Sugestões', badge: (c) => c.suggestions },
   { id: 'roleta', label: 'Roleta', badge: (c) => c.roleta },
   { id: 'bingo', label: 'Bingo' },
+  { id: 'assistidos', label: 'Assistidos' },
   { id: 'estreias', label: 'Estreias' },
   { id: 'jogos', label: 'Jogos' },
 ];

@@ -7,9 +7,11 @@ import { db } from '@/server/db';
 import { cleanLinkUrl, platformOf } from '@/lib/links';
 import { publicLinks } from '@/server/links/links';
 import { watchProgress } from '@/server/catalog/progress';
-import { getAdmin, watchedTitles } from '@/server/catalog/read';
+import { adminWatched, getAdmin, watchedTitles } from '@/server/catalog/read';
 import { offStreamBlock } from '@/server/catalog/offstream';
 import { POST as watchedOffStreamRoute } from '@/app/api/v1/admin/catalog/items/[id]/watched-offstream/route';
+import { PUT as watchedPlaceRoute } from '@/app/api/v1/admin/catalog/items/[id]/watched-place/route';
+import { reviewableItem } from '@/server/reviews/read';
 import { purgeSuggestions, titleKeyOf } from '@/server/suggestions/suggestions';
 import { eraseMyAccount, exportMyData } from '@/server/users/lgpd';
 import { GET as linksRoute, POST as linkCreateRoute } from '@/app/api/v1/admin/links/route';
@@ -505,6 +507,72 @@ describe('off-stream watched (2026-11-10)', () => {
     });
     expect(r.res.status).toBe(409);
     expect(JSON.stringify(r.json)).toContain('Já foi patrocinado');
+    await clearCatalog();
+  });
+
+  it('"Visto em live" / "Visto fora da live": a watched title moves between the tags (2026-11-22)', async () => {
+    const mod = await as('MODERATOR');
+    const watched = await makeItem({
+      kind: 'MOVIE',
+      status: 'DRAFT',
+      title: 'Coco',
+      runtimeMinutes: 105,
+    });
+    const at = new Date(Date.UTC(2026, 9, 12, 23));
+    await db().catalogItem.update({
+      where: { id: watched.id },
+      data: { status: 'WATCHED', watchedAt: at, publishedAt: at, offStream: false },
+    });
+    const v0 = (await db().catalogItem.findUniqueOrThrow({ where: { id: watched.id } })).version;
+    const before = (await watchProgress()).watched.total;
+    const place = (offStream: boolean, expectedVersion: number) =>
+      hit(watchedPlaceRoute, 'PUT', '', {
+        who: mod,
+        params: { id: watched.id },
+        body: { expectedVersion, offStream },
+      });
+
+    // live → fora da live: out of the live progress, on the "fora" side of Assistidos
+    const r = await place(true, v0);
+    expect(r.res.status).toBe(200);
+    expect(r.json).toMatchObject({ offStream: true, version: v0 + 1 });
+    expect((await watchProgress()).watched.total).toBe(before - 1);
+    let list = await adminWatched({ offStream: true });
+    expect(list.items.map((i) => i.id)).toContain(watched.id);
+    // the watch date stays
+    expect(
+      (await db().catalogItem.findUniqueOrThrow({ where: { id: watched.id } })).watchedAt,
+    ).toEqual(at);
+
+    // a stale version is refused; the same tag again changes nothing
+    expect((await place(false, v0)).res.status).toBe(409);
+    expect((await place(true, v0 + 1)).json).toMatchObject({ version: v0 + 1 });
+
+    // fora → live: back in the progress; its reviews stay open (no WatchEvent here)
+    expect((await place(false, v0 + 1)).res.status).toBe(200);
+    expect((await watchProgress()).watched.total).toBe(before);
+    expect(await reviewableItem(watched.id)).not.toBeNull();
+    list = await adminWatched({ offStream: false, query: 'coco' });
+    expect(list.items).toEqual([expect.objectContaining({ id: watched.id, offStream: false })]);
+    expect(list.counts.live).toBeGreaterThanOrEqual(1);
+
+    const logs = await db().auditLog.findMany({
+      where: { action: 'catalog.watchedPlace', targetId: watched.id },
+      orderBy: { id: 'asc' },
+    });
+    expect(logs.map((l) => l.metadata)).toEqual([
+      { kind: 'MOVIE', offStream: true },
+      { kind: 'MOVIE', offStream: false },
+    ]);
+
+    // only watched titles have a tag
+    const active = await makeItem({ kind: 'MOVIE', status: 'ACTIVE', slot: 9 });
+    const no = await hit(watchedPlaceRoute, 'PUT', '', {
+      who: mod,
+      params: { id: active.id },
+      body: { expectedVersion: active.version, offStream: true },
+    });
+    expect(no.res.status).toBe(409);
     await clearCatalog();
   });
 

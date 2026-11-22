@@ -155,6 +155,7 @@ export const AUDIT_ACTIONS = {
     .object({ kind: itemKind, slot: z.int().nullable(), replacementId: z.uuid().nullable() })
     .strict(),
   'catalog.watched': z.object({ kind: itemKind, offStream: z.boolean().optional() }).strict(),
+  'catalog.watchedPlace': z.object({ kind: itemKind, offStream: z.boolean() }).strict(),
   // written by #88's manual marathon stepper (removed 2026-11-13); kept so those rows still read
   'catalog.progress': z
     .object({ kind: itemKind, from: z.int().min(0), to: z.int().min(0), total: z.int().min(0) })

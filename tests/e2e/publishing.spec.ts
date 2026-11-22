@@ -302,3 +302,74 @@ test('Ações: a published movie goes to Assistidos as watched off stream; a spo
     );
   }
 });
+
+test('Admin › Assistidos: a watched title moves between "Visto em live" and "Visto fora da live"', async ({
+  page,
+}, info) => {
+  const violations = cspWatch(page);
+  await asModerator(page);
+  // a watched copy of a seeded movie (archived, out of the live limit), on the live side
+  const title = `Troca etiqueta ${info.project.name} ${Date.now().toString(36)}`;
+  const id = await withDb(async (c) => {
+    const r = await c.query<{ id: string }>(
+      `INSERT INTO "CatalogItem"
+       SELECT (jsonb_populate_record(NULL::"CatalogItem", to_jsonb(i) || jsonb_build_object(
+         'id', gen_random_uuid(), 'slug', $1::text, 'title', $2::text, 'slot', NULL,
+         'status', 'ARCHIVED', 'archivedAt', now(), 'watchedAt', now() - interval '2 days',
+         'publishedAt', now() - interval '9 days', 'version', 1, 'offStream', false,
+         'reservedUntil', NULL, 'reservedOrderId', NULL, 'wikidataId', NULL, 'publishAt', NULL)
+       )).*
+       FROM "CatalogItem" i WHERE i.kind = 'MOVIE' AND i.status IN ('WATCHED', 'ARCHIVED') LIMIT 1
+       RETURNING id`,
+      [title.toLowerCase().replace(/[^a-z0-9]+/g, '-'), title],
+    );
+    return r.rows[0]!.id;
+  });
+  const tag = async () =>
+    (
+      await withDb((c) =>
+        c.query<{ offStream: boolean }>(`SELECT "offStream" FROM "CatalogItem" WHERE id = $1`, [
+          id,
+        ]),
+      )
+    ).rows[0]!.offStream;
+  try {
+    await page.goto(`/admin/assistidos?tag=em-live&q=${encodeURIComponent(title)}`);
+    const row = page.locator('.wf-watched-row', { hasText: title });
+    const place = row.getByRole('group', { name: `Onde “${title}” foi visto` });
+    await expect(place.getByRole('radio', { name: 'Visto em live' })).toBeChecked();
+    await place.getByRole('radio', { name: 'Visto fora da live' }).check();
+    await expect(row.getByRole('status')).toHaveText('Agora: visto fora da live.');
+    expect(await tag()).toBe(true);
+    await page.screenshot({ path: `${SHOTS}/assistidos-etiqueta-${info.project.name}.png` });
+    // it is now on the "fora da live" side
+    await page.goto(`/admin/assistidos?tag=fora-da-live&q=${encodeURIComponent(title)}`);
+    await expect(
+      page
+        .locator('.wf-watched-row', { hasText: title })
+        .getByRole('radio', { name: 'Visto fora da live' }),
+    ).toBeChecked();
+    // and back
+    await page
+      .locator('.wf-watched-row', { hasText: title })
+      .getByRole('radio', { name: 'Visto em live' })
+      .check();
+    await expect(
+      page.locator('.wf-watched-row', { hasText: title }).getByRole('status'),
+    ).toHaveText('Agora: visto em live.');
+    expect(await tag()).toBe(false);
+    if (info.project.name === 'mobile-360') {
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+        360,
+      );
+    }
+    expect(violations).toEqual([]);
+  } finally {
+    // out of later specs' way: no longer a watched title
+    await withDb((c) =>
+      c.query(`UPDATE "CatalogItem" SET "watchedAt" = NULL, "offStream" = false WHERE id = $1`, [
+        id,
+      ]),
+    );
+  }
+});

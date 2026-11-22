@@ -121,6 +121,11 @@ export const watchedOffStreamInput = z
   .object({ expectedVersion: z.int().min(0), watchedOn: z.iso.date().nullable() })
   .strict();
 
+/** "Visto em live" / "Visto fora da live" (2026-11-22) */
+export const watchedPlaceInput = z
+  .object({ expectedVersion: z.int().min(0), offStream: z.boolean() })
+  .strict();
+
 export const versionInput = z.object({ expectedVersion: z.int().min(0) }).strict();
 
 export const publishInput = z

@@ -797,3 +797,13 @@ On 2026-11-17 a new "high" advisory for `picomatch` (GHSA-fc5q-39xc-vjpf, ReDoS 
   - `/bingo` listens while the tab is visible and re-reads `/api/v1/bingo` at once (the viewer's own card stays behind that user-only endpoint). It closes the stream when the tab is hidden.
   - Admin › Bingo listens too.
   - The poll stays as a fallback, now every 60 s.
+
+## 59. Admin › Assistidos: "Visto em live" / "Visto fora da live" (2026-11-22)
+
+`/admin/assistidos` lists every watched title (WATCHED, or ARCHIVED with a watch date), newest first. Each row has a two-way selector: **Visto em live** / **Visto fora da live**. It's for fixing a title that was logged the wrong way.
+- **Saving.** A change saves immediately (`PUT /api/v1/admin/catalog/items/[id]/watched-place`, moderator). It is a compare-and-set on the title's version and is audited as `catalog.watchedPlace`. A failed save puts the old tag back and says why.
+- **Filters.** By tag (with counts), by kind, and a search (same rules as /assistidos).
+- **What changes.** Only the tag (`offStream`). The watch date, WatchEvents, sponsor and reviews stay. The live progress, member card and recap follow the tag.
+- **Reviews.** `reviewableItem` now also accepts any title with a watch date, so a title moved from "fora da live" to "em live" (no WatchEvent) keeps its reviews open.
+
+**Audit (same PR).** A new "high" advisory for `effect` (GHSA-7589-6fvf-x4pw, ReDoS in `Schema.TemplateLiteral`, versions ≤ 3.22.0) failed the full audit. `effect` only comes in through Prisma's CLI config loader (`@prisma/config`, which pins 3.20.0). An npm override now sets it to 3.22.5, the same major version; `prisma generate` and `prisma validate` work with it. The picomatch entry in `scripts/audit-allowlist.json` (§56) was removed, because the audit no longer reports that advisory. The allowlist is now empty.

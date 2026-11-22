@@ -15,10 +15,11 @@ export const metadata: Metadata = {
 
 const FILTERS = [
   { tipo: null, label: 'Todos', kind: undefined, off: undefined },
-  { tipo: 'filmes', label: 'Filmes', kind: 'MOVIE', off: undefined },
-  { tipo: 'series', label: 'Séries', kind: 'SERIES', off: undefined },
-  { tipo: 'franquias', label: 'Franquias', kind: 'FRANCHISE', off: undefined },
-  { tipo: 'animes', label: 'Animes', kind: 'ANIME', off: undefined },
+  // 2026-11-22: the kind tabs show only what was watched on stream; the rest is in the last tab
+  { tipo: 'filmes', label: 'Filmes', kind: 'MOVIE', off: false },
+  { tipo: 'series', label: 'Séries', kind: 'SERIES', off: false },
+  { tipo: 'franquias', label: 'Franquias', kind: 'FRANCHISE', off: false },
+  { tipo: 'animes', label: 'Animes', kind: 'ANIME', off: false },
   /** 2026-11-17: only what Iara watched on her own */
   { tipo: 'fora-da-live', label: 'Vistos fora da live', kind: undefined, off: true },
 ] as const;
@@ -51,8 +52,9 @@ function hrefFor(tipo: string | null, q: string): string {
  * Poster wall of fame (2026-11-11): the titles are a dense grid of posters, inside the page column,
  * under a "N títulos · X h juntos na live" headline; the title, kind and date show over the poster
  * on hover or keyboard focus (on touch screens the title is always on it).
- * Fora da live (2026-11-17): titles Iara watched off stream are on the same wall, after all the
- * ones watched on stream (tagged "Fora da live"), and have their own filter, "Vistos fora da live".
+ * Fora da live (2026-11-17): titles Iara watched off stream are on the same wall in "Todos", after
+ * all the ones watched on stream (tagged "Fora da live"), and have their own filter, "Vistos fora
+ * da live". Since 2026-11-22 the kind tabs (Filmes, Séries…) show only titles watched on stream.
  */
 export default async function AssistidosPage({ searchParams }: Props) {
   const params = await searchParams;
@@ -143,7 +145,9 @@ export default async function AssistidosPage({ searchParams }: Props) {
             'A Iara ainda não marcou nada que viu fora da live.'
           ) : (
             <>
-              {filter.kind ? 'Nada deste tipo foi assistido ainda.' : 'Nada foi assistido ainda.'}{' '}
+              {filter.kind
+                ? 'Nada deste tipo foi assistido na live ainda.'
+                : 'Nada foi assistido ainda.'}{' '}
               <Link href="/" className="underline">
                 Patrocine um filme
               </Link>{' '}

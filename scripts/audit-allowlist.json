@@ -1,11 +1,4 @@
 {
   "$comment": "Advisories `npm run audit:all` lets through while no fixed version exists. Dev tooling only (the production audit in CI stays strict: --omit=dev --audit-level=low). Each entry expires on its own; then CI fails again until it is fixed or renewed on purpose.",
-  "advisories": [
-    {
-      "id": "GHSA-fc5q-39xc-vjpf",
-      "package": "picomatch",
-      "why": "ReDoS on crafted extglob patterns; every version affected, no fix published (2026-11-17). Only reached through ESLint/Vitest/Tailwind tooling matching our own globs, never in the image.",
-      "expires": "2026-12-01"
-    }
-  ]
+  "advisories": []
 }

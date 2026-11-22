@@ -807,3 +807,7 @@ On 2026-11-17 a new "high" advisory for `picomatch` (GHSA-fc5q-39xc-vjpf, ReDoS 
 - **Reviews.** `reviewableItem` now also accepts any title with a watch date, so a title moved from "fora da live" to "em live" (no WatchEvent) keeps its reviews open.
 
 **Audit (same PR).** A new "high" advisory for `effect` (GHSA-7589-6fvf-x4pw, ReDoS in `Schema.TemplateLiteral`, versions ≤ 3.22.0) failed the full audit. `effect` only comes in through Prisma's CLI config loader (`@prisma/config`, which pins 3.20.0). An npm override now sets it to 3.22.5, the same major version; `prisma generate` and `prisma validate` work with it. The picomatch entry in `scripts/audit-allowlist.json` (§56) was removed, because the audit no longer reports that advisory. The allowlist is now empty.
+
+## 60. Assistidos: the kind tabs show only titles watched on stream (2026-11-22)
+
+On `/assistidos`, the Filmes, Séries, Franquias and Animes tabs now list only titles watched on stream. Titles tagged "Visto fora da live" appear only under "Vistos fora da live", and at the end of "Todos" (unchanged since §54). The headline count was already live-only.

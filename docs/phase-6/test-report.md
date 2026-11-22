@@ -429,3 +429,7 @@ Fix (PR "fix-prefetch-burst"): no prefetch on the header tabs, the phone bar, th
   - A title that isn't watched is refused.
   - The authz matrix has the new route.
 - e2e (`publishing.spec.ts`, desktop and phone): the selector moves a title to "fora da live" and back, the database follows, and the phone has no sideways scroll. `a11y-layout` and `csp` pass for the page.
+
+## Addendum — Assistidos kind tabs (2026-11-22)
+
+- e2e (`community.spec.ts`): the off-stream movie is not in Filmes, and Filmes shows no "Fora da live" tag. It still appears in "Todos" after the live titles and in "Vistos fora da live".

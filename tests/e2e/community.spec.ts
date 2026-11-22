@@ -440,6 +440,12 @@ test('assistidos: "Vistos fora da live" on the same wall after the live ones, an
     expect(tags.slice(tags.indexOf(true)).every(Boolean)).toBe(true); // no live one after
     await expect(wall.locator('.wf-seen__card', { hasText: title })).toHaveCount(1);
 
+    // the Filmes tab has only what was watched on stream (2026-11-22)
+    await page.goto('/assistidos?tipo=filmes');
+    await expect(page.locator('.wf-seen__card').first()).toBeVisible();
+    await expect(page.locator('.wf-seen__card', { hasText: title })).toHaveCount(0);
+    await expect(page.locator('.wf-seen__off')).toHaveCount(0);
+
     const filter = page.getByRole('navigation', { name: 'Filtrar por tipo' });
     await filter.getByRole('link', { name: 'Vistos fora da live' }).click();
     await expect(page).toHaveURL(/tipo=fora-da-live/);

@@ -418,3 +418,14 @@ Fix (PR "fix-prefetch-burst"): no prefetch on the header tabs, the phone bar, th
   - `dashboard.spec.ts`: "Abrir campanha" opens from Ações.
   - `bingo.spec.ts`: the viewer's page shows the bingo within 8 s of the moderator's call. The poll is 60 s, so only the live stream can do that.
   - `a11y-layout` and `csp` pass for the admin and Bingo pages.
+
+## Addendum — Admin › Assistidos tag selector (2026-11-22)
+
+- Integration (`community.test.ts`):
+  - Moving a title from live to off stream takes it out of the live progress, keeps its watch date and shows it on the off-stream side. Moving it back returns it.
+  - A stale version gets 409, and setting the same tag again is a no-op.
+  - Reviews stay open without a WatchEvent.
+  - Both changes are audited.
+  - A title that isn't watched is refused.
+  - The authz matrix has the new route.
+- e2e (`publishing.spec.ts`, desktop and phone): the selector moves a title to "fora da live" and back, the database follows, and the phone has no sideways scroll. `a11y-layout` and `csp` pass for the page.

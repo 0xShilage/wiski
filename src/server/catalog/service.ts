@@ -679,6 +679,53 @@ export async function registerWatchedOffStream(
 }
 
 /**
+ * "Visto em live" / "Visto fora da live" (2026-11-22): moves a watched title between the two
+ * tags, to fix one logged the wrong way. Only the tag changes: the watch date, any WatchEvents,
+ * sponsor and reviews stay; the live progress, member card and recap follow the tag. Watched
+ * means a watch date (WATCHED, or ARCHIVED after watching). Compare-and-set on the version.
+ */
+export async function setWatchedPlace(
+  ctx: Ctx,
+  id: string,
+  expectedVersion: number,
+  offStream: boolean,
+) {
+  const item = await db().catalogItem.findUnique({
+    where: { id },
+    select: { kind: true, status: true, version: true, watchedAt: true, offStream: true },
+  });
+  if (!item) throw Problems.notFound();
+  if (!item.watchedAt || (item.status !== 'WATCHED' && item.status !== 'ARCHIVED')) {
+    throw CatalogProblems.invalidState(
+      'Só títulos já assistidos têm “visto em live” ou “fora da live”.',
+    );
+  }
+  if (item.offStream === offStream) {
+    if (item.version !== expectedVersion) throw CatalogProblems.versionConflict(item.version);
+    return db().catalogItem.findUniqueOrThrow({ where: { id } });
+  }
+  return tx(item.kind, async (t) => {
+    const res = await t.catalogItem.updateMany({
+      where: { id, version: expectedVersion, watchedAt: { not: null } },
+      data: { offStream, version: { increment: 1 } },
+    });
+    if (res.count !== 1) throw CatalogProblems.versionConflict(item.version);
+    await audit(
+      {
+        action: 'catalog.watchedPlace',
+        actor: ctx.actor,
+        requestId: ctx.requestId,
+        targetType: 'CatalogItem',
+        targetId: id,
+        metadata: { kind: item.kind, offStream },
+      },
+      t,
+    );
+    return t.catalogItem.findUniqueOrThrow({ where: { id } });
+  });
+}
+
+/**
  * "Desmarcar assistido" (2026-11-09): the title goes back to where it was before it was marked
  * watched (its order or campaign back in the queue); see `uncompleteInTx`.
  */

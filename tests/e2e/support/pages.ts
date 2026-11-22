@@ -101,4 +101,6 @@ export const PAGES: PageCase[] = [
   { name: 'bingo-entrar', path: '/bingo' },
   { name: 'bingo', path: '/bingo', auth: 'user' },
   { name: 'bingo-admin', path: '/admin/bingo', auth: 'admin', shell: false },
+  // 2026-11-22: Visto em live / fora da live
+  { name: 'assistidos-admin', path: '/admin/assistidos', auth: 'admin', shell: false },
 ];

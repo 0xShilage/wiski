@@ -226,6 +226,64 @@ export async function watchedTitles(
     .map((r) => ({ ...toPublic(r, now), watchedAt: r.watchedAt!.toISOString() }));
 }
 
+/**
+ * Admin › Assistidos (2026-11-22): every watched title, newest first, with its tag ("Visto em
+ * live" / "Visto fora da live") and version, to move it between the two. Filters: a tag, a kind,
+ * a search (same rules as /assistidos). Counts per tag for the filter chips.
+ */
+export async function adminWatched(
+  opts: {
+    offStream?: boolean | undefined;
+    kind?: ItemKind | undefined;
+    query?: string | null;
+    limit?: number;
+  } = {},
+  now = new Date(),
+) {
+  const terms = searchTerms(opts.query);
+  const limit = opts.limit ?? 300;
+  const base = {
+    status: { in: ['WATCHED' as const, 'ARCHIVED' as const] },
+    watchedAt: { not: null },
+  };
+  const [rows, counts] = await Promise.all([
+    db().catalogItem.findMany({
+      where: {
+        ...base,
+        ...(opts.kind ? { kind: opts.kind } : {}),
+        ...(opts.offStream === undefined ? {} : { offStream: opts.offStream }),
+      },
+      orderBy: [{ watchedAt: 'desc' }, { id: 'asc' }],
+      take: terms.length ? WATCHED_SEARCH_CAP : limit,
+      include: publicInclude,
+    }),
+    db().catalogItem.groupBy({ by: ['offStream'], where: base, _count: { _all: true } }),
+  ]);
+  const count = (off: boolean) => counts.find((c) => c.offStream === off)?._count._all ?? 0;
+  return {
+    counts: { live: count(false), off: count(true) },
+    items: rows
+      .filter((r) => matchesSearch([r.title, r.originalTitle], terms))
+      .slice(0, limit)
+      .map((r) => {
+        const p = toPublic(r, now);
+        return {
+          id: r.id,
+          kind: r.kind,
+          slug: r.slug,
+          title: r.title,
+          year: r.year,
+          poster: p.poster,
+          watchedAt: r.watchedAt!.toISOString(),
+          offStream: r.offStream,
+          version: r.version,
+          archived: r.status === 'ARCHIVED',
+        };
+      }),
+  };
+}
+export type AdminWatched = Awaited<ReturnType<typeof adminWatched>>;
+
 export async function getPublicCampaign(id: string, now = new Date()) {
   const c = await db().campaign.findUnique({
     where: { id },

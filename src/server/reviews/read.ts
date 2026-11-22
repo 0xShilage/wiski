@@ -131,14 +131,16 @@ async function page(
 
 /**
  * Items whose reviews are public: watched (WATCHED, or ARCHIVED after watching) on stream, or —
- * since 2026-11-17 — watched by Iara off stream ("fora da live", which has no WatchEvent).
+ * since 2026-11-17 — watched by Iara off stream ("fora da live", which has no WatchEvent), or
+ * with a watch date at all (a title moved between the two tags, 2026-11-22).
  */
 export async function reviewableItem(itemId: string) {
   const item = await db().catalogItem.findFirst({
     where: {
       id: itemId,
       status: { in: ['WATCHED', 'ARCHIVED'] },
-      OR: [{ watchEvents: { some: {} } }, { offStream: true }],
+      // a watch date covers a title moved between "em live" and "fora da live" (2026-11-22)
+      OR: [{ watchEvents: { some: {} } }, { offStream: true }, { watchedAt: { not: null } }],
     },
     select: { id: true, kind: true, slug: true, title: true },
   });

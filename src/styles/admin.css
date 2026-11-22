@@ -405,6 +405,180 @@
     gap: 8px;
     align-items: center;
   }
+  /* Admin › Assistidos (2026-11-22): watched titles with the "em live / fora da live" selector */
+  .wf-watched-admin {
+    display: grid;
+    gap: 14px;
+  }
+  .wf-watched-admin .wf-seg {
+    justify-self: start;
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+  .wf-watched-admin .wf-seg a {
+    white-space: nowrap;
+  }
+  @media (max-width: 640px) {
+    .wf-watched-admin .wf-seg {
+      border-radius: 20px;
+    }
+  }
+  .wf-watched-admin__n {
+    margin-left: 6px;
+    opacity: 0.7;
+    font-variant-numeric: tabular-nums;
+  }
+  .wf-watched-admin__bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 16px;
+  }
+  .wf-watched-admin__kinds {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .wf-watched-admin__kinds a {
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 14px;
+    border: 1px solid rgb(169 157 224 / 0.3);
+    color: var(--color-lilac);
+  }
+  .wf-watched-admin__kinds a[aria-current='page'] {
+    background: var(--color-lavender);
+    border-color: var(--color-lavender);
+    color: var(--color-ink);
+  }
+  .wf-watched-admin__search {
+    display: flex;
+    gap: 8px;
+  }
+  .wf-watched-admin__search .wf-input {
+    width: min(260px, 60vw);
+  }
+  .wf-watched-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 6px;
+  }
+  .wf-watched-row {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    grid-template-areas:
+      'poster info place'
+      'poster info note';
+    align-items: center;
+    gap: 2px 14px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    background: rgb(36 26 51 / 0.7);
+    border: 1px solid rgb(79 61 114 / 0.9);
+  }
+  .wf-watched-row__poster {
+    grid-area: poster;
+    width: 48px;
+    aspect-ratio: 2 / 3;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--color-surface-2);
+  }
+  .wf-watched-row__poster img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .wf-watched-row__info {
+    grid-area: info;
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+  .wf-watched-row__title {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+  .wf-watched-row__meta {
+    font-size: 13px;
+    color: var(--fg-70);
+  }
+  .wf-watched-row__note {
+    grid-area: note;
+    justify-self: end;
+    font-size: 13px;
+    min-height: 1em;
+  }
+  .wf-watched-row__ok {
+    color: #b8f0c8;
+  }
+  .wf-watched-row__err {
+    color: #ffb4b4;
+  }
+  /* the two-way selector */
+  .wf-place {
+    grid-area: place;
+    display: inline-flex;
+    margin: 0;
+    padding: 3px;
+    border: 1px solid rgb(169 157 224 / 0.35);
+    border-radius: 999px;
+    background: rgb(26 18 38 / 0.8);
+  }
+  .wf-place__opt {
+    position: relative;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 14px;
+    white-space: nowrap;
+    color: var(--color-lilac);
+    cursor: pointer;
+  }
+  .wf-place__opt input {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .wf-place__opt.is-on {
+    background: var(--color-lavender);
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+  .wf-place__opt.is-on.is-off {
+    background: #f2a7dd;
+  }
+  .wf-place__opt:has(input:focus-visible) {
+    outline: 2px solid var(--color-lavender);
+    outline-offset: 2px;
+  }
+  .wf-place:disabled {
+    opacity: 0.6;
+  }
+  @media (max-width: 640px) {
+    .wf-watched-row {
+      grid-template-columns: 40px minmax(0, 1fr);
+      grid-template-areas:
+        'poster info'
+        'place place'
+        'note note';
+      gap: 8px 12px;
+    }
+    .wf-watched-row__poster {
+      width: 40px;
+    }
+    .wf-place {
+      justify-self: start;
+    }
+    .wf-watched-row__note {
+      justify-self: start;
+    }
+  }
+
   /* Ações (2026-11-18): the title's actions at the top of the editor, each opening in place */
   .wf-acts {
     margin: 16px 0 22px;
